@@ -642,10 +642,18 @@ documento.
 
 `public/narrativa/index.html`: una página estática autocontenida que
 cuenta el sistema entero —el problema, las ocho habilidades, el bucle del
-día, el elogio como control, la economía con sus cifras medidas, la
-pantalla de la peque, las temporadas, los siete principios, las seis
-referencias, las ausencias deliberadas y una comparativa con BusyKid,
-Greenlight, Homey, OurHome, Habitica y Sweepy.
+día, el elogio como control, las dos monedas y la curva de nivel, los
+topes por persona, la economía con sus cifras medidas, la pantalla de la
+peque, las temporadas, los siete principios, las seis referencias, las
+ausencias deliberadas y una comparativa con BusyKid, Greenlight, Homey,
+OurHome, Habitica y Sweepy.
+
+**Todas sus cifras salen de ejecutar `src/lib/economia.js`, no de citarlo
+de memoria.** Se hizo así después de meter la pata: la primera versión del
+gráfico daba como objetivo las cadencias ORIGINALES (2/7/30/12) en vez de
+las vigentes (15/30/45/60). Si se vuelven a tocar los supuestos, hay que
+volver a ejecutar el modelo y actualizar la página; no hay test que las
+ate, y ese es su punto débil conocido.
 
 Vive en `public/` y **no** en el bundle a propósito: no necesita React ni
 sesión, así que se puede pasar a alguien de fuera sin que entre en el
