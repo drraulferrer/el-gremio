@@ -9,9 +9,32 @@ import { PRINCIPIOS, REFERENCIAS, LIMITE_HONESTO } from '../lib/evidencia'
 // retirarlos. Tenerlo a un toque evita que la duda acabe en abandono.
 // ------------------------------------------------------------------
 
+// La exposición larga vive en public/narrativa/, fuera del bundle: es una
+// página estática que no necesita React ni sesión, y así se puede pasar a
+// alguien de fuera sin que entre en el gremio. La URL se calcula desde
+// BASE_URL, igual que el QR, para que valga en dev y bajo /el-gremio/.
+const URL_NARRATIVA = (import.meta.env.BASE_URL || '/') + 'narrativa/'
+
 export default function Evidencia() {
   return (
     <div>
+      <div className="titulo-seccion">La versión larga</div>
+      <a
+        className="carta"
+        href={URL_NARRATIVA}
+        target="_blank"
+        rel="noopener noreferrer"
+        style={{ display: 'block', textDecoration: 'none', color: 'inherit' }}
+      >
+        <strong>📖 Cómo funciona El Gremio, entero</strong>
+        <div className="suave">
+          Exposición completa: el problema que resuelve, las ocho habilidades, el día a
+          día, la economía y sus cifras, la pantalla de la peque, las temporadas, las
+          seis referencias y en qué se separa de las apps de tareas al uso. Se abre en
+          otra pestaña y se puede compartir con quien no use la app.
+        </div>
+      </a>
+
       <div className="titulo-seccion">En qué se apoya cada decisión</div>
 
       {PRINCIPIOS.map((p) => (
