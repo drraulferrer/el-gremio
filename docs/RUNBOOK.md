@@ -207,6 +207,33 @@ funcionando como salida de emergencia.
 
 ---
 
+## 6b. Convención de migraciones (importante)
+
+**Cada cambio de esquema se escribe DOS veces**, y las dos son obligatorias:
+
+1. En `schema.sql`, en su sitio dentro de la tabla o sección que toque.
+   Ese fichero es la fuente de verdad completa: quien clone el repo y lo
+   ejecute entero debe obtener una base idéntica a la de producción.
+2. En un fichero `migracion-00N-<tema>.sql` aparte, idempotente, para las
+   bases que ya existen y no se pueden recrear.
+
+Si solo se escribe la migración, un proyecto limpio nace roto. Si solo se
+escribe en `schema.sql`, la base de producción se queda atrás. Las dos.
+
+Migraciones hasta hoy:
+
+| Fichero | Qué añade | ¿En schema.sql? |
+|---|---|---|
+| `migracion-001-mensual.sql` | Frecuencia `mensual` en `challenges` | Sí |
+| `migracion-002-produccion.sql` | `app_logs`, `rate_limits`, `rate_guard`, `health()` | Sí |
+| `migracion-003-miembros.sql` | `profiles.active` e índice | Sí |
+
+Comprobación rápida de que la convención se ha respetado:
+
+```bash
+grep -c "active boolean" schema.sql   # profiles, challenges y rewards → 3
+```
+
 ## 7. Rotación de credenciales
 
 Ver [ROTACION-SECRETOS.md](ROTACION-SECRETOS.md). Resumen: cada 90 días,

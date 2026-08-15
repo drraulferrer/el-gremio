@@ -1,5 +1,9 @@
 # El Gremio
 
+> ¿Retomando el proyecto en una sesión nueva? Empieza por
+> **[ARRANQUE-SESION.md](ARRANQUE-SESION.md)**: estado actual, decisiones
+> tomadas, trampas conocidas y pendientes.
+
 Webapp de misiones familiares con XP, niveles, monedas, premios reales,
 insignias y una meta cooperativa. Cuatro perfiles, tres roles y una sola
 cuenta para toda la casa. Sin ranking entre miembros: la única comparación

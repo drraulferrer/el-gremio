@@ -1,0 +1,251 @@
+# Arranque de sesión · El Gremio
+
+Documento de continuidad. Si abres una sesión nueva sobre este proyecto,
+lee esto primero: dice dónde está todo, qué está hecho, qué falta y qué
+trampas tiene. Última actualización: **15 de agosto de 2026**.
+
+---
+
+## 1. Qué es
+
+Webapp de misiones familiares con XP, niveles, monedas, premios reales,
+insignias y una meta cooperativa, para una familia de cuatro (dos adultos,
+una junior de 11 años y una peque de 3). La peque tiene **pantalla propia**
+adaptada a su edad. Sin ranking entre miembros: la única comparación es la
+meta compartida.
+
+Nació de un prototipo que llegó en `~/Downloads/files.zip` el 15-ago-2026
+(Vite + React + Supabase, 2.371 líneas) y se amplió ese mismo día con el
+modo peque, la capa de producción y la gestión de miembros.
+
+---
+
+## 2. Estado: en producción
+
+| Cosa | Dónde |
+|---|---|
+| Web | https://drraulferrer.github.io/el-gremio/ |
+| Repo (público) | https://github.com/drraulferrer/el-gremio |
+| Código local | `~/el-gremio` |
+| Supabase | proyecto `chfbrawsoulfiywiqhpe`, Postgres 17.6, región EU |
+| Versión publicada | 1.0.0 (`1385d6b`), etiqueta `deploy-2026-08-15-0813` |
+| Tests | 40, en 4 ficheros, todos en verde |
+
+Comprobar que sigue vivo:
+
+```bash
+cd ~/el-gremio && npm run health
+```
+
+Debe salir 🟢 en `web` y en `supabase`. Si `web` falla, mira GitHub Pages;
+si falla `supabase`, casi seguro que el proyecto está pausado (ver §7).
+
+**El esquema de la base está completo y migrado**: `schema.sql` ejecutado el
+15-ago y `migracion-003-miembros.sql` aplicada después, confirmada por el
+usuario.
+
+---
+
+## 3. Lo que hay que saber para no romper nada
+
+### El despliegue no usa GitHub Actions
+
+El token de `gh` de esta máquina tiene scopes `gist, read:org, repo`, **sin
+`workflow`**: no puede subir ficheros de Actions. Por eso se compila en
+local y se publica en la rama `gh-pages`:
+
+```bash
+npm run deploy                              # compila, publica, etiqueta
+npm run rollback -- --lista                 # ver versiones
+npm run rollback -- deploy-2026-08-15-0813  # volver a una
+```
+
+Si algún día hace falta CI/CD: `gh auth refresh -s workflow` (interactivo,
+lo tiene que hacer el usuario) y montar el workflow. Los scripts seguirán
+sirviendo como salida de emergencia.
+
+### El repo tiene que ser público
+
+GitHub Pages en repositorio privado exige plan de pago. Es seguro porque el
+código **no contiene ni un dato familiar**: nombres, emojis y colores se
+introducen en el asistente y viven en Supabase con RLS. Mantener esa
+propiedad: nunca meter nombres reales en el repo, ni en fixtures ni en
+ejemplos de documentación.
+
+### Cada cambio de esquema se escribe dos veces
+
+En `schema.sql` (fuente de verdad completa, para bases nuevas) **y** en un
+`migracion-00N-<tema>.sql` idempotente (para la base que ya existe). Las
+dos, siempre. Detalle en `docs/RUNBOOK.md` §6b.
+
+### Se puede trabajar sin Supabase
+
+```bash
+npm run dev:demo
+```
+
+Backend simulado en `localStorage` (`src/lib/fakeBackend.js`). Sirve para
+desarrollar y para verificar la interfaz en un navegador sin tocar datos
+reales. **Cuidado**: si añades una columna con `default` en el esquema,
+hay que replicarla en `DEFECTOS_TABLA` del backend simulado. Ya pasó una
+vez: sin el `status` por defecto, las estrellas de la peque se insertaban
+sin estado y no se aprobaban nunca.
+
+---
+
+## 4. Arquitectura y decisiones, con su porqué
+
+- **Una sola cuenta de autenticación para toda la familia**, perfiles
+  internos estilo consola. Las niñas no necesitan ni deben tener cuentas.
+- **El PIN parental no es seguridad**: SHA-256 en cliente, cerrojo doméstico
+  dentro de la sesión. Documentado como tal; no cambiar el discurso.
+- **La clave `anon`/`publishable` es pública por diseño** y va en el bundle.
+  Lo que protege los datos es RLS. La `service_role` no sale del panel.
+- **La peque recibe la estrella al momento**, sin validación: a los tres
+  años la recompensa diferida no funciona. Es una excepción deliberada, no
+  un descuido.
+- **Su pantalla rompe a propósito con el diseño del resto** (papel crema y
+  colores saturados frente al tablero nocturno). No busca combinar, busca
+  que reconozca su sitio al encenderlo.
+- **Siempre debe quedar una persona adulta activa.** Sin esa invariante
+  nadie valida y el gremio se queda sin salida desde la propia app.
+- **Las bajas son retiradas, no borrados**: borrar arrastra en cascada
+  historial, canjes e insignias, y con ellos la XP aportada a metas ya
+  cerradas.
+- **Sin servidor propio**: todo lo que en una arquitectura clásica viviría
+  en el backend (límite de ritmo, health, retención) está en Postgres, que
+  es el único punto que no se puede saltar desde la consola del navegador.
+
+---
+
+## 5. Mapa del código
+
+```
+schema.sql                 Fuente de verdad del esquema (tablas, RLS, funciones, realtime)
+migracion-00N-*.sql        Migraciones idempotentes para bases ya creadas
+src/lib/supabase.js        Cliente, economía, insignias, plantillas, traducción de errores
+src/lib/acciones.js        Acciones de dominio con registro y mensajes presentables
+src/lib/miembros.js        Reglas de alta, edición y baja de perfiles
+src/lib/tareas.js          Catálogo doméstico por roles, sin puntos
+src/lib/log.js             Registro JSON con redacción de credenciales
+src/lib/monitoring.js      Captura y agrupación de errores; adaptador de Sentry
+src/lib/flags.js           Banderas de funcionalidad
+src/lib/fakeBackend.js     Backend simulado del modo demo
+src/screens/               Login, Onboarding, ProfilePicker, Home, KidHome,
+                           ParentPanel, Ajustes (Miembros + Estado)
+scripts/                   deploy, rollback, publicar, health-check, secrets-check
+supabase/functions/health/ Edge Function de salud (escrita, NO desplegada)
+docs/RUNBOOK.md            Diagnóstico, logs, ritmo, health, rollback, migraciones
+docs/ROTACION-SECRETOS.md  Calendario y procedimiento de rotación
+docs/PROMPT-SUPABASE.md    Instrucciones para recrear el backend con un asistente
+SPEC.md                    Especificación; fuente de verdad del producto
+```
+
+---
+
+## 6. Qué está hecho y verificado
+
+Verificado **en navegador**, no solo compilando:
+
+- Flujo completo de la peque: un toque → completion aprobada al momento,
+  XP y monedas abonadas, celebración, contador de estrellas.
+- Salida por pulsación mantenida (1,5 s) con barra de progreso.
+- Panel parental con PIN, validación de misiones, Estado del sistema.
+- Miembros: alta, rechazo de nombre duplicado, retirada, sección de
+  retirados, y el guardarraíl del último adulto (la base no cambió).
+- Un dispositivo que recordaba un perfil retirado vuelve al selector.
+- Build servida bajo `/el-gremio/` con las rutas correctas.
+- RLS real: escritura anónima rechazada con `42501`.
+
+---
+
+## 7. Trampas conocidas
+
+- **El plan gratuito de Supabase pausa el proyecto tras 7 días sin
+  actividad.** Es el fallo más probable de todos. Se reactiva a mano desde
+  el panel, tarda un par de minutos, y no hay forma de automatizarlo.
+- **Un rollback de frontend no deshace una migración de esquema.** Si el
+  problema es del esquema, hay que revertirlo a mano en el SQL Editor.
+- **`purge_logs(30)` no se ejecuta solo.** Correrlo cada pocos meses.
+- **Los logs se envían por lotes cada 5 s**; un cierre brusco puede perder
+  los últimos, aunque hay vaciado en `pagehide`.
+- **Sin modo offline.** Sin red la app no funciona.
+- Los emoji del selector de miembros son una lista fija en `EMOJIS`
+  (`src/lib/supabase.js`); si alguien quiere otro, hay que añadirlo ahí.
+
+---
+
+## 8. Pendientes
+
+### Inmediato, lo hace la familia
+
+- **Crear la cuenta familiar** desde el móvil y fundar el gremio (una sola
+  cuenta, un email y una contraseña para todos). No lo puede hacer un
+  agente: implica registrar cuenta y teclear contraseña.
+- Instalar la app en cada dispositivo con "Añadir a pantalla de inicio".
+
+### Escrito pero no activado
+
+- **Edge Function de health**: está en `supabase/functions/health/`, sin
+  desplegar. Requiere la CLI de Supabase. Solo hace falta si se quiere un
+  monitor externo tipo UptimeRobot.
+- **Sentry**: adaptador listo en `monitoring.js`, apagado. Sin
+  `VITE_SENTRY_DSN` no se carga nada ni sale un byte hacia terceros.
+  Instrucciones en `docs/RUNBOOK.md` §3.
+
+### Huecos reales del producto
+
+- **No hay pantalla para cambiar el PIN parental.** Hoy se hace por SQL
+  (procedimiento en `docs/ROTACION-SECRETOS.md`). Es el hueco más molesto.
+- **Cuarto rol** (un adolescente que ya no encaja en "junior"): implica
+  cambiar el `check` de `profiles.role` y decidir su comportamiento.
+- **Rotación de credenciales**: fijada el 15-ago-2026, toca el **13 de
+  noviembre de 2026**. `npm run secrets:check` avisa.
+
+### Backlog de producto (SPEC §9, por valor estimado)
+
+1. Rachas con "protector de racha" para la junior.
+2. Resumen semanal del gremio (XP, misiones, gráfico simple).
+3. Rotación mensual sugerida de misiones desde la biblioteca.
+4. Foto opcional como evidencia al pedir una misión.
+5. Notificaciones push (requiere service worker).
+6. Modo offline básico con cola de peticiones.
+7. Exportación CSV del historial.
+8. Ajuste estacional de dificultad (vacaciones frente a curso).
+
+El riesgo real del producto **no es técnico sino motivacional**: el decaimiento
+de la novedad hacia la semana 3 o 4. Las contramedidas ya integradas son la
+validación en un toque, la meta cooperativa renovable, los premios reales y
+las plantillas para rotar sin esfuerzo. Si en octubre la app está abandonada,
+el sitio por donde atacar es ese, no el rendimiento.
+
+---
+
+## 9. Credenciales
+
+`~/el-gremio/.env`, **fuera de git** (verificado con `git check-ignore`).
+Contiene la URL del proyecto, la clave pública, la fecha de rotación y la
+URL publicada para `npm run health`.
+
+Si se pierde ese fichero: los dos valores se recuperan del panel de Supabase
+(*Project Settings → API*). Nada más es secreto en este proyecto.
+
+---
+
+## 10. Arrancar a trabajar
+
+```bash
+cd ~/el-gremio
+npm install          # si es una máquina nueva
+npm test             # 40 tests, deben pasar
+npm run dev:demo     # trastear sin tocar producción
+npm run dev          # contra la Supabase real
+```
+
+Antes de dar nada por terminado:
+
+```bash
+npm run verify       # tests + build + revisión de credenciales
+npm run deploy
+npm run health
+```
