@@ -163,49 +163,12 @@ export const BADGES = [
   { code: 'gremio', name: 'Meta del gremio', emoji: '🏰', desc: 'Lograsteis una meta familiar juntos', test: () => false }
 ]
 
-// ------------------------------------------------------------------
-// Plantillas de misiones por edad (editables después)
-// ------------------------------------------------------------------
+// Las plantillas de misiones viven ahora en src/lib/tareas.js (por
+// habilidad) y las de premios en src/lib/premios.js (por nivel). Aquí
+// solo queda la meta cooperativa de arranque.
 
-export const TEMPLATES = {
-  // Para la peque: acciones que reconoce por el dibujo, no por el texto.
-  // Seis como mucho: su pantalla enseña botones enormes y más de seis
-  // dejan de caber sin hacer scroll, que a los tres años es una barrera.
-  peque: [
-    { title: 'Recoger los juguetes', emoji: '🧸', xp: 10, coins: 5, frequency: 'diario' },
-    { title: 'Lavarse los dientes', emoji: '🪥', xp: 10, coins: 5, frequency: 'diario' },
-    { title: 'Ayudar a poner la mesa', emoji: '🍽️', xp: 10, coins: 5, frequency: 'diario' },
-    { title: 'Vestirse sola', emoji: '👕', xp: 15, coins: 5, frequency: 'diario' },
-    { title: 'Llevar la ropa sucia al cesto', emoji: '🧺', xp: 10, coins: 5, frequency: 'diario' },
-    { title: 'Guardar los cuentos', emoji: '📚', xp: 10, coins: 5, frequency: 'diario' }
-  ],
-  junior: [
-    { title: 'Leer 20 minutos', emoji: '📚', xp: 20, coins: 10, frequency: 'diario' },
-    { title: 'Deberes sin recordatorios', emoji: '✏️', xp: 25, coins: 10, frequency: 'diario' },
-    { title: 'Preparar la mochila', emoji: '🎒', xp: 10, coins: 5, frequency: 'diario' },
-    { title: 'Poner o quitar la mesa', emoji: '🍽️', xp: 10, coins: 5, frequency: 'diario' },
-    { title: 'Ordenar tu cuarto', emoji: '🧹', xp: 30, coins: 15, frequency: 'semanal' }
-  ],
-  adulto: [
-    { title: 'Mover el cuerpo 30 minutos', emoji: '🏃', xp: 25, coins: 10, frequency: 'diario' },
-    { title: 'Cena sin móviles', emoji: '📵', xp: 15, coins: 10, frequency: 'diario' },
-    { title: 'Leer antes de dormir', emoji: '📖', xp: 15, coins: 5, frequency: 'diario' },
-    { title: 'Planificar el menú semanal', emoji: '🗓️', xp: 30, coins: 15, frequency: 'semanal' }
-  ]
-}
-
-// Tienda inicial. Funcionan mejor los premios que son planes, no objetos:
-// se disfrutan juntos y no se acumulan en un cajón.
-export const PREMIOS_INICIALES = [
-  { title: 'Elegir la peli del viernes', emoji: '🎬', cost: 60 },
-  { title: 'Postre especial', emoji: '🧁', cost: 40 },
-  { title: 'Media hora más despierta', emoji: '🌙', cost: 80 },
-  { title: 'Salida al parque grande', emoji: '🏞️', cost: 120 },
-  { title: 'Noche de juegos de mesa', emoji: '🎲', cost: 100 }
-]
-
-// Meta cooperativa de arranque: corta a propósito, para que el gremio vea
-// el primer cierre en semana y media y no en el mes tres.
+// Meta corta a propósito: el gremio debería ver su primer cierre en
+// semana y media, no en el mes tres.
 export const META_INICIAL = { title: 'Noche de pizza y peli', emoji: '🍕', target_xp: 600 }
 
 export const ROLE_LABEL = { adulto: 'Adulto', junior: 'Junior', peque: 'Peque' }

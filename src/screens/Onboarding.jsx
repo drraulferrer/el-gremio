@@ -1,15 +1,7 @@
 import { useState } from 'react'
-import {
-  supabase,
-  hashPin,
-  TEMPLATES,
-  EMOJIS,
-  COLORS,
-  ROLE_LABEL,
-  PREMIOS_INICIALES,
-  META_INICIAL,
-  mensajeDeError
-} from '../lib/supabase'
+import { supabase, hashPin, EMOJIS, COLORS, ROLE_LABEL, META_INICIAL, mensajeDeError } from '../lib/supabase'
+import { misionesDeArranque } from '../lib/tareas'
+import { PREMIOS_INICIALES } from '../lib/premios'
 import { log } from '../lib/log'
 import { MAX_PERFILES } from '../lib/miembros'
 
@@ -71,7 +63,7 @@ export default function Onboarding({ onDone }) {
 
       if (conPlantillas) {
         const retos = perfiles.flatMap((p) =>
-          (TEMPLATES[p.role] || []).map((t) => ({ ...t, family_id: fam.id, profile_id: p.id }))
+          misionesDeArranque(p.role).map((t) => ({ ...t, family_id: fam.id, profile_id: p.id }))
         )
         if (retos.length) {
           const { error: e3 } = await supabase.from('challenges').insert(retos)
@@ -199,8 +191,8 @@ export default function Onboarding({ onDone }) {
       <label className="fila carta" style={{ cursor: 'pointer' }}>
         <input type="checkbox" style={{ width: 22, height: 22 }} checked={conPlantillas} onChange={(e) => setConPlantillas(e.target.checked)} />
         <span className="crece">
-          Empezar con contenido: misiones por edad, cinco premios de ejemplo y una primera meta del gremio. Todo
-          editable o borrable después.
+          Empezar con contenido: cinco misiones por persona, cada una de una habilidad distinta, siete premios y
+          una primera meta del gremio. Todo editable o borrable después.
         </span>
       </label>
 

@@ -29,7 +29,7 @@ modo peque, la capa de producción y la gestión de miembros.
 | Código local | `~/el-gremio` |
 | Supabase | proyecto `chfbrawsoulfiywiqhpe`, Postgres 17.6, región EU |
 | Versión publicada | ver `npm run health`; cada despliegue deja etiqueta `deploy-AAAA-MM-DD-HHMM` |
-| Tests | 51, en 5 ficheros, todos en verde |
+| Tests | 91, en 7 ficheros, todos en verde |
 
 Comprobar que sigue vivo:
 
@@ -115,6 +115,16 @@ sin estado y no se aprobaban nunca.
 - **Sin servidor propio**: todo lo que en una arquitectura clásica viviría
   en el backend (límite de ritmo, health, retención) está en Postgres, que
   es el único punto que no se puede saltar desde la consola del navegador.
+- **Habilidades, no tareas** (agosto 2026). Cada misión entrena una de ocho
+  competencias. No es cosmética: es lo que separa un sistema que aguanta de
+  uno que se apaga en la semana tres. Razonado en
+  `docs/FUNDAMENTO-CIENTIFICO.md` con seis referencias.
+- **El elogio específico no puede costar un toque más.** Cada sugerencia ES
+  el botón de validar. Si alguna vez se convierte en un formulario aparte,
+  se dejará de validar y el sistema entero se cae.
+- **Los títulos del catálogo están en infinitivo**, así que toda plantilla
+  de elogio debe encajar con un infinitivo. Hay un test que recorre el
+  catálogo entero buscando construcciones tipo "Has hacer la cama".
 
 ---
 
@@ -125,6 +135,10 @@ schema.sql                 Fuente de verdad del esquema (tablas, RLS, funciones,
 migracion-00N-*.sql        Migraciones idempotentes para bases ya creadas
 src/lib/supabase.js        Cliente, economía, insignias, plantillas, traducción de errores
 src/lib/acciones.js        Acciones de dominio con registro y mensajes presentables
+src/lib/habilidades.js     Las 8 competencias, progreso y rangos
+src/lib/elogio.js          Sugerencias de elogio específico y rachas
+src/lib/premios.js         Catálogo de recompensas por nivel
+src/lib/evidencia.js       Principios y referencias
 src/lib/miembros.js        Reglas de alta, edición y baja de perfiles
 src/lib/pin.js             Reglas del PIN parental
 src/lib/tareas.js          Catálogo doméstico por roles, sin puntos
@@ -132,13 +146,15 @@ src/lib/log.js             Registro JSON con redacción de credenciales
 src/lib/monitoring.js      Captura y agrupación de errores; adaptador de Sentry
 src/lib/flags.js           Banderas de funcionalidad
 src/lib/fakeBackend.js     Backend simulado del modo demo
-src/screens/               Login, Onboarding, ProfilePicker, Home, KidHome, ParentPanel,
-                           Ajustes (Miembros · PIN · Dispositivos · Estado)
+src/screens/               Login, Onboarding, Tutorial, ProfilePicker, Home, KidHome,
+                           ParentPanel, Ajustes (Miembros · PIN · Dispositivos ·
+                           Evidencia · Estado)
 scripts/                   deploy, rollback, publicar, health-check, secrets-check, qr
 supabase/functions/health/ Edge Function de salud (escrita, NO desplegada)
 docs/RUNBOOK.md            Diagnóstico, logs, ritmo, health, rollback, migraciones
 docs/ROTACION-SECRETOS.md  Calendario y procedimiento de rotación
 docs/PROMPT-SUPABASE.md    Instrucciones para recrear el backend con un asistente
+docs/FUNDAMENTO-CIENTIFICO.md  Por qué el sistema es así, con referencias
 SPEC.md                    Especificación; fuente de verdad del producto
 ```
 
@@ -261,7 +277,7 @@ Si se pierde ese fichero: los dos valores se recuperan del panel de Supabase
 ```bash
 cd ~/el-gremio
 npm install          # si es una máquina nueva
-npm test             # 51 tests, deben pasar
+npm test             # 91 tests, deben pasar
 npm run dev:demo     # trastear sin tocar producción
 npm run dev          # contra la Supabase real
 ```

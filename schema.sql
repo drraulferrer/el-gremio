@@ -41,6 +41,12 @@ create table if not exists public.challenges (
   xp integer not null default 10,
   coins integer not null default 5,
   frequency text not null default 'diario' check (frequency in ('diario','semanal','mensual','unico')),
+  -- Habilidad que entrena esta misión. El sistema no premia tareas,
+  -- entrena competencias: ver src/lib/habilidades.js.
+  skill text check (skill is null or skill in (
+    'hogar','salud','aprendizaje','amabilidad',
+    'responsabilidad','cooperacion','creatividad','autonomia'
+  )),
   active boolean not null default true,
   created_at timestamptz not null default now()
 );
@@ -53,6 +59,9 @@ create table if not exists public.completions (
   status text not null default 'pendiente' check (status in ('pendiente','aprobado','rechazado')),
   xp integer not null,
   coins integer not null,
+  -- Elogio concreto de quien valida. Es el componente con más respaldo
+  -- del sistema; el "muy bien" genérico pierde efecto por repetición.
+  praise text,
   requested_at timestamptz not null default now(),
   resolved_at timestamptz
 );
@@ -63,6 +72,9 @@ create table if not exists public.rewards (
   title text not null,
   emoji text not null default '🎁',
   cost integer not null default 50,
+  -- 1 decidir · 2 vivir · 3 celebrar. Los de nivel 1 son los que mejor
+  -- sostienen el hábito porque premian con autonomía, no con cosas.
+  tier integer not null default 2 check (tier between 1 and 3),
   active boolean not null default true,
   created_at timestamptz not null default now()
 );
@@ -104,6 +116,7 @@ create index if not exists idx_redemptions_family_status on public.redemptions (
 create index if not exists idx_profiles_family on public.profiles (family_id);
 create index if not exists idx_profiles_family_active on public.profiles (family_id, active);
 create index if not exists idx_challenges_family on public.challenges (family_id);
+create index if not exists idx_challenges_skill on public.challenges (family_id, skill);
 
 -- ---------------------------------------------------------------------
 -- Seguridad por filas (RLS): todo queda aislado por familia.
@@ -143,7 +156,11 @@ end $$;
 -- ---------------------------------------------------------------------
 
 -- Aprobar o rechazar una misión pendiente. Al aprobar, abona XP y monedas.
-create or replace function public.resolve_completion(c_id uuid, new_status text)
+create or replace function public.resolve_completion(
+  c_id uuid,
+  new_status text,
+  praise_text text default null
+)
 returns void
 language plpgsql
 security invoker
@@ -155,7 +172,13 @@ begin
   end if;
   select * into c from public.completions where id = c_id and status = 'pendiente' for update;
   if not found then return; end if;
-  update public.completions set status = new_status, resolved_at = now() where id = c_id;
+
+  update public.completions
+    set status = new_status,
+        resolved_at = now(),
+        praise = nullif(btrim(coalesce(praise_text, '')), '')
+    where id = c_id;
+
   if new_status = 'aprobado' then
     update public.profiles set xp = xp + c.xp, coins = coins + c.coins where id = c.profile_id;
   end if;

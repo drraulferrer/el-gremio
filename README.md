@@ -37,6 +37,34 @@ puede reincorporar cuando sea. Borrar de verdad solo se ofrece sobre quien
 ya está retirado, exige escribir su nombre y avisa con números de cuántas
 misiones, canjes e insignias se van a perder.
 
+## No es una lista de tareas
+
+Es un sistema de **habilidades**, no de recompensas por trabajo. Cada
+misión entrena una de ocho competencias —🏡 Hogar, 💪 Salud, 📚 Aprendizaje,
+❤️ Amabilidad, 🌱 Responsabilidad, 🤝 Cooperación, 🎨 Creatividad,
+🧠 Autonomía— y el carnet muestra cuáles llevas más entrenadas.
+
+La diferencia no es de redacción. Un sistema de "tarea hecha, moneda
+cobrada" funciona unas semanas y después se apaga. El objetivo deja de ser
+*hacer la cama* y pasa a ser *volverse más autónoma*.
+
+**El elogio específico es la pieza central.** Al validar, la app propone
+frases que nombran la acción concreta —"Has conseguido hacer la cama sin
+que nadie te lo recordara"— y **tocar la frase valida la misión**: cuesta
+lo mismo que un botón mudo y dice algo. El elogio genérico pierde efecto
+por repetición; el que nombra lo que hizo, no.
+
+**Las monedas son un andamio**, no el motor: están para arrancar una
+costumbre que aún no existe y se retiran cuando el hábito se sostiene solo.
+Por eso el catálogo de premios prioriza los que son decisiones (elegir la
+peli, la música del coche, el menú del viernes) sobre los que son cosas, y
+deja fuera dinero, chucherías y pantallas.
+
+Todo esto está razonado, con sus referencias, en
+**[docs/FUNDAMENTO-CIENTIFICO.md](docs/FUNDAMENTO-CIENTIFICO.md)** y dentro
+de la app en ⚙️ → Evidencia. La primera vez que se abre, un tutorial de seis
+pasos lo explica.
+
 ## Economía
 
 - **XP**: nunca se gasta, marca el nivel. Nivel 2 a los 100 XP, nivel 3 a
@@ -65,9 +93,9 @@ misiones, canjes e insignias se van a perder.
    *anon public*.
 
 > Si ya tenías una versión anterior del esquema, ejecuta además
-> `migracion-001-mensual.sql`, `migracion-002-produccion.sql` y
-> `migracion-003-miembros.sql`. Si empiezas de cero, `schema.sql` ya lo
-> incluye todo. Todas son idempotentes.
+> `migracion-001-mensual.sql`, `migracion-002-produccion.sql`,
+> `migracion-003-miembros.sql` y `migracion-004-habilidades.sql`. Si
+> empiezas de cero, `schema.sql` ya lo incluye todo. Todas son idempotentes.
 
 ## 2. En local
 
@@ -177,13 +205,16 @@ botones.
 
 Todo eso está explicado, con sus límites, en **[docs/RUNBOOK.md](docs/RUNBOOK.md)**.
 
-## Biblioteca de tareas de la casa
+## Biblioteca de misiones
 
-El panel incluye una Biblioteca (Misiones → 📚) con el catálogo doméstico
-completo por roles: se elige a la persona, se marcan tareas y se activan con
-valores por defecto según la edad, editables después. El catálogo no tiene
-puntos; los puntos nacen al activar, y ahí vive la proporcionalidad entre
-edades.
+El panel incluye una Biblioteca (Misiones → 📚) con el catálogo completo por
+edad, agrupado por habilidad: autocuidado, orden, ayuda en casa, cabeza y
+manos, movimiento y trato con los demás para la peque; autocuidado, hogar,
+aprendizaje, salud y crecer por dentro para la junior; salud, hogar, familia,
+profesional, personal y casa a fondo para los adultos.
+
+El catálogo no tiene puntos; los puntos nacen al activar la misión para una
+persona, y ahí vive la proporcionalidad entre edades.
 
 Consejo: mantened activas de 3 a 6 misiones por persona y rotad desde la
 biblioteca. Un tablón con todo deja de ser un juego.
@@ -194,6 +225,10 @@ biblioteca. Un tablón con todo deja de ser un juego.
 schema.sql              Esquema completo de Supabase, incluida la capa de producción
 src/lib/supabase.js     Cliente, economía, insignias, plantillas, traducción de errores
 src/lib/acciones.js     Acciones de dominio (pedir, validar, canjear) con registro
+src/lib/habilidades.js  Las 8 competencias y el progreso por habilidad
+src/lib/elogio.js       Sugerencias de elogio específico y rachas
+src/lib/premios.js      Catálogo de recompensas por nivel y lista de evitar
+src/lib/evidencia.js    Principios y referencias del sistema
 src/lib/miembros.js     Reglas de alta, edición y baja de perfiles
 src/lib/pin.js          Reglas del PIN parental
 src/lib/tareas.js       Biblioteca de tareas de la casa por roles, sin puntos
@@ -201,13 +236,15 @@ src/lib/log.js          Registro estructurado en JSON con redacción de credenci
 src/lib/monitoring.js   Captura y agrupación de errores; adaptador de Sentry
 src/lib/flags.js        Banderas de funcionalidad
 src/lib/fakeBackend.js  Backend simulado del modo demo
-src/screens/            Login, Onboarding, ProfilePicker, Home, KidHome, ParentPanel,
-                        Ajustes (Miembros · PIN · Dispositivos · Estado)
+src/screens/            Login, Onboarding, Tutorial, ProfilePicker, Home, KidHome,
+                        ParentPanel, Ajustes (Miembros · PIN · Dispositivos ·
+                        Evidencia · Estado)
 src/components/         Gema, barra de XP, modal, PIN, celebración, ErrorBoundary
 scripts/                deploy, rollback, health-check, secrets-check, qr
 supabase/functions/     Edge Function de health (opcional)
 docs/                   RUNBOOK y rotación de credenciales
-tests/                  Economía, frecuencias, miembros, PIN y observabilidad (vitest)
+tests/                  Economía, frecuencias, miembros, PIN, habilidades,
+                        elogio y observabilidad (vitest)
 SPEC.md                 Especificación, fuente de verdad para iterar
 ```
 
@@ -216,7 +253,7 @@ SPEC.md                 Especificación, fuente de verdad para iterar
 ```bash
 npm run dev            # desarrollo
 npm run dev:demo       # desarrollo con backend simulado, sin Supabase
-npm test               # tests (51)
+npm test               # tests (91)
 npm run build          # compilación de producción
 npm run verify         # tests + build + revisión de credenciales
 npm run health         # ¿responden la web publicada y Supabase?

@@ -4,6 +4,7 @@ import { estrellaInmediata } from '../lib/acciones'
 import { tocarEstrella, sonidoActivo, alternarSonido } from '../lib/sonido'
 import { log } from '../lib/log'
 import Icono from '../components/Icono'
+import { sugerenciasDeElogio, rachaDeMision } from '../lib/elogio'
 
 // ------------------------------------------------------------------
 // Pantalla de la peque (3 años).
@@ -52,7 +53,11 @@ export default function KidHome({ family, data, profile, refresh, onSalir }) {
     const { ok, mensaje } = await estrellaInmediata({ family, profile, reto })
     if (ok) {
       tocarEstrella()
-      setCelebrando(reto)
+      // Su misión se aprueba sola, así que aquí no hay adulto que escriba
+      // el elogio: lo pone la app, concreto y en el momento, que es lo
+      // que dice la evidencia que funciona.
+      const racha = rachaDeMision(reto.id, profile.id, data.completions)
+      setCelebrando({ ...reto, elogio: sugerenciasDeElogio({ reto, racha })[0] })
       await refresh()
     } else {
       setFallo(mensaje || 'Uy, no se pudo guardar. Avisa a mamá o papá.')
@@ -200,7 +205,7 @@ function CelebracionPeque({ reto, onDone }) {
       <div className="kid-celebracion-caja">
         <span className="kid-celebracion-emoji">{reto.emoji}</span>
         <span className="kid-celebracion-estrella">★</span>
-        <span className="kid-celebracion-texto">¡Muy bien!</span>
+        <span className="kid-celebracion-texto">{reto.elogio || '¡Muy bien!'}</span>
       </div>
     </div>
   )

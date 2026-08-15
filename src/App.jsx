@@ -12,6 +12,7 @@ import ProfilePicker from './screens/ProfilePicker'
 import Home from './screens/Home'
 import KidHome from './screens/KidHome'
 import ParentPanel from './screens/ParentPanel'
+import Tutorial, { tutorialPendiente } from './screens/Tutorial'
 
 const iconoUrl = import.meta.env.BASE_URL + 'icon.svg'
 
@@ -22,6 +23,11 @@ export default function App() {
   const [errorCarga, setErrorCarga] = useState('')
   const [profileId, setProfileId] = useState(() => localStorage.getItem('gremio_profile'))
   const [pidePin, setPidePin] = useState(false)
+  // Ojo: el estado se inicializa UNA vez desde localStorage y no se
+  // consulta en cada render. Si se leyera cada vez, cerrar el tutorial
+  // llamaría a setVerTutorial(false) sobre un false y React no
+  // re-renderizaría: la pantalla se quedaría pegada para siempre.
+  const [verTutorial, setVerTutorial] = useState(() => tutorialPendiente())
   const [parentMode, setParentMode] = useState(false)
 
   // Observabilidad: monitorización de errores globales y destino de logs.
@@ -199,6 +205,10 @@ export default function App() {
   if (family === null) return <Onboarding onDone={loadFamily} />
   if (!data) return <Cargando error={errorCarga} onReintentar={loadAll} />
 
+  // El tutorial explica POR QUÉ el sistema está hecho así. Se enseña una
+  // vez por dispositivo, y siempre se puede volver a abrir desde ⚙️.
+  if (verTutorial) return <Tutorial onCerrar={() => setVerTutorial(false)} />
+
   if (parentMode) {
     return (
       <ParentPanel
@@ -206,6 +216,7 @@ export default function App() {
         data={data}
         refresh={loadAll}
         refreshFamily={loadFamily}
+        onVerTutorial={() => { setParentMode(false); setVerTutorial(true) }}
         onExit={() => setParentMode(false)}
       />
     )

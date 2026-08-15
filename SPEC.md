@@ -10,7 +10,9 @@ Especificación de la webapp de gamificación familiar. Este documento es la fue
 - Los padres validan cada reto completado. Excepción deliberada: el rol peque recibe la estrella al momento porque a los 3 años la recompensa diferida no funciona.
 - La peque **sí opera la app**, en una pantalla propia adaptada a su edad (revisión de agosto de 2026; la versión anterior de esta especificación decía que solo la manejaban los adultos). El panel parental conserva su pestaña Peque como vía alternativa cuando la tablet no está a mano.
 - Sin ranking entre miembros. La única estructura comparativa es cooperativa: la meta del gremio.
-- Recompensas dobles: progresión virtual (XP, niveles, insignias) más catálogo de premios reales canjeables con monedas.
+- **El sistema es de habilidades, no de tareas** (revisión de agosto de 2026). Cada misión entrena una de ocho competencias: hogar, salud, aprendizaje, amabilidad, responsabilidad, cooperación, creatividad y autonomía. El objetivo declarado deja de ser "hacer la cama" y pasa a ser "volverse más autónoma". Fundamento y referencias en `docs/FUNDAMENTO-CIENTIFICO.md`.
+- **El elogio específico es el componente central**, no un adorno: al validar, cada sugerencia de elogio ES el botón de validar, de forma que el camino de menor esfuerzo pasa a ser el que dice algo concreto. Diseñado así porque añadir un paso extra habría hecho que se dejara de validar.
+- Recompensas dobles: progresión virtual (XP, niveles, insignias, rangos por habilidad) más catálogo de premios reales canjeables con monedas. Los premios se ordenan en tres niveles y el catálogo prioriza el nivel 1 (decidir algo), que es el que mejor sostiene el hábito. Las monedas son un andamio que se retira cuando el hábito se consolida.
 - Se gamifica la fricción (hábitos y tareas que cuestan), no las actividades ya placenteras, para no minar la motivación intrínseca.
 - Una única cuenta de autenticación familiar; perfiles internos estilo consola; panel parental protegido por PIN.
 
@@ -67,6 +69,7 @@ Automáticas (se evalúan en cliente tras cada carga y se insertan con upsert id
 
 ## 6. Pantallas
 
+0. **Tutorial**: seis pasos que explican la lógica del sistema (habilidades y no tareas, las ocho competencias, el día a día con elogio, los niveles de premio, la retirada del andamio y los siete principios). Se enseña una vez por dispositivo y se puede reabrir desde ⚙️ → Evidencia.
 1. **Login**: cuenta familiar única, alta y entrada.
 2. **Onboarding**: nombre del gremio → PIN parental (mínimo 4 dígitos, hash SHA-256 en cliente) → miembros con rol, emoji y color → plantillas de misiones por edad opcionales.
 3. **ProfilePicker**: rejilla de perfiles, recuerda la elección por dispositivo (localStorage).

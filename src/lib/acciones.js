@@ -70,15 +70,32 @@ export async function estrellaInmediata({ family, profile, reto }) {
   return { ok: !aprobacion.error, mensaje: aprobacion.mensaje }
 }
 
-/** Valida o rechaza una misión pendiente (panel parental). */
-export async function resolverMision(id, estado) {
+/**
+ * Valida o rechaza una misión pendiente (panel parental).
+ * El elogio viaja en la misma llamada: o se guardan las dos cosas o
+ * ninguna. Nunca se registra su texto en los logs, que puede llevar
+ * nombres y detalles de casa.
+ */
+export async function resolverMision(id, estado, elogio = '') {
   const requestId = nuevoRequestId()
   const { error, mensaje } = await operacion(
     'mision.resuelta.error',
-    () => supabase.rpc('resolve_completion', { c_id: id, new_status: estado }),
+    () =>
+      supabase.rpc('resolve_completion', {
+        c_id: id,
+        new_status: estado,
+        praise_text: elogio ? String(elogio).trim().slice(0, 240) : null
+      }),
     { request_id: requestId, completion_id: id, estado }
   )
-  if (!error) log.info('mision.resuelta', { request_id: requestId, completion_id: id, estado })
+  if (!error) {
+    log.info('mision.resuelta', {
+      request_id: requestId,
+      completion_id: id,
+      estado,
+      con_elogio: Boolean(elogio && elogio.trim())
+    })
+  }
   return { ok: !error, mensaje }
 }
 

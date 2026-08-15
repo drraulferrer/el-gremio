@@ -2,6 +2,7 @@ import { useState } from 'react'
 import Miembros from './Miembros'
 import Seguridad from './Seguridad'
 import Dispositivos from './Dispositivos'
+import Evidencia from './Evidencia'
 import Estado from './Estado'
 
 // Las pantallas de administración que casi nunca se tocan viven aquí,
@@ -11,10 +12,11 @@ const SECCIONES = [
   { id: 'miembros', etiqueta: '👥 Miembros' },
   { id: 'pin', etiqueta: '🔑 PIN' },
   { id: 'dispositivos', etiqueta: '📱 Dispositivos' },
+  { id: 'evidencia', etiqueta: '📚 Evidencia' },
   { id: 'estado', etiqueta: '🩺 Estado' }
 ]
 
-export default function Ajustes({ family, data, refresh, refreshFamily }) {
+export default function Ajustes({ family, data, refresh, refreshFamily, onVerTutorial }) {
   const [seccion, setSeccion] = useState('miembros')
 
   return (
@@ -36,6 +38,14 @@ export default function Ajustes({ family, data, refresh, refreshFamily }) {
       {seccion === 'miembros' && <Miembros family={family} data={data} refresh={refresh} />}
       {seccion === 'pin' && <Seguridad family={family} onCambiado={refreshFamily} />}
       {seccion === 'dispositivos' && <Dispositivos />}
+      {seccion === 'evidencia' && (
+        <>
+          <button className="btn btn-bloque" style={{ marginBottom: 14 }} onClick={onVerTutorial}>
+            ⚔️ Volver a ver cómo funciona
+          </button>
+          <Evidencia />
+        </>
+      )}
       {seccion === 'estado' && <Estado family={family} data={data} />}
     </div>
   )

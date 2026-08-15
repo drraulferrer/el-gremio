@@ -103,11 +103,11 @@ export function PinModal({ family, onOk, onClose }) {
 
 const ESTRELLAS = ['⭐', '✨', '🌟', '💫', '⭐', '✨', '🌟', '💫', '⭐', '✨']
 
-export function Celebracion({ emoji = '🌟', texto, onDone }) {
+export function Celebracion({ emoji = '🌟', texto, elogio, onDone }) {
   useEffect(() => {
-    const t = setTimeout(onDone, 1900)
+    const t = setTimeout(onDone, elogio ? 3600 : 1900)
     return () => clearTimeout(t)
-  }, [onDone])
+  }, [onDone, elogio])
 
   return (
     <div className="celebracion" onClick={onDone}>
@@ -125,6 +125,7 @@ export function Celebracion({ emoji = '🌟', texto, onDone }) {
       <div className="celebracion-caja">
         <span className="celebracion-emoji">{emoji}</span>
         <span className="celebracion-texto">{texto}</span>
+        {elogio && <span className="celebracion-elogio">“{elogio}”</span>}
       </div>
     </div>
   )

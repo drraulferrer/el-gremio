@@ -1,13 +1,15 @@
 import { useState } from 'react'
-import { supabase, canDo, goalProgress, TEMPLATES, ROLE_LABEL, FREQ_LABEL, mensajeDeError } from '../lib/supabase'
-import { CASA, DEFAULTS_ROL } from '../lib/tareas'
+import { supabase, canDo, goalProgress, ROLE_LABEL, FREQ_LABEL, mensajeDeError } from '../lib/supabase'
+import { CATALOGO, DEFAULTS_ROL, RECOMENDADAS } from '../lib/tareas'
 import { resolverMision as resolverMisionRemota, resolverCanje as resolverCanjeRemoto, estrellaInmediata } from '../lib/acciones'
 import { perfilesActivos } from '../lib/miembros'
+import { habilidad, HABILIDADES } from '../lib/habilidades'
+import { sugerenciasDeElogio, rachaDeMision } from '../lib/elogio'
 import { Modal, Celebracion, Pestana } from '../components/ui'
 import Icono from '../components/Icono'
 import Ajustes from './Ajustes'
 
-export default function ParentPanel({ family, data, refresh, refreshFamily, onExit }) {
+export default function ParentPanel({ family, data, refresh, refreshFamily, onVerTutorial, onExit }) {
   const [tab, setTab] = useState('pendientes')
   const [celeb, setCeleb] = useState(null)
   const [aviso, setAviso] = useState('')
@@ -20,9 +22,9 @@ export default function ParentPanel({ family, data, refresh, refreshFamily, onEx
   const canjes = data.redemptions.filter((r) => r.status === 'pendiente')
   const numPendientes = pendientes.length + canjes.length
 
-  async function resolverMision(id, estado) {
+  async function resolverMision(id, estado, elogio = '') {
     setAviso('')
-    const { ok, mensaje } = await resolverMisionRemota(id, estado)
+    const { ok, mensaje } = await resolverMisionRemota(id, estado, elogio)
     if (ok) await refresh()
     else setAviso(mensaje || 'No se pudo validar la misión.')
   }
@@ -63,34 +65,16 @@ export default function ParentPanel({ family, data, refresh, refreshFamily, onEx
         <div>
           <div className="titulo-seccion">Misiones por validar</div>
           {pendientes.length === 0 && <div className="vacio">Nada por validar. Todo al día.</div>}
-          {pendientes.map((c) => {
-            const p = perfilDe(c.profile_id)
-            const ch = retoDe(c.challenge_id)
-            return (
-              <div className="carta" key={c.id}>
-                <div className="fila" style={{ marginBottom: 10 }}>
-                  <div className="avatar" style={{ borderColor: p?.color }}>{p?.emoji}</div>
-                  <div className="crece">
-                    <strong>{ch?.emoji} {ch?.title || 'Misión'}</strong>
-                    <div className="suave">{p?.name} · +{c.xp} XP · +{c.coins} 🪙</div>
-                  </div>
-                </div>
-                <div className="fila">
-                  <button className="btn btn-exito btn-mini crece" onClick={() => resolverMision(c.id, 'aprobado')}>
-                    <Icono nombre="validar" tamano={19} /> Validar
-                  </button>
-                  <button
-                    className="btn btn-peligro btn-mini"
-                    onClick={() => resolverMision(c.id, 'rechazado')}
-                    aria-label={`Rechazar ${ch?.title || 'la misión'} de ${p?.name || ''}`}
-                    title="Rechazar"
-                  >
-                    <Icono nombre="cerrar" tamano={19} />
-                  </button>
-                </div>
-              </div>
-            )
-          })}
+          {pendientes.map((c) => (
+            <TarjetaValidacion
+              key={c.id}
+              completion={c}
+              perfil={perfilDe(c.profile_id)}
+              reto={retoDe(c.challenge_id)}
+              completions={data.completions}
+              onResolver={resolverMision}
+            />
+          ))}
 
           <div className="titulo-seccion">Canjes por entregar</div>
           {canjes.length === 0 && <div className="vacio">Ningún premio en camino.</div>}
@@ -123,7 +107,13 @@ export default function ParentPanel({ family, data, refresh, refreshFamily, onEx
       {tab === 'premios' && <GestionPremios family={family} data={data} refresh={refresh} />}
       {tab === 'meta' && <GestionMeta family={family} data={data} refresh={refresh} />}
       {tab === 'ajustes' && (
-        <Ajustes family={family} data={data} refresh={refresh} refreshFamily={refreshFamily} />
+        <Ajustes
+          family={family}
+          data={data}
+          refresh={refresh}
+          refreshFamily={refreshFamily}
+          onVerTutorial={onVerTutorial}
+        />
       )}
 
       <nav className="tabbar" aria-label="Secciones del panel">
@@ -139,6 +129,100 @@ export default function ParentPanel({ family, data, refresh, refreshFamily, onEx
         <Pestana icono="premio" etiqueta="Premios" activa={tab === 'premios'} onClick={() => setTab('premios')} />
         <Pestana icono="meta" etiqueta="Meta" activa={tab === 'meta'} onClick={() => setTab('meta')} />
       </nav>
+    </div>
+  )
+}
+
+// --------------------------------------------------------------
+// Validación con elogio específico
+//
+// El elogio es el componente con más respaldo del sistema (Leijten 2019;
+// Owen 2012), pero solo si es concreto. El riesgo evidente era añadir
+// fricción: si validar pasa de un toque a rellenar un formulario, se
+// deja de validar y se acabó el sistema.
+//
+// Solución: cada sugerencia ES el botón de validar. Tocarla aprueba la
+// misión con ese elogio. Sigue siendo un toque, y el camino fácil pasa a
+// ser el que dice algo en lugar del que no dice nada.
+// --------------------------------------------------------------
+
+function TarjetaValidacion({ completion, perfil, reto, completions, onResolver }) {
+  const [escribiendo, setEscribiendo] = useState(false)
+  const [texto, setTexto] = useState('')
+  const [ocupado, setOcupado] = useState(false)
+
+  const racha = rachaDeMision(completion.challenge_id, completion.profile_id, completions)
+  const sugerencias = sugerenciasDeElogio({ reto, racha })
+  const hab = habilidad(reto?.skill)
+
+  async function validar(elogio) {
+    setOcupado(true)
+    await onResolver(completion.id, 'aprobado', elogio)
+    setOcupado(false)
+  }
+
+  return (
+    <div className="carta">
+      <div className="fila" style={{ marginBottom: 10 }}>
+        <div className="avatar" style={{ borderColor: perfil?.color }}>{perfil?.emoji}</div>
+        <div className="crece">
+          <strong>{reto?.emoji} {reto?.title || 'Misión'}</strong>
+          <div className="suave">
+            {perfil?.name} · +{completion.xp} XP · +{completion.coins} 🪙
+            {racha >= 2 && <> · 🔥 {racha + 1} días seguidos</>}
+          </div>
+        </div>
+        {hab && (
+          <span className="chip-habilidad" style={{ borderColor: hab.color, color: hab.color }}>
+            {hab.emoji} {hab.nombre}
+          </span>
+        )}
+      </div>
+
+      <div className="titulo-elogio">Valida diciéndole qué ha hecho bien</div>
+
+      <div className="elogios">
+        {sugerencias.map((frase) => (
+          <button key={frase} className="elogio" disabled={ocupado} onClick={() => validar(frase)}>
+            {frase}
+          </button>
+        ))}
+        <button className="elogio elogio-propio" disabled={ocupado} onClick={() => setEscribiendo(!escribiendo)}>
+          <Icono nombre="editar" tamano={16} /> Escribir otro
+        </button>
+      </div>
+
+      {escribiendo && (
+        <div className="campo" style={{ marginTop: 10 }}>
+          <label>Tu elogio</label>
+          <input
+            value={texto}
+            onChange={(e) => setTexto(e.target.value)}
+            maxLength={240}
+            autoFocus
+            placeholder="Has…"
+            onKeyDown={(e) => { if (e.key === 'Enter' && texto.trim()) validar(texto) }}
+          />
+          <button className="btn btn-exito btn-mini" disabled={!texto.trim() || ocupado} onClick={() => validar(texto)}>
+            <Icono nombre="validar" tamano={18} /> Validar con este elogio
+          </button>
+        </div>
+      )}
+
+      <div className="fila" style={{ marginTop: 10 }}>
+        <button className="btn btn-fantasma btn-mini crece" disabled={ocupado} onClick={() => validar('')}>
+          Validar sin elogio
+        </button>
+        <button
+          className="btn btn-peligro btn-mini"
+          disabled={ocupado}
+          onClick={() => onResolver(completion.id, 'rechazado')}
+          aria-label={`Rechazar ${reto?.title || 'la misión'} de ${perfil?.name || ''}`}
+          title="Aún no: vuelve a la lista"
+        >
+          <Icono nombre="cerrar" tamano={19} />
+        </button>
+      </div>
     </div>
   )
 }
@@ -209,7 +293,7 @@ function ModoPeque({ family, data, refresh, onCeleb }) {
 // Gestión de misiones
 // --------------------------------------------------------------
 
-const MISION_VACIA = { title: '', emoji: '⭐', xp: 10, coins: 5, frequency: 'diario', profile_id: null, active: true }
+const MISION_VACIA = { title: '', emoji: '⭐', xp: 10, coins: 5, frequency: 'diario', profile_id: null, skill: 'responsabilidad', active: true }
 
 function GestionMisiones({ family, data, refresh }) {
   const [editando, setEditando] = useState(null) // null | objeto misión
@@ -226,6 +310,7 @@ function GestionMisiones({ family, data, refresh }) {
       coins: Number(m.coins) || 0,
       frequency: m.frequency,
       profile_id: m.profile_id || null,
+      skill: m.skill || null,
       active: m.active
     }
     const { error } = m.id
@@ -273,7 +358,10 @@ function GestionMisiones({ family, data, refresh }) {
             <div className="avatar">{ch.emoji}</div>
             <div className="crece">
               <strong>{ch.title}</strong>
-              <div className="suave">{nombreDe(ch.profile_id)} · +{ch.xp} XP · +{ch.coins} 🪙 · {FREQ_LABEL[ch.frequency]}</div>
+              <div className="suave">
+                {habilidad(ch.skill) && <>{habilidad(ch.skill).emoji} {habilidad(ch.skill).nombre} · </>}
+                {nombreDe(ch.profile_id)} · +{ch.xp} XP · {FREQ_LABEL[ch.frequency]}
+              </div>
             </div>
             <button className="btn-icono" onClick={() => alternar(ch)} aria-label={ch.active ? 'Pausar' : 'Activar'}>
               <Icono nombre={ch.active ? 'pausar' : 'reanudar'} />
@@ -331,6 +419,24 @@ function FormMision({ mision, perfiles, onGuardar, onBorrar, onClose }) {
         </div>
       </div>
       <div className="campo">
+        <label>Habilidad que entrena</label>
+        <div className="grid-habilidades">
+          {HABILIDADES.map((h) => (
+            <button
+              key={h.id}
+              type="button"
+              className={'pastilla-habilidad' + (m.skill === h.id ? ' sel' : '')}
+              style={m.skill === h.id ? { borderColor: h.color, color: h.color } : undefined}
+              onClick={() => set({ skill: h.id })}
+            >
+              <span>{h.emoji}</span> {h.nombre}
+            </button>
+          ))}
+        </div>
+        <span className="suave">{habilidad(m.skill)?.lema}</span>
+      </div>
+
+      <div className="campo">
         <label>Frecuencia</label>
         <select value={m.frequency} onChange={(e) => set({ frequency: e.target.value })}>
           <option value="diario">Diaria</option>
@@ -374,17 +480,7 @@ function Biblioteca({ family, data, refresh, onClose }) {
       .map((ch) => ch.title)
   )
 
-  const grupos = perfil
-    ? [
-        {
-          grupo: 'Hábitos',
-          tareas: (TEMPLATES[perfil.role] || []).map((h) => ({ t: h.title, e: h.emoji, f: h.frequency, xp: h.xp, coins: h.coins }))
-        },
-        ...CASA.map((g) => ({ grupo: g.grupo, tareas: g.tareas.filter((tt) => tt.roles.includes(perfil.role)) })).filter(
-          (g) => g.tareas.length > 0
-        )
-      ]
-    : []
+  const grupos = perfil ? CATALOGO[perfil.role] || [] : []
 
   function alternarSel(titulo) {
     const s = new Set(sel)
@@ -406,9 +502,10 @@ function Biblioteca({ family, data, refresh, onClose }) {
           profile_id: perfil.id,
           title: tt.t,
           emoji: tt.e,
-          xp: tt.xp ?? defaults.xp,
-          coins: tt.coins ?? defaults.coins,
-          frequency: tt.f
+          xp: defaults.xp,
+          coins: defaults.coins,
+          frequency: tt.f,
+          skill: tt.skill
         })
       }
     }
@@ -436,7 +533,8 @@ function Biblioteca({ family, data, refresh, onClose }) {
         </select>
       </div>
       <p className="suave" style={{ marginTop: 0 }}>
-        Consejo del gremio: activa pocas a la vez, de 3 a 6 por persona. Un tablón entero deja de ser un juego.
+        Activa pocas a la vez, de {RECOMENDADAS.min} a {RECOMENDADAS.max} por persona, y de habilidades distintas.
+        Un tablón entero deja de ser un juego, y todo de la misma habilidad hace que el progreso se vea plano.
       </p>
 
       {grupos.map((g) => (
@@ -458,7 +556,14 @@ function Biblioteca({ family, data, refresh, onClose }) {
                   onChange={() => alternarSel(tt.t)}
                 />
                 <span style={{ fontSize: '1.2rem' }}>{tt.e}</span>
-                <span className="crece">{tt.t}</span>
+                <span className="crece">
+                  {tt.t}
+                  {habilidad(tt.skill) && (
+                    <span className="suave" style={{ display: 'block', fontSize: '0.76rem' }}>
+                      {habilidad(tt.skill).emoji} {habilidad(tt.skill).nombre}
+                    </span>
+                  )}
+                </span>
                 <span className="chip">{activa ? 'ya activa' : FREQ_LABEL[tt.f]}</span>
               </label>
             )

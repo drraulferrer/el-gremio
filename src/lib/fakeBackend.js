@@ -32,9 +32,9 @@ const vacia = () => TABLAS.reduce((acc, t) => ({ ...acc, [t]: [] }), {})
 // la encuentra nunca: el fallo silencioso perfecto.
 const DEFECTOS_TABLA = {
   profiles: { emoji: '🙂', color: '#a78bfa', xp: 0, coins: 0, active: true },
-  challenges: { emoji: '⭐', xp: 10, coins: 5, frequency: 'diario', active: true, profile_id: null },
-  completions: { status: 'pendiente', resolved_at: null },
-  rewards: { emoji: '🎁', cost: 50, active: true },
+  challenges: { emoji: '⭐', xp: 10, coins: 5, frequency: 'diario', active: true, profile_id: null, skill: null },
+  completions: { status: 'pendiente', resolved_at: null, praise: null },
+  rewards: { emoji: '🎁', cost: 50, active: true, tier: 2 },
   redemptions: { status: 'pendiente', resolved_at: null },
   family_goals: { emoji: '🏆', target_xp: 1000, achieved: false, achieved_at: null },
   profile_badges: {},
@@ -232,7 +232,14 @@ function rpc(nombre, args = {}) {
     const c = db.completions.find((x) => x.id === args.c_id && x.status === 'pendiente')
     if (!c) return { data: null, error: null }
     const completions = db.completions.map((x) =>
-      x.id === c.id ? { ...x, status: args.new_status, resolved_at: new Date().toISOString() } : x
+      x.id === c.id
+        ? {
+            ...x,
+            status: args.new_status,
+            resolved_at: new Date().toISOString(),
+            praise: (args.praise_text || '').trim() || null
+          }
+        : x
     )
     const profiles =
       args.new_status === 'aprobado'

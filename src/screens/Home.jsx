@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { canDo, dayKey, goalProgress, levelProgress, BADGES, FREQ_LABEL } from '../lib/supabase'
 import { pedirMision as pedirMisionRemota, canjearPremio } from '../lib/acciones'
 import { Gema, XPBar, Moneda, Celebracion, Pestana } from '../components/ui'
+import { HABILIDADES, habilidad, xpPorHabilidad, rangoDeHabilidad, habilidadDominante } from '../lib/habilidades'
 
 export default function Home({ family, data, profile, refresh, onSwitchProfile, onParent }) {
   const [tab, setTab] = useState('misiones')
@@ -23,7 +24,9 @@ export default function Home({ family, data, profile, refresh, onSwitchProfile, 
         setCeleb({ emoji: '💎', texto: `¡Nivel ${lvl}!` })
       } else if (nuevas.length) {
         const xp = nuevas.reduce((s, c) => s + c.xp, 0)
-        setCeleb({ emoji: '🌟', texto: `+${xp} XP` })
+        // El elogio es lo que de verdad tiene efecto; la XP acompaña.
+        const conElogio = nuevas.find((c) => c.praise)
+        setCeleb({ emoji: '🌟', texto: `+${xp} XP`, elogio: conElogio?.praise || '' })
       }
     }
     prev.current = { ids, lvl, profileId: profile.id }
@@ -57,7 +60,7 @@ export default function Home({ family, data, profile, refresh, onSwitchProfile, 
 
   return (
     <div className="app">
-      {celeb && <Celebracion emoji={celeb.emoji} texto={celeb.texto} onDone={() => setCeleb(null)} />}
+      {celeb && <Celebracion emoji={celeb.emoji} texto={celeb.texto} elogio={celeb.elogio} onDone={() => setCeleb(null)} />}
 
       {/* Carnet de aventurera/o */}
       <div className="carta">
@@ -111,12 +114,12 @@ export default function Home({ family, data, profile, refresh, onSwitchProfile, 
 
       {tab === 'tienda' && <Tienda data={data} profile={profile} ocupado={ocupado} onCanjear={canjear} />}
 
-      {tab === 'insignias' && <Insignias data={data} profile={profile} />}
+      {tab === 'progreso' && <Progreso data={data} profile={profile} />}
 
       <nav className="tabbar" aria-label="Secciones">
         <Pestana icono="misiones" etiqueta="Misiones" activa={tab === 'misiones'} onClick={() => setTab('misiones')} />
         <Pestana icono="tienda" etiqueta="Tienda" activa={tab === 'tienda'} onClick={() => setTab('tienda')} />
-        <Pestana icono="insignias" etiqueta="Insignias" activa={tab === 'insignias'} onClick={() => setTab('insignias')} />
+        <Pestana icono="insignias" etiqueta="Progreso" activa={tab === 'progreso'} onClick={() => setTab('progreso')} />
         <Pestana icono="perfiles" etiqueta="Cambiar" onClick={onSwitchProfile} />
         <Pestana icono="candado" etiqueta="Panel" onClick={onParent} />
       </nav>
@@ -144,7 +147,14 @@ function Misiones({ data, profile, ocupado, onPedir, misPendientes, misAprobadas
               <div className="avatar">{ch.emoji}</div>
               <div className="crece">
                 <strong>{ch.title}</strong>
-                <div className="suave">+{ch.xp} XP · +{ch.coins} 🪙 · {FREQ_LABEL[ch.frequency]}</div>
+                <div className="suave">
+                  {habilidad(ch.skill) && (
+                    <span style={{ color: habilidad(ch.skill).color }}>
+                      {habilidad(ch.skill).emoji} {habilidad(ch.skill).nombre} ·{' '}
+                    </span>
+                  )}
+                  +{ch.xp} XP · {FREQ_LABEL[ch.frequency]}
+                </div>
               </div>
               <button className="btn btn-mini" disabled={ocupado === ch.id} onClick={() => onPedir(ch)}>
                 ¡Hecho!
@@ -177,6 +187,7 @@ function Misiones({ data, profile, ocupado, onPedir, misPendientes, misAprobadas
                 <span>{retoDe(c.challenge_id)?.emoji} {retoDe(c.challenge_id)?.title || 'Misión'}</span>
                 <span className="chip chip-hecho">✓ +{c.xp} XP</span>
               </div>
+              {c.praise && <p className="elogio-recibido">“{c.praise}”</p>}
             </div>
           ))}
         </div>
@@ -232,10 +243,49 @@ function Tienda({ data, profile, ocupado, onCanjear }) {
   )
 }
 
-function Insignias({ data, profile }) {
+function Progreso({ data, profile }) {
   const mias = new Set(data.badges.filter((b) => b.profile_id === profile.id).map((b) => b.code))
+  const porHabilidad = xpPorHabilidad(profile.id, data.completions, data.challenges)
+  const dominante = habilidadDominante(porHabilidad)
+
   return (
     <div>
+      <div className="titulo-seccion">Tus habilidades</div>
+
+      {dominante ? (
+        <p className="suave" style={{ margin: '0 4px 12px' }}>
+          Ahora mismo eres, sobre todo, <strong style={{ color: dominante.color }}>{dominante.nombre.toLowerCase()}</strong>.
+          Las misiones no son tareas: cada una entrena algo.
+        </p>
+      ) : (
+        <p className="suave" style={{ margin: '0 4px 12px' }}>
+          Cuando validen tus primeras misiones, aquí verás qué estás entrenando.
+        </p>
+      )}
+
+      <div className="carta">
+        {HABILIDADES.map((h) => {
+          const xp = porHabilidad[h.id] || 0
+          const rango = rangoDeHabilidad(xp)
+          return (
+            <div key={h.id} className="fila-habilidad">
+              <span className="hab-emoji">{h.emoji}</span>
+              <div className="crece">
+                <div className="fila-separada">
+                  <strong style={{ fontSize: '0.95rem' }}>{h.nombre}</strong>
+                  <span className="suave" style={{ fontSize: '0.78rem' }}>
+                    {rango.nombre} · {xp} XP
+                  </span>
+                </div>
+                <div className="barra-habilidad">
+                  <div className="barra-habilidad-fill" style={{ width: rango.pct + '%', background: h.color }} />
+                </div>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
       <div className="titulo-seccion">Insignias · {mias.size} de {BADGES.length}</div>
       <div className="grid-insignias">
         {BADGES.map((b) => (
