@@ -298,7 +298,7 @@ SPEC.md                 Especificación, fuente de verdad para iterar
 ```bash
 npm run dev            # desarrollo
 npm run dev:demo       # desarrollo con backend simulado, sin Supabase
-npm test               # tests (174)
+npm test               # tests (182)
 npm run build          # compilación de producción
 npm run verify         # tests + build + revisión de credenciales
 npm run health         # ¿responden la web publicada y Supabase?

@@ -29,7 +29,7 @@ modo peque, la capa de producción y la gestión de miembros.
 | Código local | `~/el-gremio` |
 | Supabase | proyecto `chfbrawsoulfiywiqhpe`, Postgres 17.6, región EU |
 | Versión publicada | ver `npm run health`; cada despliegue deja etiqueta `deploy-AAAA-MM-DD-HHMM` |
-| Tests | 174, en 10 ficheros, todos en verde |
+| Tests | 182, en 11 ficheros, todos en verde |
 
 Comprobar que sigue vivo:
 
@@ -160,6 +160,15 @@ semana tres.
 - **Un cambio de plantilla no toca lo ya guardado.** Los títulos viven en
   la base, así que cambiar el catálogo no cambia las misiones existentes:
   hace falta un UPDATE en la migración. Pasó con "Vestirse sola".
+- **Nada animado puede montarse dentro de una rama condicional del
+  `return`.** La luz ambiental del fondo estaba en cada rama; al cambiar
+  de pantalla React la desmontaba, la animación CSS volvía a cero y el
+  fondo saltaba casi cien píxeles. Eso era el «parpadeo». Se monta una
+  vez, por encima de `contenido()`, y hay tests en `tests/fondo.test.js`
+  que fijan esa estructura exacta.
+- **Nada de `background-attachment: fixed`.** Safari de iOS lo repinta
+  mal al hacer scroll. El degradado vive en `.ambiente`, que se promueve
+  a capa propia con `translateZ(0)`.
 - **La economía está derivada, no puesta a ojo.** `src/lib/economia.js`
   declara los supuestos (60 % de adherencia, 5 misiones activas, cadencias
   de 2 / 7 / 30 días por nivel y 12 días por meta) y de ahí salen las
@@ -340,7 +349,7 @@ Si se pierde ese fichero: los dos valores se recuperan del panel de Supabase
 ```bash
 cd ~/el-gremio
 npm install          # si es una máquina nueva
-npm test             # 174 tests, deben pasar
+npm test             # 182 tests, deben pasar
 npm run dev:demo     # trastear sin tocar producción
 npm run dev          # contra la Supabase real
 ```

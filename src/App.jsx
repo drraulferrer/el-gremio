@@ -233,73 +233,85 @@ export default function App() {
   }
 
   // ---------------- render ----------------
+  //
+  // Ojo con la estructura: la luz ambiental se monta UNA sola vez, por
+  // encima de todas las ramas. Estuvo dentro de cada una y el resultado
+  // era que al cambiar de pantalla React la desmontaba, la animación
+  // volvía a cero y el fondo daba un salto de casi cien píxeles. Eso era
+  // el parpadeo. Si alguna vez hay que moverla, que sea sin meterla
+  // dentro de un `return` condicional.
 
-  if (!configured) return <ConfigError />
-  if (session === undefined) return <Cargando />
-  if (!session) return <><Ambiente /><Login /></>
-  if (family === undefined) return <Cargando error={errorCarga} onReintentar={loadFamily} />
-  if (family === null) return <><Ambiente /><Onboarding onDone={loadFamily} /></>
-  if (!data) return <Cargando error={errorCarga} onReintentar={recargar} />
+  function contenido() {
+    if (!configured) return <ConfigError />
+    if (session === undefined) return <Cargando />
+    if (!session) return <Login />
+    if (family === undefined) return <Cargando error={errorCarga} onReintentar={loadFamily} />
+    if (family === null) return <Onboarding onDone={loadFamily} />
+    if (!data) return <Cargando error={errorCarga} onReintentar={recargar} />
 
-  // El tutorial explica POR QUÉ el sistema está hecho así. Se enseña una
-  // vez por dispositivo, y siempre se puede volver a abrir desde ⚙️.
-  if (verTutorial) return <><Ambiente /><Tutorial modo={verTutorial} onCerrar={() => setVerTutorial(null)} /></>
+    // El tutorial explica cómo funciona y dónde está cada cosa. Se enseña
+    // una vez por dispositivo y se reabre desde ⚙️.
+    if (verTutorial) return <Tutorial modo={verTutorial} onCerrar={() => setVerTutorial(null)} />
 
-  if (parentMode) {
-    return (
-      <>
-        <Ambiente />
+    if (parentMode) {
+      return (
         <ParentPanel
-        family={family}
-        data={data}
-        refresh={recargar}
-        refreshFamily={loadFamily}
-        onVerTutorial={(modo) => { setParentMode(false); setVerTutorial(modo || 'todo') }}
-        onExit={() => setParentMode(false)}
+          family={family}
+          data={data}
+          refresh={recargar}
+          refreshFamily={loadFamily}
+          onVerTutorial={(modo) => { setParentMode(false); setVerTutorial(modo || 'todo') }}
+          onExit={() => setParentMode(false)}
         />
-      </>
+      )
+    }
+
+    // La peque tiene su propia pantalla: botones enormes y estrella al momento.
+    if (profile && profile.role === 'peque' && flag('modoPeque')) {
+      return <KidHome family={family} data={data} profile={profile} refresh={recargar} onSalir={cambiarPerfil} />
+    }
+
+    return (
+      <div>
+        <div className="velo-superior" aria-hidden="true" />
+        {profile ? (
+          <Home
+            family={family}
+            data={data}
+            profile={profile}
+            refresh={recargar}
+            onSwitchProfile={cambiarPerfil}
+            onParent={() => setPidePin(true)}
+          />
+        ) : (
+          <ProfilePicker
+            family={family}
+            profiles={perfilesActivos(data.profiles)}
+            onPick={elegirPerfil}
+            onParent={() => setPidePin(true)}
+          />
+        )}
+
+        {pidePin && (
+          <PinModal
+            family={family}
+            onOk={() => {
+              setPidePin(false)
+              setParentMode(true)
+              log.info('panel.abierto')
+            }}
+            onClose={() => setPidePin(false)}
+          />
+        )}
+      </div>
     )
   }
 
-  // La peque tiene su propia pantalla: botones enormes y estrella al momento.
-  if (profile && profile.role === 'peque' && flag('modoPeque')) {
-    return <KidHome family={family} data={data} profile={profile} refresh={recargar} onSalir={cambiarPerfil} />
-  }
-
   return (
-    <div>
+    <>
       <Ambiente />
-      <div className="velo-superior" aria-hidden="true" />
-      {profile ? (
-        <Home
-          family={family}
-          data={data}
-          profile={profile}
-          refresh={recargar}
-          onSwitchProfile={cambiarPerfil}
-          onParent={() => setPidePin(true)}
-        />
-      ) : (
-        <ProfilePicker
-          family={family}
-          profiles={perfilesActivos(data.profiles)}
-          onPick={elegirPerfil}
-          onParent={() => setPidePin(true)}
-        />
-      )}
-
-      {pidePin && (
-        <PinModal
-          family={family}
-          onOk={() => {
-            setPidePin(false)
-            setParentMode(true)
-            log.info('panel.abierto')
-          }}
-          onClose={() => setPidePin(false)}
-        />
-      )}
-    </div>
+      {contenido()}
+    </>
   )
 }
 
