@@ -1,0 +1,30 @@
+{
+  "name": "el-gremio",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "dev:demo": "VITE_DEMO=1 vite",
+    "build": "vite build",
+    "build:demo": "VITE_DEMO=1 vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "health": "node scripts/health-check.mjs",
+    "secrets:check": "node scripts/secrets-check.mjs",
+    "deploy": "node scripts/deploy.mjs",
+    "rollback": "node scripts/rollback.mjs",
+    "verify": "npm run test && npm run build && npm run secrets:check"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.1",
+    "vite": "^5.4.0",
+    "vitest": "^2.1.0"
+  }
+}

@@ -1,0 +1,36 @@
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+import { execSync } from 'node:child_process'
+
+// GitHub Pages sirve el proyecto bajo /<repo>/, así que la base no puede ser
+// la raíz. Se puede sobrescribir con BASE_PATH (dominio propio: BASE_PATH=/).
+const base = process.env.BASE_PATH || '/el-gremio/'
+
+function gitCommit() {
+  try {
+    return execSync('git rev-parse --short HEAD', { stdio: ['ignore', 'pipe', 'ignore'] })
+      .toString()
+      .trim()
+  } catch {
+    return 'sin-git'
+  }
+}
+
+export default defineConfig({
+  base,
+  plugins: [react()],
+  define: {
+    // Sello de versión: lo lee el registro de logs y la pantalla de estado,
+    // y es lo que permite saber qué build está desplegada al hacer rollback.
+    __APP_VERSION__: JSON.stringify(process.env.npm_package_version || '0.0.0'),
+    __APP_COMMIT__: JSON.stringify(process.env.APP_COMMIT || gitCommit()),
+    __APP_BUILT_AT__: JSON.stringify(new Date().toISOString())
+  },
+  build: {
+    sourcemap: true
+  },
+  test: {
+    environment: 'node',
+    include: ['tests/**/*.test.js']
+  }
+})

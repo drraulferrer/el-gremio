@@ -1,0 +1,108 @@
+import { useEffect, useState } from 'react'
+import { levelProgress, hashPin } from '../lib/supabase'
+
+export function Gema({ xp, color, mini = false }) {
+  const { level } = levelProgress(xp)
+  return (
+    <div className="gema-wrap" style={mini ? { width: 44, height: 44 } : undefined}>
+      <div className={'gema' + (mini ? ' gema-mini' : '')} style={{ background: color }}>
+        {level}
+      </div>
+    </div>
+  )
+}
+
+export function XPBar({ xp, tone }) {
+  const p = levelProgress(xp)
+  return (
+    <div>
+      <div className="xpbar" aria-label={`Nivel ${p.level}, ${p.current} de ${p.needed} XP`}>
+        <div className={'xpbar-fill' + (tone ? ' ' + tone : '')} style={{ width: p.pct + '%' }} />
+        <div className="xpbar-pips">
+          <span /><span /><span /><span /><span />
+        </div>
+      </div>
+      <div className="fila-separada suave" style={{ marginTop: 4 }}>
+        <span>Nivel {p.level}</span>
+        <span>{p.current} / {p.needed} XP</span>
+      </div>
+    </div>
+  )
+}
+
+export function Moneda({ n }) {
+  return <span className="moneda">🪙 {n}</span>
+}
+
+export function Modal({ titulo, onClose, children }) {
+  return (
+    <div className="modal-fondo" onClick={onClose}>
+      <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <div className="fila-separada" style={{ marginBottom: 12 }}>
+          <h3>{titulo}</h3>
+          <button className="btn-icono" onClick={onClose} aria-label="Cerrar">✕</button>
+        </div>
+        {children}
+      </div>
+    </div>
+  )
+}
+
+export function PinModal({ family, onOk, onClose }) {
+  const [pin, setPin] = useState('')
+  const [error, setError] = useState('')
+
+  async function comprobar() {
+    const h = await hashPin(pin)
+    if (h === family.parent_pin_hash) onOk()
+    else { setError('Ese PIN no es. Prueba otra vez.'); setPin('') }
+  }
+
+  return (
+    <Modal titulo="Panel parental" onClose={onClose}>
+      <div className="campo">
+        <label>PIN parental</label>
+        <input
+          type="password"
+          inputMode="numeric"
+          autoFocus
+          value={pin}
+          onChange={(e) => { setPin(e.target.value); setError('') }}
+          onKeyDown={(e) => { if (e.key === 'Enter') comprobar() }}
+          placeholder="····"
+        />
+      </div>
+      {error && <p className="error-texto">{error}</p>}
+      <button className="btn btn-bloque" onClick={comprobar} disabled={pin.length < 4}>Entrar</button>
+    </Modal>
+  )
+}
+
+const ESTRELLAS = ['⭐', '✨', '🌟', '💫', '⭐', '✨', '🌟', '💫', '⭐', '✨']
+
+export function Celebracion({ emoji = '🌟', texto, onDone }) {
+  useEffect(() => {
+    const t = setTimeout(onDone, 1900)
+    return () => clearTimeout(t)
+  }, [onDone])
+
+  return (
+    <div className="celebracion" onClick={onDone}>
+      {ESTRELLAS.map((e, i) => {
+        const ang = (i / ESTRELLAS.length) * Math.PI * 2
+        const dist = 120 + (i % 3) * 55
+        const style = {
+          left: '50%',
+          top: '45%',
+          '--dx': Math.cos(ang) * dist + 'px',
+          '--dy': Math.sin(ang) * dist + 'px'
+        }
+        return <span key={i} className="estrella-volandera" style={style}>{e}</span>
+      })}
+      <div className="celebracion-caja">
+        <span className="celebracion-emoji">{emoji}</span>
+        <span className="celebracion-texto">{texto}</span>
+      </div>
+    </div>
+  )
+}
