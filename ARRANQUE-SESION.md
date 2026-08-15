@@ -60,6 +60,7 @@ si falla `supabase`, casi seguro que el proyecto está pausado (ver §7).
 ✅ 011  target_role (superada por la 013, no ejecutar suelta)
 ✅ 012  juego de globos: tabla bonuses + grant_daily_bonus (15-ago)
 ✅ 013  target_roles[]: misiones para varios roles (15-ago)
+✅ 014  premio a mano: bonuses.motivo/otorgado_por + grant_manual_bonus (15-ago)
 ```
 
 De la 013 queda **sin ejecutar y a propósito** el `drop column target_role`
@@ -369,9 +370,77 @@ Verificado **en navegador**, no solo compilando:
 
 ---
 
+## 7b. Lo que se hizo el 15 de agosto (tarde)
+
+Sesión larga. Por orden, y lo que hay que saber de cada cosa:
+
+**Observabilidad.** `redactar` tiraba `code`, `details` y `hint` de los
+errores de PostgREST; ahora los conserva. Los éxitos dejaron de
+registrarse con el nombre del evento de error (`*.error` → `*.ok`): ocho
+«mision.deshecha.error» eran ocho deshaceres correctos. Y los errores
+globales guardan `fichero`, `linea`, `columna` y `ajeno`, que sirvió el
+mismo día para localizar un `ReferenceError` en dos minutos.
+
+**Índices.** Retirados `idx_profiles_family` e `idx_challenges_family` por
+redundantes (migración 009). **Los que quedan sostienen el RLS entero**:
+ver la trampa en §7.
+
+**Habilidades.** Las 16 misiones sin `skill` quedaron asignadas
+(migración 010). Las ocho competencias tienen misiones activas.
+
+**Misiones por rol** (`target_roles[]`, migraciones 011 y 013). Una misión
+puede ir a una persona, a un rol o a un grupo («Los peques y la junior»).
+El predicado vive SOLO en `src/lib/misiones.js`; antes estaba copiado en
+cinco ficheros. Queda pendiente y comentado el `drop column target_role`.
+
+**Pantalla de la peque.** Tres minijuegos que rotan por fecha (globos,
+estrellas, bichitos), tira del siguiente premio siempre visible, y fiesta
+al completar todas las misiones del día. El juego da una estrella al día,
+con el tope en un índice único de Postgres: en el cliente, recargar daría
+globos infinitos.
+
+**Validación.** «Todavía no» pide motivo obligatorio y quien la hizo lo ve
+en rojo en su tablero, solo ese día.
+
+**Historial.** Progreso enseña una semana cada vez con navegación hacia
+atrás. Nada se borra: archivar es salir de la vista.
+
+**Economía, recalculada dos veces.** Cadencias de premio a 15/30/45 días y
+meta a 60. Presupuesto de carga subido de 5 a 8 (la familia quería 6-7
+diarias), lo que obligó a subir los precios un 60 %. Topes por persona:
+**7 diarias, 5 semanales, 8 mensuales**, con aviso en la pestaña Misiones
+para quien se pase. La peque salió del sistema de niveles: su tienda
+filtra por precio (`TECHO_PEQUE`), porque con nivel 1 a 15 días su premio
+más barato le quedaba a dieciocho.
+
+**Premio a mano** (migración 014): monedas por algo excepcional, sin XP,
+con motivo obligatorio y registro de qué adulto lo concede. Las tres
+reglas se comprueban en Postgres, no solo en el formulario.
+
+**Temporadas e insignias con poder**: modelo construido y con tests
+(`src/lib/temporadas.js`, `src/lib/insignias.js`) pero **SIN cablear a la
+interfaz y sin migración**. Ver §8.
+
+---
+
 ## 8. Pendientes
 
-### Lo primero al retomar: preguntar, no suponer
+### Lo primero al retomar: terminar las temporadas
+
+El modelo está escrito y probado; falta todo lo demás:
+
+- **Migración 015**, sin escribir: persistir los usos gastados de los
+  poderes (comodín, voz de mando) y garantizar que una insignia `unica`
+  solo la tenga una persona por gremio (índice único por `family_id` y
+  `code` para esos códigos).
+- **Interfaz**, sin empezar: rango del gremio visible, XP histórica al
+  lado de la barra de la meta, las 17 insignias con su poder, y las
+  pantallas para gastar comodín y voz de mando.
+- **Decisión abierta**: al cablearlo, los precios pasan a escalar con la
+  temporada (`precioEnTemporada`). Eso cambia lo que ve la familia, así
+  que conviene avisar antes.
+
+### Lo demás al retomar: preguntar, no suponer
 
 Tres cosas que un agente **no puede comprobar desde fuera** y que
 condicionan todo lo demás:
