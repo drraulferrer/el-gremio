@@ -3,8 +3,10 @@ import { canDo, dayKey, goalProgress, levelProgress, BADGES, FREQ_LABEL } from '
 import { pedirMision as pedirMisionRemota, canjearPremio, deshacerMision } from '../lib/acciones'
 import { Gema, XPBar, Moneda, Celebracion, Pestana } from '../components/ui'
 import { HABILIDADES, habilidad, xpPorHabilidad, rangoDeHabilidad, habilidadDominante } from '../lib/habilidades'
+import { flex, generoDe } from '../lib/genero'
 
 export default function Home({ family, data, profile, refresh, onSwitchProfile, onParent }) {
+  const genero = generoDe(profile)
   const [tab, setTab] = useState('misiones')
   const [celeb, setCeleb] = useState(null)
   const [ocupado, setOcupado] = useState(null)
@@ -117,12 +119,13 @@ export default function Home({ family, data, profile, refresh, onSwitchProfile, 
           misAprobadas={misAprobadas}
           retoDe={retoDe}
           onCancelar={cancelarPendiente}
+          genero={genero}
         />
       )}
 
       {tab === 'tienda' && <Tienda data={data} profile={profile} ocupado={ocupado} onCanjear={canjear} />}
 
-      {tab === 'progreso' && <Progreso data={data} profile={profile} />}
+      {tab === 'progreso' && <Progreso data={data} profile={profile} genero={genero} />}
 
       <nav className="tabbar" aria-label="Secciones">
         <Pestana icono="misiones" etiqueta="Misiones" activa={tab === 'misiones'} onClick={() => setTab('misiones')} />
@@ -135,7 +138,7 @@ export default function Home({ family, data, profile, refresh, onSwitchProfile, 
   )
 }
 
-function Misiones({ data, profile, ocupado, onPedir, misPendientes, misAprobadas, retoDe, onCancelar }) {
+function Misiones({ data, profile, ocupado, onPedir, misPendientes, misAprobadas, retoDe, onCancelar, genero }) {
   const hoy = dayKey(new Date())
   const disponibles = data.challenges.filter(
     (ch) => ch.active && (ch.profile_id === profile.id || ch.profile_id === null) && canDo(ch, data.completions, profile.id)
@@ -154,7 +157,7 @@ function Misiones({ data, profile, ocupado, onPedir, misPendientes, misAprobadas
             <div className="fila">
               <div className="avatar">{ch.emoji}</div>
               <div className="crece">
-                <strong>{ch.title}</strong>
+                <strong>{flex(ch.title, genero)}</strong>
                 <div className="suave">
                   {habilidad(ch.skill) && (
                     <span style={{ color: habilidad(ch.skill).color }}>
@@ -178,7 +181,7 @@ function Misiones({ data, profile, ocupado, onPedir, misPendientes, misAprobadas
           {misPendientes.map((c) => (
             <div className="carta" key={c.id}>
               <div className="fila-separada">
-                <span>{retoDe(c.challenge_id)?.emoji} {retoDe(c.challenge_id)?.title || 'Misión'}</span>
+                <span>{retoDe(c.challenge_id)?.emoji} {flex(retoDe(c.challenge_id)?.title, genero) || 'Misión'}</span>
                 <span className="chip chip-pendiente">⏳ pendiente</span>
               </div>
               <button
@@ -199,7 +202,7 @@ function Misiones({ data, profile, ocupado, onPedir, misPendientes, misAprobadas
           {hechasHoy.map((c) => (
             <div className="carta" key={c.id}>
               <div className="fila-separada">
-                <span>{retoDe(c.challenge_id)?.emoji} {retoDe(c.challenge_id)?.title || 'Misión'}</span>
+                <span>{retoDe(c.challenge_id)?.emoji} {flex(retoDe(c.challenge_id)?.title, genero) || 'Misión'}</span>
                 <span className="chip chip-hecho">✓ +{c.xp} XP</span>
               </div>
               {c.praise && <p className="elogio-recibido">“{c.praise}”</p>}
@@ -258,7 +261,7 @@ function Tienda({ data, profile, ocupado, onCanjear }) {
   )
 }
 
-function Progreso({ data, profile }) {
+function Progreso({ data, profile, genero }) {
   const mias = new Set(data.badges.filter((b) => b.profile_id === profile.id).map((b) => b.code))
   const porHabilidad = xpPorHabilidad(profile.id, data.completions, data.challenges)
   const dominante = habilidadDominante(porHabilidad)
@@ -289,7 +292,7 @@ function Progreso({ data, profile }) {
                 <div className="fila-separada">
                   <strong style={{ fontSize: '0.95rem' }}>{h.nombre}</strong>
                   <span className="suave" style={{ fontSize: '0.78rem' }}>
-                    {rango.nombre} · {xp} XP
+                    {flex(rango.nombre, genero)} · {xp} XP
                   </span>
                 </div>
                 <div className="barra-habilidad">
@@ -306,7 +309,7 @@ function Progreso({ data, profile }) {
         {BADGES.map((b) => (
           <div className={'insignia' + (mias.has(b.code) ? '' : ' bloqueada')} key={b.code}>
             <span className="ins-emoji">{b.emoji}</span>
-            <span className="ins-nombre">{b.name}</span>
+            <span className="ins-nombre">{flex(b.name, genero)}</span>
             <div className="suave" style={{ fontSize: '0.72rem', marginTop: 2 }}>{b.desc}</div>
           </div>
         ))}

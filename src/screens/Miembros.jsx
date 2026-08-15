@@ -10,7 +10,9 @@ import {
   ROLES
 } from '../lib/miembros'
 import { log } from '../lib/log'
+import { GENEROS, flex, generoDe } from '../lib/genero'
 import { Modal, Gema } from '../components/ui'
+import Icono from '../components/Icono'
 
 // ------------------------------------------------------------------
 // Gestión de miembros del gremio.
@@ -21,7 +23,7 @@ import { Modal, Gema } from '../components/ui'
 // deja la historia intacta.
 // ------------------------------------------------------------------
 
-const MIEMBRO_NUEVO = () => ({ name: '', role: 'junior', emoji: '🦊', color: COLORS[0], active: true })
+const MIEMBRO_NUEVO = () => ({ name: '', role: 'junior', emoji: '🦊', color: COLORS[0], gender: 'neutro', active: true })
 
 const AYUDA_ROL = {
   adulto: 'Pide misiones, valida las de los demás y entra al panel con el PIN.',
@@ -51,7 +53,8 @@ export default function Miembros({ family, data, refresh }) {
       name: m.name.trim(),
       role: m.role,
       emoji: m.emoji,
-      color: m.color
+      color: m.color,
+      gender: m.gender || 'neutro'
     }
     const { error } = m.id
       ? await supabase.from('profiles').update(fila).eq('id', m.id)
@@ -126,12 +129,12 @@ export default function Miembros({ family, data, refresh }) {
             <div className="crece">
               <strong>{p.name}</strong>
               <div className="suave">
-                {ROLE_LABEL[p.role]} · {p.xp} XP · {p.coins} 🪙
+                {flex(ROLE_LABEL[p.role], generoDe(p))} · {p.xp} XP · {p.coins} 🪙
               </div>
             </div>
             <Gema xp={p.xp} color={p.color} mini />
             <button className="btn-icono" onClick={() => { setFallo(''); setEditando(p) }} aria-label={`Editar a ${p.name}`}>
-              ✏️
+              <Icono nombre="editar" />
             </button>
           </div>
           <button
@@ -157,7 +160,7 @@ export default function Miembros({ family, data, refresh }) {
                 <div className="avatar" style={{ borderColor: p.color }}>{p.emoji}</div>
                 <div className="crece">
                   <strong>{p.name}</strong>
-                  <div className="suave">{ROLE_LABEL[p.role]} · {p.xp} XP</div>
+                  <div className="suave">{flex(ROLE_LABEL[p.role], generoDe(p))} · {p.xp} XP</div>
                 </div>
               </div>
               <div className="fila" style={{ marginTop: 10 }}>
@@ -214,10 +217,31 @@ function FormMiembro({ miembro, ocupado, onGuardar, onClose }) {
         <label>Rol</label>
         <select value={m.role} onChange={(e) => set({ role: e.target.value })}>
           {ROLES.map((r) => (
-            <option key={r} value={r}>{ROLE_LABEL[r]}</option>
+            <option key={r} value={r}>{flex(ROLE_LABEL[r], m.gender || 'neutro')}</option>
           ))}
         </select>
         <span className="suave">{AYUDA_ROL[m.role]}</span>
+      </div>
+
+      <div className="campo">
+        <label>¿Cómo le habla la app?</label>
+        <div className="grid-habilidades">
+          {GENEROS.map((g) => (
+            <button
+              key={g.id}
+              type="button"
+              className={'pastilla-habilidad' + ((m.gender || 'neutro') === g.id ? ' sel' : '')}
+              onClick={() => set({ gender: g.id })}
+            >
+              {g.etiqueta}
+            </button>
+          ))}
+        </div>
+        <span className="suave">
+          Así se leerá: «{GENEROS.find((g) => g.id === (m.gender || 'neutro'))?.ejemplo}». Sin especificar, la app
+          usa textos escritos para que no haga falta marca de género: ni arrobas ni barras, que no se pueden leer
+          en voz alta.
+        </span>
       </div>
 
       <div className="campo">

@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { flag } from './flags'
-import { crearClienteDemo } from './fakeBackend'
+import { crearClienteDemo, migrarTitulosDemo } from './fakeBackend'
 import { log } from './log'
 
 const url = import.meta.env.VITE_SUPABASE_URL
@@ -11,6 +11,10 @@ export const modoDemo = flag('demo')
 
 export const configured = hayCredenciales || modoDemo
 export const supabase = modoDemo ? crearClienteDemo() : hayCredenciales ? createClient(url, key) : null
+
+// La demo guarda sus datos en el navegador y no pasa por las migraciones,
+// así que se pone al día sola al arrancar.
+if (modoDemo) migrarTitulosDemo()
 
 // ------------------------------------------------------------------
 // Errores: traducirlos aquí evita que la interfaz enseñe jerga de
@@ -155,7 +159,7 @@ export function goalProgress(goal, completions) {
 export const BADGES = [
   { code: 'primera', name: 'Primera misión', emoji: '🌟', desc: 'Completa tu primera misión', test: (s) => s.approved >= 1 },
   { code: 'x10', name: 'Diez misiones', emoji: '🔥', desc: '10 misiones aprobadas', test: (s) => s.approved >= 10 },
-  { code: 'x25', name: 'Veterana', emoji: '🏅', desc: '25 misiones aprobadas', test: (s) => s.approved >= 25 },
+  { code: 'x25', name: '{Veterano|Veterana|Veteranía}', emoji: '🏅', desc: '25 misiones aprobadas', test: (s) => s.approved >= 25 },
   { code: 'x50', name: 'Leyenda', emoji: '👑', desc: '50 misiones aprobadas', test: (s) => s.approved >= 50 },
   { code: 'nivel5', name: 'Nivel 5', emoji: '💎', desc: 'Alcanza el nivel 5', test: (s) => s.level >= 5 },
   { code: 'nivel10', name: 'Nivel 10', emoji: '🚀', desc: 'Alcanza el nivel 10', test: (s) => s.level >= 10 },
@@ -171,7 +175,8 @@ export const BADGES = [
 // semana y media, no en el mes tres.
 export const META_INICIAL = { title: 'Noche de pizza y peli', emoji: '🍕', target_xp: 600 }
 
-export const ROLE_LABEL = { adulto: 'Adulto', junior: 'Junior', peque: 'Peque' }
+// 'Junior' y 'Peque' son epicenos; 'Adulto' no.
+export const ROLE_LABEL = { adulto: '{Adulto|Adulta|Persona adulta}', junior: 'Junior', peque: 'Peque' }
 
 export const EMOJIS = ['🦊', '🐣', '🦄', '🐨', '🐙', '🦖', '🐼', '🐬', '🦁', '🌟', '🌈', '🚀', '🧙', '🧝', '🐲', '🦉']
 

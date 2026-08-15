@@ -109,11 +109,14 @@ export function habilidadDominante(acumulado) {
  * Rango dentro de una habilidad. Escala corta a propósito: la primera
  * subida llega pronto, que es cuando más falta hace ver que se avanza.
  */
+// Aprendiz, Oficial y Leyenda valen igual para cualquier género; las dos
+// del medio no, así que llevan sus tres formas. Las neutras son nombres
+// de rango en abstracto, como "Bronce" u "Oro": no describen a nadie.
 const RANGOS = [
   { desde: 0, nombre: 'Aprendiz' },
   { desde: 100, nombre: 'Oficial' },
-  { desde: 300, nombre: 'Veterana' },
-  { desde: 700, nombre: 'Maestra' },
+  { desde: 300, nombre: '{Veterano|Veterana|Veteranía}' },
+  { desde: 700, nombre: '{Maestro|Maestra|Maestría}' },
   { desde: 1500, nombre: 'Leyenda' }
 ]
 

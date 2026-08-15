@@ -24,11 +24,28 @@ La estrella inmediata de la peque no es un atajo: a los tres años la
 recompensa diferida no funciona. Un adulto puede darle la estrella también
 desde el panel (pestaña Peque) cuando la tablet no está a mano.
 
-## Miembros
+## Miembros y cómo les habla la app
 
 De 1 a 8 perfiles, con el rol que haga falta y en cualquier combinación; lo
 único obligatorio es que quede al menos una persona adulta, porque si no
-nadie puede validar. Se gestionan en **Panel parental → ⚙️ → Miembros**:
+nadie puede validar.
+
+Cada perfil elige **cómo se dirige a él la app**: femenino, masculino o sin
+especificar. El castellano marca género en participios y adjetivos, y la app
+habla de tú ("lo has hecho tú sola"), así que sin ese dato solo caben dos
+salidas malas: hablarle a todo el mundo en masculino, o llenar la pantalla
+de arrobas y barras que no se pueden leer en voz alta —y aquí hay una
+criatura de tres años a la que le leen la pantalla—.
+
+La opción **sin especificar** no es un tercer sexo: significa que no se ha
+dicho, y hace que la app use textos **reescritos** para que no haga falta
+marca ninguna. Es el valor por defecto, así que es el que más se lee:
+
+```
+femenino    Vestirse sola        · Veterana
+masculino   Vestirse solo        · Veterano
+sin decir   Vestirse sin ayuda   · Veteranía
+``` Se gestionan en **Panel parental → ⚙️ → Miembros**:
 alta, edición de nombre, rol, emoji y color, y baja.
 
 La baja por defecto es **retirar**, no borrar: el perfil sale del selector
@@ -99,7 +116,7 @@ pasos lo explica.
    *anon public*.
 
 > Si ya tenías una versión anterior del esquema, ejecuta además
-> las migraciones `migracion-001` … `migracion-006` en orden. Si empiezas
+> las migraciones `migracion-001` … `migracion-007` en orden. Si empiezas
 > de cero, `schema.sql` ya lo incluye todo. Todas son idempotentes.
 
 ## 2. En local
@@ -234,6 +251,7 @@ src/lib/habilidades.js  Las 8 competencias y el progreso por habilidad
 src/lib/elogio.js       Sugerencias de elogio específico y rachas
 src/lib/premios.js      Catálogo de recompensas por nivel y lista de evitar
 src/lib/evidencia.js    Principios y referencias del sistema
+src/lib/genero.js       Concordancia de género con tres formas por frase
 src/lib/mantenerPulsado.js  Gesto de pulsación mantenida (salir, deshacer)
 src/lib/miembros.js     Reglas de alta, edición y baja de perfiles
 src/lib/pin.js          Reglas del PIN parental
@@ -259,7 +277,7 @@ SPEC.md                 Especificación, fuente de verdad para iterar
 ```bash
 npm run dev            # desarrollo
 npm run dev:demo       # desarrollo con backend simulado, sin Supabase
-npm test               # tests (140)
+npm test               # tests (157)
 npm run build          # compilación de producción
 npm run verify         # tests + build + revisión de credenciales
 npm run health         # ¿responden la web publicada y Supabase?

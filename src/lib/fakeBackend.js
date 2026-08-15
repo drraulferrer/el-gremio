@@ -31,7 +31,7 @@ const vacia = () => TABLAS.reduce((acc, t) => ({ ...acc, [t]: [] }), {})
 // fila recién insertada sale sin `status` y la función que la aprueba no
 // la encuentra nunca: el fallo silencioso perfecto.
 const DEFECTOS_TABLA = {
-  profiles: { emoji: '🙂', color: '#a78bfa', xp: 0, coins: 0, active: true },
+  profiles: { emoji: '🙂', color: '#a78bfa', xp: 0, coins: 0, active: true, gender: 'neutro' },
   challenges: { emoji: '⭐', xp: 10, coins: 5, frequency: 'diario', active: true, profile_id: null, skill: null },
   completions: { status: 'pendiente', resolved_at: null, praise: null },
   rewards: { emoji: '🎁', cost: 50, active: true, tier: 2 },
@@ -389,6 +389,35 @@ export function crearClienteDemo() {
         return { error: null }
       }
     }
+  }
+}
+
+/**
+ * Equivalente al UPDATE de migracion-007: pasa los títulos literales a la
+ * forma con marcas de género. Lo llama la propia demo al arrancar para no
+ * quedarse con datos de antes del cambio.
+ */
+export function migrarTitulosDemo() {
+  try {
+    const crudo = localStorage.getItem(CLAVE)
+    if (!crudo) return 0
+    const db = JSON.parse(crudo)
+    const mapa = {
+      'Vestirse sola': 'Vestirse {solo|sola|sin ayuda}',
+      'Vestirse solo': 'Vestirse {solo|sola|sin ayuda}',
+      'Resolver un problema sola': 'Resolver un problema {solo|sola|sin ayuda}',
+      'Resolver un problema solo': 'Resolver un problema {solo|sola|sin ayuda}'
+    }
+    let cambiados = 0
+    const challenges = (db.challenges || []).map((c) => {
+      if (!mapa[c.title]) return c
+      cambiados++
+      return { ...c, title: mapa[c.title] }
+    })
+    if (cambiados) escribir({ ...db, challenges })
+    return cambiados
+  } catch {
+    return 0
   }
 }
 

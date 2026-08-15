@@ -19,8 +19,13 @@ import { accionDeMision } from './tareas'
 // toda plantilla tiene que encajar con un infinitivo. Es el detalle que
 // separa "Has conseguido hacer la cama" de "Has hacer la cama", y un
 // elogio mal construido no suena sincero, que es justo lo que necesita.
+//
+// Ninguna plantilla lleva marca de género, y es deliberado: se puede
+// elogiar sin marcar. "Lo has hecho por tu cuenta" vale para cualquiera
+// y se lee mejor que cualquier apaño con barras. La concordancia entra
+// igualmente por {accion}, que viene del título y ese sí puede flexionar.
 const PLANTILLAS_POR_HABILIDAD = {
-  autonomia: ['Has conseguido {accion} sin que nadie te lo recordara.', 'Lo has resuelto tú sola: {accion}.'],
+  autonomia: ['Has conseguido {accion} sin que nadie te lo recordara.', 'Lo has hecho por tu cuenta: {accion}.'],
   responsabilidad: ['Te has acordado tú de {accion}.', 'Has cumplido con lo tuyo: {accion}.'],
   cooperacion: ['Nos has echado una mano con {accion} y se ha notado.', 'Con {accion} nos has facilitado la tarde.'],
   amabilidad: ['Has tratado bien a los demás: {accion}.', 'Eso de {accion} ha hecho sentir bien a alguien.'],

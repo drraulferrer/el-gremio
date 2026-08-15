@@ -10,6 +10,7 @@ import {
 import { perfilesActivos } from '../lib/miembros'
 import { habilidad, HABILIDADES } from '../lib/habilidades'
 import { sugerenciasDeElogio, rachaDeMision } from '../lib/elogio'
+import { flex, generoDe } from '../lib/genero'
 import { Modal, Celebracion, Pestana } from '../components/ui'
 import Icono from '../components/Icono'
 import Ajustes from './Ajustes'
@@ -132,13 +133,13 @@ export default function ParentPanel({ family, data, refresh, refreshFamily, onVe
                 <div className="fila">
                   <div className="avatar" style={{ borderColor: p?.color }}>{p?.emoji}</div>
                   <div className="crece">
-                    <strong>{ch?.emoji} {ch?.title || 'Misión'}</strong>
+                    <strong>{ch?.emoji} {flex(ch?.title, generoDe(p)) || 'Misión'}</strong>
                     <div className="suave">{p?.name} · +{c.xp} XP · +{c.coins} 🪙</div>
                   </div>
                   <button
                     className="btn btn-fantasma btn-mini"
                     onClick={() => deshacer(c.id)}
-                    aria-label={`Deshacer ${ch?.title || 'la misión'} de ${p?.name || ''}`}
+                    aria-label={`Deshacer ${flex(ch?.title, generoDe(p)) || 'la misión'} de ${p?.name || ''}`}
                   >
                     <Icono nombre="atras" tamano={18} /> Deshacer
                   </button>
@@ -199,8 +200,10 @@ function TarjetaValidacion({ completion, perfil, reto, completions, onResolver }
   const [texto, setTexto] = useState('')
   const [ocupado, setOcupado] = useState(false)
 
+  const genero = generoDe(perfil)
   const racha = rachaDeMision(completion.challenge_id, completion.profile_id, completions)
-  const sugerencias = sugerenciasDeElogio({ reto, racha })
+  // El elogio va dirigido a esa persona, así que concuerda con su género.
+  const sugerencias = sugerenciasDeElogio({ reto, racha }).map((f) => flex(f, genero))
   const hab = habilidad(reto?.skill)
 
   async function validar(elogio) {
@@ -214,7 +217,7 @@ function TarjetaValidacion({ completion, perfil, reto, completions, onResolver }
       <div className="fila" style={{ marginBottom: 10 }}>
         <div className="avatar" style={{ borderColor: perfil?.color }}>{perfil?.emoji}</div>
         <div className="crece">
-          <strong>{reto?.emoji} {reto?.title || 'Misión'}</strong>
+          <strong>{reto?.emoji} {flex(reto?.title, genero) || 'Misión'}</strong>
           <div className="suave">
             {perfil?.name} · +{completion.xp} XP · +{completion.coins} 🪙
             {racha >= 2 && <> · 🔥 {racha + 1} días seguidos</>}
@@ -325,7 +328,7 @@ function ModoPeque({ family, data, refresh, onCeleb }) {
                   onClick={() => darEstrella(ch, p)}
                 >
                   <span className="peque-emoji">{ch.emoji}</span>
-                  <span className="crece" style={{ textAlign: 'left' }}>{ch.title}</span>
+                  <span className="crece" style={{ textAlign: 'left' }}>{flex(ch.title, generoDe(p))}</span>
                   <span>{disponible ? '⭐' : '✓'}</span>
                 </button>
               )
@@ -405,7 +408,7 @@ function GestionMisiones({ family, data, refresh }) {
           <div className="fila">
             <div className="avatar">{ch.emoji}</div>
             <div className="crece">
-              <strong>{ch.title}</strong>
+              <strong>{flex(ch.title, generoDe(data.profiles.find((p) => p.id === ch.profile_id)))}</strong>
               <div className="suave">
                 {habilidad(ch.skill) && <>{habilidad(ch.skill).emoji} {habilidad(ch.skill).nombre} · </>}
                 {nombreDe(ch.profile_id)} · +{ch.xp} XP · {FREQ_LABEL[ch.frequency]}
@@ -576,7 +579,7 @@ function Biblioteca({ family, data, refresh, onClose }) {
         <label>Para</label>
         <select value={perfilId} onChange={(e) => { setPerfilId(e.target.value); setSel(new Set()) }}>
           {candidatos.map((p) => (
-            <option key={p.id} value={p.id}>{p.emoji} {p.name} · {ROLE_LABEL[p.role]}</option>
+            <option key={p.id} value={p.id}>{p.emoji} {p.name} · {flex(ROLE_LABEL[p.role], generoDe(p))}</option>
           ))}
         </select>
       </div>
@@ -605,7 +608,7 @@ function Biblioteca({ family, data, refresh, onClose }) {
                 />
                 <span style={{ fontSize: '1.2rem' }}>{tt.e}</span>
                 <span className="crece">
-                  {tt.t}
+                  {flex(tt.t, generoDe(perfil))}
                   {habilidad(tt.skill) && (
                     <span className="suave" style={{ display: 'block', fontSize: '0.76rem' }}>
                       {habilidad(tt.skill).emoji} {habilidad(tt.skill).nombre}

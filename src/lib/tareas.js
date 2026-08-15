@@ -6,7 +6,11 @@
 // versión base y la personalización viene después, no antes.
 //
 // Cada tarea lleva hasta cuatro cosas:
-//   t      título, tal cual. Es lo que se ve.
+//   t      título. Puede llevar marcas {masculino|femenino|neutra}
+//          cuando habla de quien hace la misión: "Vestirse {solo|sola|sin
+//          ayuda}". Los títulos que hablan de OTRAS personas ("Ayudar a
+//          su hermana", "Leer con las niñas") describen a esta familia
+//          concreta y se editan desde el panel, no se flexionan.
 //   a      la acción en infinitivo, solo cuando el título es un
 //          sustantivo. La usan las frases de elogio: sin ella saldría
 //          "Te has acordado tú de encimera" en vez de "de limpiar la
@@ -37,7 +41,7 @@ export const CATALOGO = {
     {
       grupo: 'Autocuidado',
       tareas: [
-        { t: 'Vestirse sola', e: '👕', f: 'diario', skill: 'autonomia' },
+        { t: 'Vestirse {solo|sola|sin ayuda}', e: '👕', f: 'diario', skill: 'autonomia' },
         { t: 'Elegir la ropa', e: '🧦', f: 'diario', skill: 'autonomia' },
         { t: 'Ponerse los zapatos', e: '👟', f: 'diario', skill: 'autonomia' },
         { t: 'Lavarse las manos', e: '🧼', f: 'diario', skill: 'salud' },
@@ -159,7 +163,7 @@ export const CATALOGO = {
       tareas: [
         { t: 'Ayudar a su hermana', e: '👭', f: 'diario', skill: 'amabilidad' },
         { t: 'Enseñar algo', e: '🧑‍🏫', f: 'semanal', skill: 'cooperacion' },
-        { t: 'Resolver un problema sola', e: '🧠', f: 'semanal', skill: 'autonomia' },
+        { t: 'Resolver un problema {solo|sola|sin ayuda}', e: '🧠', f: 'semanal', skill: 'autonomia' },
         { t: 'Gestionar una emoción', e: '🌊', f: 'diario', skill: 'autonomia' },
         { t: 'Practicar gratitud', e: '🙏', f: 'diario', skill: 'amabilidad' },
         { t: 'Diario', a: 'escribir en su diario', e: '📓', f: 'diario', skill: 'creatividad' }
@@ -295,7 +299,7 @@ export const RECOMENDADAS = { min: 3, max: 6 }
 // se pueda completar el tablón entero: empezar ganando es lo que hace
 // que haya segundo día.
 const ARRANQUE_TITULOS = {
-  peque: ['Vestirse sola', 'Recoger juguetes', 'Cepillarse los dientes con ayuda', 'Poner servilletas', 'Leer un cuento'],
+  peque: ['Vestirse {solo|sola|sin ayuda}', 'Recoger juguetes', 'Cepillarse los dientes con ayuda', 'Poner servilletas', 'Leer un cuento'],
   junior: ['Hacer la cama', 'Leer 20 minutos', 'Poner mesa', 'Ejercicio', 'Ayudar a su hermana'],
   adulto: ['Leer con las niñas', 'Caminar', 'Cocina', 'Juego familiar', 'Organización semanal']
 }

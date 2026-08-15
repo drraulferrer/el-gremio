@@ -26,6 +26,10 @@ create table if not exists public.profiles (
   color text not null default '#a78bfa',
   xp integer not null default 0,
   coins integer not null default 0,
+  -- Género con el que la app se dirige a esta persona. 'neutro' no es un
+  -- tercer sexo: significa "no se ha dicho", y hace que se usen frases
+  -- reescritas que no necesitan marca (ver src/lib/genero.js).
+  gender text not null default 'neutro' check (gender in ('femenino','masculino','neutro')),
   -- Retirar en lugar de borrar: un perfil inactivo sale del selector pero
   -- conserva su historial y la XP que aportó a las metas ya cerradas.
   active boolean not null default true,

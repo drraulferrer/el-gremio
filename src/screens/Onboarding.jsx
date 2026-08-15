@@ -4,8 +4,9 @@ import { misionesDeArranque } from '../lib/tareas'
 import { PREMIOS_INICIALES } from '../lib/premios'
 import { log } from '../lib/log'
 import { MAX_PERFILES } from '../lib/miembros'
+import { GENEROS, flex } from '../lib/genero'
 
-const MIEMBRO_NUEVO = () => ({ name: '', role: 'junior', emoji: '🦊', color: COLORS[0] })
+const MIEMBRO_NUEVO = () => ({ name: '', role: 'junior', emoji: '🦊', color: COLORS[0], gender: 'neutro' })
 
 export default function Onboarding({ onDone }) {
   const [paso, setPaso] = useState(1)
@@ -13,10 +14,10 @@ export default function Onboarding({ onDone }) {
   const [pin1, setPin1] = useState('')
   const [pin2, setPin2] = useState('')
   const [miembros, setMiembros] = useState([
-    { name: '', role: 'adulto', emoji: '🧙', color: COLORS[2] },
-    { name: '', role: 'adulto', emoji: '🦉', color: COLORS[1] },
-    { name: '', role: 'junior', emoji: '🦄', color: COLORS[0] },
-    { name: '', role: 'peque', emoji: '🐣', color: COLORS[3] }
+    { name: '', role: 'adulto', emoji: '🧙', color: COLORS[2], gender: 'neutro' },
+    { name: '', role: 'adulto', emoji: '🦉', color: COLORS[1], gender: 'neutro' },
+    { name: '', role: 'junior', emoji: '🦄', color: COLORS[0], gender: 'neutro' },
+    { name: '', role: 'peque', emoji: '🐣', color: COLORS[3], gender: 'neutro' }
   ])
   const [conPlantillas, setConPlantillas] = useState(true)
   const [error, setError] = useState('')
@@ -56,7 +57,8 @@ export default function Onboarding({ onDone }) {
           name: m.name.trim(),
           role: m.role,
           emoji: m.emoji,
-          color: m.color
+          color: m.color,
+          gender: m.gender || 'neutro'
         })))
         .select()
       if (e2) throw e2
@@ -156,8 +158,22 @@ export default function Onboarding({ onDone }) {
               value={m.role}
               onChange={(e) => setMiembro(i, { role: e.target.value })}
             >
-              {Object.entries(ROLE_LABEL).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+              {Object.entries(ROLE_LABEL).map(([v, l]) => (
+                <option key={v} value={v}>{flex(l, m.gender)}</option>
+              ))}
             </select>
+          </div>
+          <div className="grid-habilidades" style={{ marginBottom: 8 }}>
+            {GENEROS.map((g) => (
+              <button
+                key={g.id}
+                type="button"
+                className={'pastilla-habilidad' + (m.gender === g.id ? ' sel' : '')}
+                onClick={() => setMiembro(i, { gender: g.id })}
+              >
+                {g.etiqueta}
+              </button>
+            ))}
           </div>
           <div className="grid-emojis" style={{ marginBottom: 8 }}>
             {EMOJIS.slice(0, 8).map((e) => (

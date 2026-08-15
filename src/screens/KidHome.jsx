@@ -5,6 +5,7 @@ import { tocarEstrella, sonidoActivo, alternarSonido } from '../lib/sonido'
 import { log } from '../lib/log'
 import Icono from '../components/Icono'
 import { useMantenerPulsado } from '../lib/mantenerPulsado'
+import { flex, generoDe } from '../lib/genero'
 import { sugerenciasDeElogio, rachaDeMision } from '../lib/elogio'
 
 // ------------------------------------------------------------------
@@ -24,6 +25,7 @@ import { sugerenciasDeElogio, rachaDeMision } from '../lib/elogio'
 const HOLD_MS = 1500
 
 export default function KidHome({ family, data, profile, refresh, onSalir }) {
+  const genero = generoDe(profile)
   const [celebrando, setCelebrando] = useState(null)
   const [ocupado, setOcupado] = useState(null)
   const [fallo, setFallo] = useState('')
@@ -77,7 +79,7 @@ export default function KidHome({ family, data, profile, refresh, onSalir }) {
     // elogio: lo genera la app, concreto y en el momento, y se guarda igual
     // que el de un adulto para que quede en su historial.
     const racha = rachaDeMision(reto.id, profile.id, data.completions)
-    const elogio = sugerenciasDeElogio({ reto, racha })[0]
+    const elogio = flex(sugerenciasDeElogio({ reto, racha })[0], genero)
 
     const { ok, mensaje } = await estrellaInmediata({ family, profile, reto, elogio })
     if (ok) {
@@ -128,6 +130,7 @@ export default function KidHome({ family, data, profile, refresh, onSalir }) {
               ocupado={ocupado === ch.id}
               onPulsar={() => pulsar(ch)}
               onDeshacer={() => deshacer(ch)}
+              genero={genero}
             />
           )
         })}
@@ -143,7 +146,7 @@ export default function KidHome({ family, data, profile, refresh, onSalir }) {
  * hecha, un toque no hace nada (para que no la "descomplete" sin querer)
  * pero mantener pulsado 1,5 s la deshace: gesto de adulto.
  */
-function BaldosaPeque({ reto, disponible, ocupado, onPulsar, onDeshacer }) {
+function BaldosaPeque({ reto, disponible, ocupado, onPulsar, onDeshacer, genero }) {
   const { progreso, manejadores } = useMantenerPulsado(onDeshacer, HOLD_MS)
   const sostenible = !disponible && !ocupado
 
@@ -153,13 +156,13 @@ function BaldosaPeque({ reto, disponible, ocupado, onPulsar, onDeshacer }) {
       disabled={ocupado}
       onClick={() => disponible && onPulsar()}
       {...(sostenible ? manejadores : {})}
-      aria-label={reto.title + (disponible ? '' : ' (ya hecha, mantén pulsado para deshacer)')}
+      aria-label={flex(reto.title, genero) + (disponible ? '' : ' (ya hecha, mantén pulsado para deshacer)')}
     >
       {progreso > 0 && (
         <span className="kid-deshacer" style={{ transform: `scaleX(${progreso / 100})` }} aria-hidden="true" />
       )}
       <span className="kid-boton-emoji">{reto.emoji}</span>
-      <span className="kid-boton-texto">{reto.title}</span>
+      <span className="kid-boton-texto">{flex(reto.title, genero)}</span>
       <span className="kid-boton-marca">{disponible ? '★' : '✓'}</span>
     </button>
   )
@@ -189,7 +192,7 @@ function SalidaAdulta({ onSalir }) {
   return (
     <button className="kid-salida" {...manejadores}>
       <span className="kid-salida-relleno" style={{ transform: `scaleX(${progreso / 100})` }} />
-      <span className="kid-salida-texto">Adultos: mantén pulsado</span>
+      <span className="kid-salida-texto">Para adultos: mantén pulsado</span>
     </button>
   )
 }

@@ -29,7 +29,7 @@ modo peque, la capa de producción y la gestión de miembros.
 | Código local | `~/el-gremio` |
 | Supabase | proyecto `chfbrawsoulfiywiqhpe`, Postgres 17.6, región EU |
 | Versión publicada | ver `npm run health`; cada despliegue deja etiqueta `deploy-AAAA-MM-DD-HHMM` |
-| Tests | 140, en 8 ficheros, todos en verde |
+| Tests | 157, en 9 ficheros, todos en verde |
 
 Comprobar que sigue vivo:
 
@@ -128,6 +128,16 @@ sin estado y no se aprobaban nunca.
   propósito. Como algunos títulos son sustantivos ("Encimera", "Ejercicio"),
   cada tarea puede llevar un campo `a` con la acción en infinitivo, que es
   lo que usan las frases de elogio.
+- **Concordancia de género con tres formas, nunca con arroba ni barra.**
+  `{masculino|femenino|neutra}` en `src/lib/genero.js`. La neutra va
+  reescrita, no es "solo/a": tiene que poder leerse en voz alta, porque a
+  la peque le leen la pantalla. Hay un test que recorre catálogo, rangos,
+  insignias, roles y elogios comprobando que ninguna marca se quedó con
+  dos formas: si se queda con dos, quien no ha dicho su género acaba
+  leyendo el masculino.
+- **Un cambio de plantilla no toca lo ya guardado.** Los títulos viven en
+  la base, así que cambiar el catálogo no cambia las misiones existentes:
+  hace falta un UPDATE en la migración. Pasó con "Vestirse sola".
 - **La pulsación mantenida no puede depender de requestAnimationFrame.**
   Un `setTimeout` decide cuándo se completa y rAF solo pinta la barra: con
   la pestaña en segundo plano rAF se congela y el gesto se quedaba a
@@ -284,7 +294,7 @@ Si se pierde ese fichero: los dos valores se recuperan del panel de Supabase
 ```bash
 cd ~/el-gremio
 npm install          # si es una máquina nueva
-npm test             # 140 tests, deben pasar
+npm test             # 157 tests, deben pasar
 npm run dev:demo     # trastear sin tocar producción
 npm run dev          # contra la Supabase real
 ```

@@ -7,6 +7,7 @@ import {
   habilidadDominante,
   rangoDeHabilidad
 } from '../src/lib/habilidades'
+import { flex } from '../src/lib/genero'
 import { CATALOGO, tareasDeRol, misionesDeArranque, DEFAULTS_ROL } from '../src/lib/tareas'
 import { CATALOGO_PREMIOS, PREMIOS_INICIALES, NIVELES, nivelDePremio } from '../src/lib/premios'
 import { REFERENCIAS, PRINCIPIOS } from '../src/lib/evidencia'
@@ -72,11 +73,19 @@ describe('XP por habilidad', () => {
 
 describe('rangos de habilidad', () => {
   it('empieza en aprendiz y sube por tramos', () => {
-    expect(rangoDeHabilidad(0).nombre).toBe('Aprendiz')
-    expect(rangoDeHabilidad(99).nombre).toBe('Aprendiz')
-    expect(rangoDeHabilidad(100).nombre).toBe('Oficial')
-    expect(rangoDeHabilidad(700).nombre).toBe('Maestra')
-    expect(rangoDeHabilidad(99999).nombre).toBe('Leyenda')
+    const nombre = (xp, genero = 'femenino') => flex(rangoDeHabilidad(xp).nombre, genero)
+    expect(nombre(0)).toBe('Aprendiz')
+    expect(nombre(99)).toBe('Aprendiz')
+    expect(nombre(100)).toBe('Oficial')
+    expect(nombre(700)).toBe('Maestra')
+    expect(nombre(99999)).toBe('Leyenda')
+  })
+
+  it('los rangos concuerdan con el género y tienen forma neutra', () => {
+    expect(flex(rangoDeHabilidad(300).nombre, 'masculino')).toBe('Veterano')
+    expect(flex(rangoDeHabilidad(300).nombre, 'femenino')).toBe('Veterana')
+    expect(flex(rangoDeHabilidad(300).nombre, 'neutro')).toBe('Veteranía')
+    expect(flex(rangoDeHabilidad(700).nombre, 'neutro')).toBe('Maestría')
   })
 
   it('el porcentaje nunca se sale de rango', () => {

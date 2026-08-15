@@ -1,9 +1,13 @@
 import { describe, it, expect } from 'vitest'
 import { CATALOGO, tareasDeRol, accionDeMision } from '../src/lib/tareas'
+import { flex } from '../src/lib/genero'
 import { CATALOGO_PREMIOS } from '../src/lib/premios'
 
 // ------------------------------------------------------------------
 // Este fichero fija el catálogo contra la lista que escribió la familia.
+// La comparación se hace sobre la forma FEMENINA, porque así es como la
+// escribieron ("Vestirse sola"): si un título deja de decir lo mismo al
+// flexionarlo, salta aquí.
 // No comprueba lógica: comprueba que nadie (yo el primero) "mejora" los
 // títulos por su cuenta. Si algún día se quiere cambiar un nombre, se
 // cambia aquí también, a propósito y a la vista.
@@ -59,7 +63,7 @@ describe('el catálogo respeta la lista de la familia', () => {
       it(`${rol} · ${grupo}`, () => {
         const bloque = CATALOGO[rol].find((g) => g.grupo === grupo)
         expect(bloque, `falta el grupo "${grupo}" en ${rol}`).toBeTruthy()
-        expect(bloque.tareas.map((t) => t.t)).toEqual(esperadas)
+        expect(bloque.tareas.map((t) => flex(t.t, 'femenino'))).toEqual(esperadas)
       })
     }
   }
@@ -73,7 +77,7 @@ describe('el catálogo respeta la lista de la familia', () => {
   it('ninguna misión se ha quedado por el camino', () => {
     for (const rol of Object.keys(FUENTE)) {
       const dellista = Object.values(FUENTE[rol]).flat()
-      const enCatalogo = new Set(tareasDeRol(rol).map((t) => t.t))
+      const enCatalogo = new Set(tareasDeRol(rol).map((t) => flex(t.t, 'femenino')))
       for (const titulo of dellista) expect(enCatalogo.has(titulo), `${rol}: ${titulo}`).toBe(true)
     }
   })

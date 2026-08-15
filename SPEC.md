@@ -15,6 +15,8 @@ Especificación de la webapp de gamificación familiar. Este documento es la fue
 - Recompensas dobles: progresión virtual (XP, niveles, insignias, rangos por habilidad) más catálogo de premios reales canjeables con monedas. Los premios se ordenan en tres niveles y el catálogo prioriza el nivel 1 (decidir algo), que es el que mejor sostiene el hábito. Las monedas son un andamio que se retira cuando el hábito se consolida.
 - Se gamifica la fricción (hábitos y tareas que cuestan), no las actividades ya placenteras, para no minar la motivación intrínseca.
 - Una única cuenta de autenticación familiar; perfiles internos estilo consola; panel parental protegido por PIN.
+- **Cada perfil declara con qué género le habla la app** (femenino, masculino o sin especificar). Las cadenas que concuerdan llevan tres formas escritas a mano, `{masculino|femenino|neutra}`, y la neutra está **reescrita** para no necesitar marca: nada de arrobas ni de barras, que no se leen en voz alta y hay una criatura de tres años a la que le leen la pantalla. Sin especificar es el valor por defecto y, por tanto, el que más se lee.
+- Se flexiona lo que habla de quien hace la misión ("Vestirse {solo|sola|sin ayuda}"), los rangos, las insignias y las etiquetas de rol. **No** se flexiona lo que habla de terceras personas ("Ayudar a su hermana", "Leer con las niñas"): describe a esta familia y se edita desde el panel.
 
 ## 2. Economía
 
