@@ -36,7 +36,7 @@ export async function pedirMision({ family, profile, reto }) {
  * recompensa diferida no funciona, así que se aprueba en el acto; el
  * registro queda igualmente en el historial para los adultos.
  */
-export async function estrellaInmediata({ family, profile, reto }) {
+export async function estrellaInmediata({ family, profile, reto, elogio = '' }) {
   const requestId = nuevoRequestId()
   log.info('mision.estrella_inmediata', { request_id: requestId, challenge_id: reto.id, profile_id: profile.id })
 
@@ -61,9 +61,18 @@ export async function estrellaInmediata({ family, profile, reto }) {
     return { ok: false, mensaje: alta.mensaje || 'No se pudo guardar la estrella.' }
   }
 
+  // Siempre con los tres argumentos, incluso cuando el elogio va vacío.
+  // Si en la base conviven la versión de dos y la de tres (pasa cuando un
+  // `create or replace` cambia la firma y deja una sobrecarga), la llamada
+  // de dos argumentos es ambigua y PostgREST la rechaza con PGRST203.
   const aprobacion = await operacion(
     'mision.estrella_inmediata.aprobacion_error',
-    () => supabase.rpc('resolve_completion', { c_id: alta.data.id, new_status: 'aprobado' }),
+    () =>
+      supabase.rpc('resolve_completion', {
+        c_id: alta.data.id,
+        new_status: 'aprobado',
+        praise_text: elogio ? String(elogio).trim().slice(0, 240) : null
+      }),
     { request_id: requestId, completion_id: alta.data.id }
   )
 
@@ -116,6 +125,15 @@ export async function resolverMision(id, estado, elogio = '') {
     () => supabase.rpc('resolve_completion', { c_id: id, new_status: estado }),
     { request_id: requestId, completion_id: id, estado, sin_elogio: true }
   )
+
+  // Ambigüedad por sobrecarga: la base tiene las dos versiones de la
+  // función y PostgREST no puede elegir. Se arregla en la base, no aquí.
+  if (reintento.error?.code === 'PGRST203') {
+    return {
+      ok: false,
+      mensaje: 'La base tiene dos versiones de resolve_completion. Borra la antigua: drop function public.resolve_completion(uuid, text);'
+    }
+  }
 
   if (reintento.error) return { ok: false, mensaje: reintento.mensaje }
 

@@ -227,6 +227,16 @@ Migraciones hasta hoy:
 | `migracion-001-mensual.sql` | Frecuencia `mensual` en `challenges` | Sí |
 | `migracion-002-produccion.sql` | `app_logs`, `rate_limits`, `rate_guard`, `health()` | Sí |
 | `migracion-003-miembros.sql` | `profiles.active` e índice | Sí |
+| `migracion-004-habilidades.sql` | `challenges.skill`, `rewards.tier`, `completions.praise`, `resolve_completion` con elogio | Sí |
+| `migracion-005-funcion-duplicada.sql` | Retira la sobrecarga que dejó la 004 en bases ya existentes | No aplica (base nueva solo crea una) |
+
+**Trampa de las funciones**: `create or replace function` no sustituye una
+función si cambia su firma (número o nombre de argumentos): crea una
+**sobrecarga**. Con dos versiones vivas, PostgREST devuelve `PGRST203` y
+la llamada deja de funcionar. Toda migración que cambie la firma de una
+función debe hacer `drop function if exists ...(firma vieja);` antes del
+`create or replace`. Pasó de verdad con `resolve_completion` en la 004 y
+tumbó la estrella inmediata de la peque.
 
 Comprobación rápida de que la convención se ha respetado:
 

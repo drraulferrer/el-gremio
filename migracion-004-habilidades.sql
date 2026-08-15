@@ -35,6 +35,12 @@ alter table public.completions
 
 create index if not exists idx_challenges_skill on public.challenges (family_id, skill);
 
+-- IMPORTANTE: `create or replace` no sustituye la función si cambia la
+-- firma, deja una sobrecarga, y entonces PostgREST no sabe cuál llamar
+-- (PGRST203). Se retira la versión de dos argumentos ANTES de crear la
+-- nueva.
+drop function if exists public.resolve_completion(uuid, text);
+
 -- El elogio viaja con la validación, de forma atómica: si se abona la XP
 -- se guarda el elogio, y si no, ninguna de las dos cosas.
 create or replace function public.resolve_completion(

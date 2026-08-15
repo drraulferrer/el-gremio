@@ -50,14 +50,16 @@ export default function KidHome({ family, data, profile, refresh, onSalir }) {
     setOcupado(reto.id)
     setFallo('')
 
-    const { ok, mensaje } = await estrellaInmediata({ family, profile, reto })
+    // Su misión se aprueba sola, así que aquí no hay adulto que escriba el
+    // elogio: lo genera la app, concreto y en el momento, y se guarda igual
+    // que el de un adulto para que quede en su historial.
+    const racha = rachaDeMision(reto.id, profile.id, data.completions)
+    const elogio = sugerenciasDeElogio({ reto, racha })[0]
+
+    const { ok, mensaje } = await estrellaInmediata({ family, profile, reto, elogio })
     if (ok) {
       tocarEstrella()
-      // Su misión se aprueba sola, así que aquí no hay adulto que escriba
-      // el elogio: lo pone la app, concreto y en el momento, que es lo
-      // que dice la evidencia que funciona.
-      const racha = rachaDeMision(reto.id, profile.id, data.completions)
-      setCelebrando({ ...reto, elogio: sugerenciasDeElogio({ reto, racha })[0] })
+      setCelebrando({ ...reto, elogio })
       await refresh()
     } else {
       setFallo(mensaje || 'Uy, no se pudo guardar. Avisa a mamá o papá.')
