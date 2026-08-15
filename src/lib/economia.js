@@ -142,3 +142,69 @@ export function veredicto(dias, objetivo) {
   if (razon > 2) return { estado: 'lento', texto: 'Cuesta demasiado' }
   return { estado: 'ok', texto: 'En su sitio' }
 }
+
+// ------------------------------------------------------------------
+// Topes de misiones por persona
+//
+// El modelo de arriba supone 5 misiones activas por persona. Ese número
+// no es una preferencia estética: es el que hace que los precios de la
+// tienda y la meta del gremio caigan en su cadencia. Activar quince
+// dispara la economía aunque los precios sean correctos.
+//
+// Pero contar misiones a secas engaña: siete semanales pesan lo mismo que
+// UNA diaria. Lo que hay que medir es la CARGA, en misiones-diarias
+// equivalentes, y ahí el presupuesto es el mismo 5 del modelo.
+//
+// De ese presupuesto salen los topes por frecuencia, repartidos para que
+// sumados quepan dentro (4 + 5/7 + 8/30 = 4,98):
+// ------------------------------------------------------------------
+
+export const TOPES = { diario: 4, semanal: 5, mensual: 8, unico: Infinity }
+
+/** Cuánto pesa cada frecuencia en misiones-diarias equivalentes. */
+export const PESO_FRECUENCIA = { diario: 1, semanal: 1 / 7, mensual: 1 / 30, unico: 0 }
+
+/** La carga de un conjunto de misiones, en misiones-diarias equivalentes. */
+export function cargaDe(misiones = []) {
+  return misiones.reduce((t, m) => t + (PESO_FRECUENCIA[m.frequency] ?? 0), 0)
+}
+
+/**
+ * ¿Este perfil se pasa del presupuesto?
+ *
+ * Devuelve la carga, el tope y qué frecuencias van por encima de su
+ * máximo. `excedida` es la que importa: el resto es detalle para el
+ * mensaje.
+ */
+export function revisarCarga(misiones = [], s = SUPUESTOS) {
+  const carga = cargaDe(misiones)
+  const tope = s.misionesActivas
+  const porFrecuencia = Object.keys(TOPES).map((frecuencia) => {
+    const cuantas = misiones.filter((m) => m.frequency === frecuencia).length
+    return { frecuencia, cuantas, tope: TOPES[frecuencia], excede: cuantas > TOPES[frecuencia] }
+  })
+  return {
+    carga: Math.round(carga * 100) / 100,
+    tope,
+    excedida: carga > tope,
+    razon: tope ? Math.round((carga / tope) * 100) / 100 : 0,
+    porFrecuencia: porFrecuencia.filter((f) => isFinite(f.tope))
+  }
+}
+
+/**
+ * El aviso, ya redactado. Null si no hay nada que decir: un aviso que sale
+ * siempre deja de leerse a la semana.
+ */
+export function avisoDeCarga(misiones = [], nombre = 'Este perfil', s = SUPUESTOS) {
+  const r = revisarCarga(misiones, s)
+  if (!r.excedida) return null
+  const pasadas = r.porFrecuencia.filter((f) => f.excede)
+  const detalle = pasadas.length
+    ? pasadas.map((f) => `${f.cuantas} ${f.frecuencia === 'diario' ? 'diarias' : f.frecuencia === 'semanal' ? 'semanales' : 'mensuales'} (máximo ${f.tope})`).join(' y ')
+    : `una carga de ${r.carga} misiones diarias equivalentes`
+  return {
+    ...r,
+    texto: `${nombre} va a ${r.razon}× de lo que la economía tiene calculado: ${detalle}. Con esta carga los premios y los niveles caen antes de lo previsto. Pausa alguna, o sube el precio de los premios.`
+  }
+}

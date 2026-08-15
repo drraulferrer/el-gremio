@@ -8,6 +8,7 @@ import {
   deshacerMision
 } from '../lib/acciones'
 import { perfilesActivos } from '../lib/miembros'
+import { avisoDeCarga } from '../lib/economia'
 import { MONEDAS_POR_ESTRELLA } from '../lib/premios'
 import { habilidad, HABILIDADES } from '../lib/habilidades'
 import { sugerenciasDeElogio, rachaDeMision } from '../lib/elogio'
@@ -488,9 +489,20 @@ function GestionMisiones({ family, data, refresh }) {
     else await refresh()
   }
 
+  // Un aviso por persona que se pase del presupuesto de la economía. Se
+  // calcula sobre lo ACTIVO, que es lo que de verdad genera puntos, y solo
+  // aparece cuando hay algo que decir: un aviso permanente deja de leerse
+  // a la semana.
+  const avisos = perfilesActivos(data.profiles)
+    .map((p) => avisoDeCarga(misionesDe(p, data.challenges), p.name))
+    .filter(Boolean)
+
   return (
     <div>
       {fallo && <p className="error-texto" role="alert">{fallo}</p>}
+      {avisos.map((a, i) => (
+        <p className="aviso-carga" key={i} role="status">⚖️ {a.texto}</p>
+      ))}
       <div className="fila" style={{ marginBottom: 12 }}>
         <button className="btn btn-mini crece" onClick={() => setEditando({ ...MISION_VACIA })}>+ Nueva misión</button>
         <button className="btn btn-fantasma btn-mini" onClick={() => setPlantillas(true)}>📚 Biblioteca</button>
