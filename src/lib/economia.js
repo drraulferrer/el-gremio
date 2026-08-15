@@ -28,10 +28,13 @@ export const SUPUESTOS = {
   // Misiones activas por persona. Coincide con el consejo de la
   // Biblioteca: de 3 a 6, y 5 en medio.
   misionesActivas: 5,
-  // Cada cuántos días debería caer un premio de cada nivel.
-  // Nivel 1 son decisiones (elegir la peli): pueden ser casi diarias.
-  // Nivel 3 son planes que cuestan dinero y una tarde entera.
-  cadencia: { 1: 2, 2: 7, 3: 30 },
+  // Cada cuántos días debería caer un premio de cada nivel. Decisión de
+  // la familia (15-ago-2026), bastante más espaciada que la original
+  // (2/7/30): con premios cada dos días la tienda se convierte en una
+  // máquina expendedora y deja de significar nada. Espaciarlos hace que
+  // el canje sea un acontecimiento, y de paso encaja con la meta a 60
+  // días, que ahora es el horizonte que los envuelve a todos.
+  cadencia: { 1: 15, 2: 30, 3: 45 },
   // Y cada cuánto debería cerrarse una meta del gremio. 60 días, decisión
   // de la familia (15-ago-2026): una meta compartida es una cosa de
   // temporada, no de quincena. Con 12 días la meta competía con los
@@ -210,5 +213,52 @@ export function avisoDeCarga(misiones = [], nombre = 'Este perfil', s = SUPUESTO
   return {
     ...r,
     texto: `${nombre} va a ${r.razon}× de lo que la economía tiene calculado: ${detalle}. Con esta carga los premios y los niveles caen antes de lo previsto. Pausa alguna, o sube el precio de los premios.`
+  }
+}
+
+// ------------------------------------------------------------------
+// El techo: cuánto se puede acumular como máximo
+//
+// La pregunta que faltaba responder. Los topes de arriba limitan CUÁNTAS
+// misiones hay; esto traduce eso a puntos, que es la unidad en la que se
+// nota. Se da en dos versiones a propósito:
+//
+//  · `maximo`   → cumpliéndolo TODO, todos los días. No pasa nunca, pero
+//                 es el techo duro: por encima de esto nadie puede subir.
+//  · `esperado` → con la adherencia real que supone el modelo (60 %), que
+//                 es contra lo que hay que poner los precios.
+//
+// Poner precios contra el máximo sería castigar a quien cumple a medias,
+// que es todo el mundo; ponerlos contra el esperado y olvidar el máximo
+// deja la puerta abierta a que una semana perfecta descuadre el mes.
+// ------------------------------------------------------------------
+
+export function techoDe(rol, s = SUPUESTOS) {
+  const d = DEFAULTS_ROL[rol]
+  if (!d) return null
+  const porDia = (valor) =>
+    TOPES.diario * valor + (TOPES.semanal * valor) / 7 + (TOPES.mensual * valor) / 30
+  const monedas = porDia(d.coins)
+  const xp = porDia(d.xp)
+  const r = (n) => Math.round(n * 10) / 10
+  return {
+    rol,
+    maximo: { monedasDia: r(monedas), xpDia: r(xp), monedasSemana: r(monedas * 7), xpSemana: r(xp * 7) },
+    esperado: {
+      monedasDia: r(monedas * s.adherencia),
+      xpDia: r(xp * s.adherencia),
+      monedasSemana: r(monedas * 7 * s.adherencia),
+      xpSemana: r(xp * 7 * s.adherencia)
+    }
+  }
+}
+
+/** El techo de toda la familia, para dimensionar la meta del gremio. */
+export function techoFamiliar(roles = ['adulto', 'adulto', 'junior', 'peque'], s = SUPUESTOS) {
+  const techos = roles.map((rol) => techoDe(rol, s)).filter(Boolean)
+  const suma = (via, campo) => Math.round(techos.reduce((t, x) => t + x[via][campo], 0) * 10) / 10
+  return {
+    maximo: { xpDia: suma('maximo', 'xpDia'), xpSemana: suma('maximo', 'xpSemana') },
+    esperado: { xpDia: suma('esperado', 'xpDia'), xpSemana: suma('esperado', 'xpSemana') }
   }
 }

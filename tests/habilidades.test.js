@@ -193,9 +193,11 @@ describe('premios', () => {
   })
 
   it('nivelDePremio clasifica por coste', () => {
-    expect(nivelDePremio(30)).toBe(1)
-    expect(nivelDePremio(100)).toBe(2)
-    expect(nivelDePremio(300)).toBe(3)
+    // Valores dentro de cada banda tras espaciar las cadencias a 15/30/45
+    // días: los umbrales son los de NIVELES, no números sueltos.
+    expect(nivelDePremio(250)).toBe(1)
+    expect(nivelDePremio(540)).toBe(2)
+    expect(nivelDePremio(800)).toBe(3)
   })
 })
 

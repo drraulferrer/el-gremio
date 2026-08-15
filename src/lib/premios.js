@@ -16,25 +16,32 @@
 // declara cuánto se gana al día y cada cuánto debería caer cada nivel.
 // Las bandas de aquí son las que devuelve ese modelo, y hay un test que
 // falla si alguien cambia los puntos de las misiones y las descuadra.
+//
+// Precios revisados el 15-ago-2026 al espaciar las cadencias a 15/30/45
+// días. Los números subieron mucho (nivel 1 de ~35 a ~270) porque lo que
+// cambió no fue el valor de los premios sino cada cuánto deben caer: si un
+// premio se puede pagar en dos días, la tienda es una máquina expendedora.
+// El orden relativo entre premios se conservó mapeando cada nivel a su
+// banda nueva, así que «Helado» sigue siendo el más barato de su nivel.
 // ------------------------------------------------------------------
 
 export const NIVELES = {
   1: {
     nombre: 'Decidir',
     lema: 'Elegir algo por ti. Lo que más aguanta con el tiempo.',
-    coste: [27, 45],
+    coste: [203, 338],
     color: '#6ee7a0'
   },
   2: {
     nombre: 'Vivir',
     lema: 'Planes que se hacen juntos y se recuerdan.',
-    coste: [95, 158],
+    coste: [405, 675],
     color: '#ffd166'
   },
   3: {
     nombre: 'Celebrar',
     lema: 'Los grandes. Para metas largas, no para el martes.',
-    coste: [405, 675],
+    coste: [608, 1013],
     color: '#c9a0ff'
   }
 }
@@ -42,37 +49,37 @@ export const NIVELES = {
 export const CATALOGO_PREMIOS = [
   // Nivel 1 · decidir. La que más evidencia tiene y la más barata de
   // sostener: no cuesta dinero y no se agota.
-  { title: 'Elogio específico delante de la familia', emoji: '📣', cost: 28, tier: 1 },
-  { title: 'Tiempo de calidad', emoji: '💛', cost: 40, tier: 1 },
-  { title: 'Elegir una actividad', emoji: '🗓️', cost: 40, tier: 1 },
-  { title: 'Elegir un juego', emoji: '🎲', cost: 30, tier: 1 },
-  { title: 'Elegir el cuento', emoji: '📖', cost: 28, tier: 1 },
-  { title: 'Elegir la música del coche', emoji: '🎵', cost: 28, tier: 1 },
-  { title: 'Elegir la película', emoji: '🎬', cost: 42, tier: 1 },
-  { title: 'Elegir el desayuno del domingo', emoji: '🥞', cost: 38, tier: 1 },
-  { title: 'Elegir la excursión', emoji: '🧭', cost: 45, tier: 1 },
-  { title: 'Elegir el menú del viernes', emoji: '🍝', cost: 42, tier: 1 },
+  { title: 'Elogio específico delante de la familia', emoji: '📣', cost: 205, tier: 1 },
+  { title: 'Tiempo de calidad', emoji: '💛', cost: 300, tier: 1 },
+  { title: 'Elegir una actividad', emoji: '🗓️', cost: 300, tier: 1 },
+  { title: 'Elegir un juego', emoji: '🎲', cost: 220, tier: 1 },
+  { title: 'Elegir el cuento', emoji: '📖', cost: 205, tier: 1 },
+  { title: 'Elegir la música del coche', emoji: '🎵', cost: 205, tier: 1 },
+  { title: 'Elegir la película', emoji: '🎬', cost: 315, tier: 1 },
+  { title: 'Elegir el desayuno del domingo', emoji: '🥞', cost: 280, tier: 1 },
+  { title: 'Elegir la excursión', emoji: '🧭', cost: 335, tier: 1 },
+  { title: 'Elegir el menú del viernes', emoji: '🍝', cost: 315, tier: 1 },
 
   // Nivel 2 · experiencias compartidas.
-  { title: 'Cocinar juntos', emoji: '👩‍🍳', cost: 100, tier: 2 },
-  { title: 'Dormir en un fuerte de mantas', emoji: '🏕️', cost: 110, tier: 2 },
-  { title: 'Noche de juegos', emoji: '🎯', cost: 105, tier: 2 },
-  { title: 'Picnic', emoji: '🧺', cost: 120, tier: 2 },
-  { title: 'Cine', emoji: '🍿', cost: 145, tier: 2 },
-  { title: 'Helado', emoji: '🍦', cost: 95, tier: 2 },
-  { title: 'Ir a la piscina', emoji: '🏊', cost: 130, tier: 2 },
-  { title: 'Excursión especial', emoji: '🏞️', cost: 155, tier: 2 },
+  { title: 'Cocinar juntos', emoji: '👩‍🍳', cost: 430, tier: 2 },
+  { title: 'Dormir en un fuerte de mantas', emoji: '🏕️', cost: 475, tier: 2 },
+  { title: 'Noche de juegos', emoji: '🎯', cost: 450, tier: 2 },
+  { title: 'Picnic', emoji: '🧺', cost: 520, tier: 2 },
+  { title: 'Cine', emoji: '🍿', cost: 630, tier: 2 },
+  { title: 'Helado', emoji: '🍦', cost: 405, tier: 2 },
+  { title: 'Ir a la piscina', emoji: '🏊', cost: 565, tier: 2 },
+  { title: 'Excursión especial', emoji: '🏞️', cost: 675, tier: 2 },
 
   // Nivel 3 · para metas del gremio o rachas largas.
-  { title: 'Elegir una actividad de fin de semana', emoji: '🗺️', cost: 420, tier: 3 },
-  { title: 'Ir al parque de aventuras', emoji: '🎢', cost: 600, tier: 3 },
-  { title: 'Escalada', emoji: '🧗', cost: 520, tier: 3 },
-  { title: 'Bolera', emoji: '🎳', cost: 450, tier: 3 },
-  { title: 'Acampada', emoji: '⛺', cost: 675, tier: 3 },
+  { title: 'Elegir una actividad de fin de semana', emoji: '🗺️', cost: 700, tier: 3 },
+  { title: 'Ir al parque de aventuras', emoji: '🎢', cost: 930, tier: 3 },
+  { title: 'Escalada', emoji: '🧗', cost: 820, tier: 3 },
+  { title: 'Bolera', emoji: '🎳', cost: 745, tier: 3 },
+  { title: 'Acampada', emoji: '⛺', cost: 1010, tier: 3 },
   // En la lista original ponía "elegido por el niño"; en esta casa son
   // dos niñas y el premio lo puede canjear cualquiera, así que va neutro.
-  { title: 'Museo a elegir', emoji: '🏛️', cost: 410, tier: 3 },
-  { title: 'Noche especial con uno de los padres', emoji: '🌟', cost: 560, tier: 3 }
+  { title: 'Museo a elegir', emoji: '🏛️', cost: 690, tier: 3 },
+  { title: 'Noche especial con uno de los padres', emoji: '🌟', cost: 870, tier: 3 }
 ]
 
 /**
@@ -122,13 +129,24 @@ export function estrellasQueCuesta(coste) {
 }
 
 /**
- * Los premios que se le enseñan a ella: solo los de nivel 1, que son los
- * de decidir algo (el cuento, la música, el juego). Los de nivel 2 y 3
- * son planes de días enteros y no tienen sentido para una peque que
- * necesita ver el final cerca.
+ * El techo de lo que se le puede enseñar a la peque, en monedas.
+ *
+ * Ella no va por niveles: va por DISTANCIA. Gana unas 15 monedas al día,
+ * así que este techo son unos tres días de espera, que es lo máximo que
+ * sostiene una niña de tres años sin que el premio deje de existir para
+ * ella. Cuando las cadencias de la familia se espaciaron a 15/30/45 días
+ * (agosto 2026), el nivel 1 pasó a costar ~270 y ella se quedó fuera: el
+ * mismo premio que a la junior le cuesta cinco días a ella le costaba
+ * dieciocho. Por eso su tienda filtra por precio y no por nivel.
+ */
+export const TECHO_PEQUE = 60
+
+/**
+ * Los premios que se le enseñan a ella: los que puede alcanzar de verdad.
+ * Un premio que no llega nunca no motiva, decora.
  */
 export function premiosParaPeque(rewards = []) {
-  return rewards.filter((r) => r.active && (r.tier || 2) === 1).sort((a, b) => a.cost - b.cost)
+  return rewards.filter((r) => r.active && r.cost <= TECHO_PEQUE).sort((a, b) => a.cost - b.cost)
 }
 
 export function nivelDePremio(coste) {

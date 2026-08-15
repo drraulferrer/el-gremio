@@ -17,7 +17,8 @@ import {
   MONEDAS_POR_ESTRELLA,
   estrellasDe,
   estrellasQueCuesta,
-  premiosParaPeque
+  premiosParaPeque,
+  TECHO_PEQUE
 } from '../src/lib/premios'
 import { META_INICIAL } from '../src/lib/supabase'
 import { DEFAULTS_ROL } from '../src/lib/tareas'
@@ -198,19 +199,23 @@ describe('estrellas de la peque', () => {
     expect(estrellasQueCuesta(0)).toBe(1)
   })
 
-  it('solo se le enseñan los de nivel 1, y ordenados de más barato a más caro', () => {
+  it('solo se le enseña lo que puede alcanzar, de más barato a más caro', () => {
     const rewards = [
-      { id: 'a', tier: 3, cost: 600, active: true },
-      { id: 'b', tier: 1, cost: 42, active: true },
-      { id: 'c', tier: 1, cost: 28, active: true },
-      { id: 'd', tier: 1, cost: 30, active: false },
-      { id: 'e', tier: 2, cost: 100, active: true }
+      { id: 'a', tier: 3, cost: 900, active: true },
+      { id: 'b', tier: 1, cost: 55, active: true },
+      { id: 'c', tier: 1, cost: 35, active: true },
+      { id: 'd', tier: 1, cost: 40, active: false },
+      { id: 'e', tier: 2, cost: 540, active: true }
     ]
     expect(premiosParaPeque(rewards).map((p) => p.id)).toEqual(['c', 'b'])
   })
 
-  it('un premio sin nivel se trata como nivel 2 y no le sale a ella', () => {
-    expect(premiosParaPeque([{ id: 'x', cost: 30, active: true }])).toEqual([])
+  it('el nivel ya no decide: lo que decide es si le queda cerca', () => {
+    // Un premio barato SIN nivel sí le sale, porque puede pagarlo. Antes
+    // se le escondía por no llevar etiqueta, que es una razón burocrática.
+    expect(premiosParaPeque([{ id: 'x', cost: 30, active: true }]).map((p) => p.id)).toEqual(['x'])
+    // Y uno de nivel 1 carísimo NO, aunque la etiqueta diga que es suyo.
+    expect(premiosParaPeque([{ id: 'y', cost: 270, tier: 1, active: true }])).toEqual([])
   })
 
   it('sin premios no rompe', () => {
@@ -218,14 +223,24 @@ describe('estrellas de la peque', () => {
     expect(premiosParaPeque([])).toEqual([])
   })
 
-  it('los premios de nivel 1 le caen en pocos días, que es lo que aguanta a los tres años', () => {
+  it('lo que se le enseña le cae en pocos días, que es lo que aguanta a los tres años', () => {
     // Sus misiones dan 5 monedas; con 5 activas y 60 % de adherencia son
-    // 15 al día, o sea 3 estrellas diarias.
+    // 15 al día, o sea 3 estrellas diarias. Ella NO va por niveles: su
+    // tienda filtra por precio, porque desde que las cadencias se
+    // espaciaron a 15/30/45 días el nivel 1 cuesta ~270 y le quedaría a
+    // dieciocho días de distancia.
     const estrellasPorDia = (SUPUESTOS.misionesActivas * 5 * SUPUESTOS.adherencia) / MONEDAS_POR_ESTRELLA
-    const medio = CATALOGO_PREMIOS.filter((p) => p.tier === 1).reduce((t, p) => t + p.cost, 0) /
-      CATALOGO_PREMIOS.filter((p) => p.tier === 1).length
-    const dias = estrellasQueCuesta(medio) / estrellasPorDia
-    expect(dias, `${dias.toFixed(1)} días`).toBeLessThan(4)
+    const dias = estrellasQueCuesta(TECHO_PEQUE) / estrellasPorDia
+    expect(dias, `${dias.toFixed(1)} días`).toBeLessThan(5)
     expect(dias).toBeGreaterThan(1)
+  })
+
+  it('su tienda deja fuera los premios de la familia, que le quedan lejísimos', () => {
+    const suyos = premiosParaPeque([
+      { id: 'a', cost: 40, active: true, tier: 1 },
+      { id: 'b', cost: 270, active: true, tier: 1 },
+      { id: 'c', cost: 540, active: true, tier: 2 }
+    ])
+    expect(suyos.map((p) => p.id)).toEqual(['a'])
   })
 })

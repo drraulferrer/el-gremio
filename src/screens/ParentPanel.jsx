@@ -23,7 +23,8 @@ import {
   rolesDe,
   textoDestino,
   ETIQUETA_ROL,
-  GRUPOS_ROL
+  GRUPOS_ROL,
+  agruparPorFrecuencia
 } from '../lib/misiones'
 
 export default function ParentPanel({ family, data, refresh, refreshFamily, onVerTutorial, onExit }) {
@@ -535,6 +536,29 @@ function GestionMisiones({ family, data, refresh }) {
   // calcula sobre lo ACTIVO, que es lo que de verdad genera puntos, y solo
   // aparece cuando hay algo que decir: un aviso permanente deja de leerse
   // a la semana.
+  // Agrupado por persona y, dentro, por frecuencia. Una lista de 43
+  // misiones seguidas no se puede organizar: para saber qué tiene la
+  // junior había que leerlas todas comprobando el destino de cada una.
+  // El orden de los bloques es el de urgencia, igual que en el tablero.
+  const grupos = (() => {
+    const gente = perfilesActivos(data.profiles)
+    const salida = gente.map((p) => ({
+      clave: p.id,
+      titulo: `${p.emoji} ${p.name}`,
+      misiones: misionesDe(p, data.challenges, { incluirPausadas: true })
+    }))
+    // Las que no le tocan a nadie activo no pueden quedarse sin sitio: se
+    // perderían de vista y seguirían contando en la economía.
+    const asignadas = new Set(salida.flatMap((g) => g.misiones.map((m) => m.id)))
+    const huerfanas = data.challenges.filter((c) => !asignadas.has(c.id))
+    if (huerfanas.length) {
+      salida.push({ clave: 'sin-destino', titulo: '— Sin nadie a quien le toque', misiones: huerfanas })
+    }
+    return salida
+      .filter((g) => g.misiones.length)
+      .map((g) => ({ ...g, bloques: agruparPorFrecuencia(g.misiones) }))
+  })()
+
   const avisos = perfilesActivos(data.profiles)
     .map((p) => avisoDeCarga(misionesDe(p, data.challenges), p.name))
     .filter(Boolean)
@@ -552,7 +576,16 @@ function GestionMisiones({ family, data, refresh }) {
 
       {data.challenges.length === 0 && <div className="vacio">Todavía no hay misiones. Crea una o activa varias desde la biblioteca.</div>}
 
-      {data.challenges.map((ch) => (
+      {grupos.map((g) => (
+        <section key={g.clave}>
+          <div className="titulo-seccion">{g.titulo}</div>
+          {g.bloques.map((b) => (
+            <div key={b.frecuencia}>
+              <h4 className="titulo-frecuencia">
+                {b.titulo}
+                <span className="cuenta-frecuencia">{b.misiones.length}</span>
+              </h4>
+              {b.misiones.map((ch) => (
         <div className="carta" key={ch.id} style={{ opacity: ch.active ? 1 : 0.5 }}>
           <div className="fila">
             <div className="avatar">{ch.emoji}</div>
@@ -560,7 +593,7 @@ function GestionMisiones({ family, data, refresh }) {
               <strong>{flex(ch.title, generoDe(data.profiles.find((p) => p.id === ch.profile_id)))}</strong>
               <div className="suave">
                 {habilidad(ch.skill) && <>{habilidad(ch.skill).emoji} {habilidad(ch.skill).nombre} · </>}
-                {destinoTexto(ch)} · +{ch.xp} XP · {FREQ_LABEL[ch.frequency]}
+                +{ch.xp} XP · {ch.coins} 🪙
               </div>
             </div>
             <button className="btn-icono" onClick={() => alternar(ch)} aria-label={ch.active ? 'Pausar' : 'Activar'}>
@@ -571,6 +604,10 @@ function GestionMisiones({ family, data, refresh }) {
             </button>
           </div>
         </div>
+              ))}
+            </div>
+          ))}
+        </section>
       ))}
 
       {editando && (
