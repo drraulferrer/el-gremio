@@ -8,6 +8,7 @@ import {
   deshacerMision
 } from '../lib/acciones'
 import { perfilesActivos } from '../lib/miembros'
+import { MONEDAS_POR_ESTRELLA } from '../lib/premios'
 import { habilidad, HABILIDADES } from '../lib/habilidades'
 import { sugerenciasDeElogio, rachaDeMision } from '../lib/elogio'
 import { flex, generoDe } from '../lib/genero'
@@ -292,19 +293,19 @@ function ModoPeque({ family, data, refresh, onCeleb }) {
   const [editando, setEditando] = useState(null)
 
   async function guardar(m) {
-    const { error } = await supabase
-      .from('challenges')
-      .update({
-        title: m.title.trim(),
-        emoji: m.emoji,
-        xp: Number(m.xp) || 0,
-        coins: Number(m.coins) || 0,
-        frequency: m.frequency,
-        skill: m.skill || null,
-        profile_id: m.profile_id || null,
-        active: m.active
-      })
-      .eq('id', m.id)
+    const fila = {
+      title: m.title.trim(),
+      emoji: m.emoji,
+      xp: Number(m.xp) || 0,
+      coins: Number(m.coins) || 0,
+      frequency: m.frequency,
+      skill: m.skill || null,
+      profile_id: m.profile_id || null,
+      active: m.active
+    }
+    const { error } = m.id
+      ? await supabase.from('challenges').update(fila).eq('id', m.id)
+      : await supabase.from('challenges').insert({ ...fila, family_id: family.id })
     if (error) {
       setFallo(mensajeDeError(error))
       return
@@ -337,6 +338,18 @@ function ModoPeque({ family, data, refresh, onCeleb }) {
     setOcupado(null)
   }
 
+  // Una misión creada desde aquí nace asignada a ESTA peque, no a «Todos»:
+  // se está creando dentro de su sección, y una misión global saldría
+  // también en el tablero de los adultos. Cinco monedas es una estrella
+  // exacta, que es la unidad en la que ella cuenta: mezclar cantidades que
+  // no son múltiplos deja el tarro en «dos estrellas y pico».
+  const misionNueva = (p) => ({
+    ...MISION_VACIA,
+    coins: MONEDAS_POR_ESTRELLA,
+    profile_id: p.id,
+    skill: 'autonomia'
+  })
+
   if (peques.length === 0) {
     return <div className="vacio">No hay perfiles "peque". Este modo da la estrella y los puntos al momento, sin paso de validación.</div>
   }
@@ -345,7 +358,8 @@ function ModoPeque({ family, data, refresh, onCeleb }) {
     <div>
       <p className="suave" style={{ margin: '0 4px 10px' }}>
         Mismo efecto que su pantalla: la estrella y los puntos caen al momento. Útil cuando la tablet no está a
-        mano. El lápiz de al lado edita la misión: título, dibujo, puntos y frecuencia.
+        mano. El lápiz de al lado edita la misión —título, dibujo, puntos y frecuencia— y el botón del final de
+        cada lista crea una nueva, ya asignada a quien corresponde.
       </p>
       {fallo && <p className="error-texto" role="alert">{fallo}</p>}
       {peques.map((p) => {
@@ -355,7 +369,7 @@ function ModoPeque({ family, data, refresh, onCeleb }) {
         return (
           <div key={p.id}>
             <div className="titulo-seccion">{p.emoji} {p.name}</div>
-            {retos.length === 0 && <div className="vacio">Sin misiones. Créalas en la pestaña Misiones.</div>}
+            {retos.length === 0 && <div className="vacio">Sin misiones todavía. Créale la primera aquí abajo.</div>}
             {retos.map((ch) => {
               const disponible = canDo(ch, data.completions, p.id)
               return (
@@ -381,6 +395,13 @@ function ModoPeque({ family, data, refresh, onCeleb }) {
                 </div>
               )
             })}
+            <button
+              className="btn btn-fantasma btn-mini"
+              style={{ width: '100%', marginBottom: 18 }}
+              onClick={() => setEditando(misionNueva(p))}
+            >
+              + Nueva misión para {p.name}
+            </button>
           </div>
         )
       })}
@@ -390,7 +411,7 @@ function ModoPeque({ family, data, refresh, onCeleb }) {
           mision={editando}
           perfiles={perfilesActivos(data.profiles)}
           onGuardar={guardar}
-          onBorrar={borrar}
+          onBorrar={editando.id ? borrar : null}
           onClose={() => setEditando(null)}
         />
       )}
