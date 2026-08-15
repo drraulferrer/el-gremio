@@ -285,29 +285,51 @@ em{font-style:normal;color:var(--oro-claro)}
 
 /* --- Grafico de economia ------------------------------------------ */
 .eco{margin-top:var(--s4)}
-.eco-fila{display:grid;grid-template-columns:8.5rem 1fr;gap:var(--s2);align-items:center;
-  padding:.75rem 0;border-bottom:1px solid var(--linea)}
+.eco-fila{display:grid;grid-template-columns:9rem 1fr;gap:var(--s2);align-items:center;
+  padding:.7rem 0;border-bottom:1px solid var(--linea)}
 .eco-fila:last-child{border-bottom:0}
 .eco-et{font-family:var(--display);font-weight:500;font-size:.95rem}
 .eco-et span{display:block;font-family:var(--cuerpo);font-size:.75rem;color:var(--tinta-3);font-weight:400}
-.eco-pista{position:relative;height:30px;display:flex;align-items:center}
-.eco-obj,.eco-real{position:absolute;height:9px;border-radius:99px;left:0}
-.eco-obj{background:rgba(165,171,212,.2);width:var(--obj);border:1px solid var(--linea-fuerte)}
-.eco-real{background:var(--coral);width:var(--real);
+/* UNA sola escala 0-60 dias para las cuatro filas. Antes cada fila se
+   normalizaba por su cuenta, y eso escondia justo lo que hay que ver:
+   que los objetivos se escalonan 15, 30, 45 y 60. Con escala comun la
+   marca avanza un cuarto por fila y el escalon se lee de un vistazo.
+   El calc() reserva --fin para el rotulo de la derecha. */
+.eco{--fin:5.5rem;margin-top:var(--s4)}
+/* Dos capas de fondo: la rejilla cada 25 % (0, 15, 30 y 45) y una linea
+   suelta al final, porque la repeticion nunca llega a dibujar la de 60 y
+   la marca de la meta se quedaba sin su raya debajo. */
+.eco-pista{position:relative;height:62px;padding-right:var(--fin);
+  background-image:
+    repeating-linear-gradient(90deg,var(--linea) 0 1px,transparent 1px 25%),
+    linear-gradient(90deg,var(--linea) 0 1px,transparent 1px);
+  background-size:calc(100% - var(--fin)) calc(100% - 22px), 1px calc(100% - 22px);
+  background-position:0 20px, calc(100% - var(--fin) - 1px) 20px;
+  background-repeat:no-repeat}
+.eco-barra{position:absolute;height:10px;border-radius:99px;left:0;
+  width:calc((100% - var(--fin)) * var(--v));
   clip-path:inset(0 100% 0 0);
-  transition:clip-path 1.2s cubic-bezier(.16,1,.3,1) .2s;
-  box-shadow:0 0 12px rgba(255,107,107,.4)}
-.visible .eco-real{clip-path:inset(0 0 0 0)}
-.eco-marca{position:absolute;left:var(--obj);top:-4px;height:18px;width:2px;background:var(--oro);border-radius:2px}
-/* El rotulo va solo en la primera fila: repetido cuatro veces deja de
-   explicar la marca y solo hace ruido. */
-.eco-marca[data-t]::after{content:attr(data-t);position:absolute;left:8px;top:-2px;white-space:nowrap;
-  font-size:.72rem;color:var(--oro);font-weight:700}
-.eco-cifra{position:absolute;right:0;font-size:.8rem;color:var(--tinta-2);
-  font-variant-numeric:tabular-nums;font-weight:700}
+  transition:clip-path 1.1s cubic-bezier(.16,1,.3,1) var(--d,.15s)}
+.eco-antes{top:26px;background:var(--coral);box-shadow:0 0 12px rgba(255,107,107,.35)}
+.eco-ahora{top:44px;background:var(--verde);box-shadow:0 0 12px rgba(110,231,160,.35);--d:.45s}
+.visible .eco-barra{clip-path:inset(0 0 0 0)}
+.eco-marca{position:absolute;top:20px;bottom:4px;width:2px;background:var(--oro);border-radius:2px;
+  left:calc((100% - var(--fin)) * var(--obj))}
+/* El rotulo va ARRIBA y no al lado: en el nivel 3 la barra verde rebasa
+   el objetivo, y el texto dorado caia encima del verde sin contraste. */
+.eco-marca::after{content:attr(data-t);position:absolute;left:0;top:-19px;
+  transform:translateX(-50%);white-space:nowrap;
+  font-size:.78rem;color:var(--oro);font-weight:700;font-variant-numeric:tabular-nums}
+.eco-eje{display:grid;grid-template-columns:9rem 1fr;gap:var(--s2);margin-top:.35rem}
+.eco-eje-n{position:relative;height:1.1rem;padding-right:var(--fin);
+  font-size:.72rem;color:var(--tinta-3);font-variant-numeric:tabular-nums}
+.eco-eje-n b{position:absolute;font-weight:400;transform:translateX(-50%);
+  left:calc((100% - var(--fin)) * var(--p))}
+.eco-eje-n b:first-child{transform:none}
 .leyenda{display:flex;flex-wrap:wrap;gap:1.2rem;margin-top:var(--s3);font-size:.8rem;color:var(--tinta-3)}
 .leyenda i{display:inline-block;width:14px;height:8px;border-radius:99px;margin-right:.45rem;
   vertical-align:middle}
+.leyenda i.tick{width:2px;height:14px;border-radius:2px;background:var(--oro)}
 
 /* --- Niveles de premio -------------------------------------------- */
 .nivel{padding:var(--s3);border-top-width:3px;border-top-style:solid}
@@ -408,7 +430,7 @@ blockquote cite{display:block;margin-top:1rem;font-style:normal;font-size:.78rem
   .paso{opacity:1;transform:none;transition:none}
   .portada h1 .tachado{animation:none;text-decoration-color:var(--coral)}
   .portada h1 .bueno{animation:none;opacity:1}
-  .hab-barra i,.eco-real{transition:none;clip-path:inset(0 0 0 0)}
+  .hab-barra i,.eco-barra{transition:none;clip-path:inset(0 0 0 0)}
   .rail-lleno{transition:none}
   *{scroll-behavior:auto!important}
 }
@@ -418,13 +440,12 @@ blockquote cite{display:block;margin-top:1rem;font-style:normal;font-size:.78rem
   section{padding:var(--s6) 0}
   .cifras{gap:var(--s3) var(--s4)}
   .cifra b{font-size:2rem}
-  /* A una columna la cifra ya no cabe flotando sobre la pista: se
-     montaba encima de la barra. Pasa a su propia linea. */
-  .eco-fila{grid-template-columns:1fr;gap:.35rem}
-  .eco-cifra{position:static;display:block;order:2;text-align:right}
-  .eco-pista{flex-wrap:wrap;height:auto;gap:.4rem 0}
-  .eco-pista>.eco-obj,.eco-pista>.eco-real,.eco-pista>.eco-marca{top:4px}
-  .eco-pista{padding-top:18px}
+  /* El rotulo del objetivo pasa de "15 d" a caber en menos sitio, y la
+     etiqueta de la fila sube encima de su pista. */
+  .eco{--fin:3.4rem}
+  .eco-fila{grid-template-columns:1fr;gap:.15rem}
+  .eco-eje{grid-template-columns:1fr}
+  .eco-eje>div:first-child{display:none}
 }
 </style>
 
@@ -653,64 +674,120 @@ blockquote cite{display:block;margin-top:1rem;font-style:normal;font-size:.78rem
       <strong>ocho misiones activas</strong> por persona— y de ellos salen las bandas de
       precio.
     </p>
+  </div>
+
+  <div class="col">
+    <p class="ceja" style="margin-top:var(--s4)">Los cuatro objetivos</p>
     <p>
-      Al medirlo por primera vez, el modelo se delató solo. Un premio de nivel 3 debía
-      caer cada treinta días y caía en once. La meta compartida debía tardar doce días
-      y se cerraba en cuatro y medio: tres veces más rápido de lo prometido.
+      Antes de poner un solo precio hay que decidir <strong>cada cuánto debe caer cada
+      cosa</strong>. Esa es la decisión de producto; los números salen después, solos.
+      La familia la tomó el 15 de agosto de 2026 y quedó así:
+    </p>
+  </div>
+
+  <div class="rejilla g4 ancho">
+    <div class="carta principio">
+      <h4>15 días · Decidir</h4>
+      <p>Elegir el cuento o la película. Lo bastante frecuente para que el tablón tenga
+      un horizonte corto y visible, y lo bastante espaciado para que no sea una máquina
+      expendedora.</p>
+    </div>
+    <div class="carta principio">
+      <h4>30 días · Vivir</h4>
+      <p>Un picnic, cocinar juntos. Uno al mes: cabe en la agenda real de una casa sin
+      convertirse en una deuda de planes que no se pueden sostener.</p>
+    </div>
+    <div class="carta principio">
+      <h4>45 días · Celebrar</h4>
+      <p>Los grandes. Espaciados a propósito para que canjear uno sea un acontecimiento
+      y no el martes que toca.</p>
+    </div>
+    <div class="carta principio" style="border-color:rgba(245,184,65,.3)">
+      <h4 style="color:var(--oro)">60 días · La meta del gremio</h4>
+      <p>El horizonte que envuelve a los otros tres. Una meta compartida es cosa de
+      temporada, no de quincena: cerrarla cinco veces al trimestre le quitaría el
+      carácter de acontecimiento.</p>
+    </div>
+  </div>
+
+  <div class="col" style="margin-top:var(--s4)">
+    <p>
+      Con los objetivos fijados, el modelo se delató solo. Los precios de partida
+      estaban calculados para cadencias mucho más cortas, así que contra estos objetivos
+      todo caía demasiado pronto: el nivel 3 en once días de los cuarenta y cinco, y la
+      meta compartida en cuatro y medio de los sesenta.
     </p>
   </div>
 
   <div class="eco ancho">
     <div class="eco-fila">
       <div class="eco-et">Nivel 1<span>Decidir</span></div>
-      <div class="eco-pista"><div class="eco-obj" style="--obj:14%"></div>
-        <div class="eco-real" style="--real:16%"></div>
-        <div class="eco-marca" style="--obj:14%" data-t="objetivo"></div>
-        <span class="eco-cifra">2,2 de 2 días</span></div>
+      <div class="eco-pista">
+        <div class="eco-barra eco-antes" style="--v:.037"></div>
+        <div class="eco-barra eco-ahora" style="--v:.248"></div>
+        <div class="eco-marca" style="--obj:.25" data-t="15 d"></div>
+      </div>
     </div>
     <div class="eco-fila">
       <div class="eco-et">Nivel 2<span>Vivir</span></div>
-      <div class="eco-pista"><div class="eco-obj" style="--obj:31%"></div>
-        <div class="eco-real" style="--real:24%"></div>
-        <div class="eco-marca" style="--obj:31%"></div>
-        <span class="eco-cifra">5,5 de 7 días</span></div>
+      <div class="eco-pista">
+        <div class="eco-barra eco-antes" style="--v:.092"></div>
+        <div class="eco-barra eco-ahora" style="--v:.480"></div>
+        <div class="eco-marca" style="--obj:.50" data-t="30 d"></div>
+      </div>
     </div>
     <div class="eco-fila">
       <div class="eco-et">Nivel 3<span>Celebrar</span></div>
-      <div class="eco-pista"><div class="eco-obj" style="--obj:78%"></div>
-        <div class="eco-real" style="--real:32%"></div>
-        <div class="eco-marca" style="--obj:78%"></div>
-        <span class="eco-cifra">11 de 30 días</span></div>
+      <div class="eco-pista">
+        <div class="eco-barra eco-antes" style="--v:.183"></div>
+        <div class="eco-barra eco-ahora" style="--v:.765"></div>
+        <div class="eco-marca" style="--obj:.75" data-t="45 d"></div>
+      </div>
     </div>
     <div class="eco-fila">
       <div class="eco-et">Meta del gremio<span>Compartida</span></div>
-      <div class="eco-pista"><div class="eco-obj" style="--obj:40%"></div>
-        <div class="eco-real" style="--real:14%"></div>
-        <div class="eco-marca" style="--obj:40%"></div>
-        <span class="eco-cifra">4,4 de 12 días</span></div>
+      <div class="eco-pista">
+        <div class="eco-barra eco-antes" style="--v:.073"></div>
+        <div class="eco-barra eco-ahora" style="--v:1"></div>
+        <div class="eco-marca" style="--obj:1" data-t="60 d"></div>
+      </div>
+    </div>
+    <div class="eco-eje" aria-hidden="true">
+      <div></div>
+      <div class="eco-eje-n">
+        <b style="--p:0">0</b><b style="--p:.25">15</b><b style="--p:.5">30</b>
+        <b style="--p:.75">45</b><b style="--p:1">60 días</b>
+      </div>
     </div>
     <div class="leyenda">
-      <span><i style="background:rgba(165,171,212,.35)"></i>Cadencia prometida</span>
-      <span><i style="background:var(--coral)"></i>Cadencia medida en agosto de 2026</span>
+      <span><i class="tick"></i>Objetivo</span>
+      <span><i style="background:var(--coral)"></i>Con los precios de partida</span>
+      <span><i style="background:var(--verde)"></i>Con los precios de ahora</span>
     </div>
   </div>
 
   <div class="col" style="margin-top:var(--s4)">
     <p>
-      La corrección importa tanto como el diagnóstico: se arregló <strong>subiendo los
-      precios</strong> y la meta inicial de 600 a 1.600&nbsp;XP, no bajando lo que se
-      gana. Reducir la ganancia habría hecho el tablón menos gratificante para arreglar
-      un problema que estaba en el otro lado.
+      La barra verde es el catálogo actual medido con el mismo modelo:
+      <strong>14,9 · 28,8 · 45,9 y 60,0 días</strong> frente a los 15 · 30 · 45 · 60
+      pedidos. No es puntería, es que los precios se derivan de los objetivos en lugar
+      de elegirse: la tasa de referencia son 28,8 monedas al día, y un premio que debe
+      caer cada quince sale por 432, con una banda de ±25&nbsp;% alrededor.
     </p>
     <p>
+      La corrección importa tanto como el diagnóstico: se arregló <strong>subiendo los
+      precios</strong>, no bajando lo que se gana. Reducir la ganancia habría hecho el
+      tablón menos gratificante para arreglar un problema que estaba en el otro lado.
       Después la familia pidió más misiones diarias, así que el presupuesto de carga
       subió de cinco a ocho y los precios con él, un 60&nbsp;% arriba: si se gana un
       60&nbsp;% más al día, un premio que debe caer cada mes tiene que costar un
-      60&nbsp;% más, o la tienda se regala. Las cadencias definitivas quedaron en
-      <strong>15, 30 y 45 días</strong> por nivel, y <strong>60 días</strong> para la
-      meta compartida, con topes por persona de siete misiones diarias, cinco semanales
-      y ocho mensuales. Hay tests que fallan si alguien cambia los puntos de una misión
-      y descuadra la cadencia sin darse cuenta.
+      60&nbsp;% más, o la tienda se regala.
+    </p>
+    <p class="pie">
+      Los topes por persona salen del mismo presupuesto: siete misiones diarias, cinco
+      semanales y ocho mensuales, que sumadas en misiones-diarias equivalentes dan 7,98
+      de las ocho disponibles. Hay tests que fallan si alguien cambia los puntos de una
+      misión y descuadra cualquiera de las cuatro cadencias sin darse cuenta.
     </p>
   </div>
 </section>
