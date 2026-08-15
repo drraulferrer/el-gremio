@@ -184,6 +184,31 @@ begin
   end if;
 end $$;
 
+-- Deshacer una misión: lo contrario exacto de resolve_completion.
+-- Un toque equivocado (o una validación de más) tiene que poder revertirse
+-- sin entrar en la base de datos. Si las monedas ya se gastaron, el saldo
+-- se queda en cero en lugar de irse a negativo.
+create or replace function public.undo_completion(c_id uuid)
+returns text
+language plpgsql
+security invoker
+as $$
+declare c public.completions%rowtype;
+begin
+  select * into c from public.completions where id = c_id for update;
+  if not found then return 'no_existe'; end if;
+
+  if c.status = 'aprobado' then
+    update public.profiles
+      set xp = greatest(0, xp - c.xp),
+          coins = greatest(0, coins - c.coins)
+      where id = c.profile_id;
+  end if;
+
+  delete from public.completions where id = c_id;
+  return 'ok';
+end $$;
+
 -- Canjear un premio: descuenta monedas y crea el canje pendiente de entrega.
 create or replace function public.redeem_reward(rw_id uuid, p_id uuid)
 returns text

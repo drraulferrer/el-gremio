@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { canDo, dayKey, goalProgress, levelProgress, BADGES, FREQ_LABEL } from '../lib/supabase'
-import { pedirMision as pedirMisionRemota, canjearPremio } from '../lib/acciones'
+import { pedirMision as pedirMisionRemota, canjearPremio, deshacerMision } from '../lib/acciones'
 import { Gema, XPBar, Moneda, Celebracion, Pestana } from '../components/ui'
 import { HABILIDADES, habilidad, xpPorHabilidad, rangoDeHabilidad, habilidadDominante } from '../lib/habilidades'
 
@@ -52,6 +52,13 @@ export default function Home({ family, data, profile, refresh, onSwitchProfile, 
       setAviso(mensaje)
     }
     setOcupado(null)
+  }
+
+  async function cancelarPendiente(id) {
+    setAviso('')
+    const { ok, mensaje } = await deshacerMision(id)
+    if (ok) await refresh()
+    else setAviso(mensaje || 'No se pudo cancelar.')
   }
 
   const retoDe = (id) => data.challenges.find((ch) => ch.id === id)
@@ -109,6 +116,7 @@ export default function Home({ family, data, profile, refresh, onSwitchProfile, 
           misPendientes={misPendientes}
           misAprobadas={misAprobadas}
           retoDe={retoDe}
+          onCancelar={cancelarPendiente}
         />
       )}
 
@@ -127,7 +135,7 @@ export default function Home({ family, data, profile, refresh, onSwitchProfile, 
   )
 }
 
-function Misiones({ data, profile, ocupado, onPedir, misPendientes, misAprobadas, retoDe }) {
+function Misiones({ data, profile, ocupado, onPedir, misPendientes, misAprobadas, retoDe, onCancelar }) {
   const hoy = dayKey(new Date())
   const disponibles = data.challenges.filter(
     (ch) => ch.active && (ch.profile_id === profile.id || ch.profile_id === null) && canDo(ch, data.completions, profile.id)
@@ -173,6 +181,13 @@ function Misiones({ data, profile, ocupado, onPedir, misPendientes, misAprobadas
                 <span>{retoDe(c.challenge_id)?.emoji} {retoDe(c.challenge_id)?.title || 'Misión'}</span>
                 <span className="chip chip-pendiente">⏳ pendiente</span>
               </div>
+              <button
+                className="btn btn-fantasma btn-mini btn-bloque"
+                style={{ marginTop: 10 }}
+                onClick={() => onCancelar(c.id)}
+              >
+                Me he equivocado, cancelar
+              </button>
             </div>
           ))}
         </div>

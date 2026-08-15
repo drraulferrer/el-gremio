@@ -29,7 +29,7 @@ modo peque, la capa de producción y la gestión de miembros.
 | Código local | `~/el-gremio` |
 | Supabase | proyecto `chfbrawsoulfiywiqhpe`, Postgres 17.6, región EU |
 | Versión publicada | ver `npm run health`; cada despliegue deja etiqueta `deploy-AAAA-MM-DD-HHMM` |
-| Tests | 91, en 7 ficheros, todos en verde |
+| Tests | 140, en 8 ficheros, todos en verde |
 
 Comprobar que sigue vivo:
 
@@ -122,9 +122,16 @@ sin estado y no se aprobaban nunca.
 - **El elogio específico no puede costar un toque más.** Cada sugerencia ES
   el botón de validar. Si alguna vez se convierte en un formulario aparte,
   se dejará de validar y el sistema entero se cae.
-- **Los títulos del catálogo están en infinitivo**, así que toda plantilla
-  de elogio debe encajar con un infinitivo. Hay un test que recorre el
-  catálogo entero buscando construcciones tipo "Has hacer la cama".
+- **Los títulos del catálogo son los que escribió la familia, literales.**
+  `tests/catalogo.test.js` los fija uno a uno: si alguien "mejora" un
+  nombre, el test cae. Para cambiarlo hay que tocar las dos partes, a
+  propósito. Como algunos títulos son sustantivos ("Encimera", "Ejercicio"),
+  cada tarea puede llevar un campo `a` con la acción en infinitivo, que es
+  lo que usan las frases de elogio.
+- **La pulsación mantenida no puede depender de requestAnimationFrame.**
+  Un `setTimeout` decide cuándo se completa y rAF solo pinta la barra: con
+  la pestaña en segundo plano rAF se congela y el gesto se quedaba a
+  medias. Vive en `src/lib/mantenerPulsado.js`.
 
 ---
 
@@ -277,7 +284,7 @@ Si se pierde ese fichero: los dos valores se recuperan del panel de Supabase
 ```bash
 cd ~/el-gremio
 npm install          # si es una máquina nueva
-npm test             # 91 tests, deben pasar
+npm test             # 140 tests, deben pasar
 npm run dev:demo     # trastear sin tocar producción
 npm run dev          # contra la Supabase real
 ```

@@ -24,6 +24,7 @@ Especificación de la webapp de gamificación familiar. Este documento es la fue
 - La proporcionalidad entre edades se regula en los valores de XP y monedas de cada misión, no en curvas distintas por persona.
 - Frecuencias de misión: `diario` (una vez por día natural), `semanal` (una vez por semana ISO), `mensual` (una vez por mes natural), `unico` (una sola vez). Limitación conocida: las tareas trimestrales o anuales se modelan como `unico` y se reactivan a mano.
 - Un rechazo no consume la frecuencia: la misión vuelve a estar disponible.
+- **Toda misión conseguida se puede deshacer** (`undo_completion`): borra la petición y devuelve XP y monedas. En la pantalla de la peque, manteniendo pulsada la baldosa 1,5 s; en el panel, desde la sección "Hecho hoy" del día en curso; y quien pide una misión por error puede cancelarla desde su propia lista. Límite conocido: si las monedas ya se gastaron, el saldo se queda en cero en lugar de irse a negativo y el canje sigue en pie.
 
 ## 3. Roles
 

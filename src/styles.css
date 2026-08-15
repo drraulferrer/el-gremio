@@ -1122,3 +1122,18 @@ code { background: var(--tablero-hondo); padding: 2px 6px; border-radius: 6px; f
   .tutorial-titulo { font-size: 2.3rem; }
   .tutorial-emoji { font-size: 4rem; }
 }
+
+/* Barra de "mantén pulsado para deshacer" sobre una baldosa ya hecha.
+   Se dibuja por encima del contenido pero por debajo del texto, para que
+   se entienda que la acción va sobre esa baldosa concreta. */
+.kid-deshacer {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 8px;
+  background: #e0574f;
+  transform-origin: left center;
+  will-change: transform;
+  border-radius: 0 0 22px 22px;
+}

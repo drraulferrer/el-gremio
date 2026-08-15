@@ -13,6 +13,7 @@
 // ------------------------------------------------------------------
 
 import { dayKey } from './supabase'
+import { accionDeMision } from './tareas'
 
 // Los títulos del catálogo están en infinitivo ("Hacer la cama"), así que
 // toda plantilla tiene que encajar con un infinitivo. Es el detalle que
@@ -35,10 +36,11 @@ const PLANTILLAS_ESFUERZO = [
   'Has ido a por ello en cuanto lo has visto.'
 ]
 
+// La acción sale del catálogo, no del título: la familia escribió
+// "Encimera" y "Ejercicio", y un elogio no puede decir "te has acordado
+// tú de encimera". El catálogo guarda el infinitivo para estos casos.
 function accionDe(titulo) {
-  const t = String(titulo || '').trim()
-  if (!t) return 'esto'
-  return t.charAt(0).toLocaleLowerCase('es') + t.slice(1)
+  return accionDeMision(titulo)
 }
 
 /**

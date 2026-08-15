@@ -1,7 +1,12 @@
 import { useState } from 'react'
-import { supabase, canDo, goalProgress, ROLE_LABEL, FREQ_LABEL, mensajeDeError } from '../lib/supabase'
+import { supabase, canDo, dayKey, goalProgress, ROLE_LABEL, FREQ_LABEL, mensajeDeError } from '../lib/supabase'
 import { CATALOGO, DEFAULTS_ROL, RECOMENDADAS } from '../lib/tareas'
-import { resolverMision as resolverMisionRemota, resolverCanje as resolverCanjeRemoto, estrellaInmediata } from '../lib/acciones'
+import {
+  resolverMision as resolverMisionRemota,
+  resolverCanje as resolverCanjeRemoto,
+  estrellaInmediata,
+  deshacerMision
+} from '../lib/acciones'
 import { perfilesActivos } from '../lib/miembros'
 import { habilidad, HABILIDADES } from '../lib/habilidades'
 import { sugerenciasDeElogio, rachaDeMision } from '../lib/elogio'
@@ -21,6 +26,21 @@ export default function ParentPanel({ family, data, refresh, refreshFamily, onVe
   const pendientes = data.completions.filter((c) => c.status === 'pendiente')
   const canjes = data.redemptions.filter((r) => r.status === 'pendiente')
   const numPendientes = pendientes.length + canjes.length
+
+  // Lo aprobado hoy, para poder deshacer un toque equivocado sin entrar
+  // en la base de datos. Se limita al día en curso a propósito: deshacer
+  // lo de la semana pasada ya no es corregir un error, es reescribir.
+  const hoy = dayKey(new Date())
+  const hechasHoy = data.completions
+    .filter((c) => c.status === 'aprobado' && c.resolved_at && dayKey(new Date(c.resolved_at)) === hoy)
+    .sort((a, b) => new Date(b.resolved_at) - new Date(a.resolved_at))
+
+  async function deshacer(id) {
+    setAviso('')
+    const { ok, mensaje } = await deshacerMision(id)
+    if (ok) await refresh()
+    else setAviso(mensaje || 'No se pudo deshacer.')
+  }
 
   async function resolverMision(id, estado, elogio = '') {
     setAviso('')
@@ -99,6 +119,31 @@ export default function ParentPanel({ family, data, refresh, refreshFamily, onVe
                   </button>
                   <button className="btn btn-fantasma btn-mini" onClick={() => resolverCanje(r.id, 'cancelado')}>Devolver 🪙</button>
                 </div>
+              </div>
+            )
+          })}
+          <div className="titulo-seccion">Hecho hoy · se puede deshacer</div>
+          {hechasHoy.length === 0 && <div className="vacio">Todavía no hay nada conseguido hoy.</div>}
+          {hechasHoy.map((c) => {
+            const p = perfilDe(c.profile_id)
+            const ch = retoDe(c.challenge_id)
+            return (
+              <div className="carta" key={c.id}>
+                <div className="fila">
+                  <div className="avatar" style={{ borderColor: p?.color }}>{p?.emoji}</div>
+                  <div className="crece">
+                    <strong>{ch?.emoji} {ch?.title || 'Misión'}</strong>
+                    <div className="suave">{p?.name} · +{c.xp} XP · +{c.coins} 🪙</div>
+                  </div>
+                  <button
+                    className="btn btn-fantasma btn-mini"
+                    onClick={() => deshacer(c.id)}
+                    aria-label={`Deshacer ${ch?.title || 'la misión'} de ${p?.name || ''}`}
+                  >
+                    <Icono nombre="atras" tamano={18} /> Deshacer
+                  </button>
+                </div>
+                {c.praise && <p className="elogio-recibido">“{c.praise}”</p>}
               </div>
             )
           })}

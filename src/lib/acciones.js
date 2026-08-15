@@ -145,6 +145,36 @@ export async function resolverMision(id, estado, elogio = '') {
   }
 }
 
+/**
+ * Deshace una misión: la borra y devuelve XP y monedas si estaban dadas.
+ * Existe porque el toque equivocado es inevitable, sobre todo cuando quien
+ * toca tiene tres años.
+ */
+export async function deshacerMision(id) {
+  const requestId = nuevoRequestId()
+  const { data, error, mensaje } = await operacion(
+    'mision.deshecha.error',
+    () => supabase.rpc('undo_completion', { c_id: id }),
+    { request_id: requestId, completion_id: id }
+  )
+
+  if (error) {
+    // Base sin migrar: la función todavía no existe.
+    if (error.code === 'PGRST202') {
+      return {
+        ok: false,
+        mensaje: 'Falta ejecutar migracion-006-deshacer.sql en el SQL Editor de Supabase.'
+      }
+    }
+    return { ok: false, mensaje }
+  }
+
+  if (data === 'no_existe') return { ok: false, mensaje: 'Esa misión ya no está.' }
+
+  log.info('mision.deshecha', { request_id: requestId, completion_id: id })
+  return { ok: true, mensaje: '' }
+}
+
 /** Canjea un premio. Devuelve además el motivo cuando no se puede. */
 export async function canjearPremio({ premio, profile }) {
   const requestId = nuevoRequestId()

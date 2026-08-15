@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { canDo, dayKey } from '../lib/supabase'
-import { estrellaInmediata } from '../lib/acciones'
+import { estrellaInmediata, deshacerMision } from '../lib/acciones'
 import { tocarEstrella, sonidoActivo, alternarSonido } from '../lib/sonido'
 import { log } from '../lib/log'
 import Icono from '../components/Icono'
+import { useMantenerPulsado } from '../lib/mantenerPulsado'
 import { sugerenciasDeElogio, rachaDeMision } from '../lib/elogio'
 
 // ------------------------------------------------------------------
@@ -44,6 +45,28 @@ export default function KidHome({ family, data, profile, refresh, onSalir }) {
   useEffect(() => {
     log.info('peque.pantalla_abierta', { profile_id: profile.id, misiones: misiones.length })
   }, [profile.id]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Deshacer un toque equivocado. Se pide mantener pulsado, el mismo gesto
+  // que para salir: a los tres años no se hace sin querer, y así una
+  // estrella dada por error no obliga a entrar en el panel.
+  async function deshacer(reto) {
+    const suya = data.completions
+      .filter(
+        (c) =>
+          c.challenge_id === reto.id &&
+          c.profile_id === profile.id &&
+          c.status === 'aprobado' &&
+          c.resolved_at &&
+          dayKey(new Date(c.resolved_at)) === hoy
+      )
+      .sort((a, b) => new Date(b.resolved_at) - new Date(a.resolved_at))[0]
+
+    if (!suya) return
+    setFallo('')
+    const { ok, mensaje } = await deshacerMision(suya.id)
+    if (ok) await refresh()
+    else setFallo(mensaje || 'No se pudo deshacer.')
+  }
 
   async function pulsar(reto) {
     if (ocupado) return
@@ -98,23 +121,47 @@ export default function KidHome({ family, data, profile, refresh, onSalir }) {
         {misiones.map((ch) => {
           const disponible = canDo(ch, data.completions, profile.id)
           return (
-            <button
+            <BaldosaPeque
               key={ch.id}
-              className={'kid-boton' + (disponible ? '' : ' hecha')}
-              disabled={!disponible || ocupado === ch.id}
-              onClick={() => pulsar(ch)}
-              aria-label={ch.title + (disponible ? '' : ' (ya hecha)')}
-            >
-              <span className="kid-boton-emoji">{ch.emoji}</span>
-              <span className="kid-boton-texto">{ch.title}</span>
-              <span className="kid-boton-marca">{disponible ? '★' : '✓'}</span>
-            </button>
+              reto={ch}
+              disponible={disponible}
+              ocupado={ocupado === ch.id}
+              onPulsar={() => pulsar(ch)}
+              onDeshacer={() => deshacer(ch)}
+            />
           )
         })}
       </div>
 
       <SalidaAdulta onSalir={onSalir} />
     </div>
+  )
+}
+
+/**
+ * Una baldosa. Si está disponible, un toque la completa. Si ya está
+ * hecha, un toque no hace nada (para que no la "descomplete" sin querer)
+ * pero mantener pulsado 1,5 s la deshace: gesto de adulto.
+ */
+function BaldosaPeque({ reto, disponible, ocupado, onPulsar, onDeshacer }) {
+  const { progreso, manejadores } = useMantenerPulsado(onDeshacer, HOLD_MS)
+  const sostenible = !disponible && !ocupado
+
+  return (
+    <button
+      className={'kid-boton' + (disponible ? '' : ' hecha')}
+      disabled={ocupado}
+      onClick={() => disponible && onPulsar()}
+      {...(sostenible ? manejadores : {})}
+      aria-label={reto.title + (disponible ? '' : ' (ya hecha, mantén pulsado para deshacer)')}
+    >
+      {progreso > 0 && (
+        <span className="kid-deshacer" style={{ transform: `scaleX(${progreso / 100})` }} aria-hidden="true" />
+      )}
+      <span className="kid-boton-emoji">{reto.emoji}</span>
+      <span className="kid-boton-texto">{reto.title}</span>
+      <span className="kid-boton-marca">{disponible ? '★' : '✓'}</span>
+    </button>
   )
 }
 
@@ -137,44 +184,10 @@ function BotonSonido({ activo, onCambiar }) {
  * a un adulto a teclear un PIN cada vez que recoge la tablet.
  */
 function SalidaAdulta({ onSalir }) {
-  const [progreso, setProgreso] = useState(0)
-  const inicio = useRef(null)
-  const raf = useRef(null)
-
-  function empezar() {
-    inicio.current = Date.now()
-    const tick = () => {
-      const transcurrido = Date.now() - inicio.current
-      const pct = Math.min(100, (transcurrido / HOLD_MS) * 100)
-      setProgreso(pct)
-      if (pct >= 100) {
-        parar()
-        onSalir()
-        return
-      }
-      raf.current = requestAnimationFrame(tick)
-    }
-    raf.current = requestAnimationFrame(tick)
-  }
-
-  function parar() {
-    if (raf.current) cancelAnimationFrame(raf.current)
-    raf.current = null
-    inicio.current = null
-    setProgreso(0)
-  }
-
-  useEffect(() => parar, [])
+  const { progreso, manejadores } = useMantenerPulsado(onSalir, HOLD_MS)
 
   return (
-    <button
-      className="kid-salida"
-      onPointerDown={empezar}
-      onPointerUp={parar}
-      onPointerLeave={parar}
-      onPointerCancel={parar}
-      onContextMenu={(e) => e.preventDefault()}
-    >
+    <button className="kid-salida" {...manejadores}>
       <span className="kid-salida-relleno" style={{ transform: `scaleX(${progreso / 100})` }} />
       <span className="kid-salida-texto">Adultos: mantén pulsado</span>
     </button>

@@ -54,6 +54,12 @@ que nadie te lo recordara"— y **tocar la frase valida la misión**: cuesta
 lo mismo que un botón mudo y dice algo. El elogio genérico pierde efecto
 por repetición; el que nombra lo que hizo, no.
 
+**Todo se puede deshacer.** Un toque equivocado no obliga a entrar en la
+base de datos: en la pantalla de la peque se mantiene pulsada la baldosa
+1,5 s, en el panel hay una sección "Hecho hoy" con un botón por cada
+misión, y quien pide una misión por error puede cancelarla. Deshacer
+devuelve la XP y las monedas.
+
 **Las monedas son un andamio**, no el motor: están para arrancar una
 costumbre que aún no existe y se retiran cuando el hábito se sostiene solo.
 Por eso el catálogo de premios prioriza los que son decisiones (elegir la
@@ -93,9 +99,8 @@ pasos lo explica.
    *anon public*.
 
 > Si ya tenías una versión anterior del esquema, ejecuta además
-> `migracion-001-mensual.sql`, `migracion-002-produccion.sql`,
-> `migracion-003-miembros.sql` y `migracion-004-habilidades.sql`. Si
-> empiezas de cero, `schema.sql` ya lo incluye todo. Todas son idempotentes.
+> las migraciones `migracion-001` … `migracion-006` en orden. Si empiezas
+> de cero, `schema.sql` ya lo incluye todo. Todas son idempotentes.
 
 ## 2. En local
 
@@ -229,6 +234,7 @@ src/lib/habilidades.js  Las 8 competencias y el progreso por habilidad
 src/lib/elogio.js       Sugerencias de elogio específico y rachas
 src/lib/premios.js      Catálogo de recompensas por nivel y lista de evitar
 src/lib/evidencia.js    Principios y referencias del sistema
+src/lib/mantenerPulsado.js  Gesto de pulsación mantenida (salir, deshacer)
 src/lib/miembros.js     Reglas de alta, edición y baja de perfiles
 src/lib/pin.js          Reglas del PIN parental
 src/lib/tareas.js       Biblioteca de tareas de la casa por roles, sin puntos
@@ -253,7 +259,7 @@ SPEC.md                 Especificación, fuente de verdad para iterar
 ```bash
 npm run dev            # desarrollo
 npm run dev:demo       # desarrollo con backend simulado, sin Supabase
-npm test               # tests (91)
+npm test               # tests (140)
 npm run build          # compilación de producción
 npm run verify         # tests + build + revisión de credenciales
 npm run health         # ¿responden la web publicada y Supabase?

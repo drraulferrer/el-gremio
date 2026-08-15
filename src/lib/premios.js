@@ -35,34 +35,38 @@ export const NIVELES = {
 }
 
 export const CATALOGO_PREMIOS = [
-  // Nivel 1 · autonomía. La que más evidencia tiene y la más barata de
+  // Nivel 1 · decidir. La que más evidencia tiene y la más barata de
   // sostener: no cuesta dinero y no se agota.
-  { title: 'Elegir el cuento de esta noche', emoji: '📖', cost: 30, tier: 1 },
+  { title: 'Elogio específico delante de la familia', emoji: '📣', cost: 30, tier: 1 },
+  { title: 'Tiempo de calidad', emoji: '💛', cost: 40, tier: 1 },
+  { title: 'Elegir una actividad', emoji: '🗓️', cost: 45, tier: 1 },
+  { title: 'Elegir un juego', emoji: '🎲', cost: 35, tier: 1 },
+  { title: 'Elegir el cuento', emoji: '📖', cost: 30, tier: 1 },
   { title: 'Elegir la música del coche', emoji: '🎵', cost: 30, tier: 1 },
-  { title: 'Elegir el juego de la tarde', emoji: '🎲', cost: 35, tier: 1 },
-  { title: 'Elegir la actividad del sábado', emoji: '🗓️', cost: 50, tier: 1 },
-  { title: 'Elegir la película del viernes', emoji: '🎬', cost: 50, tier: 1 },
+  { title: 'Elegir la película', emoji: '🎬', cost: 50, tier: 1 },
   { title: 'Elegir el desayuno del domingo', emoji: '🥞', cost: 45, tier: 1 },
-  { title: 'Elegir el menú del viernes', emoji: '🍝', cost: 50, tier: 1 },
   { title: 'Elegir la excursión', emoji: '🧭', cost: 60, tier: 1 },
-  { title: 'Media hora a solas con mamá o papá', emoji: '💛', cost: 40, tier: 1 },
+  { title: 'Elegir el menú del viernes', emoji: '🍝', cost: 50, tier: 1 },
 
   // Nivel 2 · experiencias compartidas.
   { title: 'Cocinar juntos', emoji: '👩‍🍳', cost: 80, tier: 2 },
   { title: 'Dormir en un fuerte de mantas', emoji: '🏕️', cost: 90, tier: 2 },
-  { title: 'Noche de juegos de mesa', emoji: '🎯', cost: 90, tier: 2 },
+  { title: 'Noche de juegos', emoji: '🎯', cost: 90, tier: 2 },
   { title: 'Picnic', emoji: '🧺', cost: 100, tier: 2 },
-  { title: 'Ir al cine', emoji: '🍿', cost: 120, tier: 2 },
+  { title: 'Cine', emoji: '🍿', cost: 120, tier: 2 },
   { title: 'Helado', emoji: '🍦', cost: 80, tier: 2 },
   { title: 'Ir a la piscina', emoji: '🏊', cost: 110, tier: 2 },
   { title: 'Excursión especial', emoji: '🏞️', cost: 140, tier: 2 },
 
   // Nivel 3 · para metas del gremio o rachas largas.
-  { title: 'Parque de aventuras', emoji: '🎢', cost: 300, tier: 3 },
+  { title: 'Elegir una actividad de fin de semana', emoji: '🗺️', cost: 200, tier: 3 },
+  { title: 'Ir al parque de aventuras', emoji: '🎢', cost: 300, tier: 3 },
   { title: 'Escalada', emoji: '🧗', cost: 250, tier: 3 },
   { title: 'Bolera', emoji: '🎳', cost: 220, tier: 3 },
   { title: 'Acampada', emoji: '⛺', cost: 400, tier: 3 },
-  { title: 'Museo elegido por ella', emoji: '🏛️', cost: 200, tier: 3 },
+  // En la lista original ponía "elegido por el niño"; en esta casa son
+  // dos niñas y el premio lo puede canjear cualquiera, así que va neutro.
+  { title: 'Museo a elegir', emoji: '🏛️', cost: 200, tier: 3 },
   { title: 'Noche especial con uno de los padres', emoji: '🌟', cost: 300, tier: 3 }
 ]
 
@@ -76,19 +80,19 @@ export const EVITAR = [
   { que: 'Chucherías', porque: 'Premiar con comida enseña a regular emociones comiendo.' },
   { que: 'Pantallas como premio habitual', porque: 'Les da un valor extra justo al que más cuesta limitar.' },
   { que: 'Comprar juguetes por tareas', porque: 'El efecto dura lo que dura la novedad del juguete.' },
-  { que: 'Premios enormes por sorpresa', porque: 'Rompen la previsibilidad, que es lo que sostiene el hábito.' }
+  { que: 'Premios impredeciblemente grandes', porque: 'Rompen la previsibilidad, que es lo que sostiene el hábito.' }
 ]
 
 /** Selección de arranque: casi todo nivel 1, un par de nivel 2 y uno grande. */
 export const PREMIOS_INICIALES = CATALOGO_PREMIOS.filter((p) =>
   [
-    'Elegir el cuento de esta noche',
+    'Elegir el cuento',
     'Elegir la música del coche',
-    'Elegir la película del viernes',
-    'Media hora a solas con mamá o papá',
+    'Elegir la película',
+    'Tiempo de calidad',
     'Cocinar juntos',
-    'Noche de juegos de mesa',
-    'Parque de aventuras'
+    'Noche de juegos',
+    'Ir al parque de aventuras'
   ].includes(p.title)
 )
 

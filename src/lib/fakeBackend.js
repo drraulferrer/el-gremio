@@ -250,6 +250,22 @@ function rpc(nombre, args = {}) {
     return { data: null, error: null }
   }
 
+  if (nombre === 'undo_completion') {
+    const c = db.completions.find((x) => x.id === args.c_id)
+    if (!c) return { data: 'no_existe', error: null }
+    const profiles =
+      c.status === 'aprobado'
+        ? db.profiles.map((p) =>
+            p.id === c.profile_id
+              ? { ...p, xp: Math.max(0, p.xp - c.xp), coins: Math.max(0, p.coins - c.coins) }
+              : p
+          )
+        : db.profiles
+    escribir({ ...db, profiles, completions: db.completions.filter((x) => x.id !== c.id) })
+    notificar()
+    return { data: 'ok', error: null }
+  }
+
   if (nombre === 'redeem_reward') {
     const rw = db.rewards.find((r) => r.id === args.rw_id && r.active)
     const p = db.profiles.find((x) => x.id === args.p_id)
