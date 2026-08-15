@@ -2,7 +2,12 @@
 
 Documento de continuidad. Si abres una sesión nueva sobre este proyecto,
 lee esto primero: dice dónde está todo, qué está hecho, qué falta y qué
-trampas tiene. Última actualización: **15 de agosto de 2026**.
+trampas tiene. Última actualización: **15 de agosto de 2026**, con la app
+desplegada y funcionando.
+
+Si solo vas a leer un párrafo: la app está **en producción y estable**; lo
+que queda no es código, es uso. Antes de añadir nada, lee §8 y pregunta
+las tres cosas de ahí.
 
 ---
 
@@ -40,11 +45,38 @@ cd ~/el-gremio && npm run health
 Debe salir 🟢 en `web` y en `supabase`. Si `web` falla, mira GitHub Pages;
 si falla `supabase`, casi seguro que el proyecto está pausado (ver §7).
 
-**Estado del esquema**: `schema.sql` ejecutado el 15-ago; migraciones 003 y
-004 aplicadas. **Pendientes de ejecutar por el usuario en el SQL Editor**:
-005 (retirar la sobrecarga de `resolve_completion`), 006 (`undo_completion`),
-007 (`profiles.gender` + reescritura de títulos) y 008 (índices). La app
-degrada con aviso concreto si falta alguna, no se rompe.
+**Estado del esquema**, comprobado contra la base el 15-ago:
+
+```
+✅ 003  profiles.active
+✅ 004  challenges.skill · rewards.tier · completions.praise
+✅ 005  una sola versión de resolve_completion (la sobrecarga, retirada)
+✅ 006  undo_completion responde
+✅ 007  profiles.gender
+❔ 007b reescritura de los dos títulos con marca de género
+❔ 008  los cinco índices
+```
+
+Los dos últimos **no se pueden verificar sin sesión**: leer filas de
+`challenges` choca con RLS, y `pg_indexes` no lo expone PostgREST. No
+significa que falten. Para salir de dudas, en el SQL Editor:
+
+```sql
+select count(*) as titulos_con_marca from public.challenges where title like '%{%|%|%}%';
+select indexname from pg_indexes where schemaname = 'public'
+  and indexname like 'idx_%_family%' order by indexname;
+```
+
+Las migraciones son idempotentes: volver a ejecutar `007` y `008` no hace
+daño. La app degrada con aviso concreto si falta alguna, no se rompe.
+
+Comprobación rápida del esquema desde fuera, sin sesión:
+
+```bash
+U=$VITE_SUPABASE_URL; K=$VITE_SUPABASE_ANON_KEY
+curl -s -o /dev/null -w '%{http_code}\n' "$U/rest/v1/profiles?select=gender&limit=1" \
+  -H "apikey: $K" -H "Authorization: Bearer $K"   # 200 = la columna existe
+```
 
 ---
 
@@ -141,6 +173,10 @@ semana tres.
   competencias. No es cosmética: es lo que separa un sistema que aguanta de
   uno que se apaga en la semana tres. Razonado en
   `docs/FUNDAMENTO-CIENTIFICO.md` con seis referencias.
+- **El tutorial son dos bloques, no uno.** «Por qué funciona así» (seis
+  pasos) y «Dónde está cada cosa» (cinco). En el primer arranque van
+  seguidos; se saltan de una vez y se reabren por separado desde ⚙️ →
+  Evidencia. Se marca como visto también al saltarlo, a propósito.
 - **El elogio específico no puede costar un toque más.** Cada sugerencia ES
   el botón de validar. Si alguna vez se convierte en un formulario aparte,
   se dejará de validar y el sistema entero se cae.
@@ -262,6 +298,16 @@ Verificado **en navegador**, no solo compilando:
 - 360, 375, 834 y 844×390 px sin scroll horizontal; ningún objetivo
   táctil por debajo de 44 pt; rótulos de pestaña en una sola línea.
 - Contraste medido en 13 pares de color: todos por encima de 4,5:1.
+- Tienda de la peque de punta a punta: 40 monedas → 8 estrellas → pide el
+  cuento (6) → quedan 12 monedas y 2 estrellas, canje creado, y los cuatro
+  premios pasan a apagados con su progreso parcial a la vista.
+- Deshacer en los tres sitios: mantener pulsada la baldosa (XP 10→0 y
+  monedas 5→0, incluso con rAF congelado), «Hecho hoy» en el panel
+  (XP 20→10) y cancelar una petición pendiente.
+- Concordancia de género en las tres formas sobre el mismo título
+  guardado: «Vestirse sola / solo / sin ayuda».
+- El fondo ya no reinicia su animación al cambiar de pantalla: el reloj
+  avanza sin cortes (12862 → 15862 → 16862 → 17862 ms) con una sola capa.
 - Build servida bajo `/el-gremio/` con las rutas correctas.
 - RLS real: escritura anónima rechazada con `42501`.
 
@@ -294,19 +340,26 @@ Verificado **en navegador**, no solo compilando:
 
 ## 8. Pendientes
 
-### Inmediato, lo hace la familia
+### Lo primero al retomar: preguntar, no suponer
 
-- **Crear la cuenta familiar** desde el móvil y fundar el gremio (una sola
-  cuenta, un email y una contraseña para todos). No lo puede hacer un
-  agente: implica registrar cuenta y teclear contraseña.
-- Instalar la app en cada dispositivo con "Añadir a pantalla de inicio".
+Tres cosas que un agente **no puede comprobar desde fuera** y que
+condicionan todo lo demás:
 
-### Inmediato, en el SQL Editor de Supabase
+1. **¿Se creó ya la cuenta familiar y se fundó el gremio?** Requiere
+   registrar cuenta y teclear contraseña, así que lo hace la familia. Sin
+   eso, la app enseña el asistente de alta.
+2. **¿Se ejecutaron el `update` de títulos (007b) y los índices (008)?**
+   Ver §2 para las consultas que lo resuelven.
+3. **¿Lo están usando de verdad?** De la respuesta depende qué merece la
+   pena tocar: si llevan dos semanas usándolo, lo siguiente es mirar el
+   diagnóstico de economía con datos reales, no añadir funciones.
 
-Cuatro migraciones sin ejecutar: `005` (sobrecarga duplicada de
-`resolve_completion`), `006` (`undo_completion`), `007` (`profiles.gender`
-y reescritura de títulos) y `008` (índices). Hasta entonces: deshacer y el
-selector de género avisan de que falta la migración; lo demás va.
+### Un detalle que va a morder
+
+Para que la peque vea premios en su tienda tienen que estar marcados como
+**nivel 1**. Los premios creados antes de que existieran los niveles se
+guardaron como nivel 2 por defecto. Síntoma: su tarro tiene estrellas y la
+tienda le sale vacía. Se arregla en Panel → Premios → editar → nivel 1.
 
 ### Escrito pero no activado
 
