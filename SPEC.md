@@ -4,7 +4,8 @@ Especificación de la webapp de gamificación familiar. Este documento es la fue
 
 ## 1. Contexto y decisiones cerradas
 
-- Cuatro miembros: dos adultos, una junior (11 años) y una peque (3 años).
+- Cuatro miembros de partida: dos adultos, una junior (11 años) y una peque (3 años). Desde agosto de 2026 el número es configurable (de 1 a 8) y los roles se pueden combinar como haga falta; la única invariante es que quede **al menos una persona adulta activa**, porque si no nadie puede validar.
+- Las bajas son **retiradas**, no borrados: un perfil inactivo sale del selector pero conserva historial e insignias, y la XP que aportó sigue contando en las metas ya cerradas. El borrado real existe, pero solo sobre perfiles ya retirados, con confirmación por nombre y aviso numérico de lo que se pierde.
 - La app vive en el dispositivo de cada miembro: webapp desplegada (Vite + React + Supabase + Vercel), instalable como PWA ligera.
 - Los padres validan cada reto completado. Excepción deliberada: el rol peque recibe la estrella al momento porque a los 3 años la recompensa diferida no funciona.
 - La peque **sí opera la app**, en una pantalla propia adaptada a su edad (revisión de agosto de 2026; la versión anterior de esta especificación decía que solo la manejaban los adultos). El panel parental conserva su pestaña Peque como vía alternativa cuando la tablet no está a mano.
@@ -33,7 +34,7 @@ Especificación de la webapp de gamificación familiar. Este documento es la fue
 ## 4. Modelo de datos (Supabase, ver schema.sql)
 
 - `families(id, owner → auth.users, name, parent_pin_hash)`
-- `profiles(id, family_id, name, role, emoji, color, xp, coins)`
+- `profiles(id, family_id, name, role, emoji, color, xp, coins, active)` — `active = false` es una retirada (migración 003). El código trata la ausencia de la columna como activo, así que una base sin migrar sigue funcionando.
 - `challenges(id, family_id, profile_id nullable = todos, title, emoji, xp, coins, frequency, active)`
 - `completions(id, family_id, challenge_id, profile_id, status pendiente|aprobado|rechazado, xp, coins, requested_at, resolved_at)` — xp y coins son copia del reto en el momento de pedirlo.
 - `rewards(id, family_id, title, emoji, cost, active)`
@@ -71,7 +72,8 @@ Automáticas (se evalúan en cliente tras cada carga y se insertan con upsert id
 3. **ProfilePicker**: rejilla de perfiles, recuerda la elección por dispositivo (localStorage).
 4. **Home** (por miembro): carnet con gema de nivel, barra de XP y monedas; estandarte de la meta del gremio; pestañas Misiones, Tienda, Insignias. Celebración animada al recibir validación (vía realtime) y al subir de nivel.
 5. **KidHome** (rol peque): cabecera con su avatar y las estrellas de hoy, rejilla de misiones a dos columnas con botones de 165 px de alto, botón de silencio y salida por pulsación mantenida. Paleta propia (papel crema, colores saturados, bordes gruesos) deliberadamente distinta del tablero nocturno: no busca combinar, busca que reconozca su sitio.
-6. **ParentPanel** (tras PIN): Validar (misiones y canjes en un toque), Peque (estrella inmediata), Misiones (CRUD + plantillas + pausar), Premios (CRUD + pausar), Meta (crear, editar, cerrar con insignia para todos), y ⚙️ Estado (versión desplegada, salud del backend, banderas, últimos errores, antigüedad de la rotación de credenciales).
+6. **ParentPanel** (tras PIN): Validar (misiones y canjes en un toque), Peque (estrella inmediata), Misiones (CRUD + plantillas + pausar), Premios (CRUD + pausar), Meta (crear, editar, cerrar con insignia para todos).
+7. **Ajustes** (⚙️ en la cabecera del panel, con control segmentado): **Miembros** (alta, edición, retirada, reincorporación y borrado con confirmación) y **Estado** (versión desplegada, salud del backend, banderas, últimos errores, antigüedad de la rotación de credenciales). Van aquí y no en la barra de pestañas porque con seis pestañas los rótulos dejan de caber en un móvil.
 
 ## 7. Diseño
 

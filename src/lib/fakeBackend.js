@@ -31,7 +31,7 @@ const vacia = () => TABLAS.reduce((acc, t) => ({ ...acc, [t]: [] }), {})
 // fila recién insertada sale sin `status` y la función que la aprueba no
 // la encuentra nunca: el fallo silencioso perfecto.
 const DEFECTOS_TABLA = {
-  profiles: { emoji: '🙂', color: '#a78bfa', xp: 0, coins: 0 },
+  profiles: { emoji: '🙂', color: '#a78bfa', xp: 0, coins: 0, active: true },
   challenges: { emoji: '⭐', xp: 10, coins: 5, frequency: 'diario', active: true, profile_id: null },
   completions: { status: 'pendiente', resolved_at: null },
   rewards: { emoji: '🎁', cost: 50, active: true },

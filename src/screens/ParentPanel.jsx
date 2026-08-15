@@ -2,8 +2,9 @@ import { useState } from 'react'
 import { supabase, canDo, goalProgress, TEMPLATES, ROLE_LABEL, FREQ_LABEL, mensajeDeError } from '../lib/supabase'
 import { CASA, DEFAULTS_ROL } from '../lib/tareas'
 import { resolverMision as resolverMisionRemota, resolverCanje as resolverCanjeRemoto, estrellaInmediata } from '../lib/acciones'
+import { perfilesActivos } from '../lib/miembros'
 import { Modal, Celebracion } from '../components/ui'
-import Estado from './Estado'
+import Ajustes from './Ajustes'
 
 export default function ParentPanel({ family, data, refresh, onExit }) {
   const [tab, setTab] = useState('pendientes')
@@ -41,9 +42,9 @@ export default function ParentPanel({ family, data, refresh, onExit }) {
         <div className="fila">
           <button
             className="btn-icono"
-            aria-label="Estado del sistema"
-            title="Estado del sistema"
-            onClick={() => setTab(tab === 'estado' ? 'pendientes' : 'estado')}
+            aria-label="Miembros y estado del sistema"
+            title="Miembros y estado del sistema"
+            onClick={() => setTab(tab === 'ajustes' ? 'pendientes' : 'ajustes')}
           >
             ⚙️
           </button>
@@ -105,7 +106,7 @@ export default function ParentPanel({ family, data, refresh, onExit }) {
       {tab === 'misiones' && <GestionMisiones family={family} data={data} refresh={refresh} />}
       {tab === 'premios' && <GestionPremios family={family} data={data} refresh={refresh} />}
       {tab === 'meta' && <GestionMeta family={family} data={data} refresh={refresh} />}
-      {tab === 'estado' && <Estado family={family} data={data} />}
+      {tab === 'ajustes' && <Ajustes family={family} data={data} refresh={refresh} />}
 
       <nav className="tabbar">
         <button className={'tab' + (tab === 'pendientes' ? ' activa' : '')} onClick={() => setTab('pendientes')}>
@@ -133,7 +134,7 @@ export default function ParentPanel({ family, data, refresh, onExit }) {
 // --------------------------------------------------------------
 
 function ModoPeque({ family, data, refresh, onCeleb }) {
-  const peques = data.profiles.filter((p) => p.role === 'peque')
+  const peques = perfilesActivos(data.profiles).filter((p) => p.role === 'peque')
   const [ocupado, setOcupado] = useState(null)
   const [fallo, setFallo] = useState('')
 
@@ -271,7 +272,7 @@ function GestionMisiones({ family, data, refresh }) {
       {editando && (
         <FormMision
           mision={editando}
-          perfiles={data.profiles}
+          perfiles={perfilesActivos(data.profiles)}
           onGuardar={guardar}
           onBorrar={editando.id ? borrar : null}
           onClose={() => setEditando(null)}
@@ -344,12 +345,13 @@ function FormMision({ mision, perfiles, onGuardar, onBorrar, onClose }) {
 // --------------------------------------------------------------
 
 function Biblioteca({ family, data, refresh, onClose }) {
-  const [perfilId, setPerfilId] = useState(data.profiles[0]?.id || '')
+  const candidatos = perfilesActivos(data.profiles)
+  const [perfilId, setPerfilId] = useState(candidatos[0]?.id || '')
   const [sel, setSel] = useState(() => new Set())
   const [activando, setActivando] = useState(false)
   const [fallo, setFallo] = useState('')
 
-  const perfil = data.profiles.find((p) => p.id === perfilId)
+  const perfil = candidatos.find((p) => p.id === perfilId)
   const yaActivas = new Set(
     data.challenges
       .filter((ch) => ch.active && (ch.profile_id === perfilId || ch.profile_id === null))
@@ -412,7 +414,7 @@ function Biblioteca({ family, data, refresh, onClose }) {
       <div className="campo">
         <label>Para</label>
         <select value={perfilId} onChange={(e) => { setPerfilId(e.target.value); setSel(new Set()) }}>
-          {data.profiles.map((p) => (
+          {candidatos.map((p) => (
             <option key={p.id} value={p.id}>{p.emoji} {p.name} · {ROLE_LABEL[p.role]}</option>
           ))}
         </select>

@@ -28,6 +28,9 @@ export function mensajeDeError(error) {
     return 'Esta sesión no tiene permiso para eso. Cierra sesión y vuelve a entrar.'
   }
   if (/duplicate key/i.test(texto)) return 'Eso ya estaba registrado.'
+  if (/column .*active.* does not exist/i.test(texto)) {
+    return 'Falta ejecutar migracion-003-miembros.sql en el SQL Editor de Supabase.'
+  }
   if (/Failed to fetch|NetworkError|ERR_INTERNET/i.test(texto)) {
     return 'Sin conexión con el gremio. Comprueba la red e inténtalo otra vez.'
   }

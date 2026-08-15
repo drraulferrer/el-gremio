@@ -20,6 +20,19 @@ La estrella inmediata de la peque no es un atajo: a los tres años la
 recompensa diferida no funciona. Un adulto puede darle la estrella también
 desde el panel (pestaña Peque) cuando la tablet no está a mano.
 
+## Miembros
+
+De 1 a 8 perfiles, con el rol que haga falta y en cualquier combinación; lo
+único obligatorio es que quede al menos una persona adulta, porque si no
+nadie puede validar. Se gestionan en **Panel parental → ⚙️ → Miembros**:
+alta, edición de nombre, rol, emoji y color, y baja.
+
+La baja por defecto es **retirar**, no borrar: el perfil sale del selector
+pero conserva su historial y la XP que aportó a las metas ya cerradas, y se
+puede reincorporar cuando sea. Borrar de verdad solo se ofrece sobre quien
+ya está retirado, exige escribir su nombre y avisa con números de cuántas
+misiones, canjes e insignias se van a perder.
+
 ## Economía
 
 - **XP**: nunca se gasta, marca el nivel. Nivel 2 a los 100 XP, nivel 3 a
@@ -48,8 +61,9 @@ desde el panel (pestaña Peque) cuando la tablet no está a mano.
    *anon public*.
 
 > Si ya tenías una versión anterior del esquema, ejecuta además
-> `migracion-001-mensual.sql` y `migracion-002-produccion.sql`. Si empiezas
-> de cero, `schema.sql` ya lo incluye todo.
+> `migracion-001-mensual.sql`, `migracion-002-produccion.sql` y
+> `migracion-003-miembros.sql`. Si empiezas de cero, `schema.sql` ya lo
+> incluye todo. Todas son idempotentes.
 
 ## 2. En local
 
@@ -163,17 +177,19 @@ biblioteca. Un tablón con todo deja de ser un juego.
 schema.sql              Esquema completo de Supabase, incluida la capa de producción
 src/lib/supabase.js     Cliente, economía, insignias, plantillas, traducción de errores
 src/lib/acciones.js     Acciones de dominio (pedir, validar, canjear) con registro
+src/lib/miembros.js     Reglas de alta, edición y baja de perfiles
 src/lib/tareas.js       Biblioteca de tareas de la casa por roles, sin puntos
 src/lib/log.js          Registro estructurado en JSON con redacción de credenciales
 src/lib/monitoring.js   Captura y agrupación de errores; adaptador de Sentry
 src/lib/flags.js        Banderas de funcionalidad
 src/lib/fakeBackend.js  Backend simulado del modo demo
-src/screens/            Login, Onboarding, ProfilePicker, Home, KidHome, ParentPanel, Estado
+src/screens/            Login, Onboarding, ProfilePicker, Home, KidHome,
+                        ParentPanel, Ajustes (Miembros + Estado)
 src/components/         Gema, barra de XP, modal, PIN, celebración, ErrorBoundary
 scripts/                deploy, rollback, health-check, secrets-check
 supabase/functions/     Edge Function de health (opcional)
 docs/                   RUNBOOK y rotación de credenciales
-tests/                  Economía, frecuencias y observabilidad (vitest)
+tests/                  Economía, frecuencias, miembros y observabilidad (vitest)
 SPEC.md                 Especificación, fuente de verdad para iterar
 ```
 
@@ -182,7 +198,7 @@ SPEC.md                 Especificación, fuente de verdad para iterar
 ```bash
 npm run dev            # desarrollo
 npm run dev:demo       # desarrollo con backend simulado, sin Supabase
-npm test               # tests (26)
+npm test               # tests (40)
 npm run build          # compilación de producción
 npm run verify         # tests + build + revisión de credenciales
 npm run health         # ¿responden la web publicada y Supabase?

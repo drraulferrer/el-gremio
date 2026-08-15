@@ -277,6 +277,34 @@ button { font-family: inherit; }
 .tab .tab-emoji { font-size: 1.25rem; }
 .tab.activa { background: var(--carta-alta); color: var(--tinta); }
 
+/* ---------------- control segmentado ---------------- */
+
+.segmentos {
+  display: flex;
+  gap: 6px;
+  background: var(--tablero-hondo);
+  border: 1px solid var(--linea);
+  border-radius: 16px;
+  padding: 5px;
+  margin-bottom: 14px;
+}
+
+.segmentos button {
+  flex: 1;
+  border: none;
+  background: transparent;
+  color: var(--tinta-suave);
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 0.92rem;
+  border-radius: 12px;
+  padding: 10px 8px;
+  min-height: 44px;
+  cursor: pointer;
+}
+
+.segmentos button.activo { background: var(--carta-alta); color: var(--tinta); }
+
 /* ---------------- formularios ---------------- */
 
 .campo { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; text-align: left; }

@@ -26,6 +26,9 @@ create table if not exists public.profiles (
   color text not null default '#a78bfa',
   xp integer not null default 0,
   coins integer not null default 0,
+  -- Retirar en lugar de borrar: un perfil inactivo sale del selector pero
+  -- conserva su historial y la XP que aportó a las metas ya cerradas.
+  active boolean not null default true,
   created_at timestamptz not null default now()
 );
 
@@ -99,6 +102,7 @@ create index if not exists idx_completions_family_status on public.completions (
 create index if not exists idx_completions_profile on public.completions (profile_id, requested_at desc);
 create index if not exists idx_redemptions_family_status on public.redemptions (family_id, status);
 create index if not exists idx_profiles_family on public.profiles (family_id);
+create index if not exists idx_profiles_family_active on public.profiles (family_id, active);
 create index if not exists idx_challenges_family on public.challenges (family_id);
 
 -- ---------------------------------------------------------------------

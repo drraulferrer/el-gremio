@@ -11,6 +11,7 @@ import {
   mensajeDeError
 } from '../lib/supabase'
 import { log } from '../lib/log'
+import { MAX_PERFILES } from '../lib/miembros'
 
 const MIEMBRO_NUEVO = () => ({ name: '', role: 'junior', emoji: '🦊', color: COLORS[0] })
 
@@ -38,6 +39,11 @@ export default function Onboarding({ onDone }) {
     const listos = miembros.filter((m) => m.name.trim())
     if (!listos.some((m) => m.role === 'adulto')) {
       setError('Hace falta al menos una persona adulta.')
+      return
+    }
+    const nombres = listos.map((m) => m.name.trim().toLocaleLowerCase('es'))
+    if (new Set(nombres).size !== nombres.length) {
+      setError('Hay dos miembros con el mismo nombre.')
       return
     }
     setCreando(true)
@@ -179,6 +185,16 @@ export default function Onboarding({ onDone }) {
           </div>
         </div>
       ))}
+
+      {miembros.length < MAX_PERFILES && (
+        <button
+          className="btn btn-fantasma btn-bloque"
+          style={{ marginBottom: 12 }}
+          onClick={() => setMiembros([...miembros, MIEMBRO_NUEVO()])}
+        >
+          + Añadir otro miembro
+        </button>
+      )}
 
       <label className="fila carta" style={{ cursor: 'pointer' }}>
         <input type="checkbox" style={{ width: 22, height: 22 }} checked={conPlantillas} onChange={(e) => setConPlantillas(e.target.checked)} />

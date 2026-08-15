@@ -3,6 +3,7 @@ import { supabase, configured, modoDemo, levelFromXp, BADGES, crearSinkDeLogs, m
 import { log, setContexto, setSink, instalarVaciadoAlSalir, nuevoRequestId } from './lib/log'
 import { instalarMonitorizacion, capturar } from './lib/monitoring'
 import { flag } from './lib/flags'
+import { perfilesActivos, estaActivo } from './lib/miembros'
 import { RELEASE } from './lib/version'
 import { PinModal } from './components/ui'
 import Login from './screens/Login'
@@ -167,8 +168,9 @@ export default function App() {
     }
   }, [family, loadAll])
 
-  // Contexto del registro: sin esto, un log de error no dice de quién es.
-  const profile = data?.profiles.find((p) => p.id === profileId)
+  // Un perfil retirado deja de ser elegible: si el dispositivo recordaba
+  // ese perfil, vuelve al selector en lugar de abrir una sesión fantasma.
+  const profile = data?.profiles.find((p) => p.id === profileId && estaActivo(p))
   useEffect(() => {
     setContexto({
       family_id: family?.id || null,
@@ -218,7 +220,12 @@ export default function App() {
           onParent={() => setPidePin(true)}
         />
       ) : (
-        <ProfilePicker family={family} profiles={data.profiles} onPick={elegirPerfil} onParent={() => setPidePin(true)} />
+        <ProfilePicker
+          family={family}
+          profiles={perfilesActivos(data.profiles)}
+          onPick={elegirPerfil}
+          onParent={() => setPidePin(true)}
+        />
       )}
 
       {pidePin && (
