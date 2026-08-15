@@ -4,6 +4,7 @@ import { pedirMision as pedirMisionRemota, canjearPremio, deshacerMision } from 
 import { Gema, XPBar, Moneda, Celebracion, Pestana } from '../components/ui'
 import { HABILIDADES, habilidad, xpPorHabilidad, rangoDeHabilidad, habilidadDominante } from '../lib/habilidades'
 import { flex, generoDe } from '../lib/genero'
+import { misionesDe, agruparPorFrecuencia } from '../lib/misiones'
 
 export default function Home({ family, data, profile, refresh, onSwitchProfile, onParent }) {
   const genero = generoDe(profile)
@@ -140,9 +141,10 @@ export default function Home({ family, data, profile, refresh, onSwitchProfile, 
 
 function Misiones({ data, profile, ocupado, onPedir, misPendientes, misAprobadas, retoDe, onCancelar, genero }) {
   const hoy = dayKey(new Date())
-  const disponibles = data.challenges.filter(
-    (ch) => ch.active && (ch.profile_id === profile.id || ch.profile_id === null) && canDo(ch, data.completions, profile.id)
+  const disponibles = misionesDe(profile, data.challenges).filter((ch) =>
+    canDo(ch, data.completions, profile.id)
   )
+  const porFrecuencia = agruparPorFrecuencia(disponibles)
   const hechasHoy = misAprobadas.filter((c) => c.resolved_at && dayKey(new Date(c.resolved_at)) === hoy)
 
   return (
@@ -151,29 +153,41 @@ function Misiones({ data, profile, ocupado, onPedir, misPendientes, misAprobadas
       {disponibles.length === 0 && (
         <div className="vacio">No queda ninguna por hoy. Las nuevas misiones se crean en el panel parental.</div>
       )}
-      <div className="lista-misiones">
-        {disponibles.map((ch) => (
-          <div className="carta" key={ch.id}>
-            <div className="fila">
-              <div className="avatar">{ch.emoji}</div>
-              <div className="crece">
-                <strong>{flex(ch.title, genero)}</strong>
-                <div className="suave">
-                  {habilidad(ch.skill) && (
-                    <span style={{ color: habilidad(ch.skill).color }}>
-                      {habilidad(ch.skill).emoji} {habilidad(ch.skill).nombre} ·{' '}
-                    </span>
-                  )}
-                  +{ch.xp} XP · {FREQ_LABEL[ch.frequency]}
+      {/* Separadas por frecuencia y no en una lista plana: con quince
+          misiones seguidas, saber cuáles caducan hoy obligaba a leerlas
+          todas. La frecuencia ya no se repite en cada tarjeta, porque la
+          dice el encabezado del bloque. */}
+      {porFrecuencia.map((grupo) => (
+        <section key={grupo.frecuencia}>
+          <h3 className="titulo-frecuencia">
+            {grupo.titulo}
+            <span className="cuenta-frecuencia">{grupo.misiones.length}</span>
+          </h3>
+          <div className="lista-misiones">
+            {grupo.misiones.map((ch) => (
+              <div className="carta" key={ch.id}>
+                <div className="fila">
+                  <div className="avatar">{ch.emoji}</div>
+                  <div className="crece">
+                    <strong>{flex(ch.title, genero)}</strong>
+                    <div className="suave">
+                      {habilidad(ch.skill) && (
+                        <span style={{ color: habilidad(ch.skill).color }}>
+                          {habilidad(ch.skill).emoji} {habilidad(ch.skill).nombre} ·{' '}
+                        </span>
+                      )}
+                      +{ch.xp} XP
+                    </div>
+                  </div>
+                  <button className="btn btn-mini" disabled={ocupado === ch.id} onClick={() => onPedir(ch)}>
+                    ¡Hecho!
+                  </button>
                 </div>
               </div>
-              <button className="btn btn-mini" disabled={ocupado === ch.id} onClick={() => onPedir(ch)}>
-                ¡Hecho!
-              </button>
-            </div>
+            ))}
           </div>
-        ))}
-      </div>
+        </section>
+      ))}
 
       {misPendientes.length > 0 && (
         <div>

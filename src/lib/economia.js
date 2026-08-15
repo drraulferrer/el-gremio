@@ -18,6 +18,7 @@
 // ------------------------------------------------------------------
 
 import { DEFAULTS_ROL } from './tareas'
+import { misionesDe } from './misiones'
 
 export const SUPUESTOS = {
   // Nadie completa el tablón entero todos los días, y el sistema no
@@ -95,9 +96,7 @@ export function diagnosticoEconomia(data, s = SUPUESTOS) {
   const activos = (data.profiles || []).filter((p) => p.active !== false)
 
   const porPersona = activos.map((p) => {
-    const suyas = (data.challenges || []).filter(
-      (c) => c.active && (c.profile_id === p.id || c.profile_id === null)
-    )
+    const suyas = misionesDe(p, data.challenges || [])
     // Solo lo repetible entra en el ritmo diario; lo único es un extra.
     const factor = { diario: 1, semanal: 1 / 7, mensual: 1 / 30, unico: 0 }
     const monedasDia = suyas.reduce((t, c) => t + c.coins * (factor[c.frequency] ?? 0), 0) * s.adherencia

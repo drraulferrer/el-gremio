@@ -8,6 +8,7 @@ import { useMantenerPulsado } from '../lib/mantenerPulsado'
 import { flex, generoDe } from '../lib/genero'
 import { premiosParaPeque, estrellasDe, estrellasQueCuesta } from '../lib/premios'
 import { sugerenciasDeElogio, rachaDeMision } from '../lib/elogio'
+import { misionesDe } from '../lib/misiones'
 
 // ------------------------------------------------------------------
 // Pantalla de la peque (3 años).
@@ -33,9 +34,7 @@ export default function KidHome({ family, data, profile, refresh, onSalir }) {
   const [conSonido, setConSonido] = useState(() => sonidoActivo())
   const [verTarro, setVerTarro] = useState(false)
 
-  const misiones = data.challenges.filter(
-    (ch) => ch.active && (ch.profile_id === profile.id || ch.profile_id === null)
-  )
+  const misiones = misionesDe(profile, data.challenges)
 
   const hoy = dayKey(new Date())
   const estrellasHoy = data.completions.filter(

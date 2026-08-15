@@ -15,6 +15,7 @@ import { flex, generoDe } from '../lib/genero'
 import { Modal, Celebracion, Pestana } from '../components/ui'
 import Icono from '../components/Icono'
 import Ajustes from './Ajustes'
+import { misionesDe, destinoDe, destinoA, ETIQUETA_ROL } from '../lib/misiones'
 
 export default function ParentPanel({ family, data, refresh, refreshFamily, onVerTutorial, onExit }) {
   const [tab, setTab] = useState('pendientes')
@@ -301,6 +302,7 @@ function ModoPeque({ family, data, refresh, onCeleb }) {
       frequency: m.frequency,
       skill: m.skill || null,
       profile_id: m.profile_id || null,
+      target_role: m.target_role || null,
       active: m.active
     }
     const { error } = m.id
@@ -363,9 +365,7 @@ function ModoPeque({ family, data, refresh, onCeleb }) {
       </p>
       {fallo && <p className="error-texto" role="alert">{fallo}</p>}
       {peques.map((p) => {
-        const retos = data.challenges.filter(
-          (ch) => ch.active && (ch.profile_id === p.id || ch.profile_id === null)
-        )
+        const retos = misionesDe(p, data.challenges)
         return (
           <div key={p.id}>
             <div className="titulo-seccion">{p.emoji} {p.name}</div>
@@ -423,13 +423,19 @@ function ModoPeque({ family, data, refresh, onCeleb }) {
 // Gestión de misiones
 // --------------------------------------------------------------
 
-const MISION_VACIA = { title: '', emoji: '⭐', xp: 10, coins: 5, frequency: 'diario', profile_id: null, skill: 'responsabilidad', active: true }
+const MISION_VACIA = { title: '', emoji: '⭐', xp: 10, coins: 5, frequency: 'diario', profile_id: null, target_role: null, skill: 'responsabilidad', active: true }
 
 function GestionMisiones({ family, data, refresh }) {
   const [editando, setEditando] = useState(null) // null | objeto misión
   const [plantillas, setPlantillas] = useState(false)
   const [fallo, setFallo] = useState('')
-  const nombreDe = (id) => (id ? data.profiles.find((p) => p.id === id)?.name || '—' : 'Todos')
+  // El destino, tal y como se lee en la lista. Sin el caso del rol, una
+  // misión de «cualquier adulto» se anunciaba como «Todos», que es
+  // justo lo que no es.
+  const destinoTexto = (ch) =>
+    ch.profile_id
+      ? data.profiles.find((p) => p.id === ch.profile_id)?.name || '—'
+      : ETIQUETA_ROL[ch.target_role] || 'Todos'
 
   async function guardar(m) {
     const fila = {
@@ -440,6 +446,7 @@ function GestionMisiones({ family, data, refresh }) {
       coins: Number(m.coins) || 0,
       frequency: m.frequency,
       profile_id: m.profile_id || null,
+      target_role: m.target_role || null,
       skill: m.skill || null,
       active: m.active
     }
@@ -490,7 +497,7 @@ function GestionMisiones({ family, data, refresh }) {
               <strong>{flex(ch.title, generoDe(data.profiles.find((p) => p.id === ch.profile_id)))}</strong>
               <div className="suave">
                 {habilidad(ch.skill) && <>{habilidad(ch.skill).emoji} {habilidad(ch.skill).nombre} · </>}
-                {nombreDe(ch.profile_id)} · +{ch.xp} XP · {FREQ_LABEL[ch.frequency]}
+                {destinoTexto(ch)} · +{ch.xp} XP · {FREQ_LABEL[ch.frequency]}
               </div>
             </div>
             <button className="btn-icono" onClick={() => alternar(ch)} aria-label={ch.active ? 'Pausar' : 'Activar'}>
@@ -523,6 +530,10 @@ function GestionMisiones({ family, data, refresh }) {
 function FormMision({ mision, perfiles, onGuardar, onBorrar, onClose }) {
   const [m, setM] = useState({ ...mision })
   const set = (cambios) => setM({ ...m, ...cambios })
+
+  // Solo se ofrecen los roles que tienen gente: «cualquier junior» en un
+  // gremio sin junior es una opción que no hace nada.
+  const rolesPresentes = [...new Set(perfiles.map((p) => p.role))].filter((r) => ETIQUETA_ROL[r])
 
   return (
     <Modal titulo={m.id ? 'Editar misión' : 'Nueva misión'} onClose={onClose}>
@@ -577,10 +588,20 @@ function FormMision({ mision, perfiles, onGuardar, onBorrar, onClose }) {
       </div>
       <div className="campo">
         <label>Para</label>
-        <select value={m.profile_id || ''} onChange={(e) => set({ profile_id: e.target.value || null })}>
-          <option value="">Todos</option>
+        <select value={destinoDe(m)} onChange={(e) => set(destinoA(e.target.value))}>
+          <option value="">Todo el gremio</option>
+          {rolesPresentes.map((r) => (
+            <option key={r} value={`rol:${r}`}>{ETIQUETA_ROL[r]}</option>
+          ))}
           {perfiles.map((p) => <option key={p.id} value={p.id}>{p.emoji} {p.name}</option>)}
         </select>
+        <span className="suave">
+          {m.target_role
+            ? 'Una sola misión: la hace cada quien por su cuenta, sin duplicarla ni quitársela a nadie.'
+            : m.profile_id
+              ? 'Solo esta persona la ve en su tablero.'
+              : 'La ven todos, la peque incluida.'}
+        </span>
       </div>
       <button className="btn btn-bloque" disabled={!m.title.trim()} onClick={() => onGuardar(m)}>Guardar</button>
       {onBorrar && (
@@ -604,11 +625,7 @@ function Biblioteca({ family, data, refresh, onClose }) {
   const [fallo, setFallo] = useState('')
 
   const perfil = candidatos.find((p) => p.id === perfilId)
-  const yaActivas = new Set(
-    data.challenges
-      .filter((ch) => ch.active && (ch.profile_id === perfilId || ch.profile_id === null))
-      .map((ch) => ch.title)
-  )
+  const yaActivas = new Set(misionesDe(perfil, data.challenges).map((ch) => ch.title))
 
   const grupos = perfil ? CATALOGO[perfil.role] || [] : []
 

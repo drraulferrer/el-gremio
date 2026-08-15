@@ -336,6 +336,36 @@ button { font-family: inherit; }
   margin: 18px 4px 8px;
 }
 
+/* Encabezado de cada bloque de frecuencia en el tablero. Va un escalón por
+   debajo de .titulo-seccion: separa dentro de una sección, no abre otra.
+   La línea de la izquierda ata visualmente el rótulo con las tarjetas que
+   cuelgan de él, para que no se lea como un título suelto. */
+.titulo-frecuencia {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--display);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--tinta-suave);
+  margin: 14px 4px 6px;
+  padding-left: 8px;
+  border-left: 2px solid var(--linea);
+}
+
+/* El número de misiones del bloque. Responde «¿cuánto me queda?» sin
+   contar tarjetas. */
+.cuenta-frecuencia {
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 1;
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: var(--linea);
+  color: var(--tinta-suave);
+}
+
 .vacio {
   border: 1.5px dashed var(--linea);
   border-radius: var(--radio);

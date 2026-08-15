@@ -1,0 +1,72 @@
+-- Migración 011 · misiones dirigidas a un rol entero.
+--
+-- Ejecuta este fichero en el SQL Editor de Supabase. Si empiezas de cero,
+-- schema.sql ya lo incluye. Es idempotente.
+--
+-- El problema: «Planificar el menú semanal» la hacen los dos adultos. Como
+-- una misión solo podía ser de UNA persona o de TODO el gremio, la única
+-- salida era duplicarla, una fila por adulto. Eso deja dos filas que
+-- editar, dos que pausar, y un historial partido en dos mitades que no se
+-- suman en la pantalla de habilidades. Y marcarla como «para todos» era
+-- peor: aparecía en la pantalla de la peque de tres años.
+--
+-- Con `target_role`, la regla de a quién le toca cada misión queda así, y
+-- está implementada en un solo sitio, src/lib/misiones.js:
+--
+--   profile_id  = <id>   →  solo esa persona (manda sobre target_role)
+--   target_role = 'adulto' →  todas las personas con ese rol
+--   los dos null         →  el gremio entero
+--
+-- `canDo` cuenta las veces hechas POR PERFIL, así que una misión de rol la
+-- completa cada persona por su cuenta sin quitársela a la otra. No hace
+-- falta tocar nada más para que eso funcione.
+
+alter table public.challenges
+  add column if not exists target_role text
+    check (target_role is null or target_role in ('adulto','junior','peque'));
+
+-- ------------------------------------------------------------------
+-- Consolidar los duplicados que ya existen (OPCIONAL, va comentado)
+-- ------------------------------------------------------------------
+--
+-- Esta familia tiene cuatro misiones de adultos duplicadas, ocho filas en
+-- total. La migración NO las toca: hacerlo automáticamente decidiría por
+-- alguien qué historial se conserva, y ese historial es XP ya aportada a
+-- metas cerradas.
+--
+-- Si se quieren unificar, el camino que NO pierde nada es quedarse con la
+-- copia más antigua de cada título, marcarla para el rol, y PAUSAR la otra
+-- en vez de borrarla. Pausar mantiene la fila y sus `completions`; borrar
+-- las arrastra en cascada.
+--
+-- Revisa primero qué haría:
+--
+-- with copias as (
+--   select c.id, c.title,
+--          row_number() over (partition by c.title order by c.created_at) as n
+--     from public.challenges c
+--     join public.profiles p on p.id = c.profile_id
+--    where p.role = 'adulto'
+-- )
+-- select * from copias order by title, n;
+--
+-- Y si convence, aplícalo:
+--
+-- with copias as (
+--   select c.id, c.title,
+--          row_number() over (partition by c.title order by c.created_at) as n
+--     from public.challenges c
+--     join public.profiles p on p.id = c.profile_id
+--    where p.role = 'adulto'
+-- )
+-- update public.challenges c
+--    set target_role = case when copias.n = 1 then 'adulto' else c.target_role end,
+--        profile_id  = case when copias.n = 1 then null else c.profile_id end,
+--        active      = case when copias.n = 1 then c.active else false end
+--   from copias
+--  where c.id = copias.id;
+--
+-- Comprobación después:
+--
+-- select title, target_role, profile_id is null as sin_persona, active
+--   from public.challenges order by title;

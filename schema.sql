@@ -39,7 +39,14 @@ create table if not exists public.profiles (
 create table if not exists public.challenges (
   id uuid primary key default gen_random_uuid(),
   family_id uuid not null references public.families(id) on delete cascade,
-  profile_id uuid references public.profiles(id) on delete cascade, -- null = para todos
+  profile_id uuid references public.profiles(id) on delete cascade, -- null = no es de una persona concreta
+  -- A quién va dirigida cuando no es de una persona: un rol entero, o el
+  -- gremio al completo si también esto es null. Existe porque «Planificar
+  -- el menú semanal» la hacen los dos adultos, y sin esto había que
+  -- duplicar la misión —dos filas que editar y un historial partido—;
+  -- marcarla para todos tampoco valía, porque se la comía la peque de tres
+  -- años en su pantalla. El predicado vive en src/lib/misiones.js.
+  target_role text check (target_role is null or target_role in ('adulto','junior','peque')),
   title text not null,
   emoji text not null default '⭐',
   xp integer not null default 10,
