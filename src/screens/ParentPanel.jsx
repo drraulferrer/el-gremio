@@ -11,7 +11,7 @@ import { perfilesActivos } from '../lib/miembros'
 import { avisoDeCarga } from '../lib/economia'
 import { MONEDAS_POR_ESTRELLA } from '../lib/premios'
 import { habilidad, HABILIDADES } from '../lib/habilidades'
-import { sugerenciasDeElogio, rachaDeMision } from '../lib/elogio'
+import { sugerenciasDeElogio, rachaDeMision, sugerenciasDeCorreccion, correccionValida } from '../lib/elogio'
 import { flex, generoDe } from '../lib/genero'
 import { Modal, Celebracion, Pestana } from '../components/ui'
 import Icono from '../components/Icono'
@@ -210,6 +210,11 @@ function TarjetaValidacion({ completion, perfil, reto, completions, onResolver }
   const [escribiendo, setEscribiendo] = useState(false)
   const [texto, setTexto] = useState('')
   const [ocupado, setOcupado] = useState(false)
+  // Rechazar abre su propio bloque en vez de resolver de un toque: no
+  // validar SIN decir por qué es exactamente lo que enseña que el adulto
+  // es impredecible.
+  const [rechazando, setRechazando] = useState(false)
+  const [motivo, setMotivo] = useState('')
 
   const genero = generoDe(perfil)
   const racha = rachaDeMision(completion.challenge_id, completion.profile_id, completions)
@@ -220,6 +225,13 @@ function TarjetaValidacion({ completion, perfil, reto, completions, onResolver }
   async function validar(elogio) {
     setOcupado(true)
     await onResolver(completion.id, 'aprobado', elogio)
+    setOcupado(false)
+  }
+
+  async function noValidar(razon) {
+    if (!correccionValida(razon)) return
+    setOcupado(true)
+    await onResolver(completion.id, 'rechazado', razon)
     setOcupado(false)
   }
 
@@ -278,13 +290,43 @@ function TarjetaValidacion({ completion, perfil, reto, completions, onResolver }
         <button
           className="btn btn-peligro btn-mini"
           disabled={ocupado}
-          onClick={() => onResolver(completion.id, 'rechazado')}
-          aria-label={`Rechazar ${reto?.title || 'la misión'} de ${perfil?.name || ''}`}
-          title="Aún no: vuelve a la lista"
+          onClick={() => setRechazando(!rechazando)}
+          aria-expanded={rechazando}
+          aria-label={`Todavía no: ${flex(reto?.title, genero) || 'la misión'} de ${perfil?.name || ''}`}
+          title="Todavía no: dile qué falta"
         >
-          <Icono nombre="cerrar" tamano={19} />
+          <Icono nombre="cerrar" tamano={19} /> Todavía no
         </button>
       </div>
+
+      {rechazando && (
+        <div className="bloque-correccion">
+          <div className="titulo-correccion">Dile qué falta. Lo verá en su tablero y podrá volver a intentarlo.</div>
+          <div className="elogios">
+            {sugerenciasDeCorreccion({ reto }).map((frase) => (
+              <button key={frase} className="correccion" disabled={ocupado} onClick={() => noValidar(frase)}>
+                {frase}
+              </button>
+            ))}
+          </div>
+          <div className="campo" style={{ marginTop: 8 }}>
+            <input
+              value={motivo}
+              onChange={(e) => setMotivo(e.target.value)}
+              maxLength={240}
+              placeholder="O escríbelo tú: qué falta exactamente"
+              onKeyDown={(e) => { if (e.key === 'Enter') noValidar(motivo) }}
+            />
+            <button
+              className="btn btn-peligro btn-mini"
+              disabled={!correccionValida(motivo) || ocupado}
+              onClick={() => noValidar(motivo)}
+            >
+              Enviar sin validar
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

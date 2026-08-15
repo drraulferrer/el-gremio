@@ -32,8 +32,12 @@ export const SUPUESTOS = {
   // Nivel 1 son decisiones (elegir la peli): pueden ser casi diarias.
   // Nivel 3 son planes que cuestan dinero y una tarde entera.
   cadencia: { 1: 2, 2: 7, 3: 30 },
-  // Y cada cuánto debería cerrarse una meta del gremio.
-  cadenciaMeta: 12
+  // Y cada cuánto debería cerrarse una meta del gremio. 60 días, decisión
+  // de la familia (15-ago-2026): una meta compartida es una cosa de
+  // temporada, no de quincena. Con 12 días la meta competía con los
+  // premios individuales en vez de ser el horizonte largo, y cerrarla
+  // cinco veces al trimestre le quita el carácter de acontecimiento.
+  cadenciaMeta: 60
 }
 
 /** Monedas por día que gana un rol si cumple la adherencia supuesta. */

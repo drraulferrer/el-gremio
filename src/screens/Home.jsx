@@ -140,6 +140,17 @@ export default function Home({ family, data, profile, refresh, onSwitchProfile, 
 }
 
 function Misiones({ data, profile, ocupado, onPedir, misPendientes, misAprobadas, retoDe, onCancelar, genero }) {
+  // Lo que no se validó hoy, con su motivo. Solo de hoy: una corrección de
+  // la semana pasada ya no corrige nada, es un reproche guardado.
+  const hoyClave = dayKey(new Date())
+  const misRechazadas = data.completions.filter(
+    (c) =>
+      c.profile_id === profile.id &&
+      c.status === 'rechazado' &&
+      c.resolved_at &&
+      dayKey(new Date(c.resolved_at)) === hoyClave
+  )
+
   const hoy = dayKey(new Date())
   const disponibles = misionesDe(profile, data.challenges).filter((ch) =>
     canDo(ch, data.completions, profile.id)
@@ -149,6 +160,26 @@ function Misiones({ data, profile, ocupado, onPedir, misPendientes, misAprobadas
 
   return (
     <div>
+      {misRechazadas.length > 0 && (
+        <>
+          <div className="titulo-seccion">Todavía no</div>
+          {misRechazadas.map((c) => {
+            const ch = data.challenges.find((x) => x.id === c.challenge_id)
+            return (
+              <div className="carta carta-correccion" key={c.id}>
+                <div className="fila">
+                  <div className="avatar">{ch?.emoji || '📝'}</div>
+                  <div className="crece">
+                    <strong>{flex(ch?.title, genero) || 'Misión'}</strong>
+                    {c.praise && <p className="texto-correccion">{c.praise}</p>}
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+        </>
+      )}
+
       <div className="titulo-seccion">Misiones disponibles</div>
       {disponibles.length === 0 && (
         <div className="vacio">No queda ninguna por hoy. Las nuevas misiones se crean en el panel parental.</div>

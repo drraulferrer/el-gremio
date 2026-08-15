@@ -190,7 +190,11 @@ export const BADGES = [
 // cuatro genera en unos doce días con el 60 % de adherencia. Ver
 // src/lib/economia.js. Con los 600 de antes se cerraba en cuatro días y
 // medio, y una meta que cae sola deja de ser una meta.
-export const META_INICIAL = { title: 'Noche de pizza y peli', emoji: '🍕', target_xp: 1600 }
+// 8100 XP y no 1600: la cadencia de meta pasó de 12 a 60 días, y una meta
+// que se cierra cada dos semanas compite con los premios individuales en
+// vez de ser el horizonte largo. El número sale de metaObjetivo() con los
+// supuestos del modelo; hay un test que falla si se separan.
+export const META_INICIAL = { title: 'Noche de pizza y peli', emoji: '🍕', target_xp: 8100 }
 
 // 'Junior' y 'Peque' son epicenos; 'Adulto' no.
 export const ROLE_LABEL = { adulto: '{Adulto|Adulta|Persona adulta}', junior: 'Junior', peque: 'Peque' }

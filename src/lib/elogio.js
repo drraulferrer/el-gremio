@@ -99,3 +99,51 @@ export function elogioValido(texto) {
   const t = String(texto || '').trim()
   return t.length === 0 || t.length <= 240
 }
+
+// ------------------------------------------------------------------
+// No validar, y que sirva de algo
+//
+// Rechazar existía como un icono mudo: la misión volvía a la lista y la
+// niña no se enteraba de por qué. Eso enseña que el adulto es
+// impredecible, que es lo contrario de lo que buscamos.
+//
+// Las frases de abajo siguen tres reglas, y son las tres que separan una
+// corrección de una regañina:
+//
+//  1. Hablan de LA TAREA, nunca de la persona. «Falta la mesa de la
+//     cocina», no «no te has esforzado». Lo primero se puede arreglar en
+//     dos minutos; lo segundo es una etiqueta.
+//  2. Dicen qué falta EXACTAMENTE, para que se pueda terminar. Un «no»
+//     sin siguiente paso es un castigo, no una enseñanza.
+//  3. Dejan la puerta abierta: la misión vuelve a estar disponible, así
+//     que el mensaje termina en «y lo validamos», no en «hoy ya no».
+//
+// El texto se guarda en la misma columna que el elogio (`praise`), que a
+// estas alturas es «la nota de la validación» y no solo el elogio. No
+// merecía una columna nueva ni una migración.
+// ------------------------------------------------------------------
+
+const PLANTILLAS_CORRECCION = [
+  'Todavía falta un poco para {accion}. Termínalo y lo validamos.',
+  'Se ha quedado a medias. Repasa {accion} y avísame.',
+  'Aún no está: mira otra vez y cuando esté, lo validamos.'
+]
+
+/**
+ * Propuestas para NO validar. Mismo formato que las de elogio, para que
+ * el gesto sea el mismo: cada sugerencia ES el botón.
+ * @returns {string[]} tres frases, ninguna sobre la persona
+ */
+export function sugerenciasDeCorreccion({ reto }) {
+  const accion = accionDe(reto?.title)
+  return PLANTILLAS_CORRECCION.map((p) => p.replace('{accion}', accion))
+}
+
+/**
+ * Un motivo de rechazo NO puede ir vacío, al contrario que el elogio.
+ * Rechazar sin decir por qué es justo el caso que veníamos a arreglar.
+ */
+export function correccionValida(texto) {
+  const t = String(texto || '').trim()
+  return t.length >= 3 && t.length <= 240
+}
