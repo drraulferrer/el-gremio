@@ -30,6 +30,7 @@ const TRAZOS = {
   sonido: <><path d="M4.5 9.5h3.2L12 5.8v12.4l-4.3-3.7H4.5z" /><path d="M15.4 9.4a3.6 3.6 0 0 1 0 5.2" /><path d="M17.9 6.9a7.1 7.1 0 0 1 0 10.2" /></>,
   silencio: <><path d="M4.5 9.5h3.2L12 5.8v12.4l-4.3-3.7H4.5z" /><path d="m16 9.8 4.4 4.4" /><path d="m20.4 9.8-4.4 4.4" /></>,
   salir: <><path d="M14 4.5H6.5a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2H14" /><path d="M17 8.5 20.5 12 17 15.5" /><path d="M20.5 12h-10" /></>,
+  cuadro: <><rect x="3.5" y="3.5" width="17" height="17" rx="2.5" /><path d="M8 16.5v-4" /><path d="M12 16.5v-8" /><path d="M16 16.5v-6" /></>,
   atras: <><path d="M11 5.5 4.5 12l6.5 6.5" /><path d="M4.5 12h15" /></>
 }
 

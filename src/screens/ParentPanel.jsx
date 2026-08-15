@@ -20,6 +20,7 @@ import { flex, generoDe } from '../lib/genero'
 import { Modal, Celebracion, Pestana } from '../components/ui'
 import Icono from '../components/Icono'
 import Ajustes from './Ajustes'
+import Cuadro from './Cuadro'
 import {
   misionesDe,
   destinoDe,
@@ -208,6 +209,7 @@ export default function ParentPanel({ family, data, refresh, refreshFamily, onVe
         </div>
       )}
 
+      {tab === 'cuadro' && <Cuadro data={data} />}
       {tab === 'peque' && <ModoPeque family={family} data={data} refresh={refresh} onCeleb={setCeleb} />}
       {tab === 'misiones' && <GestionMisiones family={family} data={data} refresh={refresh} />}
       {tab === 'premios' && <GestionPremios family={family} data={data} refresh={refresh} />}
@@ -230,6 +232,7 @@ export default function ParentPanel({ family, data, refresh, refreshFamily, onVe
           activa={tab === 'pendientes'}
           onClick={() => setTab('pendientes')}
         />
+        <Pestana icono="cuadro" etiqueta="Cuadro" activa={tab === 'cuadro'} onClick={() => setTab('cuadro')} />
         <Pestana icono="estrella" etiqueta="Peque" activa={tab === 'peque'} onClick={() => setTab('peque')} />
         <Pestana icono="misiones" etiqueta="Misiones" activa={tab === 'misiones'} onClick={() => setTab('misiones')} />
         <Pestana icono="premio" etiqueta="Premios" activa={tab === 'premios'} onClick={() => setTab('premios')} />

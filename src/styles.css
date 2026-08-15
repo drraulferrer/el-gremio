@@ -1973,3 +1973,54 @@ code { background: var(--tablero-hondo); padding: 2px 6px; border-radius: 6px; f
   margin-top: 4px;
   color: var(--oro-claro);
 }
+
+/* Cuadro de mando (panel parental).
+   El reparto de la meta va en UNA barra con segmentos, no en una barra
+   por persona: cuatro barras enfrentadas son una clasificación, y este
+   proyecto no tiene ranking a propósito. */
+.barra-reparto {
+  display: flex;
+  height: 12px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--tablero-hondo);
+  border: 1px solid var(--linea);
+}
+.barra-reparto span { display: block; min-width: 3px; }
+
+.leyenda-reparto {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 8px;
+  font-size: 0.78rem;
+  color: var(--tinta-suave);
+}
+.leyenda-reparto i {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 3px;
+  margin-right: 4px;
+}
+
+/* Cuatro cifras por ficha. Auto-fit y no cuatro columnas fijas: a 320 px
+   se parten en dos filas en vez de aplastar los números. */
+.rejilla-cifras {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(72px, 1fr));
+  gap: 8px;
+}
+.cifra {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 4px;
+  border-radius: var(--radio-s);
+  background: var(--tablero-hondo);
+  border: 1px solid var(--linea);
+  text-align: center;
+}
+.cifra strong { font-family: var(--display); font-size: 1.2rem; line-height: 1.1; }
+.cifra-pie { font-size: 0.72rem; color: var(--tinta-suave); }
+.cifra-detalle { font-size: 0.68rem; color: var(--tinta-suave); opacity: 0.75; }

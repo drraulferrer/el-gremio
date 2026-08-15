@@ -35,7 +35,7 @@ modo peque, la capa de producción y la gestión de miembros.
 | Código local | `~/el-gremio` |
 | Supabase | proyecto `chfbrawsoulfiywiqhpe`, Postgres 17.6, región EU |
 | Versión publicada | ver `npm run health`; cada despliegue deja etiqueta `deploy-AAAA-MM-DD-HHMM` |
-| Tests | 348, en 20 ficheros, todos en verde |
+| Tests | 367, en 21 ficheros, todos en verde |
 
 Comprobar que sigue vivo:
 
@@ -303,6 +303,7 @@ src/lib/premios.js         Catálogo de recompensas por nivel
 src/lib/temporadas.js      Rango del gremio, subida de precios por temporada
 src/lib/insignias.js       Las 16 insignias, sus clases y sus poderes
 src/lib/meritos.js         Lo que cada persona lleva hecho (racha, hitos)
+src/lib/resumen.js         Cifras del cuadro de mando parental
 src/lib/evidencia.js       Principios y referencias
 src/lib/miembros.js        Reglas de alta, edición y baja de perfiles
 src/lib/pin.js             Reglas del PIN parental
@@ -312,6 +313,7 @@ src/lib/monitoring.js      Captura y agrupación de errores; adaptador de Sentry
 src/lib/flags.js           Banderas de funcionalidad
 src/lib/fakeBackend.js     Backend simulado del modo demo
 src/components/Poderes.jsx Poderes activos y pantalla de gastarlos
+src/screens/Cuadro.jsx     Cuadro de mando del panel (detrás del PIN)
 src/screens/               Login, Onboarding, Tutorial, ProfilePicker, Home, KidHome,
                            ParentPanel, Ajustes (Miembros · PIN · Dispositivos ·
                            Evidencia · Estado)
@@ -534,6 +536,25 @@ Quedan diez en la clase «solo tests» y son correctos: modelo escrito por
 delante de la interfaz (temporadas, poderes sin cablear) y ayudantes de
 los propios tests. `npm run muertos` solo sale con error si aparece algo
 en la clase A.
+
+**Cuadro de mando en el panel parental** (`Cuadro.jsx` + `resumen.js`),
+sexta pestaña. Por persona: misiones asignadas por frecuencia, hechas hoy
+y esta semana, aportación a la meta, premios entregados y en camino,
+pendientes de validar, devueltas de la semana y el aviso de carga.
+
+Dos decisiones que conviene no deshacer:
+
+- **El reparto de la meta es UNA barra con segmentos, no una barra por
+  persona.** Cuatro barras enfrentadas son una clasificación, y esta app
+  no tiene ranking a propósito. Por lo mismo, las fichas van ordenadas por
+  rol y nunca por lo aportado: quien mira el panel de noche lee el primer
+  nombre como «el que va ganando».
+- **Vive detrás del PIN y no se asoma a ningún tablero.** Para un adulto
+  la comparación es información —quién carga con todo, quién lleva una
+  semana sin aparecer—; entre hermanas es otra cosa.
+
+Comprobado a 360 px: seis pestañas, ninguna etiqueta partida ni cortada,
+sin scroll horizontal.
 
 **El premio a mano estaba escrito y sin enganchar.** El componente
 `PremioAMano` existía entero desde la sesión anterior, `GestionPremios`

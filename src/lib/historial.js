@@ -59,11 +59,17 @@ export function etiquetaDeSemana({ desde, hasta, atras }) {
   return m1 === m2 ? `${d1}–${d2} de ${m1}${anio}` : `${d1} de ${m1} – ${d2} de ${m2}${anio}`
 }
 
-/** Lo validado de un perfil dentro de esa semana, lo más reciente primero. */
-export function validadasDe(completions = [], profileId, rango) {
+/**
+ * Lo resuelto de un perfil dentro de esa semana, lo más reciente primero.
+ *
+ * `estado` existe para poder pedir también lo devuelto sin copiar el
+ * filtro de la semana en otro fichero, que es como se acaba con dos
+ * definiciones de «semana» que no coinciden en domingo por la noche.
+ */
+export function validadasDe(completions = [], profileId, rango, estado = 'aprobado') {
   return completions
     .filter((c) => {
-      if (c.profile_id !== profileId || c.status !== 'aprobado' || !c.resolved_at) return false
+      if (c.profile_id !== profileId || c.status !== estado || !c.resolved_at) return false
       const t = new Date(c.resolved_at).getTime()
       return t >= rango.desde.getTime() && t < rango.hasta.getTime()
     })
