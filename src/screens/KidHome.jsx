@@ -9,7 +9,8 @@ import { flex, generoDe } from '../lib/genero'
 import { premiosParaPeque, estrellasDe, estrellasQueCuesta } from '../lib/premios'
 import { sugerenciasDeElogio, rachaDeMision } from '../lib/elogio'
 import { misionesDe } from '../lib/misiones'
-import { estadoDelJuego, siguientePremio, esDeHoy, GLOBOS_DEL_JUEGO } from '../lib/juego'
+import { estadoDelJuego, siguientePremio, esDeHoy, juegoDelDia, diaCompleto, claveFiesta } from '../lib/juego'
+import Juego from './JuegosPeque'
 
 // ------------------------------------------------------------------
 // Pantalla de la peque (3 años).
@@ -85,13 +86,29 @@ export default function KidHome({ family, data, profile, refresh, onSalir }) {
     (b) => b.profile_id === profile.id && b.tipo === 'globos' && esDeHoy(b.dia, hoy)
   )
   const juego = estadoDelJuego({ total: misiones.length, hechas: hechasHoy, yaCobrado })
+  const cual = juegoDelDia(hoy)
+
+  // La fiesta del día redondo. Se marca en el dispositivo y no en la base
+  // porque es puramente cosmética: que salga dos veces si se abre en la
+  // tablet y en el móvil no rompe nada, y a cambio no cuesta una tabla.
+  const [fiesta, setFiesta] = useState(false)
+  const completo = diaCompleto({ total: misiones.length, hechas: hechasHoy })
+
+  useEffect(() => {
+    if (!completo) return
+    const clave = claveFiesta(profile.id, hoy)
+    if (localStorage.getItem(clave)) return
+    localStorage.setItem(clave, '1')
+    setFiesta(true)
+    log.info('peque.dia_completo', { profile_id: profile.id, misiones: misiones.length })
+  }, [completo, profile.id, hoy]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function terminarJuego() {
     setJugando(false)
     const { ok, yaHoy, mensaje } = await cobrarGlobos(profile.id)
     if (ok) {
       tocarEstrella()
-      setCelebrando({ emoji: '🎈', title: '¡Una estrella más!', elogio: '¡Has reventado todos los globos!' })
+      setCelebrando({ emoji: cual?.emoji || '🎈', title: '¡Una estrella más!', elogio: '¡Lo has conseguido!' })
       await refresh()
     } else if (!yaHoy) {
       setFallo(mensaje || 'Uy, la estrella de los globos no se pudo guardar.')
@@ -169,7 +186,7 @@ export default function KidHome({ family, data, profile, refresh, onSalir }) {
         <MetaPeque proximo={proximo} estrellas={guardadas} onAbrir={() => setVerTarro(true)} />
       )}
 
-      {misiones.length > 0 && <Globos juego={juego} onJugar={() => setJugando(true)} />}
+      {misiones.length > 0 && <Globos juego={juego} cual={cual} onJugar={() => setJugando(true)} />}
 
       <div className="kid-grid">
         {misiones.map((ch) => {
@@ -197,7 +214,9 @@ export default function KidHome({ family, data, profile, refresh, onSalir }) {
         />
       )}
 
-      {jugando && <JuegoGlobos onTerminar={terminarJuego} onCerrar={() => setJugando(false)} />}
+      {jugando && <Juego id={cual?.id} onTerminar={terminarJuego} onCerrar={() => setJugando(false)} />}
+
+      {fiesta && <FiestaDelDia onCerrar={() => setFiesta(false)} />}
 
       <SalidaAdulta onSalir={onSalir} />
     </div>
@@ -410,22 +429,23 @@ function MetaPeque({ proximo, estrellas, onAbrir }) {
  *  - cobrado: sigue visible pero en calma, porque «ya salió hoy» tiene que
  *    poder distinguirse de «no has llegado».
  */
-function Globos({ juego, onJugar }) {
+function Globos({ juego, cual, onJugar }) {
   if (juego.meta === 0) return null
+  const emoji = cual?.emoji || '🎈'
 
   if (juego.cobrado) {
     return (
       <div className="kid-globos hecho" role="status">
-        <span className="kid-globos-emoji" aria-hidden="true">🎈</span>
-        <span className="kid-globos-texto">¡Los globos ya salieron hoy!</span>
+        <span className="kid-globos-emoji" aria-hidden="true">{emoji}</span>
+        <span className="kid-globos-texto">{cual?.hecho || '¡Ya salió hoy!'}</span>
       </div>
     )
   }
 
   if (!juego.disponible) {
     return (
-      <div className="kid-globos cerrado" role="status" aria-label={`Te faltan ${juego.faltan} misiones para los globos`}>
-        <span className="kid-globos-emoji" aria-hidden="true">🎈</span>
+      <div className="kid-globos cerrado" role="status" aria-label={`Te faltan ${juego.faltan} misiones para el juego`}>
+        <span className="kid-globos-emoji" aria-hidden="true">{emoji}</span>
         <span className="kid-globos-texto" aria-hidden="true">
           {Array.from({ length: juego.meta }, (_, i) => (
             <span key={i} className={'kid-globos-punto' + (i < juego.hechas ? ' hecho' : '')} />
@@ -436,71 +456,62 @@ function Globos({ juego, onJugar }) {
   }
 
   return (
-    <button className="kid-globos abierto" onClick={onJugar} aria-label="¡Juega con los globos!">
-      <span className="kid-globos-emoji" aria-hidden="true">🎈</span>
-      <span className="kid-globos-texto">¡A por los globos!</span>
+    <button className="kid-globos abierto" onClick={onJugar} aria-label={cual?.llamada || '¡A jugar!'}>
+      <span className="kid-globos-emoji" aria-hidden="true">{emoji}</span>
+      <span className="kid-globos-texto">{cual?.llamada || '¡A jugar!'}</span>
     </button>
   )
 }
 
 /**
- * El juego. Seis globos que suben; cada toque revienta uno. No hay forma
- * de perder ni reloj que corra: a los tres años un temporizador no es
- * tensión, es frustración. Cuando no queda ninguno, se cobra la estrella.
+ * La fiesta del día redondo: todas las misiones hechas.
  *
- * Se mueven con `transform` y nada más. Animar `top` o `height` provoca
- * relayout en cada cuadro, y esta pantalla ya se ganó un bug de fondo por
- * animar cosas caras en un móvil.
+ * Existe porque el premio intermedio llega a la mitad y a partir de ahí el
+ * tramo final se quedaba sin nada que lo empujara. Si la última misión
+ * celebra igual que la primera, no hay razón para llegar al final.
+ *
+ * Se cierra sola a los seis segundos, y también con un toque en cualquier
+ * sitio: nada que obligue a acertar un botón para salir.
  */
-function JuegoGlobos({ onTerminar, onCerrar }) {
-  const [vivos, setVivos] = useState(() =>
-    Array.from({ length: GLOBOS_DEL_JUEGO }, (_, i) => ({
-      id: i,
-      // Repartidos en columnas y con retardos distintos para que no suban
-      // en formación: si salen a la vez, el dedo revienta dos de un toque.
-      // Tope al 70 %: el globo mide 92 px y a 375 px de ancho, cualquier
-      // valor mayor lo saca por el borde derecho.
-      x: 6 + (i % 3) * 30 + (i % 2) * 4,
-      retardo: (i % 3) * 0.7 + Math.floor(i / 3) * 1.4,
-      color: ['#ff6b6b', '#ffd166', '#6ee7a0', '#7fb3ff', '#c9a0ff', '#ffa96b'][i % 6]
-    }))
-  )
-
-  // Actualización funcional, no `vivos.filter(...)` sobre la clausura:
-  // dos toques rápidos caen en el mismo lote de React, los dos leen el
-  // mismo array viejo y uno de los dos globos revive. Con un dedo de tres
-  // años dando toques seguidos eso pasa constantemente.
-  const reventar = (id) => setVivos((previos) => previos.filter((g) => g.id !== id))
-
-  // El final se detecta mirando el estado ya asentado. Llamarlo dentro del
-  // actualizador lo convertiría en un efecto durante el render, que React
-  // puede ejecutar dos veces y cobraría la estrella por duplicado.
+function FiestaDelDia({ onCerrar }) {
   useEffect(() => {
-    if (vivos.length === 0) onTerminar()
-  }, [vivos.length]) // eslint-disable-line react-hooks/exhaustive-deps
+    const t = setTimeout(onCerrar, 6000)
+    return () => clearTimeout(t)
+  }, [onCerrar])
+
+  // Posiciones y retardos fijos, no aleatorios: así la animación es la
+  // misma cada tarde y ella la reconoce, que a esta edad es la mitad de
+  // la gracia.
+  const confeti = Array.from({ length: 18 }, (_, i) => ({
+    id: i,
+    x: (i * 37) % 100,
+    retardo: (i % 6) * 0.18,
+    giro: i % 2 ? 1 : -1,
+    color: ['#ff6b6b', '#ffd166', '#6ee7a0', '#7fb3ff', '#c9a0ff'][i % 5]
+  }))
 
   return (
-    <div className="kid-juego" role="dialog" aria-label="Juego de globos">
-      <button className="kid-juego-cerrar" onClick={onCerrar} aria-label="Cerrar el juego">
-        <Icono nombre="cerrar" tamano={28} />
-      </button>
-
-      <p className="kid-juego-cuenta" aria-live="polite">
-        {vivos.length > 0 ? `Quedan ${vivos.length}` : '¡Todos!'}
-      </p>
-
-      <div className="kid-juego-cielo">
-        {vivos.map((g) => (
-          <button
-            key={g.id}
-            className="kid-globo"
-            style={{ left: `${g.x}%`, animationDelay: `${g.retardo}s`, background: g.color }}
-            onClick={() => reventar(g.id)}
-            aria-label="Globo"
-          >
-            <span className="kid-globo-brillo" aria-hidden="true" />
-          </button>
+    <div className="kid-fiesta" role="dialog" aria-label="¡Has terminado todas las tareas de hoy!" onClick={onCerrar}>
+      <div className="kid-fiesta-confeti" aria-hidden="true">
+        {confeti.map((c) => (
+          <span
+            key={c.id}
+            className="kid-papelito"
+            style={{
+              left: `${c.x}%`,
+              background: c.color,
+              animationDelay: `${c.retardo}s`,
+              '--giro': c.giro
+            }}
+          />
         ))}
+      </div>
+      <div className="kid-fiesta-centro">
+        <span className="kid-fiesta-emoji" aria-hidden="true">🏆</span>
+        <p className="kid-fiesta-texto">¡Todo hecho!</p>
+        <div className="kid-fiesta-estrellas" aria-hidden="true">
+          <span>★</span><span>★</span><span>★</span>
+        </div>
       </div>
     </div>
   )

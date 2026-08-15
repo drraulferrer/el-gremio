@@ -1697,3 +1697,146 @@ code { background: var(--tablero-hondo); padding: 2px 6px; border-radius: 6px; f
   /* Aún más despacio: pararlos del todo dejaría el juego sin juego. */
   .kid-globo { animation-duration: 34s; }
 }
+
+/* ------------------------------------------------------------------
+   Juegos nuevos y fiesta del día redondo
+   (al final del fichero, misma razón que el bloque anterior)
+   ------------------------------------------------------------------ */
+
+/* Estrellas que caen. Bajan en 20 s, algo más lento que suben los globos:
+   perseguir algo que se te escapa cuesta más que anticipar dónde estará. */
+.kid-estrella-cae {
+  position: absolute;
+  top: -120px;
+  width: 92px;
+  height: 92px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 45%, #fff3c4 0%, #f6b93b 60%, #e08e0b 100%);
+  color: #fff;
+  font-size: 3rem;
+  line-height: 1;
+  cursor: pointer;
+  animation: kid-estrella-baja 20s linear infinite;
+}
+
+@keyframes kid-estrella-baja {
+  from { transform: translateY(0) rotate(0deg); }
+  to { transform: translateY(calc(100vh + 220px)) rotate(180deg); }
+}
+
+/* Bichitos: seis agujeros fijos. No se mueven por la pantalla; asoman y
+   se esconden, así que lo que se entrena es esperar el momento. */
+.kid-madriguera {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  height: 100%;
+  padding: 10px 4px;
+}
+
+.kid-bichito {
+  display: grid;
+  place-items: center;
+  min-height: 96px;
+  padding: 0;
+  border: none;
+  border-radius: 26px;
+  background: rgba(255, 255, 255, 0.6);
+  box-shadow: inset 0 6px 14px rgba(0, 0, 0, 0.08);
+  font-size: 3.2rem;
+  line-height: 1;
+  cursor: pointer;
+  animation: kid-bichito-asoma 4.5s ease-in-out infinite;
+}
+
+/* Nunca llega a escala 0: un botón que desaparece del todo se toca «en
+   falso» y a los tres años eso se lee como que la app no responde. */
+@keyframes kid-bichito-asoma {
+  0%, 100% { transform: scale(0.35); opacity: 0.35; }
+  35%, 65% { transform: scale(1); opacity: 1; }
+}
+
+/* La fiesta del día redondo. */
+.kid-fiesta {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: rgba(47, 36, 64, 0.82);
+  animation: kid-fiesta-entra 0.35s ease-out;
+}
+
+@keyframes kid-fiesta-entra {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.kid-fiesta-confeti { position: absolute; inset: 0; pointer-events: none; }
+
+.kid-papelito {
+  position: absolute;
+  top: -30px;
+  width: 14px;
+  height: 22px;
+  border-radius: 3px;
+  animation: kid-papelito-cae 3.4s linear infinite;
+}
+
+/* Caída y giro en una sola transformación: animar `top` reflowearía en
+   cada cuadro y son dieciocho papelitos a la vez. */
+@keyframes kid-papelito-cae {
+  from { transform: translateY(0) rotate(0deg); opacity: 1; }
+  to { transform: translateY(105vh) rotate(calc(var(--giro) * 540deg)); opacity: 0.9; }
+}
+
+.kid-fiesta-centro {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  padding: 30px 38px;
+  border-radius: 30px;
+  background: var(--kid-papel, #fff6e5);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.28);
+  animation: kid-fiesta-salta 0.5s ease-out;
+}
+
+@keyframes kid-fiesta-salta {
+  from { transform: scale(0.8); }
+  to { transform: scale(1); }
+}
+
+.kid-fiesta-emoji { font-size: 4.6rem; line-height: 1; }
+
+.kid-fiesta-texto {
+  margin: 0;
+  font-family: var(--display);
+  font-size: 1.9rem;
+  font-weight: 800;
+  color: #2f2440;
+}
+
+.kid-fiesta-estrellas { display: flex; gap: 8px; font-size: 1.9rem; color: #f6b93b; }
+.kid-fiesta-estrellas span { animation: kid-fiesta-brilla 1.2s ease-in-out infinite; }
+.kid-fiesta-estrellas span:nth-child(2) { animation-delay: 0.15s; }
+.kid-fiesta-estrellas span:nth-child(3) { animation-delay: 0.3s; }
+
+@keyframes kid-fiesta-brilla {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.22); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kid-estrella-cae { animation-duration: 38s; }
+  .kid-bichito { animation-duration: 8s; }
+  /* El confeti se queda quieto: es puro adorno y es lo que más se mueve. */
+  .kid-papelito { animation: none; opacity: 0; }
+  .kid-fiesta-centro,
+  .kid-fiesta-estrellas span { animation: none; }
+}

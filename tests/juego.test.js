@@ -1,5 +1,15 @@
 import { describe, it, expect } from 'vitest'
-import { metaDelDia, estadoDelJuego, siguientePremio, esDeHoy, GLOBOS_DEL_JUEGO } from '../src/lib/juego'
+import {
+  metaDelDia,
+  estadoDelJuego,
+  siguientePremio,
+  esDeHoy,
+  juegoDelDia,
+  diaCompleto,
+  claveFiesta,
+  JUEGOS,
+  GLOBOS_DEL_JUEGO
+} from '../src/lib/juego'
 
 describe('cuántas misiones abren el juego', () => {
   it('la mitad, redondeando hacia arriba', () => {
@@ -84,5 +94,51 @@ describe('el día que devuelve la base', () => {
   it('aguanta basura sin decir que sí', () => {
     for (const v of [null, undefined, '', 'ayer', '2026-08']) expect(esDeHoy(v, '2026-8-15')).toBe(false)
     expect(esDeHoy('2026-08-15', null)).toBe(false)
+  })
+})
+
+describe('rotación de juegos', () => {
+  it('el mismo día devuelve siempre el mismo juego', () => {
+    const a = juegoDelDia('2026-8-15')
+    const b = juegoDelDia('2026-8-15')
+    expect(a.id).toBe(b.id)
+  })
+
+  it('días seguidos no repiten juego', () => {
+    const ids = ['2026-8-15', '2026-8-16', '2026-8-17'].map((d) => juegoDelDia(d).id)
+    expect(new Set(ids).size).toBe(3)
+  })
+
+  it('recorre los tres a lo largo de la semana', () => {
+    const ids = Array.from({ length: 7 }, (_, i) => juegoDelDia(`2026-8-${15 + i}`).id)
+    expect(new Set(ids)).toEqual(new Set(JUEGOS.map((j) => j.id)))
+  })
+
+  it('aguanta una fecha inválida sin quedarse sin juego', () => {
+    expect(juegoDelDia('ayer')).toBeTruthy()
+    expect(juegoDelDia(null)).toBeTruthy()
+  })
+
+  it('cada juego tiene lo que la pantalla necesita', () => {
+    for (const j of JUEGOS) {
+      expect(j.id && j.emoji && j.llamada && j.hecho).toBeTruthy()
+    }
+  })
+})
+
+describe('el día redondo', () => {
+  it('solo con todas hechas', () => {
+    expect(diaCompleto({ total: 5, hechas: 5 })).toBe(true)
+    expect(diaCompleto({ total: 5, hechas: 4 })).toBe(false)
+  })
+
+  it('sin misiones no hay día redondo que celebrar', () => {
+    expect(diaCompleto({ total: 0, hechas: 0 })).toBe(false)
+    expect(diaCompleto()).toBe(false)
+  })
+
+  it('la clave de la fiesta separa por perfil y por día', () => {
+    expect(claveFiesta('p1', '2026-8-15')).not.toBe(claveFiesta('p2', '2026-8-15'))
+    expect(claveFiesta('p1', '2026-8-15')).not.toBe(claveFiesta('p1', '2026-8-16'))
   })
 })
