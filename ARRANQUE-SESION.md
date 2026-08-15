@@ -56,6 +56,7 @@ si falla `supabase`, casi seguro que el proyecto está pausado (ver §7).
 ✅ 007b reescritura de los títulos con marca de género
 ✅ 008  los cinco índices
 ✅ 009  dos índices redundantes retirados (15-ago)
+✅ 010  habilidad asignada a las 16 misiones que no la tenían (15-ago)
 ```
 
 Verificado en el SQL Editor el 15-ago: los once índices `idx_%_family%`
@@ -393,6 +394,16 @@ tienda le sale vacía. Se arregla en Panel → Premios → editar → nivel 1.
 - **Sentry**: adaptador listo en `monitoring.js`, apagado. Sin
   `VITE_SENTRY_DSN` no se carga nada ni sale un byte hacia terceros.
   Instrucciones en `docs/RUNBOOK.md` §3.
+
+### Nadie entrena la creatividad
+
+Tras la migración 010 las 19 misiones tienen habilidad, pero el reparto
+deja una competencia a cero: **creatividad**. No es un fallo de etiquetado,
+es que no existe ninguna misión que la entrene. El catálogo tiene
+candidatas listas —«Dibujar», «Juego libre sin pantallas»— y activarlas es
+cosa de dos toques en Misiones. Mientras tanto, esa rama del progreso por
+competencias no se mueve nunca, y una barra que nunca sube desmotiva más
+que no tenerla.
 
 ### Huecos reales del producto
 
