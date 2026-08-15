@@ -65,8 +65,17 @@ si falla `supabase`, casi seguro que el proyecto está pausado (ver §7).
 ✅ 014  premio a mano: bonuses.motivo/otorgado_por + grant_manual_bonus (15-ago)
 ✅ 015  poderes que se gastan + insignias únicas (15-ago, noche)
 ✅ 016  camino de rachas: claim_streak (15-ago, noche)
-⬜ 017  lo que hace falta para MUCHAS familias (escrita, SIN EJECUTAR)
+✅ 017  lo que hace falta para MUCHAS familias (16-ago, madrugada)
 ```
+
+La 017 se ejecutó y se comprobó con el `select` del final del fichero:
+índice único por `owner`, `user_limits` con RLS, `rate_guard_user`,
+`purge_logs` ya `security definer`, los cuatro topes de filas, las siete
+restricciones de longitud y **cero políticas sin rol declarado**.
+
+Ese último contador cazó un despiste en el primer pase: `logs_escritura`
+estaba actualizada en `schema.sql` y sin espejar en la migración. Para eso
+está la comprobación, y por eso conviene pegarla siempre.
 
 La 016 se ejecutó y se comprobó desde fuera: `claim_streak` contesta
 `no_existe` a un perfil inventado y `hito_invalido` a un hito que no está
@@ -685,6 +694,32 @@ supuestos de «una sola familia» incrustados en sitios donde no se ven.
 
 Van en orden de lo que muerde primero.
 
+### Lo que descubrió la propia migración al ejecutarse
+
+El paso 0 —la comprobación de cuentas con más de un gremio, escrita
+pensando que era una formalidad— **paró la migración: había una de
+verdad.** No era un supuesto teórico, era el estado de la base.
+
+Y contaba una historia entera. Una segunda cuenta se había dado de alta
+ese mismo día y tenía DOS gremios idénticos creados con diez segundos de
+diferencia, los dos con sus perfiles y los dos con **cero misiones, cero
+premios y cero meta**. O sea: el alta le falló justo después de crear los
+perfiles, dos veces seguidas y de la misma manera, se quedó con dos
+cascarones vacíos y no volvió a entrar.
+
+La causa más probable es que a esa hora el bundle publicado iba por
+delante de la base: las migraciones 010 a 016 se ejecutaron esa misma
+tarde, y el alta escribe columnas que hasta entonces no existían. Ese
+hueco ya está cerrado —se comprobó con un ensayo que mete las cinco
+escrituras del alta contra el esquema real dentro de una transacción que
+termina en excepción, así que no deja ni una fila—, pero la lección no es
+esa. La lección es que **desplegar el frontend y ejecutar la migración son
+dos actos separados, y entre uno y otro la app está rota para quien entre
+por primera vez**. La familia que ya está dentro no lo nota.
+
+Se retiró solo el duplicado, con una sentencia que se negaba a borrar si
+el gremio hubiera tenido cualquier contenido.
+
 ### Lo que se arregló esta noche
 
 **1. `families` no tenía índice por `owner`.** Todas las políticas RLS del
@@ -730,6 +765,39 @@ correo**, así que el alta dejaba la pantalla EXACTAMENTE igual que antes de
 pulsar. Nadie se enteraba de que había un correo en camino. Ahora lo dice.
 Las reglas están en `src/lib/acceso.js` con sus tests; la pantalla solo
 pinta.
+
+### El panel de Supabase, que también tenía lo suyo
+
+Al configurar la vuelta del correo apareció lo que habría dejado la
+recuperación en papel mojado: **el «Site URL» seguía siendo
+`http://localhost:3000`**, el valor por defecto que trae un proyecto
+recién creado. Es el destino de CUALQUIER enlace de correo que no
+coincida con la lista de permitidas, y la lista estaba vacía. Un enlace
+de recuperación habría llevado a una dirección que no existe en el móvil
+de quien lo abriera.
+
+Queda así (16-ago):
+
+```
+Site URL       https://drraulferrer.github.io/el-gremio/
+Redirect URLs  https://drraulferrer.github.io/el-gremio/**
+               http://localhost:5173/**          (para npm run dev)
+Contraseña     mínimo 8 (era 6, que es el mínimo que deja Supabase)
+```
+
+Y lo que sigue abierto ahí dentro, por orden de importancia:
+
+- **«Confirm email» está APAGADO**: cualquiera se registra con un correo
+  que no es suyo, y quien se equivoque al teclearlo no podrá recuperar la
+  cuenta nunca. No se ha encendido a propósito, porque **sin SMTP propio
+  el remitente de Supabase está limitado a un puñado de correos por hora**
+  para todo el proyecto: encenderlo hoy convertiría el alta en una cola.
+  El orden correcto es SMTP propio primero (Resend, Postmark, SES),
+  confirmación después.
+- **El registro está abierto a cualquiera y sin captcha.** El captcha pide
+  cuenta de hCaptcha o Turnstile y su clave secreta, así que es una
+  decisión con dueño, no un interruptor.
+- «Prevent use of leaked passwords» solo está en el plan Pro.
 
 ### Lo que queda, y por qué no se ha tocado
 
@@ -782,18 +850,26 @@ hereda.
 
 ## 8. Pendientes
 
-### Lo primero al retomar: ejecutar la migración 017
+### Lo primero al retomar: probar el correo de recuperación de verdad
 
-Está escrita y espejada en `schema.sql`, pero **nadie la ha lanzado contra
-la base**. Es la de §7e: índice por `owner`, un gremio por cuenta, el
-agujero de los logs sin familia, la purga que ahora barre de verdad y los
-topes de filas. Nada de la app depende de ella para funcionar hoy —con
-una familia dentro no se nota ninguna de las cinco cosas—, y por eso
-mismo es fácil dejarla para siempre.
+Es lo único de la cadena nueva que no se ha visto funcionar de punta a
+punta. La pantalla, las reglas y el borrado del token de la URL están
+verificados en el navegador (modo demo), y el panel ya tiene el Site URL
+y las Redirect URLs correctas, pero **nadie ha recibido todavía un correo
+real**. Basta con abrir la app publicada, pulsar «He olvidado la
+contraseña» y comprobar dos cosas: que el correo llega, y que su enlace
+abre la pantalla de contraseña nueva —no el tablero—.
 
-Antes de lanzarla, la comprobación que la propia migración hace sola en su
-paso 0: si alguna cuenta tuviera dos gremios, para y lo dice. Al terminar,
-pega el `select` comentado del final; debe salir todo a 1.
+Si el correo no llega, mira primero el límite del remitente de Supabase
+(§7e): sin SMTP propio son unos pocos por hora para todo el proyecto.
+
+### Y lo segundo: desplegar y migrar dejaron de ser dos actos sueltos
+
+Lo de §7e —una familia que se quedó fuera porque el bundle iba por delante
+del esquema— no se arregla con código, se arregla con orden: **la
+migración va SIEMPRE antes del `npm run deploy`**, nunca después. Merece
+una línea en el propio `deploy.mjs` que avise si hay un `migracion-0NN`
+más nuevo que la última etiqueta de despliegue.
 
 ### Los dos poderes que faltan por cablear
 

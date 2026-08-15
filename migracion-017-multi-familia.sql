@@ -128,6 +128,18 @@ create policy power_uses_lectura on public.power_uses
   for select to authenticated
   using (family_id in (select id from public.families where owner = auth.uid()));
 
+-- La de escritura de logs es la ÚNICA que no se puede olvidar aquí: es la
+-- que admite `family_id` nulo, o sea la puerta del paso 4. (Se olvidó en el
+-- primer pase de esta migración y lo cazó el `select` de comprobación del
+-- final, que cuenta las políticas sin rol declarado. Para eso está.)
+drop policy if exists logs_escritura on public.app_logs;
+create policy logs_escritura on public.app_logs
+  for insert to authenticated
+  with check (
+    auth.uid() is not null
+    and (family_id is null or family_id in (select id from public.families where owner = auth.uid()))
+  );
+
 -- ------------------------------------------------------------------
 -- 4. El agujero del límite de ritmo: los logs sin familia
 --
