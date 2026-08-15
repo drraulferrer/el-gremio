@@ -5,7 +5,8 @@ import {
   premiosDe,
   extrasDe,
   resumenDePersona,
-  resumenDelGremio
+  resumenDelGremio,
+  semanaEnCasillas
 } from '../src/lib/resumen'
 
 // Un miércoles, para que la semana natural (lunes a domingo) tenga días
@@ -176,5 +177,41 @@ describe('el gremio entero', () => {
     const r = resumenDelGremio({ ...datos, goal: null }, HOY)
     expect(r.meta).toBe(null)
     expect(r.personas).toHaveLength(3)
+  })
+})
+
+describe('la semana en siete casillas (la ficha de la peque)', () => {
+  // HOY es miércoles 12 de agosto de 2026.
+  const completions = [aprobada('p', 'cama', 10), aprobada('p', 'cama', 12)]
+
+  it('empieza en lunes, como el resto del historial', () => {
+    expect(semanaEnCasillas(PEQUE, completions, HOY).map((d) => d.letra)).toEqual(
+      ['L', 'M', 'X', 'J', 'V', 'S', 'D']
+    )
+  })
+
+  it('marca los días con algo hecho', () => {
+    const s = semanaEnCasillas(PEQUE, completions, HOY)
+    expect(s.filter((d) => d.hecho).map((d) => d.letra)).toEqual(['L', 'X'])
+  })
+
+  it('señala hoy, y hoy nunca es futuro aunque queden horas', () => {
+    const s = semanaEnCasillas(PEQUE, completions, HOY)
+    const hoy = s.find((d) => d.hoy)
+    expect(hoy.letra).toBe('X')
+    expect(hoy.futuro).toBe(false)
+  })
+
+  it('lo que aún no ha llegado va aparte: un futuro en hueco se lee como un suspenso', () => {
+    const s = semanaEnCasillas(PEQUE, completions, HOY)
+    expect(s.filter((d) => d.futuro).map((d) => d.letra)).toEqual(['J', 'V', 'S', 'D'])
+    // El martes no se hizo y ya pasó: ese sí es un hueco de verdad.
+    const martes = s.find((d) => d.letra === 'M')
+    expect(martes.hecho).toBe(false)
+    expect(martes.futuro).toBe(false)
+  })
+
+  it('sin nada hecho siguen siendo siete casillas', () => {
+    expect(semanaEnCasillas(PEQUE, [], HOY)).toHaveLength(7)
   })
 })

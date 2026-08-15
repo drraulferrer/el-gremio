@@ -11,6 +11,7 @@ import { sugerenciasDeElogio, rachaDeMision } from '../lib/elogio'
 import { misionesDe } from '../lib/misiones'
 import { estadoDelJuego, siguientePremio, esDeHoy, juegoDelDia, diaCompleto, claveFiesta } from '../lib/juego'
 import Juego from './JuegosPeque'
+import FichaPeque from './FichaPeque'
 
 // ------------------------------------------------------------------
 // Pantalla de la peque (3 años).
@@ -36,6 +37,7 @@ export default function KidHome({ family, data, profile, refresh, onSalir }) {
   const [conSonido, setConSonido] = useState(() => sonidoActivo())
   const [verTarro, setVerTarro] = useState(false)
   const [jugando, setJugando] = useState(false)
+  const [verFicha, setVerFicha] = useState(false)
 
   const misiones = misionesDe(profile, data.challenges)
 
@@ -155,7 +157,14 @@ export default function KidHome({ family, data, profile, refresh, onSalir }) {
       {celebrando && <CelebracionPeque reto={celebrando} onDone={() => setCelebrando(null)} />}
 
       <header className="kid-cabecera">
-        <span className="kid-avatar" style={{ background: profile.color }}>{profile.emoji}</span>
+        <button
+          className="kid-avatar"
+          style={{ background: profile.color }}
+          onClick={() => setVerFicha(true)}
+          aria-label={`Ver lo que ha hecho ${profile.name}`}
+        >
+          {profile.emoji}
+        </button>
         <div className="crece">
           <h1 className="kid-nombre">{profile.name}</h1>
           <div className="kid-estrellas" aria-label={`${estrellasHoy} estrellas hoy`}>
@@ -212,6 +221,10 @@ export default function KidHome({ family, data, profile, refresh, onSalir }) {
           onPedir={pedirPremio}
           onCerrar={() => setVerTarro(false)}
         />
+      )}
+
+      {verFicha && (
+        <FichaPeque data={data} profile={profile} genero={genero} onCerrar={() => setVerFicha(false)} />
       )}
 
       {jugando && <Juego id={cual?.id} onTerminar={terminarJuego} onCerrar={() => setJugando(false)} />}

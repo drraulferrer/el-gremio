@@ -35,7 +35,7 @@ modo peque, la capa de producción y la gestión de miembros.
 | Código local | `~/el-gremio` |
 | Supabase | proyecto `chfbrawsoulfiywiqhpe`, Postgres 17.6, región EU |
 | Versión publicada | ver `npm run health`; cada despliegue deja etiqueta `deploy-AAAA-MM-DD-HHMM` |
-| Tests | 367, en 21 ficheros, todos en verde |
+| Tests | 372, en 21 ficheros, todos en verde |
 
 Comprobar que sigue vivo:
 
@@ -314,6 +314,7 @@ src/lib/flags.js           Banderas de funcionalidad
 src/lib/fakeBackend.js     Backend simulado del modo demo
 src/components/Poderes.jsx Poderes activos y pantalla de gastarlos
 src/screens/Cuadro.jsx     Cuadro de mando del panel (detrás del PIN)
+src/screens/FichaPeque.jsx «Mi ficha» de la peque, sin un solo número
 src/screens/               Login, Onboarding, Tutorial, ProfilePicker, Home, KidHome,
                            ParentPanel, Ajustes (Miembros · PIN · Dispositivos ·
                            Evidencia · Estado)
@@ -555,6 +556,24 @@ Dos decisiones que conviene no deshacer:
 
 Comprobado a 360 px: seis pestañas, ninguna etiqueta partida ni cortada,
 sin scroll horizontal.
+
+**La peque tiene su propia ficha**, en su idioma y sin un solo número
+(`FichaPeque.jsx`): siete casillas de lunes a domingo con estrella en los
+días que hizo algo, sus estrellas de la semana, la barra del gremio sin
+cifras y sus premios con emoji. Se abre tocando su propio avatar —el
+gesto más descubrible para quien no lee— y **solo se ve a sí misma**.
+
+Tres detalles que costaron y conviene no deshacer:
+
+- **El futuro se dibuja distinto de lo fallado.** Un día que aún no ha
+  llegado pintado como hueco se lee como un suspenso, así que va en
+  discontinuo y atenuado.
+- **El día hecho lleva el oro DE FONDO y la estrella oscura encima.** Con
+  la estrella dorada sobre el papel crema el contraste era de 1,6:1 y la
+  marca que sostiene la pantalla no se veía; ahora 6,83:1.
+- **`.kid-premio` ya existía en su tienda**: las clases de la ficha van
+  con prefijo `kid-ficha-`. Un nombre repetido habría roto la otra
+  pantalla, que es donde nadie habría mirado.
 
 **El premio a mano estaba escrito y sin enganchar.** El componente
 `PremioAMano` existía entero desde la sesión anterior, `GestionPremios`

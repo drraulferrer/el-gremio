@@ -79,6 +79,43 @@ export function extrasDe(perfil, bonuses = []) {
   }
 }
 
+/**
+ * La semana en siete casillas: qué días hizo algo.
+ *
+ * Es la única forma de «tu resumen» que entiende alguien de tres años.
+ * No lleva números ni porcentajes a propósito: los días se cuentan con
+ * los ojos, y una fila de siete con estrellas puestas dice «llevas cuatro
+ * días seguidos» sin que nadie sepa leer todavía.
+ *
+ * Empieza en lunes, como el resto del historial de la app, para que la
+ * semana de la peque y la de su hermana sean la misma semana.
+ */
+export function semanaEnCasillas(perfil, completions = [], ahora = new Date()) {
+  const rango = semana(ahora, 0)
+  const hechos = new Set(
+    completions
+      .filter((c) => c.profile_id === perfil.id && c.status === 'aprobado' && c.resolved_at)
+      .map((c) => dayKey(new Date(c.resolved_at)))
+  )
+  const hoy = dayKey(ahora)
+  const INICIALES = ['L', 'M', 'X', 'J', 'V', 'S', 'D']
+
+  return INICIALES.map((letra, i) => {
+    const fecha = new Date(rango.desde)
+    fecha.setDate(fecha.getDate() + i)
+    const clave = dayKey(fecha)
+    return {
+      letra,
+      clave,
+      hecho: hechos.has(clave),
+      hoy: clave === hoy,
+      // Lo que aún no ha llegado se dibuja distinto de lo que se falló:
+      // un futuro pintado como hueco se lee como un suspenso.
+      futuro: fecha.getTime() > ahora.getTime() && clave !== hoy
+    }
+  })
+}
+
 /** La ficha completa de una persona. */
 export function resumenDePersona(perfil, datos, ahora = new Date()) {
   const { challenges = [], completions = [], redemptions = [], rewards = [], bonuses = [], goal = null } = datos || {}
