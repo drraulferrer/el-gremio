@@ -478,3 +478,36 @@ as $$
   );
 $$;
 
+
+
+-- ------------------------------------------------------------------
+-- Bonus: monedas que NO vienen de una misión.
+--
+-- Dos orígenes con la misma forma: el juego diario de la peque (una vez
+-- al día, tipo 'globos') y el premio a mano de un adulto por algo
+-- excepcional (tipo 'manual', varias veces al día si hace falta). Tenerlos
+-- en la misma tabla hace que «de dónde salieron estas monedas» se lea de
+-- una sola consulta.
+-- ------------------------------------------------------------------
+
+create table if not exists public.bonuses (
+  id uuid primary key default gen_random_uuid(),
+  family_id uuid not null references public.families(id) on delete cascade,
+  profile_id uuid not null references public.profiles(id) on delete cascade,
+  dia date not null default (now() at time zone 'Europe/Madrid')::date,
+  tipo text not null default 'globos',
+  coins integer not null default 5,
+  -- Obligatorio para los manuales: sin motivo, dentro de un mes nadie
+  -- recuerda por qué esa persona tiene monedas de más.
+  motivo text,
+  -- Qué adulto lo concedió. Si mañana hay que explicar el saldo, la
+  -- respuesta tiene que existir en algún sitio.
+  otorgado_por uuid references public.profiles(id) on delete set null,
+  created_at timestamptz not null default now()
+);
+
+-- El tope de «uno al día» es del juego. Los manuales quedan fuera: la vida
+-- no viene de uno en uno.
+create unique index if not exists idx_bonuses_uno_al_dia
+  on public.bonuses (profile_id, dia, tipo) where tipo <> 'manual';
+create index if not exists idx_bonuses_family_dia on public.bonuses (family_id, dia desc);

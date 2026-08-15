@@ -9,6 +9,8 @@ import {
 } from '../lib/acciones'
 import { perfilesActivos } from '../lib/miembros'
 import { avisoDeCarga } from '../lib/economia'
+import { premioAMano } from '../lib/acciones'
+import { revisarPremioManual, avisoDeCantidad, MAXIMO_MANUAL } from '../lib/premioManual'
 import { MONEDAS_POR_ESTRELLA } from '../lib/premios'
 import { habilidad, HABILIDADES } from '../lib/habilidades'
 import { sugerenciasDeElogio, rachaDeMision, sugerenciasDeCorreccion, correccionValida } from '../lib/elogio'
@@ -869,6 +871,7 @@ const PREMIO_VACIO = { title: '', emoji: '🎁', cost: 50, active: true }
 function GestionPremios({ family, data, refresh }) {
   const [editando, setEditando] = useState(null)
   const [fallo, setFallo] = useState('')
+  const [aMano, setAMano] = useState(false)
 
   async function guardar(r) {
     const fila = {
@@ -1064,6 +1067,105 @@ function GestionMeta({ family, data, refresh }) {
         </div>
         <button className="btn btn-bloque" disabled={!form.title.trim()} onClick={guardar}>Guardar meta</button>
       </div>
+    </div>
+  )
+}
+
+/**
+ * Premio a mano: monedas extra por algo que no cabía en el catálogo.
+ *
+ * No da XP a propósito. La XP marca el nivel y alimenta la meta del
+ * gremio, las dos calculadas contra un ritmo; un extra a mano que subiera
+ * de nivel convertiría lo excepcional en la vía rápida y en dos semanas
+ * nadie haría misiones.
+ *
+ * El motivo es obligatorio y queda guardado con el nombre del adulto que
+ * lo concede. No por desconfianza: porque si dentro de un mes hay que
+ * explicar ese saldo, la respuesta tiene que existir en algún sitio.
+ */
+function PremioAMano({ data, onHecho, onCerrar }) {
+  const gente = perfilesActivos(data.profiles)
+  const adultos = gente.filter((p) => p.role === 'adulto')
+  const [para, setPara] = useState(gente[0]?.id || '')
+  const [monedas, setMonedas] = useState(20)
+  const [motivo, setMotivo] = useState('')
+  const [quien, setQuien] = useState(adultos[0]?.id || '')
+  const [fallo, setFallo] = useState('')
+  const [ocupado, setOcupado] = useState(false)
+
+  const problema = revisarPremioManual({ monedas, motivo, otorgadoPor: quien, perfiles: gente })
+  const aviso = avisoDeCantidad(monedas)
+
+  async function conceder() {
+    if (problema) return setFallo(problema)
+    setOcupado(true)
+    setFallo('')
+    const { ok, mensaje } = await premioAMano({
+      profileId: para,
+      monedas: Number(monedas),
+      motivo: motivo.trim(),
+      otorgadoPor: quien
+    })
+    setOcupado(false)
+    if (ok) onHecho()
+    else setFallo(mensaje || 'No se pudo conceder.')
+  }
+
+  return (
+    <div className="bloque-manual">
+      <div className="fila-separada" style={{ marginBottom: 8 }}>
+        <strong style={{ fontSize: '0.95rem' }}>Monedas por algo excepcional</strong>
+        <button className="btn-icono" onClick={onCerrar} aria-label="Cerrar"><Icono nombre="cerrar" tamano={18} /></button>
+      </div>
+      <p className="suave" style={{ margin: '0 0 10px' }}>
+        Suma monedas sin dar XP, así que no adelanta niveles ni la meta del gremio.
+      </p>
+
+      {fallo && <p className="error-texto" role="alert">{fallo}</p>}
+
+      <div className="fila">
+        <div className="campo crece">
+          <label>Para</label>
+          <select value={para} onChange={(e) => setPara(e.target.value)}>
+            {gente.map((p) => <option key={p.id} value={p.id}>{p.emoji} {p.name}</option>)}
+          </select>
+        </div>
+        <div className="campo crece">
+          <label>Monedas 🪙</label>
+          <input
+            type="number"
+            min="1"
+            max={MAXIMO_MANUAL}
+            value={monedas}
+            onChange={(e) => setMonedas(e.target.value)}
+          />
+        </div>
+      </div>
+
+      {aviso && <p className="suave" style={{ margin: '0 0 8px', color: '#d99a2b' }}>{aviso}</p>}
+
+      <div className="campo">
+        <label>Motivo</label>
+        <input
+          value={motivo}
+          onChange={(e) => setMotivo(e.target.value)}
+          maxLength={240}
+          placeholder="Qué ha pasado para merecerlo"
+        />
+      </div>
+
+      <div className="campo">
+        <label>Lo concede</label>
+        <select value={quien} onChange={(e) => setQuien(e.target.value)}>
+          {adultos.map((p) => <option key={p.id} value={p.id}>{p.emoji} {p.name}</option>)}
+        </select>
+        <span className="suave">Solo un adulto puede concederlo, y queda registrado quién.</span>
+      </div>
+
+      <button className="btn btn-bloque" disabled={Boolean(problema) || ocupado} onClick={conceder}>
+        Conceder {Number(monedas) || 0} 🪙
+      </button>
+      {problema && <p className="suave" style={{ marginTop: 6 }}>{problema}</p>}
     </div>
   )
 }

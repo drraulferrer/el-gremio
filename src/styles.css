@@ -1930,3 +1930,14 @@ code { background: var(--tablero-hondo); padding: 2px 6px; border-radius: 6px; f
   font-style: italic;
   line-height: 1.35;
 }
+
+/* Premio a mano. Marco propio para que no se confunda con la lista de
+   premios de la tienda: esto no es un premio que se canjea, es una
+   excepción que concede un adulto. */
+.bloque-manual {
+  margin-bottom: 14px;
+  padding: 14px;
+  border-radius: 16px;
+  border: 1px solid var(--linea);
+  background: rgba(246, 185, 59, 0.07);
+}

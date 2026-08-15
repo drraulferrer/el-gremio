@@ -236,3 +236,52 @@ export async function resolverCanje(id, estado) {
   if (!error) log.info('premio.canje_resuelto', { request_id: requestId, redemption_id: id, estado })
   return { ok: !error, mensaje }
 }
+
+/**
+ * Premio a mano: monedas extra por algo excepcional, sin XP.
+ *
+ * Las reglas (cantidad, motivo, que quien lo concede sea adulto) se
+ * comprueban en `revisarPremioManual` antes de llamar, y OTRA VEZ en
+ * Postgres dentro de `grant_manual_bonus`. No es redundancia por gusto:
+ * la comprobación del cliente es para dar un mensaje decente, y la de la
+ * base es la que de verdad manda, porque el navegador se puede saltar.
+ */
+export async function premioAMano({ profileId, monedas, motivo, otorgadoPor }) {
+  const requestId = nuevoRequestId()
+  const { data, error, mensaje } = await operacion(
+    'premio.manual.error',
+    () =>
+      supabase.rpc('grant_manual_bonus', {
+        p_id: profileId,
+        p_coins: Number(monedas),
+        p_motivo: motivo,
+        p_otorgado_por: otorgadoPor
+      }),
+    { request_id: requestId, profile_id: profileId, monedas: Number(monedas) }
+  )
+
+  if (error) {
+    if (error.code === 'PGRST202') {
+      return { ok: false, mensaje: 'Falta ejecutar migracion-014-premio-a-mano.sql en Supabase.' }
+    }
+    return { ok: false, mensaje }
+  }
+
+  const problemas = {
+    cantidad_invalida: 'Esa cantidad no vale.',
+    sin_motivo: 'Falta el motivo.',
+    no_existe: 'Ese perfil ya no está.',
+    no_es_tuyo: 'Ese perfil no es de este gremio.',
+    quien_no_existe: 'Quien lo concede ya no está activo.',
+    no_es_adulto: 'Solo un adulto puede conceder un premio a mano.'
+  }
+  if (problemas[data]) return { ok: false, mensaje: problemas[data] }
+
+  log.info('premio.manual', {
+    request_id: requestId,
+    profile_id: profileId,
+    monedas: Number(monedas),
+    otorgado_por: otorgadoPor
+  })
+  return { ok: true, mensaje: '' }
+}
