@@ -2114,3 +2114,89 @@ code { background: var(--tablero-hondo); padding: 2px 6px; border-radius: 6px; f
    control, y el cursor porque en escritorio no había forma de saberlo. */
 button.kid-avatar { cursor: pointer; padding: 0; transition: transform var(--t-rapido) var(--ease-salida); }
 button.kid-avatar:active { transform: scale(0.94); }
+
+/* El latido que enseña dónde está la ficha. Se apaga solo a los pocos
+   días o en cuanto la abre: ver src/lib/latido.js.
+
+   Escala y sombra, nada de `filter`: una sombra animada la compone la GPU
+   y un desenfoque hay que volver a calcularlo en cada cuadro. Esta app ya
+   perdió cuadros una vez por animar un blur. */
+@keyframes latido-aviso {
+  0%, 62%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 200, 50, 0); }
+  70% { transform: scale(1.06); box-shadow: 0 0 0 7px rgba(255, 200, 50, 0.32); }
+  84% { transform: scale(1); box-shadow: 0 0 0 12px rgba(255, 200, 50, 0); }
+}
+button.kid-avatar.latiendo { animation: latido-aviso 2.6s var(--ease-salida) infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  /* Sin movimiento, pero la pista no puede desaparecer: se queda el halo
+     fijo. Quitarla del todo dejaría a quien más ayuda necesita sin ella. */
+  button.kid-avatar.latiendo {
+    animation: none;
+    box-shadow: 0 0 0 5px rgba(255, 200, 50, 0.3);
+  }
+}
+
+/* Camino de la racha. Vertical y no horizontal: en 360 px el horizontal
+   obliga a desplazar de lado para ver el final, o a encoger los hitos
+   hasta que dejan de leerse. */
+.racha-numero { font-family: var(--display); font-size: 1.6rem; font-weight: 700; }
+.racha-numero em { font-style: normal; font-size: 0.95rem; font-weight: 600; opacity: 0.7; }
+
+.racha-aviso {
+  margin: 0;
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--oro-claro);
+}
+
+.camino { list-style: none; margin: 14px 0 0; padding: 0; position: relative; }
+/* La línea que une los hitos va detrás de las marcas y arranca en la
+   primera para no sobresalir por arriba. */
+.camino::before {
+  content: '';
+  position: absolute;
+  left: 17px;
+  top: 18px;
+  bottom: 18px;
+  width: 2px;
+  background: var(--linea);
+}
+
+.hito {
+  position: relative;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 8px 0;
+}
+.hito-marca {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 1.1rem;
+  background: var(--tablero-hondo);
+  border: 2px solid var(--linea);
+  z-index: 1;
+}
+.hito.logrado .hito-marca { background: var(--exito); border-color: var(--exito); color: #06371d; font-weight: 800; }
+.hito.siguiente .hito-marca { border-color: var(--oro); box-shadow: 0 0 0 4px rgba(245, 184, 65, 0.16); }
+/* Los lejanos se atenúan pero NO se esconden: ver que después de los cien
+   días no hay nada más también es información. */
+.hito.lejos { opacity: 0.45; }
+
+.barra-hito {
+  height: 7px;
+  border-radius: 999px;
+  background: var(--tablero-hondo);
+  border: 1px solid var(--linea);
+  overflow: hidden;
+  margin-top: 6px;
+}
+.barra-hito div { height: 100%; background: linear-gradient(90deg, var(--oro), var(--oro-claro)); }
+
+.carta-hito { display: flex; align-items: center; gap: 14px; border-color: var(--oro); }
+.hito-emoji-grande { font-size: 2.4rem; }

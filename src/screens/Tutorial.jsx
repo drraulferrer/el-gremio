@@ -156,6 +156,40 @@ const PASOS_PORQUE = [
     )
   },
   {
+    id: 'constancia',
+    emoji: '🔥',
+    titulo: 'La racha y las temporadas',
+    cuerpo: (
+      <>
+        <p>
+          El riesgo real de esto no es técnico: es que la novedad se apague hacia la{' '}
+          <strong>semana tres</strong>. Dos cosas están puestas justo contra eso.
+        </p>
+        <div className="carta">
+          <strong>🔥 Tu racha, con camino</strong>
+          <div className="suave">
+            Días seguidos con algo validado. En Progreso ves los hitos —3, 7, 14, 21, 30, 50 y 100 días— y
+            cuánto falta para el siguiente. Cada uno paga monedas <strong>una sola vez en la vida</strong>: si
+            se rompe y se vuelve a empezar, no se cobra otra vez. Si no, romperla a propósito cada semana
+            saldría a cuenta.
+          </div>
+        </div>
+        <div className="carta">
+          <strong>⚜️ Las temporadas del gremio</strong>
+          <div className="suave">
+            Cada meta lograda cierra una temporada: el gremio sube de rango y los precios de la tienda pueden
+            subir un 30 %. Nadie pierde XP ni baja de nivel —eso es acumulativo y no tiene tope—, lo único que
+            vuelve a cero es la barra de la meta, que es otro contador.
+          </div>
+        </div>
+        <p className="suave">
+          El día que se falla no pasa nada: la racha no se rompe hasta que termina el día, y algunas insignias
+          dan un <strong>comodín</strong> que tapa un día suelto.
+        </p>
+      </>
+    )
+  },
+  {
     id: 'principios',
     emoji: '📚',
     titulo: 'Los siete principios',
@@ -201,7 +235,10 @@ const PASOS_MAPA = [
         </div>
         <div className="carta">
           <strong>⭐ La pantalla de la peque</strong>
-          <div className="suave">Solo botones grandes. Sin pestañas, sin números, sin salida accidental.</div>
+          <div className="suave">
+            Solo botones grandes. Sin pestañas, sin números, sin salida accidental. Tocando su avatar ve su
+            propia ficha: los días de la semana que hizo algo, sus estrellas y sus premios.
+          </div>
         </div>
         <div className="carta">
           <strong>🔒 El panel parental</strong>
@@ -227,7 +264,10 @@ const PASOS_MAPA = [
         </div>
         <div className="carta">
           <strong>Progreso</strong>
-          <div className="suave">Tus ocho habilidades y tus insignias. Es donde se ve que subes.</div>
+          <div className="suave">
+            Tu racha con su camino de hitos, tus ocho habilidades y tus insignias. Si alguna te ha dado un
+            poder —comodín o voz de mando—, se gasta aquí.
+          </div>
         </div>
         <div className="carta">
           <strong>Cambiar · Panel</strong>
@@ -244,7 +284,18 @@ const PASOS_MAPA = [
       <>
         <div className="carta">
           <strong>✅ Validar</strong>
-          <div className="suave">Lo pendiente. Tocas un elogio y con eso queda validada. Debajo, «Hecho hoy», por si hay que deshacer algo.</div>
+          <div className="suave">
+            Lo pendiente. Tocas un elogio y con eso queda validada. Debajo, «Hecho hoy» por si hay que
+            deshacer algo, y «Devuelto hoy» con lo que no validaste y el motivo que escribiste.
+          </div>
+        </div>
+        <div className="carta">
+          <strong>📊 Cuadro</strong>
+          <div className="suave">
+            El gremio de un vistazo: qué tiene asignado cada cual, cuánto está cumpliendo, quién ha puesto qué
+            en la meta y qué premios se ha llevado. No se lo ve nadie más: aquí la comparación es información,
+            en el tablero de una niña sería otra cosa.
+          </div>
         </div>
         <div className="carta">
           <strong>⭐ Peque</strong>
@@ -256,7 +307,11 @@ const PASOS_MAPA = [
         </div>
         <div className="carta">
           <strong>🎁 Premios · 🏰 Meta</strong>
-          <div className="suave">La tienda y el objetivo común del gremio.</div>
+          <div className="suave">
+            La tienda y el objetivo común. En Premios está también «🪙 Monedas a mano», para algo excepcional
+            que no cabía en el catálogo: suma monedas sin dar XP, pide motivo y guarda qué adulto lo concedió.
+            Y al cerrar una meta, el panel ofrece subir los precios un 30 % para la temporada nueva.
+          </div>
         </div>
       </>
     )
@@ -278,7 +333,10 @@ const PASOS_MAPA = [
         </div>
         <div className="carta">
           <strong>En tu lista</strong>
-          <div className="suave">Si pediste una misión por error, cancélala mientras esté pendiente.</div>
+          <div className="suave">
+            Si pediste una misión por error, cancélala mientras esté pendiente. Y si te la devolvieron, su
+            tarjeta de «Todavía no» lleva un botón para volver a enviarla en cuanto la termines.
+          </div>
         </div>
         <p className="suave">Deshacer devuelve la XP y las monedas.</p>
       </>

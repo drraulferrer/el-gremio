@@ -35,7 +35,7 @@ modo peque, la capa de producción y la gestión de miembros.
 | Código local | `~/el-gremio` |
 | Supabase | proyecto `chfbrawsoulfiywiqhpe`, Postgres 17.6, región EU |
 | Versión publicada | ver `npm run health`; cada despliegue deja etiqueta `deploy-AAAA-MM-DD-HHMM` |
-| Tests | 372, en 21 ficheros, todos en verde |
+| Tests | 400, en 23 ficheros, todos en verde |
 
 Comprobar que sigue vivo:
 
@@ -63,7 +63,13 @@ si falla `supabase`, casi seguro que el proyecto está pausado (ver §7).
 ✅ 013  target_roles[]: misiones para varios roles (15-ago)
 ✅ 014  premio a mano: bonuses.motivo/otorgado_por + grant_manual_bonus (15-ago)
 ✅ 015  poderes que se gastan + insignias únicas (15-ago, noche)
+⏳ 016  camino de rachas: claim_streak · ESCRITA, SIN EJECUTAR
 ```
+
+**Pendiente: ejecutar la 016** (`migracion-016-camino-de-rachas.sql`).
+Hasta entonces el camino de la racha se ve y se cuenta bien, pero al
+cobrar un hito la app avisa de que falta esa migración. Cuidado con lo
+mismo que pasó con la 015, que se cuenta justo debajo.
 
 **La 015 costó dos intentos, y conviene saber por qué.** El primero se dio
 por hecho y la base no la tenía: `power_uses` y `spend_power` salían NULL
@@ -304,6 +310,8 @@ src/lib/temporadas.js      Rango del gremio, subida de precios por temporada
 src/lib/insignias.js       Las 16 insignias, sus clases y sus poderes
 src/lib/meritos.js         Lo que cada persona lleva hecho (racha, hitos)
 src/lib/resumen.js         Cifras del cuadro de mando parental
+src/lib/rachas.js          Hitos del camino, racha viva y qué falta cobrar
+src/lib/latido.js          Cuándo late el avatar de la peque, y cuándo deja de latir
 src/lib/evidencia.js       Principios y referencias
 src/lib/miembros.js        Reglas de alta, edición y baja de perfiles
 src/lib/pin.js             Reglas del PIN parental
@@ -315,6 +323,7 @@ src/lib/fakeBackend.js     Backend simulado del modo demo
 src/components/Poderes.jsx Poderes activos y pantalla de gastarlos
 src/screens/Cuadro.jsx     Cuadro de mando del panel (detrás del PIN)
 src/screens/FichaPeque.jsx «Mi ficha» de la peque, sin un solo número
+src/components/CaminoRacha.jsx  Racha con hitos y cobro automático
 src/screens/               Login, Onboarding, Tutorial, ProfilePicker, Home, KidHome,
                            ParentPanel, Ajustes (Miembros · PIN · Dispositivos ·
                            Evidencia · Estado)
@@ -574,6 +583,44 @@ Tres detalles que costaron y conviene no deshacer:
 - **`.kid-premio` ya existía en su tienda**: las clases de la ficha van
   con prefijo `kid-ficha-`. Un nombre repetido habría roto la otra
   pantalla, que es donde nadie habría mirado.
+
+**Camino de rachas al estilo Duolingo** (`rachas.js` + `CaminoRacha.jsx`),
+en la pestaña Progreso de adultos y junior. Hitos a 3, 7, 14, 21, 30, 50 y
+100 días, con lo logrado, lo que falta y el cobro automático.
+
+Cuatro decisiones que sostienen todo lo demás:
+
+- **Cada hito se paga UNA VEZ EN LA VIDA, no una por racha.** Si no,
+  romper la racha a propósito cada semana sería la forma más rentable de
+  jugar. Lo garantiza un índice único en Postgres.
+- **La racha la verifica `claim_streak`, no el cliente.** La pantalla que
+  dibuja el contador no puede ser también la que lo certifique. El importe
+  también lo decide la base: si viajara como argumento, el tope no sería
+  un tope.
+- **Hoy no rompe la racha hasta que se acaba el día.** Marcarla rota a
+  mediodía sería castigar por adelantado; en su lugar sale el aviso «hoy
+  todavía no», que es lo que hace levantarse.
+- **El cobro es automático, sin botón de reclamar.** Un botón deja sin
+  premio a quien no lo pulsa y convierte la recompensa en un examen de
+  atención.
+- Las cifras están dimensionadas contra `economia.js`: el camino entero
+  paga 445 monedas en cien días, ~11 % de lo que gana la junior en ese
+  tiempo y solo si no falla ni un día. Hay un test que lo fija y otro que
+  compara la tabla de hitos con el `case` de Postgres.
+
+**El latido del avatar de la peque** (`latido.js`): señala el gesto de
+abrir su ficha, que no tenía ninguna pista visual, y **se apaga solo** en
+cuanto lo abre tres veces o a los diez días. Una animación permanente deja
+de comunicar en dos días y pasa a ser ruido. Con `prefers-reduced-motion`
+no desaparece: se queda el halo quieto, porque quitarla del todo dejaría
+sin pista justo a quien más la necesita.
+
+**El tutorial se puso al día** con todo lo anterior: un paso nuevo, «La
+racha y las temporadas», en el bloque del porqué, y actualizados los de
+Progreso, la pantalla de la peque, el panel (Cuadro, Devuelto hoy, monedas
+a mano, subida de precios) y el de deshacer. Los dos bloques comparten las
+mismas listas, así que el tutorial del arranque y el que se reabre desde
+⚙️ → Evidencia quedan iguales sin tocar dos sitios.
 
 **El premio a mano estaba escrito y sin enganchar.** El componente
 `PremioAMano` existía entero desde la sesión anterior, `GestionPremios`

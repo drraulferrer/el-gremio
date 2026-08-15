@@ -3,6 +3,7 @@ import { canDo, dayKey, goalProgress, levelProgress, FREQ_LABEL } from '../lib/s
 import { INSIGNIAS, PODERES, PODERES_LISTOS } from '../lib/insignias'
 import { estadoDeTemporada } from '../lib/temporadas'
 import Poderes from '../components/Poderes'
+import CaminoRacha from '../components/CaminoRacha'
 import { pedirMision as pedirMisionRemota, canjearPremio, deshacerMision } from '../lib/acciones'
 import { Gema, XPBar, Moneda, Celebracion, Pestana } from '../components/ui'
 import { HABILIDADES, habilidad, xpPorHabilidad, rangoDeHabilidad, habilidadDominante } from '../lib/habilidades'
@@ -384,6 +385,8 @@ function Progreso({ data, profile, genero, refresh }) {
 
   return (
     <div>
+      <CaminoRacha data={data} profile={profile} refresh={refresh} />
+
       <div className="titulo-seccion">Tus habilidades</div>
 
       {dominante ? (

@@ -255,6 +255,40 @@ export async function gastarPoder({ profileId, code, tipo, usos, dias = null, de
   return { ok: true, mensaje: '' }
 }
 
+/**
+ * Cobra un hito del camino de la racha.
+ *
+ * Ni el importe ni la racha viajan desde aquí: los dos los decide y
+ * comprueba `claim_streak` en Postgres. Esta pantalla es la que dibuja el
+ * contador, así que no puede ser también la que certifique que es cierto.
+ *
+ * 'ya_cobrado' NO es un fallo: es lo que contesta la base cada vez que se
+ * vuelve a abrir la pantalla con el hito ya pagado, que es casi siempre.
+ */
+export async function cobrarRacha(profileId, hito) {
+  const requestId = nuevoRequestId()
+  const { data, error, mensaje } = await operacion(
+    'racha.cobrada.error',
+    () => supabase.rpc('claim_streak', { p_id: profileId, p_hito: hito }),
+    { request_id: requestId, profile_id: profileId, hito }
+  )
+
+  if (error) {
+    if (error.code === 'PGRST202') {
+      return { ok: false, mensaje: 'Falta ejecutar migracion-016-camino-de-rachas.sql en Supabase.' }
+    }
+    return { ok: false, mensaje }
+  }
+
+  if (data === 'ya_cobrado' || data === 'aun_no') return { ok: false, mensaje: '' }
+  if (data === 'hito_invalido') return { ok: false, mensaje: 'Ese hito no existe.' }
+  if (data === 'no_existe') return { ok: false, mensaje: 'Ese perfil ya no está.' }
+  if (data === 'no_es_tuyo') return { ok: false, mensaje: 'Ese perfil no es de este gremio.' }
+
+  log.info('racha.cobrada', { request_id: requestId, profile_id: profileId, hito })
+  return { ok: true, mensaje: '' }
+}
+
 /** Canjea un premio. Devuelve además el motivo cuando no se puede. */
 export async function canjearPremio({ premio, profile }) {
   const requestId = nuevoRequestId()

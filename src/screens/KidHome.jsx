@@ -12,6 +12,7 @@ import { misionesDe } from '../lib/misiones'
 import { estadoDelJuego, siguientePremio, esDeHoy, juegoDelDia, diaCompleto, claveFiesta } from '../lib/juego'
 import Juego from './JuegosPeque'
 import FichaPeque from './FichaPeque'
+import { debeLatir, leerLatido, contarApertura, sellarPrimeraVez } from '../lib/latido'
 
 // ------------------------------------------------------------------
 // Pantalla de la peque (3 años).
@@ -38,6 +39,20 @@ export default function KidHome({ family, data, profile, refresh, onSalir }) {
   const [verTarro, setVerTarro] = useState(false)
   const [jugando, setJugando] = useState(false)
   const [verFicha, setVerFicha] = useState(false)
+  // El latido señala un gesto que no se ve, y se apaga solo: ver
+  // src/lib/latido.js. Se lee UNA vez al montar y no en cada render, o
+  // abrir la ficha no volvería a pintar la cabecera.
+  const [latido, setLatido] = useState(() => debeLatir(leerLatido(profile.id)))
+
+  useEffect(() => {
+    sellarPrimeraVez(profile.id)
+  }, [profile.id])
+
+  function abrirFicha() {
+    const aperturas = contarApertura(profile.id)
+    setLatido(debeLatir({ ...leerLatido(profile.id), aperturas }))
+    setVerFicha(true)
+  }
 
   const misiones = misionesDe(profile, data.challenges)
 
@@ -158,9 +173,9 @@ export default function KidHome({ family, data, profile, refresh, onSalir }) {
 
       <header className="kid-cabecera">
         <button
-          className="kid-avatar"
+          className={'kid-avatar' + (latido ? ' latiendo' : '')}
           style={{ background: profile.color }}
-          onClick={() => setVerFicha(true)}
+          onClick={abrirFicha}
           aria-label={`Ver lo que ha hecho ${profile.name}`}
         >
           {profile.emoji}

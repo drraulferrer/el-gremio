@@ -390,6 +390,62 @@ function rpc(nombre, args = {}) {
     return { data: 'ok', error: null }
   }
 
+  // Espejo de claim_streak (migración 016). Se replica también la
+  // comprobación de la racha, no solo el pago: un demo que paga sin mirar
+  // haría imposible descubrir aquí el fallo que sí aparecería en casa.
+  if (nombre === 'claim_streak') {
+    const IMPORTES = { 3: 5, 7: 15, 14: 25, 21: 40, 30: 60, 50: 100, 100: 200 }
+    const coins = IMPORTES[args.p_hito]
+    if (!coins) return { data: 'hito_invalido', error: null }
+
+    const p = db.profiles.find((x) => x.id === args.p_id && x.active !== false)
+    if (!p) return { data: 'no_existe', error: null }
+
+    const clave = (d) => `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`
+    const dias = new Set([
+      ...db.completions
+        .filter((c) => c.profile_id === p.id && c.status === 'aprobado' && c.resolved_at)
+        .map((c) => clave(new Date(c.resolved_at))),
+      ...(db.power_uses || [])
+        .filter((u) => u.profile_id === p.id && u.tipo === 'salva_racha')
+        .map((u) => clave(new Date(u.used_at)))
+    ])
+
+    const cursor = new Date()
+    if (!dias.has(clave(cursor))) cursor.setDate(cursor.getDate() - 1)
+    let racha = 0
+    while (dias.has(clave(cursor)) && racha < 400) {
+      racha++
+      cursor.setDate(cursor.getDate() - 1)
+    }
+    if (racha < args.p_hito) return { data: 'aun_no', error: null }
+
+    const tipo = 'racha:' + args.p_hito
+    if ((db.bonuses || []).some((b) => b.profile_id === p.id && b.tipo === tipo)) {
+      return { data: 'ya_cobrado', error: null }
+    }
+
+    escribir({
+      ...db,
+      bonuses: [
+        ...(db.bonuses || []),
+        {
+          id: uuid(),
+          family_id: p.family_id,
+          profile_id: p.id,
+          dia: new Date().toLocaleDateString('sv-SE'),
+          tipo,
+          coins,
+          motivo: 'Racha de ' + args.p_hito + ' días',
+          created_at: new Date().toISOString()
+        }
+      ],
+      profiles: db.profiles.map((x) => (x.id === p.id ? { ...x, coins: x.coins + coins } : x))
+    })
+    notificar()
+    return { data: 'ok', error: null }
+  }
+
   if (nombre === 'undo_completion') {
     const c = db.completions.find((x) => x.id === args.c_id)
     if (!c) return { data: 'no_existe', error: null }
