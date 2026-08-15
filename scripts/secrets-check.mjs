@@ -19,8 +19,14 @@ import { existsSync, readFileSync } from 'node:fs'
 
 const DIAS_MAXIMOS = 90
 
+// Los patrones exigen una asignación con valor. Mencionar "service_role"
+// en la documentación no es una fuga, y un detector que grita por eso deja
+// de leerse a la tercera vez.
 const PATRONES = [
-  { nombre: 'clave service_role de Supabase', regex: /service_role/i },
+  {
+    nombre: 'clave service_role de Supabase',
+    regex: /service[_-]?role([_-]?key)?\s*[:=]\s*['"]?[A-Za-z0-9._-]{20,}/i
+  },
   { nombre: 'JWT largo', regex: /eyJ[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}\./ },
   { nombre: 'clave de OpenAI/Anthropic', regex: /\b(sk-[A-Za-z0-9]{20,}|sk-ant-[A-Za-z0-9-]{20,})\b/ },
   { nombre: 'token de GitHub', regex: /\bgh[pousr]_[A-Za-z0-9]{20,}\b/ },
