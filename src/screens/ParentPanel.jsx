@@ -52,6 +52,14 @@ export default function ParentPanel({ family, data, refresh, refreshFamily, onVe
     .filter((c) => c.status === 'aprobado' && c.resolved_at && dayKey(new Date(c.resolved_at)) === hoy)
     .sort((a, b) => new Date(b.resolved_at) - new Date(a.resolved_at))
 
+  // Lo devuelto hoy. Faltaba: al pulsar «Todavía no» la misión salía de la
+  // lista de pendientes y desaparecía de la vista del adulto, así que
+  // quien devolvía no tenía dónde comprobar qué había pedido ni con qué
+  // palabras. Media conversación de la tarde depende de poder releer eso.
+  const devueltasHoy = data.completions
+    .filter((c) => c.status === 'rechazado' && c.resolved_at && dayKey(new Date(c.resolved_at)) === hoy)
+    .sort((a, b) => new Date(b.resolved_at) - new Date(a.resolved_at))
+
   async function deshacer(id) {
     setAviso('')
     const { ok, mensaje } = await deshacerMision(id)
@@ -164,6 +172,39 @@ export default function ParentPanel({ family, data, refresh, refreshFamily, onVe
               </div>
             )
           })}
+
+          {devueltasHoy.length > 0 && (
+            <>
+              <div className="titulo-seccion">Devuelto hoy</div>
+              {devueltasHoy.map((c) => {
+                const p = perfilDe(c.profile_id)
+                const ch = retoDe(c.challenge_id)
+                return (
+                  <div className="carta carta-correccion" key={c.id}>
+                    <div className="fila">
+                      <div className="avatar" style={{ borderColor: p?.color }}>{p?.emoji}</div>
+                      <div className="crece">
+                        <strong>{ch?.emoji} {flex(ch?.title, generoDe(p)) || 'Misión'}</strong>
+                        <div className="suave">{p?.name} · la puede volver a enviar</div>
+                      </div>
+                      {/* Quitar la devolución borra la petición entera: la
+                          misión sigue disponible y desaparece el aviso rojo
+                          de su tablero. Es el «me he equivocado», no un
+                          segundo veredicto. */}
+                      <button
+                        className="btn btn-fantasma btn-mini"
+                        onClick={() => deshacer(c.id)}
+                        aria-label={`Quitar la devolución de ${flex(ch?.title, generoDe(p)) || 'la misión'}`}
+                      >
+                        <Icono nombre="atras" tamano={18} /> Quitar
+                      </button>
+                    </div>
+                    {c.praise && <p className="texto-correccion">{c.praise}</p>}
+                  </div>
+                )
+              })}
+            </>
+          )}
         </div>
       )}
 

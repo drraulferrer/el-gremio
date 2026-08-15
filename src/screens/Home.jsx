@@ -198,6 +198,22 @@ function Misiones({ data, profile, ocupado, onPedir, misPendientes, misAprobadas
           <div className="titulo-seccion">Todavía no</div>
           {misRechazadas.map((c) => {
             const ch = data.challenges.find((x) => x.id === c.challenge_id)
+            // Qué ha pasado con esa misión DESPUÉS de que la devolvieran.
+            // Sin esto la tarjeta era un callejón sin salida: decía qué
+            // faltaba y no ofrecía forma de arreglarlo. La misión volvía a
+            // la lista de abajo, sí, pero nada unía las dos cosas, y
+            // «arréglalo y búscalo tú entre quince» no es una instrucción.
+            const posteriores = data.completions.filter(
+              (x) =>
+                x.challenge_id === c.challenge_id &&
+                x.profile_id === profile.id &&
+                x.status !== 'rechazado' &&
+                new Date(x.requested_at) > new Date(c.resolved_at)
+            )
+            const esperando = posteriores.some((x) => x.status === 'pendiente')
+            const yaValidada = posteriores.some((x) => x.status === 'aprobado')
+            const puedeRepetir = ch && canDo(ch, data.completions, profile.id)
+
             return (
               <div className="carta carta-correccion" key={c.id}>
                 <div className="fila">
@@ -206,6 +222,19 @@ function Misiones({ data, profile, ocupado, onPedir, misPendientes, misAprobadas
                     <strong>{flex(ch?.title, genero) || 'Misión'}</strong>
                     {c.praise && <p className="texto-correccion">{c.praise}</p>}
                   </div>
+                  {yaValidada ? (
+                    <span className="chip">✓ ya está</span>
+                  ) : esperando ? (
+                    <span className="chip chip-pendiente">⏳ enviada</span>
+                  ) : puedeRepetir ? (
+                    <button
+                      className="btn btn-mini"
+                      disabled={ocupado === ch.id}
+                      onClick={() => onPedir(ch)}
+                    >
+                      Ya está
+                    </button>
+                  ) : null}
                 </div>
               </div>
             )
