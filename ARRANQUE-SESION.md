@@ -62,13 +62,25 @@ si falla `supabase`, casi seguro que el proyecto está pausado (ver §7).
 ✅ 012  juego de globos: tabla bonuses + grant_daily_bonus (15-ago)
 ✅ 013  target_roles[]: misiones para varios roles (15-ago)
 ✅ 014  premio a mano: bonuses.motivo/otorgado_por + grant_manual_bonus (15-ago)
-⏳ 015  poderes que se gastan + insignias únicas · ESCRITA, SIN EJECUTAR
+⚠️ 015  poderes que se gastan + insignias únicas · LANZADA, PERO NO ESTÁ
 ```
 
-**Lo primero de la próxima sesión es ejecutar la 015.** Sin ella la app
-funciona entera, pero la sección «Tus poderes» falla al usar un poder con
-un aviso que dice exactamente qué falta. Antes de lanzarla, comprobar que
-no hay duplicados de las únicas (debe dar cero filas):
+**La 015 se dio por ejecutada el 15-ago por la noche, pero la base no la
+tiene.** Comprobado desde fuera justo después, y otra vez un minuto más
+tarde: `power_uses` y `spend_power` devuelven 404 con `PGRST205`, mientras
+`bonuses` responde 200 por el mismo camino. O el SQL Editor cortó a mitad
+con un error, o se ejecutó sobre otro proyecto. Lo primero al retomar es
+volver a lanzarla LEYENDO la salida del editor hasta el final. Para
+descartar que sea solo la caché de PostgREST:
+
+```sql
+select to_regclass('public.power_uses');   -- null = la tabla no existe
+notify pgrst, 'reload schema';             -- si existe pero da 404
+```
+
+Sin ella la app funciona entera, pero usar un poder devuelve un aviso que
+dice exactamente qué falta ejecutar. Antes de lanzarla, comprobar que no
+hay duplicados de las únicas (debe dar cero filas):
 
 ```sql
 select family_id, code, count(*) from public.profile_badges
