@@ -59,6 +59,31 @@ export function precioEnTemporada(base, temporada) {
 }
 
 /**
+ * Lo que pasará a costar un premio al abrir la temporada siguiente.
+ *
+ * Se aplica sobre el precio ACTUAL y no sobre un precio base guardado en
+ * ninguna parte, y por eso compone solo: cada temporada aplica su subida
+ * una vez, encima de lo que ya valía. Redondeado a cinco porque un premio
+ * de 1.053 monedas no lo lee nadie.
+ */
+export function precioSiguienteTemporada(actual) {
+  return Math.round((Number(actual) * (1 + SUBIDA_POR_TEMPORADA)) / 5) * 5
+}
+
+/**
+ * Qué premios entran en la subida de precios de la temporada nueva.
+ *
+ * Los que están dentro del alcance de la peque quedan fuera, y no es una
+ * excepción por ser pequeña: es que ella no va por temporadas ni por
+ * niveles, va por distancia. Gana lo mismo cada día pase lo que pase, así
+ * que subirle el precio no le añade dificultad, le quita el premio.
+ * Un premio que no llega nunca no motiva, decora.
+ */
+export function premiosQueSuben(rewards = [], techoPeque = 0) {
+  return rewards.filter((r) => r.active && r.cost > techoPeque)
+}
+
+/**
  * A partir de qué temporada se puede canjear un premio.
  *
  * Los de nivel 1 y 2 están desde el principio; los de nivel 3 aparecen en

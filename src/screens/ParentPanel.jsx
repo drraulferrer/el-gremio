@@ -11,7 +11,9 @@ import { perfilesActivos } from '../lib/miembros'
 import { avisoDeCarga } from '../lib/economia'
 import { premioAMano } from '../lib/acciones'
 import { revisarPremioManual, avisoDeCantidad, MAXIMO_MANUAL } from '../lib/premioManual'
-import { MONEDAS_POR_ESTRELLA } from '../lib/premios'
+import { MONEDAS_POR_ESTRELLA, TECHO_PEQUE } from '../lib/premios'
+import { SUBIDA_POR_TEMPORADA, precioSiguienteTemporada, premiosQueSuben } from '../lib/temporadas'
+import { quienMasAporta } from '../lib/meritos'
 import { habilidad, HABILIDADES } from '../lib/habilidades'
 import { sugerenciasDeElogio, rachaDeMision, sugerenciasDeCorreccion, correccionValida } from '../lib/elogio'
 import { flex, generoDe } from '../lib/genero'
@@ -1006,8 +1008,21 @@ function GestionMeta({ family, data, refresh }) {
     await refresh()
   }
 
+  /**
+   * Cerrar la meta es cerrar la TEMPORADA, y eso son tres cosas, no una.
+   *
+   * Nadie pierde XP ni baja de nivel al cerrarla: la XP personal es
+   * acumulativa y no tiene tope. Lo único que vuelve a cero es la barra de
+   * la meta, que es otro contador. Ver src/lib/temporadas.js.
+   */
   async function conseguida() {
     if (!window.confirm('¿Marcar la meta como conseguida? Todo el gremio recibirá la insignia 🏰.')) return
+
+    const activos = perfilesActivos(data.profiles)
+    // Se calcula ANTES de cerrar: al marcarla lograda deja de ser la meta
+    // en curso y ya no habría contra qué medir quién aportó más.
+    const manoDerecha = quienMasAporta(goal, data.completions, activos)
+
     const cierre = await supabase
       .from('family_goals')
       .update({ achieved: true, achieved_at: new Date().toISOString() })
@@ -1016,13 +1031,65 @@ function GestionMeta({ family, data, refresh }) {
       setFallo(mensajeDeError(cierre.error))
       return
     }
-    const filas = data.profiles.map((p) => ({ family_id: family.id, profile_id: p.id, code: 'gremio' }))
+
+    const filas = activos.map((p) => ({ family_id: family.id, profile_id: p.id, code: 'gremio' }))
     const insignias = await supabase
       .from('profile_badges')
       .upsert(filas, { onConflict: 'profile_id,code', ignoreDuplicates: true })
     if (insignias.error) setFallo(mensajeDeError(insignias.error))
+
+    // «Mano derecha» cambia de dueño con cada meta. Primero se retira la
+    // anterior y después se pone la nueva, en ese orden: al revés choca
+    // con el índice único por gremio de la migración 015.
+    if (manoDerecha) {
+      await supabase.from('profile_badges').delete().eq('family_id', family.id).eq('code', 'mano_derecha')
+      const nueva = await supabase
+        .from('profile_badges')
+        .insert({ family_id: family.id, profile_id: manoDerecha, code: 'mano_derecha' })
+      if (nueva.error) setFallo(mensajeDeError(nueva.error))
+    }
+
+    await subirPrecios()
     setForm({ title: '', emoji: '🏆', target_xp: 1000 })
     await refresh()
+  }
+
+  /**
+   * La subida de precios de la temporada nueva.
+   *
+   * Se PREGUNTA, no se aplica sola: cambia lo que ve la familia en la
+   * tienda de un día para otro, y una tienda que sube sola de precio sin
+   * avisar se siente como una trampa aunque el motivo sea bueno.
+   *
+   * Los premios que están dentro del alcance de la peque quedan fuera de
+   * la subida. Ella no va por temporadas ni por niveles, va por distancia:
+   * gana lo mismo cada día pase lo que pase, así que subirle el precio no
+   * le añade dificultad, le quita el premio.
+   */
+  async function subirPrecios() {
+    const suben = premiosQueSuben(data.rewards, TECHO_PEQUE)
+    if (!suben.length) return
+
+    const barato = suben.reduce((a, b) => (a.cost < b.cost ? a : b))
+    const subida = Math.round(SUBIDA_POR_TEMPORADA * 100)
+    const aviso =
+      `Nueva temporada del gremio.\n\n` +
+      `¿Subir un ${subida} % el precio de los ${suben.length} premios de la tienda? ` +
+      `Es lo que mantiene la dificultad ahora que el gremio produce más.\n\n` +
+      `Por ejemplo, "${barato.title}" pasaría de ${barato.cost} a ${precioSiguienteTemporada(barato.cost)} monedas.\n\n` +
+      `Los premios de la peque no se tocan.`
+    if (!window.confirm(aviso)) return
+
+    for (const r of suben) {
+      const { error } = await supabase
+        .from('rewards')
+        .update({ cost: precioSiguienteTemporada(r.cost) })
+        .eq('id', r.id)
+      if (error) {
+        setFallo(mensajeDeError(error))
+        return
+      }
+    }
   }
 
   return (

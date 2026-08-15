@@ -23,7 +23,8 @@ const TABLAS = [
   'family_goals',
   'profile_badges',
   'app_logs',
-  'bonuses'
+  'bonuses',
+  'power_uses'
 ]
 
 const vacia = () => TABLAS.reduce((acc, t) => ({ ...acc, [t]: [] }), {})
@@ -41,6 +42,7 @@ const DEFECTOS_TABLA = {
   profile_badges: {},
   app_logs: { datos: {} },
   bonuses: { tipo: 'globos', coins: 5 },
+  power_uses: { target_id: null, nota: null },
   families: {}
 }
 
@@ -53,6 +55,7 @@ const SELLOS_TABLA = {
   redemptions: ['requested_at'],
   family_goals: ['starts_at'],
   profile_badges: ['earned_at'],
+  power_uses: ['used_at'],
   app_logs: ['ts'],
   families: ['created_at']
 }
@@ -274,6 +277,114 @@ function rpc(nombre, args = {}) {
       ...db,
       bonuses: [...bonuses, { id: uuid(), family_id: p.family_id, profile_id: p.id, dia, tipo, coins: monedas }],
       profiles: db.profiles.map((x) => (x.id === p.id ? { ...x, coins: x.coins + monedas } : x))
+    })
+    notificar()
+    return { data: 'ok', error: null }
+  }
+
+  // Espejo de grant_manual_bonus (migración 014). Se replican las tres
+  // reglas, no solo el efecto: sin motivo no entra, sin adulto que lo
+  // conceda tampoco, y la XP no se toca. Un demo más permisivo que la
+  // producción sirve para probar exactamente lo que no va a pasar.
+  if (nombre === 'grant_manual_bonus') {
+    const monedas = Number(args.p_coins)
+    if (!monedas || monedas <= 0 || monedas > 200) return { data: 'cantidad_invalida', error: null }
+    if (!String(args.p_motivo || '').trim() || String(args.p_motivo).trim().length < 3) {
+      return { data: 'sin_motivo', error: null }
+    }
+    const p = db.profiles.find((x) => x.id === args.p_id && x.active !== false)
+    if (!p) return { data: 'no_existe', error: null }
+    const quien = db.profiles.find((x) => x.id === args.p_otorgado_por && x.active !== false)
+    if (!quien || quien.family_id !== p.family_id) return { data: 'quien_no_existe', error: null }
+    if (quien.role !== 'adulto') return { data: 'no_es_adulto', error: null }
+
+    escribir({
+      ...db,
+      bonuses: [
+        ...(db.bonuses || []),
+        {
+          id: uuid(),
+          family_id: p.family_id,
+          profile_id: p.id,
+          dia: new Date().toLocaleDateString('sv-SE'),
+          tipo: 'manual',
+          coins: monedas,
+          motivo: String(args.p_motivo).trim(),
+          otorgado_por: quien.id,
+          created_at: new Date().toISOString()
+        }
+      ],
+      // Solo monedas: la XP se queda igual, igual que en Postgres.
+      profiles: db.profiles.map((x) => (x.id === p.id ? { ...x, coins: x.coins + monedas } : x))
+    })
+    notificar()
+    return { data: 'ok', error: null }
+  }
+
+  // Espejo de spend_power (migración 015). Lo importante que hay que
+  // imitar es que el uso se cuenta CONTRA LO GUARDADO y no contra un
+  // contador en memoria: si el demo dejara gastar infinitas veces
+  // recargando, el bug solo aparecería con la familia delante.
+  if (nombre === 'spend_power') {
+    if (!['salva_racha', 'asigna_tarea'].includes(args.p_tipo)) {
+      return { data: 'poder_no_gastable', error: null }
+    }
+    const p = db.profiles.find((x) => x.id === args.p_id && x.active !== false)
+    if (!p) return { data: 'no_existe', error: null }
+
+    const ganada = (db.profile_badges || []).find((b) => b.profile_id === p.id && b.code === args.p_code)
+    if (!ganada) return { data: 'no_la_tienes', error: null }
+
+    if (args.p_dias != null) {
+      const caduca = new Date(ganada.earned_at).getTime() + Math.min(Number(args.p_dias), 90) * 86400000
+      if (Date.now() > caduca) return { data: 'sin_usos', error: null }
+    }
+
+    const usados = (db.power_uses || []).filter((u) => u.profile_id === p.id && u.code === args.p_code).length
+    if (usados >= Math.min(Number(args.p_usos) || 0, 5)) return { data: 'sin_usos', error: null }
+
+    let challenges = db.challenges
+    if (args.p_tipo === 'asigna_tarea') {
+      if (!args.p_target) return { data: 'sin_destino', error: null }
+      if (args.p_target === p.id) return { data: 'a_ti_no', error: null }
+      const destino = db.profiles.find((x) => x.id === args.p_target && x.active !== false && x.family_id === p.family_id)
+      if (!destino) return { data: 'destino_no_existe', error: null }
+      if (String(args.p_nota || '').trim().length < 3) return { data: 'sin_encargo', error: null }
+      challenges = [
+        ...db.challenges,
+        {
+          id: uuid(),
+          family_id: p.family_id,
+          profile_id: destino.id,
+          title: String(args.p_nota).trim().slice(0, 80),
+          emoji: '📣',
+          xp: 10,
+          coins: 5,
+          frequency: 'unico',
+          skill: 'cooperacion',
+          target_roles: null,
+          active: true,
+          created_at: new Date().toISOString()
+        }
+      ]
+    }
+
+    escribir({
+      ...db,
+      challenges,
+      power_uses: [
+        ...(db.power_uses || []),
+        {
+          id: uuid(),
+          family_id: p.family_id,
+          profile_id: p.id,
+          code: args.p_code,
+          tipo: args.p_tipo,
+          target_id: args.p_target || null,
+          nota: String(args.p_nota || '').trim() || null,
+          used_at: new Date().toISOString()
+        }
+      ]
     })
     notificar()
     return { data: 'ok', error: null }

@@ -1,5 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
-import { canDo, dayKey, goalProgress, levelProgress, BADGES, FREQ_LABEL } from '../lib/supabase'
+import { canDo, dayKey, goalProgress, levelProgress, FREQ_LABEL } from '../lib/supabase'
+import { INSIGNIAS, PODERES, PODERES_LISTOS } from '../lib/insignias'
+import { estadoDeTemporada } from '../lib/temporadas'
+import Poderes from '../components/Poderes'
 import { pedirMision as pedirMisionRemota, canjearPremio, deshacerMision } from '../lib/acciones'
 import { Gema, XPBar, Moneda, Celebracion, Pestana } from '../components/ui'
 import { HABILIDADES, habilidad, xpPorHabilidad, rangoDeHabilidad, habilidadDominante } from '../lib/habilidades'
@@ -68,6 +71,9 @@ export default function Home({ family, data, profile, refresh, onSwitchProfile, 
   const retoDe = (id) => data.challenges.find((ch) => ch.id === id)
   const goal = data.goal
   const progresoMeta = goalProgress(goal, data.completions)
+  // Metas logradas = temporadas cerradas. Se deriva, no se guarda: un
+  // contador duplicado se desincroniza el día que alguien reabre una meta.
+  const temporada = estadoDeTemporada(data.goals || [])
 
   return (
     <div className="app">
@@ -89,19 +95,45 @@ export default function Home({ family, data, profile, refresh, onSwitchProfile, 
         </div>
       </div>
 
-      {/* Estandarte: meta cooperativa del gremio */}
-      {goal && (
+      {/* Estandarte: rango del gremio y meta cooperativa.
+          El sello va ENCIMA de la meta, y el bloque entero sobrevive a que
+          no haya meta activa. Las dos cosas son la misma decisión: la
+          barra de la meta se vacía al cerrarla, y si con ella desaparecía
+          también el rango, cerrar una meta se sentía como perder el
+          progreso. Es justo lo que las temporadas venían a arreglar. */}
+      {(goal || temporada.metasLogradas > 0) && (
         <div className="estandarte">
-          <div className="fila-separada">
-            <strong style={{ fontFamily: 'var(--display)' }}>{goal.emoji} {goal.title}</strong>
-            <span className="suave">{Math.min(progresoMeta, goal.target_xp)} / {goal.target_xp} XP</span>
+          <div className="sello-gremio">
+            <span className="sello-emoji" aria-hidden="true">{temporada.rango.emoji}</span>
+            <div className="crece">
+              <div className="sello-nombre">{temporada.rango.nombre}</div>
+              {temporada.metasLogradas > 0 && (
+                <div className="suave" style={{ fontSize: '0.78rem' }}>
+                  {temporada.metasLogradas} {temporada.metasLogradas === 1 ? 'meta lograda' : 'metas logradas'} ·
+                  {' '}{temporada.xpHistorica} XP de por vida
+                </div>
+              )}
+            </div>
           </div>
-          <div className="xpbar" style={{ marginTop: 8 }}>
-            <div className="xpbar-fill" style={{ width: Math.min(100, Math.round((100 * progresoMeta) / goal.target_xp)) + '%', background: 'linear-gradient(90deg,#7fb3ff,#a78bfa)' }} />
-            <div className="xpbar-pips"><span /><span /><span /><span /><span /></div>
-          </div>
-          {progresoMeta >= goal.target_xp && (
-            <p style={{ marginTop: 8, color: 'var(--exito)', fontWeight: 800 }}>¡Meta del gremio conseguida! 🎉</p>
+
+          {goal ? (
+            <>
+              <div className="fila-separada">
+                <strong style={{ fontFamily: 'var(--display)' }}>{goal.emoji} {goal.title}</strong>
+                <span className="suave">{Math.min(progresoMeta, goal.target_xp)} / {goal.target_xp} XP</span>
+              </div>
+              <div className="xpbar" style={{ marginTop: 8 }}>
+                <div className="xpbar-fill" style={{ width: Math.min(100, Math.round((100 * progresoMeta) / goal.target_xp)) + '%', background: 'linear-gradient(90deg,#7fb3ff,#a78bfa)' }} />
+                <div className="xpbar-pips"><span /><span /><span /><span /><span /></div>
+              </div>
+              {progresoMeta >= goal.target_xp && (
+                <p style={{ marginTop: 8, color: 'var(--exito)', fontWeight: 800 }}>¡Meta del gremio conseguida! 🎉</p>
+              )}
+            </>
+          ) : (
+            <p className="suave" style={{ margin: 0 }}>
+              Temporada {temporada.temporada}: sin meta todavía. Un adulto puede proponer la siguiente desde el panel.
+            </p>
           )}
         </div>
       )}
@@ -127,7 +159,7 @@ export default function Home({ family, data, profile, refresh, onSwitchProfile, 
 
       {tab === 'tienda' && <Tienda data={data} profile={profile} ocupado={ocupado} onCanjear={canjear} />}
 
-      {tab === 'progreso' && <Progreso data={data} profile={profile} genero={genero} />}
+      {tab === 'progreso' && <Progreso data={data} profile={profile} genero={genero} refresh={refresh} />}
 
       <nav className="tabbar" aria-label="Secciones">
         <Pestana icono="misiones" etiqueta="Misiones" activa={tab === 'misiones'} onClick={() => setTab('misiones')} />
@@ -307,7 +339,7 @@ function Tienda({ data, profile, ocupado, onCanjear }) {
   )
 }
 
-function Progreso({ data, profile, genero }) {
+function Progreso({ data, profile, genero, refresh }) {
   // El historial va por semanas y no en una lista infinita: una lista que
   // solo crece deja de leerse al mes. Nada se archiva de verdad —los datos
   // siguen en la base—, solo sale de la vista.
@@ -410,13 +442,21 @@ function Progreso({ data, profile, genero }) {
         )}
       </div>
 
-      <div className="titulo-seccion">Insignias · {mias.size} de {BADGES.length}</div>
+      <Poderes data={data} profile={profile} refresh={refresh} genero={genero} />
+
+      <div className="titulo-seccion">Insignias · {mias.size} de {INSIGNIAS.length}</div>
       <div className="grid-insignias">
-        {BADGES.map((b) => (
+        {INSIGNIAS.map((b) => (
           <div className={'insignia' + (mias.has(b.code) ? '' : ' bloqueada')} key={b.code}>
             <span className="ins-emoji">{b.emoji}</span>
             <span className="ins-nombre">{flex(b.name, genero)}</span>
             <div className="suave" style={{ fontSize: '0.72rem', marginTop: 2 }}>{b.desc}</div>
+            {/* Qué DA, no solo qué reconoce: una insignia que hace algo se
+                busca, y para buscarla hay que poder leer qué hace desde
+                antes de tenerla. */}
+            {b.poder && PODERES_LISTOS.has(b.poder.tipo) && (
+              <span className="ins-poder">{PODERES[b.poder.tipo].nombre}: {PODERES[b.poder.tipo].describe(b.poder)}</span>
+            )}
           </div>
         ))}
       </div>

@@ -1941,3 +1941,35 @@ code { background: var(--tablero-hondo); padding: 2px 6px; border-radius: 6px; f
   border: 1px solid var(--linea);
   background: rgba(246, 185, 59, 0.07);
 }
+
+/* Poderes de insignia. Misma fila que las habilidades —mismo ritmo
+   vertical, mismo emoji a la izquierda— porque son lo mismo para quien
+   mira: cosas tuyas que van creciendo. */
+.fila-poder {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 0;
+}
+.fila-poder + .fila-poder { border-top: 1px solid rgba(61, 66, 117, 0.5); }
+
+/* El sello del gremio: rango y XP de por vida, encima de la meta. */
+.sello-gremio {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.sello-gremio .sello-emoji { font-size: 1.4rem; flex: none; }
+.sello-gremio .sello-nombre { font-family: var(--display); font-weight: 700; font-size: 0.95rem; }
+
+/* Una insignia con poder se distingue de una decorativa sin gritar: un
+   punto, no un marco. Con marco, la parrilla se convierte en dos
+   parrillas y deja de leerse de un vistazo. */
+.insignia .ins-poder {
+  display: block;
+  font-size: 0.68rem;
+  font-weight: 700;
+  margin-top: 4px;
+  color: var(--oro-claro);
+}

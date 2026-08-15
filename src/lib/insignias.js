@@ -52,6 +52,27 @@ export const PODERES = {
   }
 }
 
+/**
+ * Los poderes que hoy HACEN algo de verdad.
+ *
+ * `salva_racha` y `asigna_tarea` están cableados de punta a punta: el
+ * comodín tapa un día en el cálculo de la racha (src/lib/meritos.js) y la
+ * voz de mando crea la misión dentro de `spend_power`, en la misma
+ * transacción que gasta el uso.
+ *
+ * Los otros dos NO, y por eso no se dibujan todavía:
+ *  · `monedas_x` tendría que multiplicar lo que abona `resolve_completion`,
+ *    que vive en Postgres y hoy no sabe nada de insignias.
+ *  · `abre_premio` necesita que un premio pueda tener dueño, y `rewards`
+ *    no tiene esa columna.
+ *
+ * El modelo se queda escrito y probado —cambiar eso costaría más que
+ * mantenerlo—, pero anunciar en pantalla un ×1,25 que no llega a las
+ * monedas sería mentirle a quien se lo ha ganado. Se enseñan cuando
+ * existan, no antes.
+ */
+export const PODERES_LISTOS = new Set(['salva_racha', 'asigna_tarea'])
+
 export const INSIGNIAS = [
   // --- Las ocho originales, ahora con clase explícita ------------------
   { code: 'primera', name: 'Primera misión', emoji: '🌟', desc: 'Completa tu primera misión', clase: 'normal', test: (s) => s.approved >= 1 },
@@ -77,7 +98,7 @@ export const INSIGNIAS = [
     poder: { tipo: 'monedas_x', factor: 1.25, dias: 7 }
   },
   {
-    code: 'ocho_habilidades', name: '完 Completo', emoji: '🧭',
+    code: 'ocho_habilidades', name: 'Completo', emoji: '🧭',
     desc: 'Has entrenado las ocho competencias al menos una vez',
     clase: 'normal', test: (s) => s.habilidadesTocadas >= 8,
     poder: { tipo: 'abre_premio' }

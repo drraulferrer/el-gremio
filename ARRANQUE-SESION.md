@@ -2,8 +2,9 @@
 
 Documento de continuidad. Si abres una sesión nueva sobre este proyecto,
 lee esto primero: dice dónde está todo, qué está hecho, qué falta y qué
-trampas tiene. Última actualización: **15 de agosto de 2026**, con la app
-desplegada y funcionando.
+trampas tiene. Última actualización: **15 de agosto de 2026 (noche)**, con la app
+desplegada, las temporadas cableadas y la migración 015 pendiente de
+ejecutar.
 
 Si solo vas a leer un párrafo: la app está **en producción y estable**; lo
 que queda no es código, es uso. Antes de añadir nada, lee §8 y pregunta
@@ -34,7 +35,7 @@ modo peque, la capa de producción y la gestión de miembros.
 | Código local | `~/el-gremio` |
 | Supabase | proyecto `chfbrawsoulfiywiqhpe`, Postgres 17.6, región EU |
 | Versión publicada | ver `npm run health`; cada despliegue deja etiqueta `deploy-AAAA-MM-DD-HHMM` |
-| Tests | 190, en 11 ficheros, todos en verde |
+| Tests | 348, en 20 ficheros, todos en verde |
 
 Comprobar que sigue vivo:
 
@@ -61,7 +62,30 @@ si falla `supabase`, casi seguro que el proyecto está pausado (ver §7).
 ✅ 012  juego de globos: tabla bonuses + grant_daily_bonus (15-ago)
 ✅ 013  target_roles[]: misiones para varios roles (15-ago)
 ✅ 014  premio a mano: bonuses.motivo/otorgado_por + grant_manual_bonus (15-ago)
+⏳ 015  poderes que se gastan + insignias únicas · ESCRITA, SIN EJECUTAR
 ```
+
+**Lo primero de la próxima sesión es ejecutar la 015.** Sin ella la app
+funciona entera, pero la sección «Tus poderes» falla al usar un poder con
+un aviso que dice exactamente qué falta. Antes de lanzarla, comprobar que
+no hay duplicados de las únicas (debe dar cero filas):
+
+```sql
+select family_id, code, count(*) from public.profile_badges
+ where code in ('primer_nivel10','mano_derecha','coleccionista')
+ group by 1,2 having count(*) > 1;
+```
+
+**`schema.sql` estaba incompleto y se ha arreglado (15-ago, noche).** Tenía
+la tabla `bonuses` de las migraciones 012 y 014 pero **sin RLS, sin
+política, sin realtime y sin sus dos funciones**: una base nueva creada
+desde ese fichero habría dejado esa tabla abierta a escritura directa, o
+sea, monedas gratis desde la consola del navegador. La base de producción
+nunca estuvo expuesta —allí entró por las migraciones, que sí las traían—,
+pero cualquier base nueva sí. Es el fallo que la regla de «cada cambio de
+esquema se escribe dos veces» existe para evitar, y se coló igual: al
+revisar una migración, conviene comprobar que TODO lo suyo está también en
+`schema.sql`, no solo la tabla.
 
 De la 013 queda **sin ejecutar y a propósito** el `drop column target_role`
 que va comentado al final. No lo lances hasta comprobar que
@@ -274,6 +298,9 @@ src/lib/acciones.js        Acciones de dominio con registro y mensajes presentab
 src/lib/habilidades.js     Las 8 competencias, progreso y rangos
 src/lib/elogio.js          Sugerencias de elogio específico y rachas
 src/lib/premios.js         Catálogo de recompensas por nivel
+src/lib/temporadas.js      Rango del gremio, subida de precios por temporada
+src/lib/insignias.js       Las 16 insignias, sus clases y sus poderes
+src/lib/meritos.js         Lo que cada persona lleva hecho (racha, hitos)
 src/lib/evidencia.js       Principios y referencias
 src/lib/miembros.js        Reglas de alta, edición y baja de perfiles
 src/lib/pin.js             Reglas del PIN parental
@@ -282,6 +309,7 @@ src/lib/log.js             Registro JSON con redacción de credenciales
 src/lib/monitoring.js      Captura y agrupación de errores; adaptador de Sentry
 src/lib/flags.js           Banderas de funcionalidad
 src/lib/fakeBackend.js     Backend simulado del modo demo
+src/components/Poderes.jsx Poderes activos y pantalla de gastarlos
 src/screens/               Login, Onboarding, Tutorial, ProfilePicker, Home, KidHome,
                            ParentPanel, Ajustes (Miembros · PIN · Dispositivos ·
                            Evidencia · Estado)
@@ -418,27 +446,85 @@ con motivo obligatorio y registro de qué adulto lo concede. Las tres
 reglas se comprueban en Postgres, no solo en el formulario.
 
 **Temporadas e insignias con poder**: modelo construido y con tests
-(`src/lib/temporadas.js`, `src/lib/insignias.js`) pero **SIN cablear a la
-interfaz y sin migración**. Ver §8.
+(`src/lib/temporadas.js`, `src/lib/insignias.js`). Se cableó esa misma
+noche; ver §7c.
+
+---
+
+## 7c. Lo que se hizo el 15 de agosto (noche): temporadas cableadas
+
+Las temporadas dejaron de ser un modelo suelto y ya funcionan de punta a
+punta. Verificado en el navegador, no solo compilando.
+
+**El sello del gremio** (rango + metas logradas + XP de por vida) va
+ENCIMA de la barra de la meta, y el bloque sobrevive a que no haya meta
+activa. Las dos cosas son la misma decisión: la barra se vacía al cerrar
+una meta, y si con ella desaparecía el rango, cerrar una meta se sentía
+como perder el progreso, que es justo lo que las temporadas venían a
+arreglar. Se vio abriendo la app, no leyendo el código.
+
+**Cerrar la meta cierra la temporada**, y eso son tres cosas: la insignia
+🏰 para el gremio, «Mano derecha» que cambia de dueño (se calcula ANTES de
+cerrar, porque al marcarla lograda ya no hay contra qué medir), y la
+subida de precios. La subida **se pregunta, no se aplica sola**, con el
+ejemplo concreto en el aviso: una tienda que sube sola de precio se siente
+como una trampa aunque el motivo sea bueno. **Los premios al alcance de la
+peque (≤ `TECHO_PEQUE`) quedan fuera**: ella no va por temporadas, va por
+distancia, y gana lo mismo cada día pase lo que pase, así que subirle el
+precio no le añade dificultad, le quita el premio.
+
+**Los dos poderes gastables hacen algo de verdad:**
+
+- El **comodín** tapa un día en el cálculo de la racha
+  (`rachaMaxima` en `src/lib/meritos.js`). Sin eso sería un botón que
+  gasta un uso y no cambia nada, que es peor que no tenerlo.
+- La **voz de mando** CREA la misión, dentro de la misma transacción que
+  gasta el uso (`spend_power`). Aparece en el tablero de quien la recibe
+  como una misión única más, sin una línea de interfaz nueva. En dos
+  llamadas desde el navegador, un fallo de red entre medias habría dejado
+  el uso gastado y a nadie encargado de nada.
+
+**Los otros dos poderes NO se anuncian todavía** (`PODERES_LISTOS` en
+`insignias.js`): `monedas_x` tendría que multiplicar lo que abona
+`resolve_completion`, que vive en Postgres y no sabe nada de insignias, y
+`abre_premio` necesita que un premio pueda tener dueño, columna que
+`rewards` no tiene. El modelo se queda escrito y probado, pero enseñar un
+×1,25 que no llega a las monedas sería mentirle a quien se lo ha ganado.
+
+**Los méritos se calculan, no se guardan** (`src/lib/meritos.js`): racha
+máxima histórica, habilidades tocadas, validadas antes de las nueve, quién
+aporta más a la meta. Nada de contadores en `profiles`: se
+desincronizarían el día que alguien deshace una misión, y deshacer aquí es
+una operación normal, no una excepción.
+
+Detalles menores del mismo pase: el nombre de una insignia llevaba un
+carácter chino colado («完 Completo»), corregido; el backend simulado no
+tenía el `grant_manual_bonus` de la 014, así que el premio a mano no se
+podía probar en demo; y las insignias son **16**, no 17 como decía este
+documento.
 
 ---
 
 ## 8. Pendientes
 
-### Lo primero al retomar: terminar las temporadas
+### Lo primero al retomar: ejecutar la migración 015
 
-El modelo está escrito y probado; falta todo lo demás:
+Está escrita y espejada en `schema.sql`, pero **nadie la ha lanzado contra
+la base**. Ver §2 para la comprobación previa. Mientras no se ejecute, usar
+un poder devuelve un aviso que dice exactamente qué falta ejecutar.
 
-- **Migración 015**, sin escribir: persistir los usos gastados de los
-  poderes (comodín, voz de mando) y garantizar que una insignia `unica`
-  solo la tenga una persona por gremio (índice único por `family_id` y
-  `code` para esos códigos).
-- **Interfaz**, sin empezar: rango del gremio visible, XP histórica al
-  lado de la barra de la meta, las 17 insignias con su poder, y las
-  pantallas para gastar comodín y voz de mando.
-- **Decisión abierta**: al cablearlo, los precios pasan a escalar con la
-  temporada (`precioEnTemporada`). Eso cambia lo que ve la familia, así
-  que conviene avisar antes.
+### Los dos poderes que faltan por cablear
+
+Ninguno es urgente y los dos tocan sitios delicados:
+
+- **`monedas_x`**: multiplicar las monedas al validar exige tocar
+  `resolve_completion`, que es la función que usa toda la app. Haría falta
+  una tabla de consulta con el factor por insignia (el catálogo vive en
+  JavaScript y Postgres no lo ve) y hacerlo en su propia tanda.
+- **`abre_premio`**: `rewards` necesitaría una columna de dueño y la
+  tienda, filtrarla.
+
+Hasta entonces siguen sin dibujarse, que es lo correcto.
 
 ### Lo demás al retomar: preguntar, no suponer
 
@@ -448,8 +534,8 @@ condicionan todo lo demás:
 1. **¿Se creó ya la cuenta familiar y se fundó el gremio?** Requiere
    registrar cuenta y teclear contraseña, así que lo hace la familia. Sin
    eso, la app enseña el asistente de alta.
-2. **¿Se ejecutaron el `update` de títulos (007b) y los índices (008)?**
-   Ver §2 para las consultas que lo resuelven.
+2. **¿Se ejecutó la migración 015?** Ver §2. Es lo único que la app pide
+   ahora mismo y no puede hacer sola.
 3. **¿Lo están usando de verdad?** De la respuesta depende qué merece la
    pena tocar: si llevan dos semanas usándolo, lo siguiente es mirar el
    diagnóstico de economía con datos reales, no añadir funciones.

@@ -511,3 +511,262 @@ create table if not exists public.bonuses (
 create unique index if not exists idx_bonuses_uno_al_dia
   on public.bonuses (profile_id, dia, tipo) where tipo <> 'manual';
 create index if not exists idx_bonuses_family_dia on public.bonuses (family_id, dia desc);
+
+alter table public.bonuses enable row level security;
+
+drop policy if exists bonuses_lectura on public.bonuses;
+create policy bonuses_lectura on public.bonuses
+  for select using (family_id in (select id from public.families where owner = auth.uid()));
+
+-- Sin política de insert a propósito: solo se entra por las dos funciones
+-- de abajo, que son `security definer`. Con insert abierto, cualquiera con
+-- la consola del navegador se regala monedas escribiendo en la tabla.
+
+do $$ begin alter publication supabase_realtime add table public.bonuses; exception when duplicate_object then null; end $$;
+
+-- El juego diario de la peque. Devuelve texto, como el resto de RPC:
+--   'ok' · 'ya_hoy' (caso normal, no error) · 'no_existe' · 'no_es_tuyo'
+create or replace function public.grant_daily_bonus(p_id uuid, p_tipo text default 'globos')
+returns text
+language plpgsql
+security definer
+set search_path = public
+as $fn$
+declare
+  v_family uuid;
+  v_coins integer := 5;   -- una estrella exacta (MONEDAS_POR_ESTRELLA)
+begin
+  select family_id into v_family from public.profiles where id = p_id and active;
+  if v_family is null then
+    return 'no_existe';
+  end if;
+
+  if not exists (
+    select 1 from public.families f where f.id = v_family and f.owner = auth.uid()
+  ) then
+    return 'no_es_tuyo';
+  end if;
+
+  -- La carrera se resuelve aquí: dos toques simultáneos entran los dos al
+  -- insert y uno se lleva la violación de unicidad. Comprobar antes con un
+  -- select y luego insertar dejaría la ventana abierta.
+  begin
+    insert into public.bonuses (family_id, profile_id, tipo, coins)
+    values (v_family, p_id, p_tipo, v_coins);
+  exception when unique_violation then
+    return 'ya_hoy';
+  end;
+
+  update public.profiles set coins = coins + v_coins where id = p_id;
+  return 'ok';
+end $fn$;
+
+revoke all on function public.grant_daily_bonus(uuid, text) from public;
+grant execute on function public.grant_daily_bonus(uuid, text) to authenticated;
+
+-- El premio a mano. Tres reglas que se garantizan AQUÍ y no solo en el
+-- formulario, porque una regla que solo vive en el navegador no es regla:
+-- no da XP, el motivo es obligatorio, y lo concede un adulto identificado.
+create or replace function public.grant_manual_bonus(
+  p_id uuid,
+  p_coins integer,
+  p_motivo text,
+  p_otorgado_por uuid
+)
+returns text
+language plpgsql
+security definer
+set search_path = public
+as $fn$
+declare
+  v_family uuid;
+  v_rol_quien text;
+  v_family_quien uuid;
+begin
+  -- Tope contra el dedo gordo: teclear 500 donde iban 50 descuadra la
+  -- economía de un mes, y eso sí pasa. No es antifraude.
+  if p_coins is null or p_coins <= 0 or p_coins > 200 then
+    return 'cantidad_invalida';
+  end if;
+
+  if p_motivo is null or length(btrim(p_motivo)) < 3 then
+    return 'sin_motivo';
+  end if;
+
+  select family_id into v_family from public.profiles where id = p_id and active;
+  if v_family is null then
+    return 'no_existe';
+  end if;
+
+  if not exists (
+    select 1 from public.families f where f.id = v_family and f.owner = auth.uid()
+  ) then
+    return 'no_es_tuyo';
+  end if;
+
+  select role, family_id into v_rol_quien, v_family_quien
+    from public.profiles where id = p_otorgado_por and active;
+
+  if v_rol_quien is null or v_family_quien is distinct from v_family then
+    return 'quien_no_existe';
+  end if;
+
+  if v_rol_quien <> 'adulto' then
+    return 'no_es_adulto';
+  end if;
+
+  insert into public.bonuses (family_id, profile_id, tipo, coins, motivo, otorgado_por)
+  values (v_family, p_id, 'manual', p_coins, btrim(p_motivo), p_otorgado_por);
+
+  -- Solo monedas. La XP no se toca a propósito: marca el nivel y alimenta
+  -- la meta, y las dos están calculadas contra un ritmo.
+  update public.profiles set coins = coins + p_coins where id = p_id;
+
+  return 'ok';
+end $fn$;
+
+revoke all on function public.grant_manual_bonus(uuid, integer, text, uuid) from public;
+grant execute on function public.grant_manual_bonus(uuid, integer, text, uuid) to authenticated;
+
+
+-- ------------------------------------------------------------------
+-- Poderes de las insignias (migración 015).
+--
+-- Un poder gastable (comodín, voz de mando) tiene usos contados, y la
+-- cuenta la lleva Postgres: si viviera en el navegador, recargar la
+-- página devolvería los usos. Mismo bug que tuvo el juego de globos.
+-- ------------------------------------------------------------------
+
+create table if not exists public.power_uses (
+  id uuid primary key default gen_random_uuid(),
+  family_id uuid not null references public.families(id) on delete cascade,
+  profile_id uuid not null references public.profiles(id) on delete cascade,
+  -- La insignia que da el poder. Los usos se cuentan POR INSIGNIA y no por
+  -- tipo: dos insignias distintas que den comodín dan sus usos cada una.
+  code text not null,
+  tipo text not null check (tipo in ('salva_racha', 'asigna_tarea')),
+  -- A quién se le encarga la misión (voz de mando). Nulo en los demás.
+  target_id uuid references public.profiles(id) on delete set null,
+  nota text,
+  used_at timestamptz not null default now()
+);
+
+create index if not exists idx_power_uses_profile on public.power_uses (profile_id, code);
+create index if not exists idx_power_uses_family on public.power_uses (family_id, used_at desc);
+
+alter table public.power_uses enable row level security;
+
+drop policy if exists power_uses_lectura on public.power_uses;
+create policy power_uses_lectura on public.power_uses
+  for select using (family_id in (select id from public.families where owner = auth.uid()));
+
+-- Sin política de insert: se entra por la función, que es la que cuenta.
+
+do $$ begin alter publication supabase_realtime add table public.power_uses; exception when duplicate_object then null; end $$;
+
+-- Las insignias `unica` las tiene UNA persona del gremio. Los códigos van
+-- escritos a mano porque la alternativa (una columna `clase` en la tabla)
+-- sería el mismo catálogo duplicado y además desincronizable fila a fila.
+-- Si se añade una única nueva en src/lib/insignias.js, hay que añadirla
+-- aquí: tests/insignias.test.js recuerda esa deuda.
+create unique index if not exists idx_badges_unica_por_gremio
+  on public.profile_badges (family_id, code)
+  where code in ('primer_nivel10', 'mano_derecha', 'coleccionista');
+
+-- Gastar un uso. Devuelve 'ok' · 'sin_usos' · 'no_la_tienes' ·
+-- 'poder_no_gastable' · 'sin_destino' · 'destino_no_existe' · 'a_ti_no' ·
+-- 'no_existe' · 'no_es_tuyo'. Detalle del reparto de responsabilidades
+-- entre Postgres y el cliente en migracion-015-poderes-y-unicas.sql.
+create or replace function public.spend_power(
+  p_id uuid,
+  p_code text,
+  p_tipo text,
+  p_usos integer,
+  p_dias integer default null,
+  p_target uuid default null,
+  p_nota text default null
+)
+returns text
+language plpgsql
+security definer
+set search_path = public
+as $fn$
+declare
+  v_family uuid;
+  v_earned timestamptz;
+  v_gastados integer;
+  v_tope constant integer := 5;
+  v_max_dias constant integer := 90;
+begin
+  if p_tipo is null or p_tipo not in ('salva_racha', 'asigna_tarea') then
+    return 'poder_no_gastable';
+  end if;
+
+  select family_id into v_family from public.profiles where id = p_id and active;
+  if v_family is null then
+    return 'no_existe';
+  end if;
+
+  if not exists (
+    select 1 from public.families f where f.id = v_family and f.owner = auth.uid()
+  ) then
+    return 'no_es_tuyo';
+  end if;
+
+  -- El `for update` serializa dos gastos simultáneos de la misma insignia.
+  select earned_at into v_earned
+    from public.profile_badges
+   where profile_id = p_id and code = p_code
+   for update;
+
+  if v_earned is null then
+    return 'no_la_tienes';
+  end if;
+
+  if p_dias is not null and now() > v_earned + least(p_dias, v_max_dias) * interval '1 day' then
+    return 'sin_usos';
+  end if;
+
+  select count(*) into v_gastados
+    from public.power_uses
+   where profile_id = p_id and code = p_code;
+
+  if v_gastados >= least(coalesce(p_usos, 0), v_tope) then
+    return 'sin_usos';
+  end if;
+
+  if p_tipo = 'asigna_tarea' then
+    if p_target is null then
+      return 'sin_destino';
+    end if;
+    if p_target = p_id then
+      return 'a_ti_no';
+    end if;
+    if not exists (
+      select 1 from public.profiles
+       where id = p_target and active and family_id = v_family
+    ) then
+      return 'destino_no_existe';
+    end if;
+    if p_nota is null or length(btrim(p_nota)) < 3 then
+      return 'sin_encargo';
+    end if;
+  end if;
+
+  insert into public.power_uses (family_id, profile_id, code, tipo, target_id, nota)
+  values (v_family, p_id, p_code, p_tipo, p_target, nullif(btrim(p_nota), ''));
+
+  -- La voz de mando CREA la misión, en la misma transacción que el gasto
+  -- del uso: en dos llamadas, un fallo de red entre medias dejaría el uso
+  -- gastado y a nadie encargado de nada. Aparece en el tablero de quien la
+  -- recibe como una misión única más, sin interfaz nueva.
+  if p_tipo = 'asigna_tarea' then
+    insert into public.challenges (family_id, profile_id, title, emoji, xp, coins, frequency, skill)
+    values (v_family, p_target, left(btrim(p_nota), 80), '📣', 10, 5, 'unico', 'cooperacion');
+  end if;
+
+  return 'ok';
+end $fn$;
+
+revoke all on function public.spend_power(uuid, text, text, integer, integer, uuid, text) from public;
+grant execute on function public.spend_power(uuid, text, text, integer, integer, uuid, text) to authenticated;

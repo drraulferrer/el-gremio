@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { supabase, configured, modoDemo, levelFromXp, BADGES, crearSinkDeLogs, mensajeDeError } from './lib/supabase'
+import { supabase, configured, modoDemo, crearSinkDeLogs, mensajeDeError } from './lib/supabase'
+import { ganablesPor, insigniaPorCodigo } from './lib/insignias'
+import { meritosDe } from './lib/meritos'
 import { log, setContexto, setSink, instalarVaciadoAlSalir, nuevoRequestId } from './lib/log'
 import { instalarMonitorizacion, capturar } from './lib/monitoring'
 import { flag } from './lib/flags'
@@ -82,14 +84,17 @@ export default function App() {
       supabase.from('completions').select('*').eq('family_id', fid).order('requested_at', { ascending: false }).limit(400),
       supabase.from('rewards').select('*').eq('family_id', fid).order('created_at'),
       supabase.from('redemptions').select('*').eq('family_id', fid).order('requested_at', { ascending: false }).limit(200),
-      supabase.from('family_goals').select('*').eq('family_id', fid).eq('achieved', false).order('starts_at', { ascending: false }).limit(1),
+      // TODAS las metas, no solo la activa: las logradas son las que dicen
+      // en qué temporada va el gremio y cuánta XP lleva acumulada de por
+      // vida. Sin ellas, cerrar una meta parecía perder el progreso.
+      supabase.from('family_goals').select('*').eq('family_id', fid).order('starts_at', { ascending: false }).limit(50),
       supabase.from('profile_badges').select('*').eq('family_id', fid),
-      // Los bonus del juego de globos van los últimos y su fallo NO tumba
-      // la carga: si la migración 012 no se ha ejecutado, la tabla no
-      // existe y la app tiene que seguir funcionando entera menos el
-      // juego. Degradar con una cosa de menos, no con la pantalla en
-      // blanco.
-      supabase.from('bonuses').select('*').eq('family_id', fid)
+      // Las dos últimas van al final y su fallo NO tumba la carga: si la
+      // migración correspondiente no se ha ejecutado, la tabla no existe y
+      // la app tiene que seguir funcionando entera menos esa pieza.
+      // Degradar con una cosa de menos, no con la pantalla en blanco.
+      supabase.from('bonuses').select('*').eq('family_id', fid),
+      supabase.from('power_uses').select('*').eq('family_id', fid)
     ])
 
     const fallo = respuestas.slice(0, 7).find((r) => r.error)
@@ -100,16 +105,21 @@ export default function App() {
     }
     setErrorCarga('')
 
-    const [pr, ch, co, rw, rd, gl, bg, bo] = respuestas
+    const [pr, ch, co, rw, rd, gl, bg, bo, pu] = respuestas
+    const metas = gl.data || []
     const next = {
       profiles: pr.data || [],
       challenges: ch.data || [],
       completions: co.data || [],
       rewards: rw.data || [],
       redemptions: rd.data || [],
-      goal: gl.data && gl.data.length ? gl.data[0] : null,
+      // `goal` sigue siendo la meta EN CURSO, que es lo que mira media
+      // app; `goals` es la historia completa, para las temporadas.
+      goal: metas.find((g) => !g.achieved) || null,
+      goals: metas,
       badges: bg.data || [],
-      bonuses: bo.error ? [] : bo.data || []
+      bonuses: bo.error ? [] : bo.data || [],
+      powerUses: pu.error ? [] : pu.data || []
     }
     log.debug('datos.cargados', {
       request_id: requestId,
@@ -121,34 +131,68 @@ export default function App() {
     otorgarInsignias(fid, next)
   }, [family])
 
-  // Insignias automáticas: se comprueban tras cada carga
+  // Insignias automáticas: se comprueban tras cada carga.
+  //
+  // Las normales entran juntas de un upsert. Las ÚNICAS van una a una y
+  // tolerando el duplicado, y esa diferencia no es un detalle: desde la
+  // migración 015 hay un índice único por gremio para esos tres códigos,
+  // así que dentro de un lote una sola colisión tumbaría el insert entero
+  // y se perderían de paso todas las insignias normales de esa pasada.
   const otorgando = useRef(false)
   async function otorgarInsignias(fid, d) {
     if (otorgando.current) return
-    const nuevas = []
-    for (const p of d.profiles) {
-      const stats = {
-        approved: d.completions.filter((c) => c.profile_id === p.id && c.status === 'aprobado').length,
-        level: levelFromXp(p.xp),
-        redemptions: d.redemptions.filter((r) => r.profile_id === p.id && r.status !== 'cancelado').length
-      }
+
+    // Quien está retirado no compite por una única: se llevaría un título
+    // que ya no puede defender y lo dejaría bloqueado para el resto.
+    const activos = perfilesActivos(d.profiles)
+    const tomadas = new Set(
+      d.badges.filter((b) => insigniaPorCodigo(b.code)?.clase === 'unica').map((b) => b.code)
+    )
+
+    const normales = []
+    const unicas = []
+    for (const p of activos) {
       const tiene = new Set(d.badges.filter((b) => b.profile_id === p.id).map((b) => b.code))
-      for (const b of BADGES) {
-        if (!tiene.has(b.code) && b.test(stats)) {
-          nuevas.push({ family_id: fid, profile_id: p.id, code: b.code })
+      for (const b of ganablesPor(meritosDe(p, { ...d, profiles: activos }), tomadas, tiene)) {
+        const fila = { family_id: fid, profile_id: p.id, code: b.code }
+        if (b.clase === 'unica') {
+          unicas.push(fila)
+          // Se reserva ya, dentro de la misma pasada: si dos personas
+          // cumplen a la vez, la lista no puede proponer las dos.
+          tomadas.add(b.code)
+        } else {
+          normales.push(fila)
         }
       }
     }
-    if (!nuevas.length) return
+    if (!normales.length && !unicas.length) return
 
     otorgando.current = true
-    const { error } = await supabase
-      .from('profile_badges')
-      .upsert(nuevas, { onConflict: 'profile_id,code', ignoreDuplicates: true })
-    if (error) {
-      capturar(error, { origen: 'otorgarInsignias' })
-    } else {
-      log.info('insignias.otorgadas', { cuantas: nuevas.length })
+    let puestas = 0
+
+    if (normales.length) {
+      const { error } = await supabase
+        .from('profile_badges')
+        .upsert(normales, { onConflict: 'profile_id,code', ignoreDuplicates: true })
+      if (error) capturar(error, { origen: 'otorgarInsignias' })
+      else puestas += normales.length
+    }
+
+    for (const fila of unicas) {
+      const { error } = await supabase.from('profile_badges').insert(fila)
+      if (!error) {
+        puestas++
+      } else if (error.code === '23505') {
+        // Otro dispositivo llegó primero. Es el caso normal de una carrera
+        // por una insignia única, no un fallo que haya que enseñar.
+        log.info('insignia.unica.ya_tomada', { code: fila.code })
+      } else {
+        capturar(error, { origen: 'otorgarInsignias.unica', code: fila.code })
+      }
+    }
+
+    if (puestas) {
+      log.info('insignias.otorgadas', { cuantas: puestas, unicas: unicas.length })
       const { data: bg } = await supabase.from('profile_badges').select('*').eq('family_id', fid)
       setData((prev) => (prev ? { ...prev, badges: bg || prev.badges } : prev))
     }

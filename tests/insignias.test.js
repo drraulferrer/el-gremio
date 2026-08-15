@@ -1,8 +1,9 @@
 import { describe, it, expect } from 'vitest'
 import {
   INSIGNIAS, CON_PODER, PODERES, insigniaPorCodigo, poderActivo,
-  multiplicadorDe, usosDisponibles, ganablesPor
+  multiplicadorDe, usosDisponibles, ganablesPor, PODERES_LISTOS
 } from '../src/lib/insignias'
+import { readFileSync } from 'node:fs'
 
 const HOY = new Date(2026, 7, 15, 12)
 const hace = (dias) => new Date(HOY.getTime() - dias * 86400000).toISOString()
@@ -111,5 +112,48 @@ describe('las únicas son de una sola persona', () => {
     const g = ganablesPor(stats({ approved: 50, level: 10 }), new Set(), new Set(['x10', 'x25']))
     expect(g.map((b) => b.code)).not.toContain('x10')
     expect(g.map((b) => b.code)).toContain('x50')
+  })
+})
+
+// ------------------------------------------------------------------
+// La deuda que anuncia la migración 015: los códigos de las insignias
+// únicas están escritos DOS veces, aquí en JavaScript y en el índice
+// parcial de Postgres. No hay forma de tener una sola copia sin meter el
+// catálogo en una tabla, así que al menos que salte un test el día que se
+// añada una única y se olvide el índice. Sin él, la insignia «solo una
+// persona» se la llevarían dos, que es exactamente lo que la anulaba.
+// ------------------------------------------------------------------
+
+describe('el índice de Postgres conoce todas las únicas', () => {
+  const sql = readFileSync(new URL('../migracion-015-poderes-y-unicas.sql', import.meta.url), 'utf8')
+  const enElIndice = sql
+    .split('idx_badges_unica_por_gremio')[1]
+    .split(';')[0]
+    .match(/'([a-z0-9_]+)'/g)
+    .map((s) => s.replaceAll("'", ''))
+
+  it('están las tres y solo las tres', () => {
+    const enElCatalogo = INSIGNIAS.filter((b) => b.clase === 'unica').map((b) => b.code)
+    expect([...enElIndice].sort()).toEqual([...enElCatalogo].sort())
+  })
+
+  it('schema.sql dice lo mismo que la migración', () => {
+    const schema = readFileSync(new URL('../schema.sql', import.meta.url), 'utf8')
+    const enSchema = schema
+      .split('idx_badges_unica_por_gremio')[1]
+      .split(';')[0]
+      .match(/'([a-z0-9_]+)'/g)
+      .map((s) => s.replaceAll("'", ''))
+    expect([...enSchema].sort()).toEqual([...enElIndice].sort())
+  })
+})
+
+describe('poderes que se anuncian frente a poderes que funcionan', () => {
+  it('solo se declaran listos los que están cableados de punta a punta', () => {
+    expect([...PODERES_LISTOS].sort()).toEqual(['asigna_tarea', 'salva_racha'])
+  })
+
+  it('todo poder listo es un tipo real del catálogo', () => {
+    for (const tipo of PODERES_LISTOS) expect(PODERES[tipo]).toBeTruthy()
   })
 })

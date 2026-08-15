@@ -208,6 +208,53 @@ export async function cobrarGlobos(profileId) {
   return { ok: true, yaHoy: false, mensaje: '' }
 }
 
+/**
+ * Gasta un uso de un poder de insignia (comodín o voz de mando).
+ *
+ * Los usos los cuenta Postgres, no esta función: si la cuenta viviera en
+ * el navegador, recargar la página devolvería los usos, que es el mismo
+ * bug que tuvo el juego de globos. Aquí solo se traduce la respuesta.
+ */
+export async function gastarPoder({ profileId, code, tipo, usos, dias = null, destino = null, nota = '' }) {
+  const requestId = nuevoRequestId()
+  const { data, error, mensaje } = await operacion(
+    'poder.gastado.error',
+    () =>
+      supabase.rpc('spend_power', {
+        p_id: profileId,
+        p_code: code,
+        p_tipo: tipo,
+        p_usos: Number(usos) || 0,
+        p_dias: dias == null ? null : Number(dias),
+        p_target: destino,
+        p_nota: nota ? String(nota).trim().slice(0, 240) : null
+      }),
+    { request_id: requestId, profile_id: profileId, code, tipo }
+  )
+
+  if (error) {
+    if (error.code === 'PGRST202') {
+      return { ok: false, mensaje: 'Falta ejecutar migracion-015-poderes-y-unicas.sql en Supabase.' }
+    }
+    return { ok: false, mensaje }
+  }
+
+  const problemas = {
+    sin_usos: 'Ese poder ya no tiene usos, o ha caducado.',
+    no_la_tienes: 'Todavía no tienes esa insignia.',
+    poder_no_gastable: 'Ese poder no se gasta: lo tienes mientras dure.',
+    sin_destino: 'Elige a quién se lo encargas.',
+    destino_no_existe: 'Esa persona ya no está en el gremio.',
+    a_ti_no: 'La voz de mando es para encargar a otra persona, no a ti.',
+    no_existe: 'Ese perfil ya no está.',
+    no_es_tuyo: 'Ese perfil no es de este gremio.'
+  }
+  if (problemas[data]) return { ok: false, mensaje: problemas[data] }
+
+  log.info('poder.gastado', { request_id: requestId, profile_id: profileId, code, tipo, con_destino: Boolean(destino) })
+  return { ok: true, mensaje: '' }
+}
+
 /** Canjea un premio. Devuelve además el motivo cuando no se puede. */
 export async function canjearPremio({ premio, profile }) {
   const requestId = nuevoRequestId()

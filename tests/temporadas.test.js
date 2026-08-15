@@ -1,7 +1,15 @@
 import { describe, it, expect } from 'vitest'
 import {
-  temporadaActual, rangoDeGremio, precioEnTemporada, temporadaQueDesbloquea,
-  estaDesbloqueado, estadoDeTemporada, RANGOS_GREMIO, SUBIDA_POR_TEMPORADA
+  temporadaActual,
+  rangoDeGremio,
+  precioEnTemporada,
+  temporadaQueDesbloquea,
+  estaDesbloqueado,
+  estadoDeTemporada,
+  RANGOS_GREMIO,
+  SUBIDA_POR_TEMPORADA,
+  precioSiguienteTemporada,
+  premiosQueSuben
 } from '../src/lib/temporadas'
 
 const meta = (achieved, target_xp = 1000) => ({ achieved, target_xp })
@@ -99,5 +107,35 @@ describe('el resumen de temporada', () => {
   it('sin metas no rompe', () => {
     expect(estadoDeTemporada().temporada).toBe(1)
     expect(SUBIDA_POR_TEMPORADA).toBeGreaterThan(0.2)
+  })
+})
+
+describe('la subida de precios de la temporada nueva', () => {
+  it('sube un 30 % y redondea a cinco', () => {
+    expect(precioSiguienteTemporada(100)).toBe(130)
+    expect(precioSiguienteTemporada(105)).toBe(135)
+    expect(precioSiguienteTemporada(600)).toBe(780)
+  })
+
+  it('compone temporada a temporada, sin precio base guardado', () => {
+    // Aplicarla dos veces tiene que dar lo mismo que el modelo dice para
+    // la temporada 3, salvo el redondeo a cinco de cada paso.
+    const dosPasos = precioSiguienteTemporada(precioSiguienteTemporada(1000))
+    expect(Math.abs(dosPasos - precioEnTemporada(1000, 3))).toBeLessThanOrEqual(5)
+  })
+
+  it('los premios al alcance de la peque no suben', () => {
+    const tienda = [
+      { title: 'cuento', cost: 28, active: true },
+      { title: 'peli', cost: 72, active: true },
+      { title: 'cocinar', cost: 100, active: true },
+      { title: 'retirado', cost: 500, active: false }
+    ]
+    expect(premiosQueSuben(tienda, 72).map((r) => r.title)).toEqual(['cocinar'])
+  })
+
+  it('sin techo, suben todos los activos', () => {
+    const tienda = [{ cost: 10, active: true }, { cost: 20, active: false }]
+    expect(premiosQueSuben(tienda, 0)).toHaveLength(1)
   })
 })
