@@ -31,6 +31,7 @@ modo peque, la capa de producción y la gestión de miembros.
 | Cosa | Dónde |
 |---|---|
 | Web | https://drraulferrer.github.io/el-gremio/ |
+| Exposición pública | https://drraulferrer.github.io/el-gremio/narrativa/ |
 | Repo (público) | https://github.com/drraulferrer/el-gremio |
 | Código local | `~/el-gremio` |
 | Supabase | proyecto `chfbrawsoulfiywiqhpe`, Postgres 17.6, región EU |
@@ -634,6 +635,35 @@ carácter chino colado («完 Completo»), corregido; el backend simulado no
 tenía el `grant_manual_bonus` de la 014, así que el premio a mano no se
 podía probar en demo; y las insignias son **16**, no 17 como decía este
 documento.
+
+---
+
+## 7d. La exposición pública (15 de agosto, noche)
+
+`public/narrativa/index.html`: una página estática autocontenida que
+cuenta el sistema entero —el problema, las ocho habilidades, el bucle del
+día, el elogio como control, la economía con sus cifras medidas, la
+pantalla de la peque, las temporadas, los siete principios, las seis
+referencias, las ausencias deliberadas y una comparativa con BusyKid,
+Greenlight, Homey, OurHome, Habitica y Sweepy.
+
+Vive en `public/` y **no** en el bundle a propósito: no necesita React ni
+sesión, así que se puede pasar a alguien de fuera sin que entre en el
+gremio. Enlazada desde ⚙️ → Evidencia con `BASE_URL`, igual que el QR.
+
+Tres cosas que conviene saber si se toca:
+
+- **Las fuentes van incrustadas como data-URI** (subconjunto latino de
+  Fredoka y Nunito, ~90 KB). No es capricho: sin CDN la página se sostiene
+  sola, y sirve igual dentro de un Artifact con CSP estricta. El fichero
+  pesa 149 KB en total.
+- **La luz ambiental usa `radial-gradient`, nunca `filter: blur()` en
+  movimiento.** Es la misma lección que costó cara en la app (§4).
+- **Un solo tema, el nocturno, y declarado explícitamente.** No hay bloque
+  `prefers-color-scheme`: una versión clara sería otro producto.
+
+El fuente con marcadores de fuente está en `~/el-gremio-narrativa/`, junto
+al `.b64` de cada tipografía.
 
 ---
 
