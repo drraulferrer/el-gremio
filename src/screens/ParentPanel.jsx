@@ -26,7 +26,10 @@ export default function ParentPanel({ family, data, refresh, refreshFamily, onVe
     setAviso('')
     const { ok, mensaje } = await resolverMisionRemota(id, estado, elogio)
     if (ok) await refresh()
-    else setAviso(mensaje || 'No se pudo validar la misión.')
+    // Puede salir bien y traer aviso: es el caso de la base sin migrar,
+    // donde la misión se valida pero el elogio se queda por el camino.
+    if (mensaje) setAviso(mensaje)
+    else if (!ok) setAviso('No se pudo validar la misión.')
   }
 
   async function resolverCanje(id, estado) {

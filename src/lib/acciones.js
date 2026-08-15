@@ -78,25 +78,53 @@ export async function estrellaInmediata({ family, profile, reto }) {
  */
 export async function resolverMision(id, estado, elogio = '') {
   const requestId = nuevoRequestId()
-  const { error, mensaje } = await operacion(
+  const texto = elogio ? String(elogio).trim().slice(0, 240) : null
+
+  const intento = await operacion(
     'mision.resuelta.error',
-    () =>
-      supabase.rpc('resolve_completion', {
-        c_id: id,
-        new_status: estado,
-        praise_text: elogio ? String(elogio).trim().slice(0, 240) : null
-      }),
+    () => supabase.rpc('resolve_completion', { c_id: id, new_status: estado, praise_text: texto }),
     { request_id: requestId, completion_id: id, estado }
   )
-  if (!error) {
+
+  if (!intento.error) {
     log.info('mision.resuelta', {
       request_id: requestId,
       completion_id: id,
       estado,
-      con_elogio: Boolean(elogio && elogio.trim())
+      con_elogio: Boolean(texto)
     })
+    return { ok: true, mensaje: '' }
   }
-  return { ok: !error, mensaje }
+
+  // Salvavidas para el desfase de esquema: si la base todavía tiene la
+  // versión de dos argumentos de resolve_completion (falta la migración
+  // 004), Postgres devuelve PGRST202 y no encuentra la función. Antes de
+  // dejar a nadie sin poder validar, se reintenta sin elogio y se avisa.
+  const faltaFuncion =
+    intento.error?.code === 'PGRST202' || /resolve_completion\(.*praise_text/i.test(intento.error?.message || '')
+
+  if (!faltaFuncion) return { ok: false, mensaje: intento.mensaje }
+
+  log.warn('mision.resuelta.sin_elogio', {
+    request_id: requestId,
+    completion_id: id,
+    motivo: 'falta migracion-004 en la base'
+  })
+
+  const reintento = await operacion(
+    'mision.resuelta.error',
+    () => supabase.rpc('resolve_completion', { c_id: id, new_status: estado }),
+    { request_id: requestId, completion_id: id, estado, sin_elogio: true }
+  )
+
+  if (reintento.error) return { ok: false, mensaje: reintento.mensaje }
+
+  return {
+    ok: true,
+    mensaje: texto
+      ? 'Validada, pero el elogio no se ha guardado: falta ejecutar migracion-004-habilidades.sql en Supabase.'
+      : ''
+  }
 }
 
 /** Canjea un premio. Devuelve además el motivo cuando no se puede. */
