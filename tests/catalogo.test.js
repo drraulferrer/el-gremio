@@ -53,7 +53,7 @@ const PREMIOS_FUENTE = {
     'Elegir la excursión', 'Elegir el menú del viernes'],
   2: ['Cocinar juntos', 'Dormir en un fuerte de mantas', 'Noche de juegos', 'Picnic', 'Cine', 'Helado',
     'Ir a la piscina', 'Excursión especial'],
-  3: ['Elegir una actividad de fin de semana', 'Ir al parque de aventuras', 'Escalada', 'Bolera', 'Acampada',
+  3: ['Elegir una actividad de fin de semana', 'Ir al parque de aventuras', 'Ir a comer fuera', 'Bolera', 'Acampada',
     'Museo a elegir', 'Noche especial con uno de los padres']
 }
 

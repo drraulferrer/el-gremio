@@ -1899,3 +1899,34 @@ code { background: var(--tablero-hondo); padding: 2px 6px; border-radius: 6px; f
   text-align: left;
   cursor: pointer;
 }
+
+/* Historial semanal. Una línea por misión, con el día delante: se lee en
+   diagonal, que es como se lee un historial. */
+.fila-historial {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 0;
+  border-top: 1px solid var(--linea);
+  font-size: 0.93rem;
+}
+
+.fila-historial:first-of-type { border-top: none; }
+
+.hist-dia {
+  min-width: 38px;
+  color: var(--tinta-suave);
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+  padding-top: 2px;
+}
+
+.hist-emoji { font-size: 1.15rem; line-height: 1.3; }
+
+.hist-elogio {
+  margin: 3px 0 0;
+  color: var(--tinta-suave);
+  font-size: 0.85rem;
+  font-style: italic;
+  line-height: 1.35;
+}

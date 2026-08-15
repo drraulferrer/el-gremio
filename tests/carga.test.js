@@ -33,22 +33,26 @@ describe('los topes caben en el presupuesto del modelo', () => {
 })
 
 describe('revisión y aviso', () => {
-  it('cinco diarias justas no avisan', () => {
-    expect(revisarCarga(n(5, 'diario')).excedida).toBe(false)
-    expect(avisoDeCarga(n(5, 'diario'))).toBe(null)
+  it('siete diarias justas no avisan: es el tope pedido por la familia', () => {
+    expect(revisarCarga(n(7, 'diario')).excedida).toBe(false)
+    expect(avisoDeCarga(n(7, 'diario'))).toBe(null)
   })
 
   it('doce diarias avisan y dicen cuánto se pasan', () => {
     const aviso = avisoDeCarga(n(12, 'diario'), 'Irene')
     expect(aviso).not.toBe(null)
-    expect(aviso.razon).toBeCloseTo(2.4)
+    expect(aviso.razon).toBeCloseTo(1.5)
     expect(aviso.texto).toMatch(/Irene/)
     expect(aviso.texto).toMatch(/12 diarias/)
-    expect(aviso.texto).toMatch(/máximo 4/)
+    expect(aviso.texto).toMatch(/máximo 7/)
   })
 
   it('muchas semanales solas también pueden pasarse', () => {
-    expect(revisarCarga(n(40, 'semanal')).excedida).toBe(true)
+    // 40 semanales pesan 5,7 y ya no bastan: el presupuesto subió a 8 al
+    // permitir 7 diarias. Hacen falta más de 56 para desbordarlo solo con
+    // semanales, que es justo el punto de medir la carga y no el número.
+    expect(revisarCarga(n(40, 'semanal')).excedida).toBe(false)
+    expect(revisarCarga(n(60, 'semanal')).excedida).toBe(true)
   })
 
   it('el aviso nombra las frecuencias pasadas, no todas', () => {

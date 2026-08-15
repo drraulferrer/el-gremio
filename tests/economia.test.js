@@ -65,10 +65,24 @@ describe('los precios del catálogo respetan su banda', () => {
     })
   }
 
-  it('la banda declarada en NIVELES coincide con la que deriva el modelo', () => {
+  it('la banda declarada en NIVELES cabe dentro de la que deriva el modelo', () => {
+    // Igualdad exacta no vale desde que las cadencias son 15/30/45: con 30
+    // y 45 días tan cerca, las bandas del modelo SE SOLAPAN (el suelo del
+    // nivel 3 cae por debajo del techo del 2). Lo que hay que garantizar
+    // es que la banda declarada no se salga de la del modelo, y que los
+    // niveles no se pisen: el 3 nunca puede costar menos que el 2.
     for (const nivel of [1, 2, 3]) {
-      expect(NIVELES[nivel].coste, `nivel ${nivel}`).toEqual(bandaDePrecio(nivel))
+      const [lo, hi] = bandaDePrecio(nivel)
+      const [dLo, dHi] = NIVELES[nivel].coste
+      expect(dLo, `nivel ${nivel} suelo`).toBeGreaterThanOrEqual(lo)
+      expect(dHi, `nivel ${nivel} techo`).toBeLessThanOrEqual(hi)
+      expect(dLo).toBeLessThan(dHi)
     }
+  })
+
+  it('las bandas declaradas no se pisan entre niveles', () => {
+    expect(NIVELES[2].coste[0]).toBeGreaterThan(NIVELES[1].coste[1])
+    expect(NIVELES[3].coste[0]).toBeGreaterThan(NIVELES[2].coste[1])
   })
 
   it('cada nivel cae en su cadencia, ±50 %', () => {

@@ -5,6 +5,7 @@ import { Gema, XPBar, Moneda, Celebracion, Pestana } from '../components/ui'
 import { HABILIDADES, habilidad, xpPorHabilidad, rangoDeHabilidad, habilidadDominante } from '../lib/habilidades'
 import { flex, generoDe } from '../lib/genero'
 import { misionesDe, agruparPorFrecuencia } from '../lib/misiones'
+import { semana, etiquetaDeSemana, validadasDe, resumenDeSemana, semanasConDatos } from '../lib/historial'
 
 export default function Home({ family, data, profile, refresh, onSwitchProfile, onParent }) {
   const genero = generoDe(profile)
@@ -307,6 +308,15 @@ function Tienda({ data, profile, ocupado, onCanjear }) {
 }
 
 function Progreso({ data, profile, genero }) {
+  // El historial va por semanas y no en una lista infinita: una lista que
+  // solo crece deja de leerse al mes. Nada se archiva de verdad —los datos
+  // siguen en la base—, solo sale de la vista.
+  const [atras, setAtras] = useState(0)
+  const rango = semana(new Date(), atras)
+  const validadas = validadasDe(data.completions, profile.id, rango)
+  const resumen = resumenDeSemana(validadas)
+  const tope = semanasConDatos(data.completions, profile.id)
+
   const mias = new Set(data.badges.filter((b) => b.profile_id === profile.id).map((b) => b.code))
   const porHabilidad = xpPorHabilidad(profile.id, data.completions, data.challenges)
   const dominante = habilidadDominante(porHabilidad)
@@ -347,6 +357,57 @@ function Progreso({ data, profile, genero }) {
             </div>
           )
         })}
+      </div>
+
+      <div className="titulo-seccion">Lo que has hecho</div>
+
+      <div className="carta">
+        <div className="fila-separada" style={{ marginBottom: 10 }}>
+          <button
+            className="btn btn-fantasma btn-mini"
+            onClick={() => setAtras(atras + 1)}
+            disabled={atras >= tope}
+            aria-label="Semana anterior"
+          >
+            ‹
+          </button>
+          <strong style={{ fontSize: '0.95rem' }}>{etiquetaDeSemana(rango)}</strong>
+          <button
+            className="btn btn-fantasma btn-mini"
+            onClick={() => setAtras(Math.max(0, atras - 1))}
+            disabled={atras === 0}
+            aria-label="Semana siguiente"
+          >
+            ›
+          </button>
+        </div>
+
+        {resumen.misiones === 0 ? (
+          <div className="vacio" style={{ margin: 0 }}>
+            {atras === 0 ? 'Todavía no hay nada validado esta semana.' : 'Esa semana no hubo nada.'}
+          </div>
+        ) : (
+          <>
+            <div className="suave" style={{ marginBottom: 10 }}>
+              {resumen.misiones} {resumen.misiones === 1 ? 'misión' : 'misiones'} · {resumen.xp} XP · {resumen.monedas} 🪙
+            </div>
+            {validadas.map((c) => {
+              const ch = data.challenges.find((x) => x.id === c.challenge_id)
+              const dia = new Date(c.resolved_at)
+              return (
+                <div className="fila-historial" key={c.id}>
+                  <span className="hist-dia">{dia.getDate()}/{dia.getMonth() + 1}</span>
+                  <span className="hist-emoji">{ch?.emoji || '✅'}</span>
+                  <div className="crece">
+                    <div>{flex(ch?.title, genero) || 'Misión'}</div>
+                    {c.praise && <p className="hist-elogio">“{c.praise}”</p>}
+                  </div>
+                  <span className="suave" style={{ fontSize: '0.8rem' }}>+{c.xp}</span>
+                </div>
+              )
+            })}
+          </>
+        )}
       </div>
 
       <div className="titulo-seccion">Insignias · {mias.size} de {BADGES.length}</div>

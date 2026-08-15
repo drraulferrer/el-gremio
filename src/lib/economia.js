@@ -25,9 +25,16 @@ export const SUPUESTOS = {
   // debería estar calculado para que haga falta. 60 % es lo que se
   // sostiene en una casa normal.
   adherencia: 0.6,
-  // Misiones activas por persona. Coincide con el consejo de la
-  // Biblioteca: de 3 a 6, y 5 en medio.
-  misionesActivas: 5,
+  // Presupuesto de carga por persona, en misiones-diarias equivalentes.
+  // Subido de 5 a 8 el 15-ago-2026: la familia quiere 6-7 diarias porque
+  // con cuatro se quedaban fuera cosas que sí hay que tener en cuenta a
+  // diario. El número no es libre: es exactamente lo que hace falta para
+  // que quepan los TOPES de abajo (7 + 5/7 + 8/30 = 7,98).
+  //
+  // Subir el presupuesto SUBE los precios en la misma proporción: si se
+  // gana un 60 % más al día, un premio que debe caer cada 30 días tiene
+  // que costar un 60 % más. Lo contrario sería regalar la tienda.
+  misionesActivas: 8,
   // Cada cuántos días debería caer un premio de cada nivel. Decisión de
   // la familia (15-ago-2026), bastante más espaciada que la original
   // (2/7/30): con premios cada dos días la tienda se convierte en una
@@ -163,10 +170,10 @@ export function veredicto(dias, objetivo) {
 // equivalentes, y ahí el presupuesto es el mismo 5 del modelo.
 //
 // De ese presupuesto salen los topes por frecuencia, repartidos para que
-// sumados quepan dentro (4 + 5/7 + 8/30 = 4,98):
+// sumados quepan dentro (7 + 5/7 + 8/30 = 7,98):
 // ------------------------------------------------------------------
 
-export const TOPES = { diario: 4, semanal: 5, mensual: 8, unico: Infinity }
+export const TOPES = { diario: 7, semanal: 5, mensual: 8, unico: Infinity }
 
 /** Cuánto pesa cada frecuencia en misiones-diarias equivalentes. */
 export const PESO_FRECUENCIA = { diario: 1, semanal: 1 / 7, mensual: 1 / 30, unico: 0 }
