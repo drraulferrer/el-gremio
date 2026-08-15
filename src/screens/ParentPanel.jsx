@@ -3,7 +3,8 @@ import { supabase, canDo, goalProgress, TEMPLATES, ROLE_LABEL, FREQ_LABEL, mensa
 import { CASA, DEFAULTS_ROL } from '../lib/tareas'
 import { resolverMision as resolverMisionRemota, resolverCanje as resolverCanjeRemoto, estrellaInmediata } from '../lib/acciones'
 import { perfilesActivos } from '../lib/miembros'
-import { Modal, Celebracion } from '../components/ui'
+import { Modal, Celebracion, Pestana } from '../components/ui'
+import Icono from '../components/Icono'
 import Ajustes from './Ajustes'
 
 export default function ParentPanel({ family, data, refresh, refreshFamily, onExit }) {
@@ -38,17 +39,21 @@ export default function ParentPanel({ family, data, refresh, refreshFamily, onEx
       {celeb && <Celebracion emoji={celeb.emoji} texto={celeb.texto} onDone={() => setCeleb(null)} />}
 
       <div className="fila-separada" style={{ marginBottom: 12 }}>
-        <h2>🔒 Panel parental</h2>
+        <h2 className="titulo-panel">
+          <Icono nombre="candado" tamano={20} /> Panel parental
+        </h2>
         <div className="fila">
           <button
-            className="btn-icono"
-            aria-label="Miembros y estado del sistema"
-            title="Miembros y estado del sistema"
+            className={'btn-icono' + (tab === 'ajustes' ? ' activo' : '')}
+            aria-label="Miembros y ajustes"
+            title="Miembros y ajustes"
             onClick={() => setTab(tab === 'ajustes' ? 'pendientes' : 'ajustes')}
           >
-            ⚙️
+            <Icono nombre="ajustes" />
           </button>
-          <button className="btn btn-fantasma btn-mini" onClick={onExit}>Salir</button>
+          <button className="btn btn-fantasma btn-mini" onClick={onExit}>
+            <Icono nombre="salir" tamano={18} /> Salir
+          </button>
         </div>
       </div>
 
@@ -71,8 +76,17 @@ export default function ParentPanel({ family, data, refresh, refreshFamily, onEx
                   </div>
                 </div>
                 <div className="fila">
-                  <button className="btn btn-exito btn-mini crece" onClick={() => resolverMision(c.id, 'aprobado')}>✓ Validar</button>
-                  <button className="btn btn-peligro btn-mini" onClick={() => resolverMision(c.id, 'rechazado')}>✕</button>
+                  <button className="btn btn-exito btn-mini crece" onClick={() => resolverMision(c.id, 'aprobado')}>
+                    <Icono nombre="validar" tamano={19} /> Validar
+                  </button>
+                  <button
+                    className="btn btn-peligro btn-mini"
+                    onClick={() => resolverMision(c.id, 'rechazado')}
+                    aria-label={`Rechazar ${ch?.title || 'la misión'} de ${p?.name || ''}`}
+                    title="Rechazar"
+                  >
+                    <Icono nombre="cerrar" tamano={19} />
+                  </button>
                 </div>
               </div>
             )
@@ -93,7 +107,9 @@ export default function ParentPanel({ family, data, refresh, refreshFamily, onEx
                   </div>
                 </div>
                 <div className="fila">
-                  <button className="btn btn-exito btn-mini crece" onClick={() => resolverCanje(r.id, 'entregado')}>🎁 Entregado</button>
+                  <button className="btn btn-exito btn-mini crece" onClick={() => resolverCanje(r.id, 'entregado')}>
+                    <Icono nombre="premio" tamano={19} /> Entregado
+                  </button>
                   <button className="btn btn-fantasma btn-mini" onClick={() => resolverCanje(r.id, 'cancelado')}>Devolver 🪙</button>
                 </div>
               </div>
@@ -110,22 +126,18 @@ export default function ParentPanel({ family, data, refresh, refreshFamily, onEx
         <Ajustes family={family} data={data} refresh={refresh} refreshFamily={refreshFamily} />
       )}
 
-      <nav className="tabbar">
-        <button className={'tab' + (tab === 'pendientes' ? ' activa' : '')} onClick={() => setTab('pendientes')}>
-          <span className="tab-emoji">✅</span>{numPendientes > 0 ? `Validar (${numPendientes})` : 'Validar'}
-        </button>
-        <button className={'tab' + (tab === 'peque' ? ' activa' : '')} onClick={() => setTab('peque')}>
-          <span className="tab-emoji">⭐</span>Peque
-        </button>
-        <button className={'tab' + (tab === 'misiones' ? ' activa' : '')} onClick={() => setTab('misiones')}>
-          <span className="tab-emoji">⚔️</span>Misiones
-        </button>
-        <button className={'tab' + (tab === 'premios' ? ' activa' : '')} onClick={() => setTab('premios')}>
-          <span className="tab-emoji">🎁</span>Premios
-        </button>
-        <button className={'tab' + (tab === 'meta' ? ' activa' : '')} onClick={() => setTab('meta')}>
-          <span className="tab-emoji">🏰</span>Meta
-        </button>
+      <nav className="tabbar" aria-label="Secciones del panel">
+        <Pestana
+          icono="validar"
+          etiqueta="Validar"
+          aviso={numPendientes}
+          activa={tab === 'pendientes'}
+          onClick={() => setTab('pendientes')}
+        />
+        <Pestana icono="estrella" etiqueta="Peque" activa={tab === 'peque'} onClick={() => setTab('peque')} />
+        <Pestana icono="misiones" etiqueta="Misiones" activa={tab === 'misiones'} onClick={() => setTab('misiones')} />
+        <Pestana icono="premio" etiqueta="Premios" activa={tab === 'premios'} onClick={() => setTab('premios')} />
+        <Pestana icono="meta" etiqueta="Meta" activa={tab === 'meta'} onClick={() => setTab('meta')} />
       </nav>
     </div>
   )
@@ -264,9 +276,11 @@ function GestionMisiones({ family, data, refresh }) {
               <div className="suave">{nombreDe(ch.profile_id)} · +{ch.xp} XP · +{ch.coins} 🪙 · {FREQ_LABEL[ch.frequency]}</div>
             </div>
             <button className="btn-icono" onClick={() => alternar(ch)} aria-label={ch.active ? 'Pausar' : 'Activar'}>
-              {ch.active ? '⏸' : '▶️'}
+              <Icono nombre={ch.active ? 'pausar' : 'reanudar'} />
             </button>
-            <button className="btn-icono" onClick={() => setEditando(ch)} aria-label="Editar">✏️</button>
+            <button className="btn-icono" onClick={() => setEditando(ch)} aria-label={`Editar ${ch.title}`}>
+              <Icono nombre="editar" />
+            </button>
           </div>
         </div>
       ))}
@@ -523,9 +537,11 @@ function GestionPremios({ family, data, refresh }) {
               <div className="suave">{r.cost} 🪙</div>
             </div>
             <button className="btn-icono" onClick={() => alternar(r)} aria-label={r.active ? 'Pausar' : 'Activar'}>
-              {r.active ? '⏸' : '▶️'}
+              <Icono nombre={r.active ? 'pausar' : 'reanudar'} />
             </button>
-            <button className="btn-icono" onClick={() => setEditando(r)} aria-label="Editar">✏️</button>
+            <button className="btn-icono" onClick={() => setEditando(r)} aria-label={`Editar ${r.title}`}>
+              <Icono nombre="editar" />
+            </button>
           </div>
         </div>
       ))}

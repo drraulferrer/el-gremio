@@ -218,6 +218,7 @@ export default function App() {
 
   return (
     <div>
+      <div className="velo-superior" aria-hidden="true" />
       {profile ? (
         <Home
           family={family}

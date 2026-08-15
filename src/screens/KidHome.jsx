@@ -3,6 +3,7 @@ import { canDo, dayKey } from '../lib/supabase'
 import { estrellaInmediata } from '../lib/acciones'
 import { tocarEstrella, sonidoActivo, alternarSonido } from '../lib/sonido'
 import { log } from '../lib/log'
+import Icono from '../components/Icono'
 
 // ------------------------------------------------------------------
 // Pantalla de la peque (3 años).
@@ -118,7 +119,7 @@ function BotonSonido({ activo, onCambiar }) {
       aria-label={activo ? 'Silenciar' : 'Activar sonido'}
       title={activo ? 'Silenciar' : 'Activar sonido'}
     >
-      {activo ? '🔊' : '🔇'}
+      <Icono nombre={activo ? 'sonido' : 'silencio'} tamano={24} />
     </button>
   )
 }

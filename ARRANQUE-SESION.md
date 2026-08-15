@@ -160,6 +160,12 @@ Verificado **en navegador**, no solo compilando:
   ya no abre el panel y el nuevo sí **sin recargar la página**.
 - Los dos QR (el de la app y el imprimible) decodificados con
   `BarcodeDetector`: devuelven exactamente la URL esperada.
+- Zonas seguras simuladas (iPhone 15 Pro vertical 59/34 px, horizontal
+  59 px laterales, Android 24/24): ningún contenido bajo la barra de
+  estado ni bajo el indicador de inicio, en las cinco pantallas.
+- 360, 375, 834 y 844×390 px sin scroll horizontal; ningún objetivo
+  táctil por debajo de 44 pt; rótulos de pestaña en una sola línea.
+- Contraste medido en 13 pares de color: todos por encima de 4,5:1.
 - Build servida bajo `/el-gremio/` con las rutas correctas.
 - RLS real: escritura anónima rechazada con `42501`.
 
@@ -178,6 +184,15 @@ Verificado **en navegador**, no solo compilando:
 - **Sin modo offline.** Sin red la app no funciona.
 - Los emoji del selector de miembros son una lista fija en `EMOJIS`
   (`src/lib/supabase.js`); si alguien quiere otro, hay que añadirlo ahí.
+- **No se ha podido probar en un iPhone real**: este Mac no tiene Xcode
+  completo, así que el simulador de iOS no arranca. Las zonas seguras se
+  verificaron simulando los insets en Chrome, lo que cubre la geometría
+  pero no el render real de la barra de estado. Para probarlo de verdad:
+  instalar Xcode y `sudo xcode-select -s /Applications/Xcode.app/Contents/Developer`.
+- **El orden importa en `styles.css`**: las reglas de `@media` para el
+  modo peque tienen que ir DESPUÉS de las reglas base, porque comparten
+  especificidad y gana la última. Ya se coló un bug así con la altura de
+  las baldosas en horizontal.
 
 ---
 

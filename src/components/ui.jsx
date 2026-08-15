@@ -1,5 +1,26 @@
 import { useEffect, useState } from 'react'
 import { levelProgress, hashPin } from '../lib/supabase'
+import Icono from './Icono'
+
+/**
+ * Pestaña de la barra inferior. Icono + rótulo siempre: una barra de solo
+ * iconos obliga a adivinar, y el estado activo se marca con fondo, color
+ * y pastilla, nunca solo con color.
+ */
+export function Pestana({ icono, etiqueta, activa = false, onClick, aviso }) {
+  return (
+    <button
+      className={'tab' + (activa ? ' activa' : '')}
+      onClick={onClick}
+      aria-current={activa ? 'page' : undefined}
+      aria-label={aviso ? `${etiqueta}, ${aviso} pendientes` : etiqueta}
+    >
+      <Icono nombre={icono} className="tab-icono" />
+      <span className="tab-etiqueta">{etiqueta}</span>
+      {aviso > 0 && <span className="tab-aviso" aria-hidden="true">{aviso}</span>}
+    </button>
+  )
+}
 
 export function Gema({ xp, color, mini = false }) {
   const { level } = levelProgress(xp)
@@ -40,7 +61,9 @@ export function Modal({ titulo, onClose, children }) {
       <div className="modal" onClick={(e) => e.stopPropagation()}>
         <div className="fila-separada" style={{ marginBottom: 12 }}>
           <h3>{titulo}</h3>
-          <button className="btn-icono" onClick={onClose} aria-label="Cerrar">✕</button>
+          <button className="btn-icono" onClick={onClose} aria-label="Cerrar">
+            <Icono nombre="cerrar" />
+          </button>
         </div>
         {children}
       </div>

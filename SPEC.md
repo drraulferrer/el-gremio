@@ -83,6 +83,21 @@ Automáticas (se evalúan en cliente tras cada carga y se insertan con upsert id
 
 ## 7. Diseño
 
+**Zonas seguras (agosto 2026).** `viewport-fit=cover` más
+`apple-mobile-web-app-status-bar-style: black-translucent` hacen que el
+contenido se dibuje bajo la barra de estado y el indicador de inicio. Las
+variables `--sat/--sab/--sal/--sar` devuelven ese espacio y las usan `.app`,
+`.pantalla-centrada`, `.tabbar`, `.modal-fondo`, `.kid` y `.kid-salida`.
+Consecuencia menos evidente: iOS pinta el reloj y la batería **en blanco**
+con ese modo, así que la cabecera de la peque es oscura y va a sangre —
+sobre el papel crema original la hora no se habría leído.
+
+**Iconos.** Los emoji son contenido (misión, premio, avatar) y se quedan;
+los mandos (pestañas, editar, pausar, cerrar, salir) usan SVG propios de
+trazo 1,75 sobre rejilla de 24 (`src/components/Icono.jsx`). Un emoji como
+icono de sistema cambia de forma en cada plataforma y no hereda el color
+del tema.
+
 Tema "tablero nocturno": fondo índigo `#1e2140`, cartas `#292d55`, oro `#f5b841`/`#ffd166` para monedas y acciones, colores de gema por miembro (coral, turquesa, violeta, sol). Tipografías: Fredoka (display) + Nunito (cuerpo). Firma visual: gema facetada con el nivel dentro (clip-path) y barra de XP con pips de rombo. Una sola pieza de movimiento orquestada: la celebración de estrellas. `prefers-reduced-motion` respetado. Objetivos táctiles de 48 px o más.
 
 ## 8. Riesgo principal y contramedidas

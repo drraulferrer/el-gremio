@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { canDo, dayKey, goalProgress, levelProgress, BADGES, FREQ_LABEL } from '../lib/supabase'
 import { pedirMision as pedirMisionRemota, canjearPremio } from '../lib/acciones'
-import { Gema, XPBar, Moneda, Celebracion } from '../components/ui'
+import { Gema, XPBar, Moneda, Celebracion, Pestana } from '../components/ui'
 
 export default function Home({ family, data, profile, refresh, onSwitchProfile, onParent }) {
   const [tab, setTab] = useState('misiones')
@@ -113,22 +113,12 @@ export default function Home({ family, data, profile, refresh, onSwitchProfile, 
 
       {tab === 'insignias' && <Insignias data={data} profile={profile} />}
 
-      <nav className="tabbar">
-        <button className={'tab' + (tab === 'misiones' ? ' activa' : '')} onClick={() => setTab('misiones')}>
-          <span className="tab-emoji">⚔️</span>Misiones
-        </button>
-        <button className={'tab' + (tab === 'tienda' ? ' activa' : '')} onClick={() => setTab('tienda')}>
-          <span className="tab-emoji">🛍️</span>Tienda
-        </button>
-        <button className={'tab' + (tab === 'insignias' ? ' activa' : '')} onClick={() => setTab('insignias')}>
-          <span className="tab-emoji">🏅</span>Insignias
-        </button>
-        <button className="tab" onClick={onSwitchProfile}>
-          <span className="tab-emoji">👥</span>Cambiar
-        </button>
-        <button className="tab" onClick={onParent}>
-          <span className="tab-emoji">🔒</span>Panel
-        </button>
+      <nav className="tabbar" aria-label="Secciones">
+        <Pestana icono="misiones" etiqueta="Misiones" activa={tab === 'misiones'} onClick={() => setTab('misiones')} />
+        <Pestana icono="tienda" etiqueta="Tienda" activa={tab === 'tienda'} onClick={() => setTab('tienda')} />
+        <Pestana icono="insignias" etiqueta="Insignias" activa={tab === 'insignias'} onClick={() => setTab('insignias')} />
+        <Pestana icono="perfiles" etiqueta="Cambiar" onClick={onSwitchProfile} />
+        <Pestana icono="candado" etiqueta="Panel" onClick={onParent} />
       </nav>
     </div>
   )
@@ -147,20 +137,22 @@ function Misiones({ data, profile, ocupado, onPedir, misPendientes, misAprobadas
       {disponibles.length === 0 && (
         <div className="vacio">No queda ninguna por hoy. Las nuevas misiones se crean en el panel parental.</div>
       )}
-      {disponibles.map((ch) => (
-        <div className="carta" key={ch.id}>
-          <div className="fila">
-            <div className="avatar">{ch.emoji}</div>
-            <div className="crece">
-              <strong>{ch.title}</strong>
-              <div className="suave">+{ch.xp} XP · +{ch.coins} 🪙 · {FREQ_LABEL[ch.frequency]}</div>
+      <div className="lista-misiones">
+        {disponibles.map((ch) => (
+          <div className="carta" key={ch.id}>
+            <div className="fila">
+              <div className="avatar">{ch.emoji}</div>
+              <div className="crece">
+                <strong>{ch.title}</strong>
+                <div className="suave">+{ch.xp} XP · +{ch.coins} 🪙 · {FREQ_LABEL[ch.frequency]}</div>
+              </div>
+              <button className="btn btn-mini" disabled={ocupado === ch.id} onClick={() => onPedir(ch)}>
+                ¡Hecho!
+              </button>
             </div>
-            <button className="btn btn-mini" disabled={ocupado === ch.id} onClick={() => onPedir(ch)}>
-              ¡Hecho!
-            </button>
           </div>
-        </div>
-      ))}
+        ))}
+      </div>
 
       {misPendientes.length > 0 && (
         <div>
