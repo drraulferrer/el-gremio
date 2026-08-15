@@ -89,6 +89,32 @@ Automáticas (se evalúan en cliente tras cada carga y se insertan con upsert id
 
 ## 7. Diseño
 
+**Cristal líquido (agosto 2026).** El material de iOS 26 no existe en un
+navegador: no hay refracción real ni lente que deforme el fondo. Se
+reproduce lo que sí lo hace reconocible: translucidez con desenfoque y
+saturación del fondo, una línea especular en el borde superior, un filo
+claro alrededor, y **luz ambiental** por detrás (tres manchas de color muy
+desenfocadas y muy lentas) para que haya algo que refractar.
+
+Dos límites deliberados:
+
+- **El desenfoque real se reserva a lo que flota**: barra inferior, hojas,
+  cabeceras, control segmentado y botones de icono. Las tarjetas usan el
+  mismo aspecto sin `backdrop-filter`: veinte tarjetas con desenfoque
+  cuestan cuadros de animación en un móvil y el efecto casi no se aprecia
+  sobre contenido que no se mueve.
+- **La pantalla de la peque no lleva cristal en sus baldosas.** El material
+  vive de dejar ver lo de detrás y ahí hace falta lo contrario: color plano,
+  borde grueso y máximo contraste. Solo su cabecera lo usa, y muy poco
+  translúcida, porque encima se dibuja el reloj del sistema en blanco.
+
+Contraste medido sobre el peor caso (texto secundario en una hoja apoyada
+en la zona más clara del fondo): 4,69:1. La primera versión daba 4,33 y se
+corrigió oscureciendo la superficie de las hojas, no aclarando el texto.
+Con `prefers-reduced-transparency` el material pasa a superficies opacas y
+la luz ambiental desaparece; con `prefers-reduced-motion`, las manchas se
+quedan quietas.
+
 **Zonas seguras (agosto 2026).** `viewport-fit=cover` más
 `apple-mobile-web-app-status-bar-style: black-translucent` hacen que el
 contenido se dibuje bajo la barra de estado y el indicador de inicio. Las

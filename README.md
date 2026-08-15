@@ -213,6 +213,21 @@ botones.
   abonos ni saldos negativos.
 - Los logs nunca guardan email, contraseña, PIN ni tokens.
 
+## Diseño
+
+Tema "tablero nocturno" con **cristal líquido** traducido a la web:
+translucidez con desenfoque del fondo, luz especular en el borde superior
+y color ambiental por detrás para que el material tenga algo que
+refractar. El desenfoque real se reserva a las piezas que flotan (barra,
+hojas, cabeceras); las listas usan el mismo aspecto sin `backdrop-filter`
+para no gastar cuadros de animación en el móvil.
+
+La pantalla de la peque no lleva cristal en sus baldosas a propósito: ahí
+hace falta color plano y máximo contraste, no transparencia.
+
+Respeta `prefers-reduced-transparency` (superficies opacas) y
+`prefers-reduced-motion` (sin deriva de la luz ambiental).
+
 ## Capa de producción
 
 | Pieza | Dónde |

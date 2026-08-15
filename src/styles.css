@@ -37,6 +37,27 @@
   --t-rapido: 160ms;
   --t-medio: 240ms;
 
+  /* ------------------------------------------------------------------
+     Cristal líquido, traducido a la web.
+     El material de iOS 26 no existe en un navegador: no hay refracción
+     real ni lente que deforme lo de detrás. Lo que sí se puede reproducir
+     es lo que de verdad lo hace reconocible:
+       1. dejar ver el fondo, desenfocado y con más saturación;
+       2. una luz especular fina en el borde de arriba;
+       3. un filo claro alrededor;
+       4. color ambiental por detrás para que haya algo que refractar.
+     ------------------------------------------------------------------ */
+  --cristal-fondo: rgba(45, 50, 96, 0.55);
+  /* Un punto más oscuro que el cristal normal, no más claro: es la
+     superficie con más texto encima, y con el tono anterior el texto
+     secundario se quedaba en 4,33:1 al caer sobre una zona clara del
+     fondo. Con este, 4,69 en el peor caso. */
+  --cristal-fondo-alto: rgba(52, 58, 108, 0.72);
+  --cristal-filo: rgba(255, 255, 255, 0.14);
+  --cristal-brillo: rgba(255, 255, 255, 0.26);
+  --cristal-desenfoque: 20px;
+  --cristal-saturacion: 165%;
+
   /* Escala de elevación, para no inventar sombras por el camino. */
   --sombra-1: 0 1px 2px rgba(8, 10, 24, 0.28);
   --sombra-2: 0 6px 18px rgba(8, 10, 24, 0.34);
@@ -108,21 +129,133 @@ button { font-family: inherit; }
   top: 0;
   left: 0;
   right: 0;
-  height: calc(var(--sat) + 6px);
-  background: linear-gradient(180deg, var(--tablero) 55%, rgba(30, 33, 64, 0));
+  height: calc(var(--sat) + 10px);
+  background: linear-gradient(180deg, rgba(30, 33, 64, 0.82), rgba(30, 33, 64, 0));
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  -webkit-mask-image: linear-gradient(180deg, #000 55%, transparent);
+  mask-image: linear-gradient(180deg, #000 55%, transparent);
   pointer-events: none;
   z-index: 50;
+}
+
+/* ------------------------------------------------------------------
+   Luz ambiental.
+   Sin nada de color detrás, un cristal solo enseña gris: no hay nada que
+   refractar. Estas manchas lentas son las que hacen que el material
+   cambie de tono al desplazarse por encima.
+   ------------------------------------------------------------------ */
+
+.ambiente {
+  position: fixed;
+  inset: -20%;
+  z-index: -1;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.ambiente span {
+  position: absolute;
+  display: block;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.5;
+  will-change: transform;
+}
+
+.ambiente span:nth-child(1) {
+  width: 46vmax; height: 46vmax; left: -8vmax; top: -6vmax;
+  background: #4a3f9e;
+  animation: derivar-a 34s ease-in-out infinite alternate;
+}
+.ambiente span:nth-child(2) {
+  width: 38vmax; height: 38vmax; right: -10vmax; top: 18vmax;
+  background: #2f6f8f;
+  animation: derivar-b 41s ease-in-out infinite alternate;
+}
+.ambiente span:nth-child(3) {
+  width: 30vmax; height: 30vmax; left: 22vmax; bottom: -10vmax;
+  background: #8a5a2b;
+  opacity: 0.32;
+  animation: derivar-c 47s ease-in-out infinite alternate;
+}
+
+@keyframes derivar-a { to { transform: translate3d(12vmax, 8vmax, 0) scale(1.15); } }
+@keyframes derivar-b { to { transform: translate3d(-10vmax, 12vmax, 0) scale(1.1); } }
+@keyframes derivar-c { to { transform: translate3d(8vmax, -10vmax, 0) scale(1.2); } }
+
+/* ------------------------------------------------------------------
+   El material.
+   `.cristal` lleva desenfoque de fondo de verdad y se reserva para las
+   piezas que flotan por encima del contenido: barra, hojas, cabeceras.
+   `.cristal-ligero` es el mismo aspecto sin desenfoque, para las listas:
+   veinte tarjetas con backdrop-filter cuestan cuadros de animación en un
+   móvil, y el efecto apenas se aprecia sobre contenido que no se mueve.
+   ------------------------------------------------------------------ */
+
+.cristal,
+.cristal-ligero {
+  position: relative;
+  background: var(--cristal-fondo);
+  border: 1px solid var(--cristal-filo);
+  /* La línea clara de arriba es la luz especular; sin ella el material
+     parece plástico traslúcido en vez de cristal. */
+  box-shadow: var(--sombra-2), inset 0 1px 0 var(--cristal-brillo);
+}
+
+.cristal {
+  backdrop-filter: blur(var(--cristal-desenfoque)) saturate(var(--cristal-saturacion));
+  -webkit-backdrop-filter: blur(var(--cristal-desenfoque)) saturate(var(--cristal-saturacion));
+}
+
+/* Reflejo suave en la mitad superior, como el que deja una fuente de luz. */
+.cristal::after,
+.cristal-ligero::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0) 55%);
+}
+
+/* Quien pide menos transparencia recibe superficies sólidas: el material
+   deja de ser cristal y pasa a ser una carta opaca, sin perder jerarquía. */
+@media (prefers-reduced-transparency: reduce) {
+  .cristal,
+  .cristal-ligero {
+    background: var(--carta);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+  .cristal::after,
+  .cristal-ligero::after { display: none; }
+  .ambiente { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ambiente span { animation: none; }
 }
 
 /* ---------------- tarjetas y listas ---------------- */
 
 .carta {
-  background: var(--carta);
-  border: 1px solid var(--linea);
+  position: relative;
+  background: var(--cristal-fondo);
+  border: 1px solid var(--cristal-filo);
   border-radius: var(--radio);
   padding: 14px;
   margin-bottom: 12px;
-  box-shadow: var(--sombra-1);
+  box-shadow: var(--sombra-1), inset 0 1px 0 var(--cristal-brillo);
+}
+
+.carta::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0) 55%);
 }
 
 /* Las misiones entran escalonadas: el desfase de 40 ms hace que la lista
@@ -222,8 +355,11 @@ button { font-family: inherit; }
 .btn-bloque { width: 100%; }
 
 .btn-icono {
-  background: var(--carta-alta);
-  border: 1px solid var(--linea);
+  background: var(--cristal-fondo-alto);
+  backdrop-filter: blur(12px) saturate(var(--cristal-saturacion));
+  -webkit-backdrop-filter: blur(12px) saturate(var(--cristal-saturacion));
+  border: 1px solid var(--cristal-filo);
+  box-shadow: inset 0 1px 0 var(--cristal-brillo);
   color: var(--tinta);
   border-radius: 12px;
   /* 44 pt es el mínimo de Apple para un objetivo táctil. */
@@ -325,11 +461,13 @@ button { font-family: inherit; }
 /* ---------------- meta del gremio ---------------- */
 
 .estandarte {
-  background: linear-gradient(180deg, var(--carta-alta), var(--carta));
-  border: 1px solid var(--linea);
+  position: relative;
+  background: linear-gradient(180deg, var(--cristal-fondo-alto), var(--cristal-fondo));
+  border: 1px solid var(--cristal-filo);
   border-radius: var(--radio);
   padding: 12px 14px;
   margin-bottom: 12px;
+  box-shadow: var(--sombra-1), inset 0 1px 0 var(--cristal-brillo);
 }
 
 .estandarte .xpbar-fill { background: linear-gradient(90deg, #7fb3ff, #a78bfa); }
@@ -346,13 +484,13 @@ button { font-family: inherit; }
   width: min(536px, calc(100vw - 24px - var(--sal) - var(--sar)));
   display: flex;
   gap: 4px;
-  background: rgba(23, 26, 51, 0.86);
-  backdrop-filter: blur(16px) saturate(140%);
-  -webkit-backdrop-filter: blur(16px) saturate(140%);
-  border: 1px solid var(--linea);
+  background: var(--cristal-fondo);
+  backdrop-filter: blur(var(--cristal-desenfoque)) saturate(var(--cristal-saturacion));
+  -webkit-backdrop-filter: blur(var(--cristal-desenfoque)) saturate(var(--cristal-saturacion));
+  border: 1px solid var(--cristal-filo);
   border-radius: 22px;
   padding: 7px;
-  box-shadow: var(--sombra-3);
+  box-shadow: var(--sombra-3), inset 0 1px 0 var(--cristal-brillo);
   z-index: 40;
 }
 
@@ -385,8 +523,9 @@ button { font-family: inherit; }
 .tab-etiqueta { line-height: 1; }
 
 .tab.activa {
-  background: var(--carta-alta);
+  background: var(--cristal-fondo-alto);
   color: var(--tinta);
+  box-shadow: inset 0 1px 0 var(--cristal-brillo);
 }
 
 /* La pestaña activa se marca por color, fondo y una pastilla: nunca solo
@@ -426,11 +565,14 @@ button { font-family: inherit; }
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 6px;
-  background: var(--tablero-hondo);
-  border: 1px solid var(--linea);
+  background: var(--cristal-fondo);
+  backdrop-filter: blur(14px) saturate(var(--cristal-saturacion));
+  -webkit-backdrop-filter: blur(14px) saturate(var(--cristal-saturacion));
+  border: 1px solid var(--cristal-filo);
   border-radius: 16px;
   padding: 5px;
   margin-bottom: 14px;
+  box-shadow: inset 0 1px 0 var(--cristal-brillo);
 }
 
 @media (min-width: 540px) {
@@ -450,7 +592,11 @@ button { font-family: inherit; }
   cursor: pointer;
 }
 
-.segmentos button.activo { background: var(--carta-alta); color: var(--tinta); }
+.segmentos button.activo {
+  background: var(--cristal-fondo-alto);
+  color: var(--tinta);
+  box-shadow: inset 0 1px 0 var(--cristal-brillo);
+}
 
 /* ---------------- QR y alta de dispositivos ---------------- */
 
@@ -521,9 +667,9 @@ input:focus, select:focus, button:focus-visible {
   inset: 0;
   /* Velo opaco de verdad (60 %): por debajo, el fondo compite con el
      contenido de la hoja y se lee peor. */
-  background: rgba(10, 12, 26, 0.66);
-  backdrop-filter: blur(3px);
-  -webkit-backdrop-filter: blur(3px);
+  background: rgba(10, 12, 26, 0.58);
+  backdrop-filter: blur(6px) saturate(120%);
+  -webkit-backdrop-filter: blur(6px) saturate(120%);
   display: flex;
   align-items: flex-end;
   justify-content: center;
@@ -537,11 +683,13 @@ input:focus, select:focus, button:focus-visible {
   max-height: 86dvh;
   overflow-y: auto;
   overscroll-behavior: contain;
-  background: var(--carta);
-  border: 1px solid var(--linea);
+  background: var(--cristal-fondo-alto);
+  backdrop-filter: blur(28px) saturate(var(--cristal-saturacion));
+  -webkit-backdrop-filter: blur(28px) saturate(var(--cristal-saturacion));
+  border: 1px solid var(--cristal-filo);
   border-radius: 24px;
   padding: 18px;
-  box-shadow: var(--sombra-3);
+  box-shadow: var(--sombra-3), inset 0 1px 0 var(--cristal-brillo);
   animation: subir var(--t-medio) var(--ease-salida);
 }
 
@@ -692,11 +840,16 @@ input:focus, select:focus, button:focus-visible {
   display: flex;
   align-items: center;
   gap: 12px;
-  background: linear-gradient(180deg, #3b2f55, var(--kid-borde));
+  /* Cristal, pero muy poco translúcido a propósito: encima se dibuja el
+     reloj del iPhone en blanco, y aquí no se puede negociar el contraste
+     por un efecto. Se queda el brillo del borde y un desenfoque suave. */
+  background: linear-gradient(180deg, rgba(59, 47, 85, 0.94), rgba(47, 36, 64, 0.96));
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  box-shadow: var(--sombra-2), inset 0 1px 0 rgba(255, 246, 229, 0.22);
   color: #fff6e5;
   border-radius: 0 0 30px 30px;
   padding: calc(12px + var(--sat)) max(18px, var(--sal)) 16px max(18px, var(--sar));
-  box-shadow: var(--sombra-2);
   margin-bottom: 18px;
 }
 
@@ -757,6 +910,10 @@ input:focus, select:focus, button:focus-visible {
 }
 
 
+/* Las baldosas NO llevan cristal, y es deliberado. El material vive de
+   dejar ver lo de detrás, y aquí lo que hace falta es justo lo contrario:
+   una figura de color plano, con borde grueso y máximo contraste, que una
+   criatura de tres años reconozca de un vistazo desde medio metro. */
 .kid-boton {
   position: relative;
   min-height: 165px;

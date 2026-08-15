@@ -200,25 +200,28 @@ export default function App() {
 
   if (!configured) return <ConfigError />
   if (session === undefined) return <Cargando />
-  if (!session) return <Login />
+  if (!session) return <><Ambiente /><Login /></>
   if (family === undefined) return <Cargando error={errorCarga} onReintentar={loadFamily} />
-  if (family === null) return <Onboarding onDone={loadFamily} />
+  if (family === null) return <><Ambiente /><Onboarding onDone={loadFamily} /></>
   if (!data) return <Cargando error={errorCarga} onReintentar={loadAll} />
 
   // El tutorial explica POR QUÉ el sistema está hecho así. Se enseña una
   // vez por dispositivo, y siempre se puede volver a abrir desde ⚙️.
-  if (verTutorial) return <Tutorial onCerrar={() => setVerTutorial(false)} />
+  if (verTutorial) return <><Ambiente /><Tutorial onCerrar={() => setVerTutorial(false)} /></>
 
   if (parentMode) {
     return (
-      <ParentPanel
+      <>
+        <Ambiente />
+        <ParentPanel
         family={family}
         data={data}
         refresh={loadAll}
         refreshFamily={loadFamily}
         onVerTutorial={() => { setParentMode(false); setVerTutorial(true) }}
         onExit={() => setParentMode(false)}
-      />
+        />
+      </>
     )
   }
 
@@ -229,6 +232,7 @@ export default function App() {
 
   return (
     <div>
+      <Ambiente />
       <div className="velo-superior" aria-hidden="true" />
       {profile ? (
         <Home
@@ -259,6 +263,23 @@ export default function App() {
           onClose={() => setPidePin(false)}
         />
       )}
+    </div>
+  )
+}
+
+/**
+ * Luz ambiental de fondo. Sin color detrás, un cristal solo enseña gris:
+ * no hay nada que refractar. Tres manchas muy desenfocadas y muy lentas
+ * bastan para que el material cambie de tono al desplazarse por encima.
+ * Se para sola con `prefers-reduced-motion` y desaparece con
+ * `prefers-reduced-transparency`.
+ */
+function Ambiente() {
+  return (
+    <div className="ambiente" aria-hidden="true">
+      <span />
+      <span />
+      <span />
     </div>
   )
 }
