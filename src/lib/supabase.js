@@ -45,18 +45,33 @@ export function mensajeDeError(error) {
  * Ejecuta una operación contra Supabase registrando el resultado.
  * Devuelve { data, error, mensaje } y nunca lanza.
  */
-export async function operacion(evento, fn, campos = {}) {
+/**
+ * Nombre del evento para la línea de éxito.
+ *
+ * Quien llama pasa el nombre del FALLO ('mision.deshecha.error'), que es
+ * el que importa cuando algo va mal. Usarlo tal cual en la línea de éxito
+ * llenaba `app_logs` de filas `*.error` que eran operaciones correctas:
+ * ocho «mision.deshecha.error» resultaron ser ocho deshaceres que
+ * funcionaron. Se distinguían solo por el nivel (`debug` frente a
+ * `error`) y por la ausencia de `detalle`, que es mucho pedirle a quien
+ * mira los logs a las once de la noche.
+ */
+export function eventoDeExito(eventoError) {
+  return eventoError.replace(/[._]error$/, '') + '.ok'
+}
+
+export async function operacion(eventoError, fn, campos = {}) {
   const inicio = Date.now()
   try {
     const { data, error } = await fn()
     if (error) {
-      log.error(evento, { ...campos, ms: Date.now() - inicio, detalle: error })
+      log.error(eventoError, { ...campos, ms: Date.now() - inicio, detalle: error })
       return { data: null, error, mensaje: mensajeDeError(error) }
     }
-    log.debug(evento, { ...campos, ms: Date.now() - inicio })
+    log.debug(eventoDeExito(eventoError), { ...campos, ms: Date.now() - inicio })
     return { data, error: null, mensaje: '' }
   } catch (err) {
-    log.error(evento, { ...campos, ms: Date.now() - inicio, detalle: err })
+    log.error(eventoError, { ...campos, ms: Date.now() - inicio, detalle: err })
     return { data: null, error: err, mensaje: mensajeDeError(err) }
   }
 }

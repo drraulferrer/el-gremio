@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { redactar } from '../src/lib/log'
 import { huella } from '../src/lib/monitoring'
-import { mensajeDeError } from '../src/lib/supabase'
+import { mensajeDeError, eventoDeExito } from '../src/lib/supabase'
 
 describe('redacción de logs', () => {
   it('borra credenciales aunque alguien las pase por descuido', () => {
@@ -112,5 +112,31 @@ describe('errores de PostgREST en el registro', () => {
     const salida = redactar(err)
     expect(salida.password).toBe('[redactado]')
     expect(salida.code).toBe('PGRST301')
+  })
+})
+
+describe('nombre del evento en las operaciones', () => {
+  // Ocho «mision.deshecha.error» resultaron ser ocho deshaceres correctos:
+  // la rama de éxito reutilizaba el nombre del evento de fallo.
+  it('la línea de éxito no se llama como la de fallo', () => {
+    expect(eventoDeExito('mision.deshecha.error')).toBe('mision.deshecha.ok')
+    expect(eventoDeExito('premio.canje.error')).toBe('premio.canje.ok')
+  })
+
+  it('también con el sufijo separado por guion bajo', () => {
+    expect(eventoDeExito('mision.estrella_inmediata.alta_error')).toBe('mision.estrella_inmediata.alta.ok')
+  })
+
+  it('ningún nombre de éxito contiene ya la palabra error', () => {
+    const eventos = [
+      'mision.pedida.error',
+      'mision.resuelta.error',
+      'mision.deshecha.error',
+      'mision.estrella_inmediata.alta_error',
+      'mision.estrella_inmediata.aprobacion_error',
+      'premio.canje.error',
+      'premio.canje_resuelto.error'
+    ]
+    for (const e of eventos) expect(eventoDeExito(e)).not.toMatch(/error/)
   })
 })
