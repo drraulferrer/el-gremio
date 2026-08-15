@@ -9,6 +9,8 @@ import { perfilesActivos, estaActivo } from './lib/miembros'
 import { RELEASE } from './lib/version'
 import { PinModal } from './components/ui'
 import Login from './screens/Login'
+import NuevaClave from './screens/NuevaClave'
+import { esRecuperacion } from './lib/acceso'
 import Onboarding from './screens/Onboarding'
 import ProfilePicker from './screens/ProfilePicker'
 import Home from './screens/Home'
@@ -31,6 +33,12 @@ export default function App() {
   // re-renderizaría: la pantalla se quedaría pegada para siempre.
   const [verTutorial, setVerTutorial] = useState(() => (tutorialPendiente() ? 'todo' : null))
   const [parentMode, setParentMode] = useState(false)
+  // Viene del enlace del correo. Se mira la URL ya en el primer render
+  // además de escuchar el evento: supabase-js consume el hash al arrancar
+  // y puede avisar antes de que esto esté escuchando.
+  const [cambiandoClave, setCambiandoClave] = useState(
+    () => esRecuperacion(window.location.hash, window.location.search)
+  )
 
   // Observabilidad: monitorización de errores globales y destino de logs.
   useEffect(() => {
@@ -48,13 +56,28 @@ export default function App() {
   useEffect(() => {
     if (!configured) return
     supabase.auth.getSession().then(({ data: d }) => setSession(d.session))
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => setSession(s))
+    const { data: sub } = supabase.auth.onAuthStateChange((evento, s) => {
+      setSession(s)
+      // El enlace del correo ABRE SESIÓN. Sin atender este evento, quien
+      // venía a cambiar la contraseña entra en su gremio, lo ve todo
+      // normal y se va sin haberla cambiado.
+      if (evento === 'PASSWORD_RECOVERY') setCambiandoClave(true)
+    })
     return () => sub.subscription.unsubscribe()
   }, [])
 
   // Familia
   const loadFamily = useCallback(async () => {
-    const { data: fams, error } = await supabase.from('families').select('*').limit(1)
+    // Con orden explícito: la migración 017 impide que una cuenta tenga
+    // dos gremios, pero mientras alguna base vieja los tenga, `limit 1`
+    // sin orden abre uno u otro según le parezca a Postgres y la familia
+    // ve su gremio vacío. El más antiguo es siempre el bueno: el segundo
+    // solo puede venir de un alta que se quedó a medias.
+    const { data: fams, error } = await supabase
+      .from('families')
+      .select('*')
+      .order('created_at')
+      .limit(1)
     if (error) {
       capturar(error, { origen: 'loadFamily' })
       setErrorCarga(mensajeDeError(error))
@@ -295,6 +318,10 @@ export default function App() {
   function contenido() {
     if (!configured) return <ConfigError />
     if (session === undefined) return <Cargando />
+    // Va ANTES que el gremio a propósito: quien viene del enlace del
+    // correo tiene que cambiar la contraseña antes de nada, y si se
+    // dibujara después vería su tablero y se le olvidaría.
+    if (session && cambiandoClave) return <NuevaClave onHecho={() => setCambiandoClave(false)} />
     if (!session) return <Login />
     if (family === undefined) return <Cargando error={errorCarga} onReintentar={loadFamily} />
     if (family === null) return <Onboarding onDone={loadFamily} />

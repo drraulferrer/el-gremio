@@ -36,7 +36,7 @@ modo peque, la capa de producción y la gestión de miembros.
 | Código local | `~/el-gremio` |
 | Supabase | proyecto `chfbrawsoulfiywiqhpe`, Postgres 17.6, región EU |
 | Versión publicada | ver `npm run health`; cada despliegue deja etiqueta `deploy-AAAA-MM-DD-HHMM` |
-| Tests | 400, en 23 ficheros, todos en verde |
+| Tests | 416, en 24 ficheros, todos en verde |
 
 Comprobar que sigue vivo:
 
@@ -65,6 +65,7 @@ si falla `supabase`, casi seguro que el proyecto está pausado (ver §7).
 ✅ 014  premio a mano: bonuses.motivo/otorgado_por + grant_manual_bonus (15-ago)
 ✅ 015  poderes que se gastan + insignias únicas (15-ago, noche)
 ✅ 016  camino de rachas: claim_streak (15-ago, noche)
+⬜ 017  lo que hace falta para MUCHAS familias (escrita, SIN EJECUTAR)
 ```
 
 La 016 se ejecutó y se comprobó desde fuera: `claim_streak` contesta
@@ -675,13 +676,124 @@ al `.b64` de cada tipografía.
 
 ---
 
+## 7e. De una familia a muchas (15 de agosto, cierre)
+
+Repaso completo con una pregunta distinta: **qué se rompe el día que esto
+no sea la app de una casa.** La app funciona —416 tests, build limpio,
+`health` en verde—, así que lo de aquí abajo no son fallos de hoy: son
+supuestos de «una sola familia» incrustados en sitios donde no se ven.
+
+Van en orden de lo que muerde primero.
+
+### Lo que se arregló esta noche
+
+**1. `families` no tenía índice por `owner`.** Todas las políticas RLS del
+esquema terminan en la misma subconsulta —`select id from families where
+owner = auth.uid()`—, así que sin ese índice cada petición de cada
+dispositivo recorre la tabla de familias entera. Con una dentro cuesta
+cero; con cien mil, lo pagan todas las casas en cada toque. Es el cuello
+de botella número uno y se arregla con una línea (migración 017).
+
+**2. Una cuenta podía tener dos gremios, y la app carga con `limit 1` sin
+orden.** Postgres devuelve el que quiera: la familia abre la app y ve su
+gremio vacío. No es hipotético: el alta son cinco inserts encadenados y
+quien reintente tras un fallo a mitad se deja un gremio fantasma detrás.
+Ahora el índice es ÚNICO y la carga va ordenada por fecha.
+
+**3. Los logs sin familia no tenían ningún límite.** `rate_guard` se rinde
+cuando la familia es nula y la política de `app_logs` admite familia nula
+a propósito (hay errores anteriores a saber de qué casa es la sesión).
+Entre las dos decisiones razonables quedaba el hueco: cualquier cuenta
+registrada —y registrarse lo hace cualquiera desde la propia app— podía
+insertar filas sin tope con el `jsonb` que quisiera dentro. Y no salían:
+`purge_logs` corría con RLS, así que una fila sin familia no la veía ni la
+borraba nadie. Ahora hay una cuenta por CUENTA (`user_limits`, 60/h), el
+`datos` desmesurado se recorta a 8 KB y `purge_logs` es `security definer`
+—barre huérfanas incluidas— y ya no la puede llamar la app.
+
+**4. `profiles`, `rewards` y `family_goals` se insertaban sin freno.** Solo
+cuatro tablas tenían límite de ritmo. Ahora hay topes de cordura por
+gremio (15 perfiles, 120 premios, 500 metas, 600 misiones) y longitud
+máxima en todo lo que escribe el cliente. No es antifraude: es lo que
+evita que una cuenta llene la base de la que dependen las demás casas.
+
+**5. No había forma de recuperar la contraseña.** Ni enlace, ni pantalla,
+ni nada: la única llave de un gremio entero, sin repuesto. Con una familia
+lo resuelve el llavero del móvil; con mil cuentas es el ticket de soporte
+número uno y además irreparable desde fuera. Ahora está el bucle completo
+—«He olvidado la contraseña» → correo → pantalla de contraseña nueva— y
+verificado en el navegador de punta a punta.
+
+Y con él, el hermano callado del mismo problema: **`signUp` devuelve
+`error: null` y `session: null` cuando el proyecto pide confirmar el
+correo**, así que el alta dejaba la pantalla EXACTAMENTE igual que antes de
+pulsar. Nadie se enteraba de que había un correo en camino. Ahora lo dice.
+Las reglas están en `src/lib/acceso.js` con sus tests; la pantalla solo
+pinta.
+
+### Lo que queda, y por qué no se ha tocado
+
+**6. Las fechas están clavadas en `Europe/Madrid`.** Lo están en Postgres
+(`bonuses.dia`, `claim_streak`) mientras el cliente usa la hora del
+dispositivo (`dayKey`). Para una familia en Madrid las dos coinciden y no
+se nota nada. Para una familia en México, el día del servidor y el del
+móvil se separan siete horas: la estrella diaria de la peque se puede
+pedir dos veces o ninguna, y una racha viva se lee como rota. Es el fallo
+más feo de la lista porque **da resultados incorrectos en silencio**.
+Arreglarlo pide una decisión, no solo código: una columna `timezone` en
+`families`, elegida en el alta, y pasarla por todos los sitios donde hoy
+hay una zona escrita a mano. Tanda propia.
+
+**7. Nadie puede ver los errores de nadie.** `app_logs` está bajo RLS por
+familia, que es lo correcto para la privacidad y deja al operador ciego:
+si mañana falla el alta de trescientas casas, no hay una sola consulta que
+lo diga sin la clave de servicio. Hace falta una vista agregada y anónima
+(cuenta por evento y por día, sin `family_id`) o encender Sentry, que está
+escrito y apagado en `monitoring.js`.
+
+**8. Lo legal es un bloqueo real, no un trámite.** Esto guarda nombres y
+actividad diaria de menores de edad. Para una familia con su propia cuenta
+de Supabase es un cuaderno privado; publicado y abierto a registro es
+tratamiento de datos de menores: hace falta política de privacidad,
+términos, base legal del consentimiento parental, y —esto sí es código—
+**exportar y borrar la cuenta entera desde la app**. Hoy no existe ninguna
+de las dos cosas. Nada de lo demás importa si esto no está.
+
+**9. El alta no es transaccional.** Cinco inserts encadenados sin vuelta
+atrás. El índice único del paso 2 convierte el reintento en un error
+claro, que es mejor que un gremio fantasma, pero lo correcto es una
+función `security definer` que funde el gremio entero o no funde nada.
+
+**10. Cosas de plataforma, en cuanto haya volumen.** El plan gratuito de
+Supabase pausa el proyecto a los 7 días sin actividad (con muchas familias
+deja de ser un riesgo y pasa a ser un coste: hay que pagar plan). Cada
+dispositivo abre una conexión de realtime y el plan tiene tope. El bundle
+son 580 KB en un solo trozo sin trocear, y no hay modo sin conexión: sin
+red, la app no funciona. Ninguna de las cuatro se arregla escribiendo
+mejor código; se arreglan decidiendo cuánto se paga.
+
+**11. La app solo habla español, y la economía está calibrada para una
+casa concreta** (dos adultos, una junior, una peque, 60 % de adherencia).
+Los números de `economia.js` son honestos porque están medidos contra ESTA
+familia. Otra familia con otro ritmo no los rompe, pero tampoco los
+hereda.
+
+---
+
 ## 8. Pendientes
 
-### Lo primero al retomar: ejecutar la migración 015
+### Lo primero al retomar: ejecutar la migración 017
 
 Está escrita y espejada en `schema.sql`, pero **nadie la ha lanzado contra
-la base**. Ver §2 para la comprobación previa. Mientras no se ejecute, usar
-un poder devuelve un aviso que dice exactamente qué falta ejecutar.
+la base**. Es la de §7e: índice por `owner`, un gremio por cuenta, el
+agujero de los logs sin familia, la purga que ahora barre de verdad y los
+topes de filas. Nada de la app depende de ella para funcionar hoy —con
+una familia dentro no se nota ninguna de las cinco cosas—, y por eso
+mismo es fácil dejarla para siempre.
+
+Antes de lanzarla, la comprobación que la propia migración hace sola en su
+paso 0: si alguna cuenta tuviera dos gremios, para y lo dice. Al terminar,
+pega el `select` comentado del final; debe salir todo a 1.
 
 ### Los dos poderes que faltan por cablear
 

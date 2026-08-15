@@ -12,7 +12,7 @@ create extension if not exists pgcrypto;
 create table if not exists public.families (
   id uuid primary key default gen_random_uuid(),
   owner uuid not null references auth.users(id) on delete cascade,
-  name text not null,
+  name text not null check (length(name) <= 60),
   parent_pin_hash text not null,
   created_at timestamptz not null default now()
 );
@@ -20,7 +20,7 @@ create table if not exists public.families (
 create table if not exists public.profiles (
   id uuid primary key default gen_random_uuid(),
   family_id uuid not null references public.families(id) on delete cascade,
-  name text not null,
+  name text not null check (length(name) <= 40),
   role text not null check (role in ('adulto','junior','peque')),
   emoji text not null default '🙂',
   color text not null default '#a78bfa',
@@ -50,7 +50,7 @@ create table if not exists public.challenges (
     target_roles is null
     or (cardinality(target_roles) > 0 and target_roles <@ array['adulto','junior','peque']::text[])
   ),
-  title text not null,
+  title text not null check (length(title) <= 120),
   emoji text not null default '⭐',
   xp integer not null default 10,
   coins integer not null default 5,
@@ -75,7 +75,7 @@ create table if not exists public.completions (
   coins integer not null,
   -- Elogio concreto de quien valida. Es el componente con más respaldo
   -- del sistema; el "muy bien" genérico pierde efecto por repetición.
-  praise text,
+  praise text check (praise is null or length(praise) <= 400),
   requested_at timestamptz not null default now(),
   resolved_at timestamptz
 );
@@ -83,7 +83,7 @@ create table if not exists public.completions (
 create table if not exists public.rewards (
   id uuid primary key default gen_random_uuid(),
   family_id uuid not null references public.families(id) on delete cascade,
-  title text not null,
+  title text not null check (length(title) <= 120),
   emoji text not null default '🎁',
   cost integer not null default 50,
   -- 1 decidir · 2 vivir · 3 celebrar. Los de nivel 1 son los que mejor
@@ -107,7 +107,7 @@ create table if not exists public.redemptions (
 create table if not exists public.family_goals (
   id uuid primary key default gen_random_uuid(),
   family_id uuid not null references public.families(id) on delete cascade,
-  title text not null,
+  title text not null check (length(title) <= 120),
   emoji text not null default '🏆',
   target_xp integer not null default 1000,
   achieved boolean not null default false,
@@ -151,6 +151,18 @@ create index if not exists idx_rewards_family on public.rewards (family_id, crea
 create index if not exists idx_badges_family on public.profile_badges (family_id);
 create index if not exists idx_goals_family_activa on public.family_goals (family_id, achieved, starts_at desc);
 
+-- ⚠️ El índice más importante del fichero, y el último en llegar
+-- (migración 017). Cada política de aquí abajo termina en la misma
+-- subconsulta —`select id from families where owner = auth.uid()`—, así
+-- que sin este índice CADA petición de CADA casa recorre la tabla de
+-- familias entera. Con una familia dentro no se nota; es justo el tipo de
+-- cosa que solo aparece cuando ya hay gente usándolo.
+--
+-- Único, además: la app carga el gremio con `limit 1` sin orden, así que
+-- una cuenta con dos gremios abre uno u otro según el día. Mientras eso
+-- siga así, dos gremios por cuenta son un error, no una función.
+create unique index if not exists idx_families_owner on public.families (owner);
+
 -- ---------------------------------------------------------------------
 -- Seguridad por filas (RLS): todo queda aislado por familia.
 -- Modelo: una única cuenta de autenticación por familia (la del padre/madre).
@@ -165,9 +177,16 @@ alter table public.redemptions enable row level security;
 alter table public.family_goals enable row level security;
 alter table public.profile_badges enable row level security;
 
+-- Todas van declaradas `to authenticated`. Sin eso Postgres evalúa la
+-- política —y con ella la subconsulta a `families`— también para el rol
+-- anónimo, que no va a cumplirla nunca porque `auth.uid()` es nulo. La
+-- clave anon es pública: las peticiones sin sesión las puede hacer
+-- cualquiera y tantas como quiera, así que decir que no tiene que ser
+-- barato.
 drop policy if exists familia_owner on public.families;
 create policy familia_owner on public.families
-  for all using (owner = auth.uid()) with check (owner = auth.uid());
+  for all to authenticated
+  using (owner = auth.uid()) with check (owner = auth.uid());
 
 do $$
 declare t text;
@@ -177,12 +196,57 @@ begin
     execute format('drop policy if exists familia_miembro on public.%I', t);
     execute format($f$
       create policy familia_miembro on public.%I
-        for all
+        for all to authenticated
         using (family_id in (select id from public.families where owner = auth.uid()))
         with check (family_id in (select id from public.families where owner = auth.uid()))
     $f$, t);
   end loop;
 end $$;
+
+-- ---------------------------------------------------------------------
+-- Topes de cordura (migración 017)
+--
+-- Solo `completions`, `redemptions`, `challenges` y `app_logs` tenían
+-- límite de ritmo; `profiles`, `rewards` y `family_goals` se podían
+-- insertar sin freno desde una cuenta recién registrada, y registrarse lo
+-- hace cualquiera desde la propia app. Esto no es antifraude: es lo que
+-- evita que una cuenta llene la base de la que dependen las demás casas.
+-- Los números son absurdos para una familia real y ridículos para un
+-- script, que es exactamente donde tiene que caer un tope así.
+-- ---------------------------------------------------------------------
+
+create or replace function public.tg_tope_filas()
+returns trigger language plpgsql security invoker as $$
+declare
+  v_max integer := tg_argv[0]::integer;
+  v_cuantas integer;
+begin
+  execute format('select count(*) from public.%I where family_id = $1', tg_table_name)
+    into v_cuantas using new.family_id;
+
+  if v_cuantas >= v_max then
+    raise exception 'tope_de_filas:%: el gremio ya tiene % (máximo %)', tg_table_name, v_cuantas, v_max
+      using errcode = 'P0001';
+  end if;
+
+  return new;
+end $$;
+
+drop trigger if exists tope_profiles on public.profiles;
+create trigger tope_profiles before insert on public.profiles
+  for each row execute function public.tg_tope_filas('15');
+
+drop trigger if exists tope_rewards on public.rewards;
+create trigger tope_rewards before insert on public.rewards
+  for each row execute function public.tg_tope_filas('120');
+
+drop trigger if exists tope_goals on public.family_goals;
+create trigger tope_goals before insert on public.family_goals
+  for each row execute function public.tg_tope_filas('500');
+
+drop trigger if exists tope_challenges on public.challenges;
+create trigger tope_challenges before insert on public.challenges
+  for each row execute function public.tg_tope_filas('600');
 
 -- ---------------------------------------------------------------------
 -- Funciones atómicas (evitan puntos duplicados o saldos negativos)
@@ -326,29 +390,52 @@ alter table public.app_logs enable row level security;
 
 drop policy if exists logs_lectura on public.app_logs;
 create policy logs_lectura on public.app_logs
-  for select using (family_id in (select id from public.families where owner = auth.uid()));
+  for select to authenticated
+  using (family_id in (select id from public.families where owner = auth.uid()));
 
 -- La escritura admite family_id nulo: hay errores que ocurren antes de
 -- saber a qué familia pertenece la sesión (por ejemplo, al cargar).
 drop policy if exists logs_escritura on public.app_logs;
 create policy logs_escritura on public.app_logs
-  for insert with check (
+  for insert to authenticated
+  with check (
     auth.uid() is not null
     and (family_id is null or family_id in (select id from public.families where owner = auth.uid()))
   );
 
 -- Retención: los logs no son un archivo histórico. Bórralos a los 30 días.
+--
+-- `security definer` desde la migración 017, y no es un detalle. Cuando
+-- era `security invoker` borraba solo lo que veía quien la llamaba, o sea
+-- los logs de su propia familia: con una familia dentro eso PARECÍA «borra
+-- los logs viejos». Con muchas, cada casa tendría que acordarse, y las
+-- filas con `family_id` nulo —que existen a propósito, ver la política de
+-- arriba— no las ve nadie y no las borraba nadie nunca.
+--
+-- Por eso mismo la app no la puede llamar: se le retira el permiso a
+-- `authenticated`. La ejecuta el SQL Editor o un cron con clave de
+-- servicio.
 create or replace function public.purge_logs(dias integer default 30)
 returns integer
 language plpgsql
-security invoker
+security definer
+set search_path = public
 as $$
 declare borradas integer;
 begin
   delete from public.app_logs where ts < now() - (dias || ' days')::interval;
   get diagnostics borradas = row_count;
+
+  -- Las ventanas de ritmo caducadas se van con ellos: la limpieza perezosa
+  -- del 1 % puede no llegar nunca en una base poco visitada.
+  delete from public.rate_limits where window_start < now() - interval '2 days';
+  delete from public.user_limits where window_start < now() - interval '2 days';
+
   return borradas;
 end $$;
+
+revoke all on function public.purge_logs(integer) from public;
+revoke all on function public.purge_logs(integer) from authenticated;
 
 -- ---------------------------------------------------------------------
 -- 2. Límite de ritmo (rate limiting)
@@ -372,9 +459,62 @@ alter table public.rate_limits enable row level security;
 
 drop policy if exists ritmo_familia on public.rate_limits;
 create policy ritmo_familia on public.rate_limits
-  for all
+  for all to authenticated
   using (family_id in (select id from public.families where owner = auth.uid()))
   with check (family_id in (select id from public.families where owner = auth.uid()));
+
+-- La misma cuenta, pero por CUENTA y no por familia (migración 017).
+-- Existe por un hueco concreto: `rate_guard` se rinde cuando la familia es
+-- nula y la escritura de `app_logs` admite familia nula a propósito, así
+-- que entre las dos decisiones razonables cualquier cuenta registrada
+-- podía escribir filas sin límite. Cuando aún no hay gremio, la cuenta es
+-- lo único que se sabe de quien escribe.
+create table if not exists public.user_limits (
+  user_id uuid not null references auth.users(id) on delete cascade,
+  bucket text not null,
+  window_start timestamptz not null,
+  count integer not null default 0,
+  primary key (user_id, bucket, window_start)
+);
+
+alter table public.user_limits enable row level security;
+
+drop policy if exists ritmo_cuenta on public.user_limits;
+create policy ritmo_cuenta on public.user_limits
+  for all to authenticated
+  using (user_id = auth.uid()) with check (user_id = auth.uid());
+
+create or replace function public.rate_guard_user(
+  p_bucket text,
+  p_max integer,
+  p_window_seconds integer
+)
+returns void
+language plpgsql
+security invoker
+as $$
+declare
+  v_user uuid := auth.uid();
+  ventana timestamptz := to_timestamp(floor(extract(epoch from now()) / p_window_seconds) * p_window_seconds);
+  actual integer;
+begin
+  if v_user is null then return; end if;
+
+  insert into public.user_limits (user_id, bucket, window_start, count)
+  values (v_user, p_bucket, ventana, 1)
+  on conflict (user_id, bucket, window_start)
+  do update set count = public.user_limits.count + 1
+  returning count into actual;
+
+  if random() < 0.01 then
+    delete from public.user_limits where window_start < now() - interval '2 days';
+  end if;
+
+  if actual > p_max then
+    raise exception 'limite_de_ritmo:%: % en % s (máximo %)', p_bucket, actual, p_window_seconds, p_max
+      using errcode = 'P0001';
+  end if;
+end $$;
 
 create or replace function public.rate_guard(
   p_family uuid,
@@ -430,10 +570,28 @@ begin
   return new;
 end $$;
 
+-- Las dos ramas cubiertas: con gremio se cuenta por gremio, sin gremio se
+-- cuenta por cuenta y mucho más estrecho (un cliente honrado escribe
+-- cuatro líneas de arranque antes de saber de qué casa es). De paso
+-- recorta el `datos` desmesurado: el registro es para diagnosticar un
+-- fallo, no un sitio donde dejar ficheros.
 create or replace function public.tg_ritmo_logs()
 returns trigger language plpgsql security invoker as $$
 begin
-  perform public.rate_guard(new.family_id, 'app_logs', 600, 3600);
+  if new.family_id is null then
+    perform public.rate_guard_user('app_logs_sin_familia', 60, 3600);
+  else
+    perform public.rate_guard(new.family_id, 'app_logs', 600, 3600);
+  end if;
+
+  if length(new.datos::text) > 8192 then
+    new.datos := jsonb_build_object(
+      'truncado', true,
+      'bytes', length(new.datos::text),
+      'evento', new.evento
+    );
+  end if;
+
   return new;
 end $$;
 
@@ -499,7 +657,7 @@ create table if not exists public.bonuses (
   coins integer not null default 5,
   -- Obligatorio para los manuales: sin motivo, dentro de un mes nadie
   -- recuerda por qué esa persona tiene monedas de más.
-  motivo text,
+  motivo text check (motivo is null or length(motivo) <= 300),
   -- Qué adulto lo concedió. Si mañana hay que explicar el saldo, la
   -- respuesta tiene que existir en algún sitio.
   otorgado_por uuid references public.profiles(id) on delete set null,
@@ -516,7 +674,8 @@ alter table public.bonuses enable row level security;
 
 drop policy if exists bonuses_lectura on public.bonuses;
 create policy bonuses_lectura on public.bonuses
-  for select using (family_id in (select id from public.families where owner = auth.uid()));
+  for select to authenticated
+  using (family_id in (select id from public.families where owner = auth.uid()));
 
 -- Sin política de insert a propósito: solo se entra por las dos funciones
 -- de abajo, que son `security definer`. Con insert abierto, cualquiera con
@@ -658,7 +817,8 @@ alter table public.power_uses enable row level security;
 
 drop policy if exists power_uses_lectura on public.power_uses;
 create policy power_uses_lectura on public.power_uses
-  for select using (family_id in (select id from public.families where owner = auth.uid()));
+  for select to authenticated
+  using (family_id in (select id from public.families where owner = auth.uid()));
 
 -- Sin política de insert: se entra por la función, que es la que cuenta.
 

@@ -719,6 +719,19 @@ input:focus, select:focus, button:focus-visible {
 
 .error-texto { color: var(--peligro); font-weight: 700; font-size: 0.9rem; }
 
+/* El camino bueno también tiene que hablar. «Te hemos mandado un correo»
+   no es un error y no puede pintarse como tal, pero callarlo era peor:
+   dejaba la pantalla idéntica a antes de pulsar. */
+.aviso-texto {
+  color: var(--exito);
+  font-size: 0.9rem;
+  line-height: 1.4;
+  background: rgba(110, 231, 160, .08);
+  border: 1px solid rgba(110, 231, 160, .25);
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+
 /* ---------------- modal ---------------- */
 
 .modal-fondo {

@@ -591,7 +591,13 @@ export function crearClienteDemo() {
         localStorage.removeItem(CLAVE_SESION)
         avisarSesion(null)
         return { error: null }
-      }
+      },
+      // La demo no manda correos, pero tiene que RESPONDER: sin estos dos
+      // métodos, pulsar «He olvidado la contraseña» en modo demo revienta
+      // con un TypeError, que es justo el bug que ya se coló una vez con
+      // el `grant_manual_bonus` que faltaba aquí.
+      resetPasswordForEmail: async () => ({ data: {}, error: null }),
+      updateUser: async () => ({ data: { user: sesionGuardada()?.user || null }, error: null })
     }
   }
 }
