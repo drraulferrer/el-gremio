@@ -58,16 +58,15 @@ si falla `supabase`, casi seguro que el proyecto está pausado (ver §7).
 ✅ 009  dos índices redundantes retirados (15-ago)
 ✅ 010  habilidad asignada a las 16 misiones que no la tenían (15-ago)
 ✅ 011  target_role (superada por la 013, no ejecutar suelta)
-⏳ 012  juego de globos: tabla bonuses + grant_daily_bonus · SIN EJECUTAR
-⏳ 013  target_roles[]: misiones para varios roles · SIN EJECUTAR
+✅ 012  juego de globos: tabla bonuses + grant_daily_bonus (15-ago)
+✅ 013  target_roles[]: misiones para varios roles (15-ago)
 ```
 
-**Las migraciones 012 y 013 están escritas y desplegado el cliente, pero
-NO se han ejecutado en la base.** Mientras no se ejecuten: el juego de
-globos avisa de que falta la 012 en vez de dar la estrella, y los grupos
-de roles («Los peques y la junior») se guardan pero no filtran. La app no
-se rompe por ello, degrada. Se ejecutan pegando los dos ficheros en el
-SQL Editor, en orden.
+De la 013 queda **sin ejecutar y a propósito** el `drop column target_role`
+que va comentado al final. No lo lances hasta comprobar que
+`target_role is not null and target_roles is null` da 0 y que no hay
+clientes viejos en la calle: sin la columna, esas misiones se leerían como
+«para todos» y las de adultos saldrían en la pantalla de la peque.
 
 Verificado en el SQL Editor el 15-ago: los once índices `idx_%_family%`
 están, y `titulos_con_marca = 1`.

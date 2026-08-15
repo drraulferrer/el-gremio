@@ -1658,7 +1658,10 @@ code { background: var(--tablero-hondo); padding: 2px 6px; border-radius: 6px; f
   border: none;
   border-radius: 50% 50% 46% 46%;
   cursor: pointer;
-  animation: kid-globo-sube 7s linear infinite;
+  /* 18 s, no 7. A los tres años la puntería es la que es: con siete
+     segundos el globo cruza la pantalla antes de que el dedo llegue, y el
+     juego pasa de premio a castigo. Probado con la peque: imposible. */
+  animation: kid-globo-sube 18s linear infinite;
 }
 
 /* El nudo. */
@@ -1691,7 +1694,6 @@ code { background: var(--tablero-hondo); padding: 2px 6px; border-radius: 6px; f
 
 @media (prefers-reduced-motion: reduce) {
   .kid-globos.abierto { animation: none; }
-  /* Los globos siguen subiendo pero mucho más despacio: pararlos del todo
-     dejaría el juego sin juego. */
-  .kid-globo { animation-duration: 18s; }
+  /* Aún más despacio: pararlos del todo dejaría el juego sin juego. */
+  .kid-globo { animation-duration: 34s; }
 }
