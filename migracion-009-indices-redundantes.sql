@@ -1,7 +1,8 @@
 -- Migración 009 · retirar los dos índices redundantes.
 --
--- Ejecuta este fichero en el SQL Editor de Supabase. Si empiezas de cero,
--- schema.sql ya no los crea. Es idempotente.
+-- APLICADA en la base el 15-ago-2026. Ejecuta este fichero en el SQL
+-- Editor de Supabase si tienes otra base que venga de antes. Si empiezas
+-- de cero, schema.sql ya no los crea. Es idempotente.
 --
 -- Los dos índices que se retiran tienen como columnas el PREFIJO EXACTO de
 -- otro índice que ya existe sobre la misma tabla:
@@ -15,21 +16,37 @@
 -- cobrar su mantenimiento en cada insert y cada update de esas dos tablas,
 -- que son precisamente las que más se escriben.
 --
--- Ojo con el orden si algún día se toca esto: si se borrase el índice
--- LARGO, el corto dejaría de ser redundante y habría que conservarlo.
+-- Comprobado antes de ejecutar: ninguno de los dos es único, ninguno
+-- respalda una constraint, ninguno es clave primaria. Índices sueltos.
 --
--- Van comentados a propósito. Descoméntalos cuando quieras aplicarlo:
--- un `drop index` es de los pocos cambios de este proyecto que un
--- rollback de frontend no deshace.
+-- ⚠️ DEPENDENCIA QUE ESTO CREA, y es la parte que hay que recordar:
+-- después de esta migración, `idx_challenges_skill` e
+-- `idx_profiles_family_active` son los ÚNICOS índices por `family_id` de
+-- sus tablas. Y `family_id` es la columna por la que filtra toda la
+-- política RLS `familia_miembro` (schema.sql §RLS), o sea, absolutamente
+-- todas las lecturas de la app. Si algún día alguno de esos dos parece
+-- demasiado específico y se plantea quitarlo —«total, solo lo usa la
+-- pantalla de habilidades»— hay que crear antes el índice simple por
+-- `family_id` que se retira aquí. El orden importa: primero el create,
+-- después el drop.
 
--- drop index if exists public.idx_profiles_family;
--- drop index if exists public.idx_challenges_family;
+drop index if exists public.idx_profiles_family;
+drop index if exists public.idx_challenges_family;
 
--- Comprobación después de descomentar y ejecutar. Deben quedar 9 filas,
--- sin `idx_profiles_family` ni `idx_challenges_family`. El patrón mira
--- TODOS los índices de la aplicación, no solo los que llevan «family» en
--- mitad del nombre: con `idx_%_family%`, `idx_challenges_skill` se queda
--- fuera del listado y esconde justo la mitad de cada comparación.
+-- Reversible con esto, si hiciera falta volver atrás:
+--
+-- create index if not exists idx_profiles_family on public.profiles (family_id);
+-- create index if not exists idx_challenges_family on public.challenges (family_id);
+
+-- Estado comprobado tras aplicarla (15-ago-2026):
+--
+--   challenges   3 → 2 índices   48 kB → 32 kB   challenges_pkey, idx_challenges_skill
+--   profiles     3 → 2 índices   48 kB → 32 kB   profiles_pkey,   idx_profiles_family_active
+--
+-- Para volver a comprobarlo. El patrón mira TODOS los índices de la
+-- aplicación, no solo los que llevan «family» en mitad del nombre: con
+-- `idx_%_family%`, `idx_challenges_skill` se queda fuera del listado y
+-- esconde justo la mitad de cada comparación de redundancia.
 --
 -- select indexname, indexdef from pg_indexes
 --   where schemaname = 'public' and indexname like 'idx_%'

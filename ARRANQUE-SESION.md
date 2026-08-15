@@ -55,7 +55,7 @@ si falla `supabase`, casi seguro que el proyecto está pausado (ver §7).
 ✅ 007  profiles.gender
 ✅ 007b reescritura de los títulos con marca de género
 ✅ 008  los cinco índices
-⚠️ 009  dos índices redundantes por retirar (drops comentados)
+✅ 009  dos índices redundantes retirados (15-ago)
 ```
 
 Verificado en el SQL Editor el 15-ago: los once índices `idx_%_family%`
@@ -345,6 +345,13 @@ Verificado **en navegador**, no solo compilando:
   verificaron simulando los insets en Chrome, lo que cubre la geometría
   pero no el render real de la barra de estado. Para probarlo de verdad:
   instalar Xcode y `sudo xcode-select -s /Applications/Xcode.app/Contents/Developer`.
+- **`idx_challenges_skill` e `idx_profiles_family_active` sostienen el
+  RLS entero.** Desde la migración 009 son los únicos índices por
+  `family_id` de sus tablas, y `family_id` es la columna por la que filtra
+  la política `familia_miembro`, o sea, todas las lecturas de la app. Sus
+  nombres suenan a caso particular («skill», «active») e invitan a
+  borrarlos en una limpieza; si algún día se hace, hay que crear ANTES el
+  índice simple por `family_id`. Primero el create, después el drop.
 - **El orden importa en `styles.css`**: las reglas de `@media` para el
   modo peque tienen que ir DESPUÉS de las reglas base, porque comparten
   especificidad y gana la última. Ya se coló un bug así con la altura de

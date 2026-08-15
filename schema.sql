@@ -121,8 +121,15 @@ create index if not exists idx_redemptions_family_status on public.redemptions (
 -- `idx_challenges_family (family_id)`. Un índice cuyas columnas son el
 -- prefijo exacto de otro no se usa nunca: Postgres resuelve con el largo
 -- lo mismo que resolvía con el corto, así que el corto solo cobra su
--- mantenimiento en cada insert y cada update. Para bases ya creadas, los
--- `drop` están en migracion-009-indices-redundantes.sql.
+-- mantenimiento en cada insert y cada update. Retirados de la base el
+-- 15-ago-2026 con migracion-009-indices-redundantes.sql.
+--
+-- ⚠️ Los dos que quedan aquí abajo son, desde entonces, los ÚNICOS índices
+-- por `family_id` de `profiles` y `challenges`. Sus nombres suenan
+-- específicos —«active», «skill»— pero lo que sostienen es el filtrado de
+-- la política RLS `familia_miembro`, es decir, todas las lecturas de la
+-- app. Antes de quitar cualquiera de los dos hay que crear el índice
+-- simple por `family_id`; primero el create, después el drop.
 create index if not exists idx_profiles_family_active on public.profiles (family_id, active);
 create index if not exists idx_challenges_skill on public.challenges (family_id, skill);
 -- Un índice por cada consulta real de src/App.jsx, ordenación incluida:
