@@ -18,7 +18,7 @@ Funciona en cualquier dispositivo con navegador y se instala como app desde
 |---|---|
 | **Adulto** | Pide misiones, valida las de los demás, entra al panel con PIN. |
 | **Junior** (11 años) | Pide sus misiones desde su móvil y espera el visto bueno. Canjea premios. |
-| **Peque** (3 años) | **Pantalla propia**: seis botones enormes con dibujo, sin texto que leer. Toca uno y la estrella cae al momento, con animación y sonido. Para salir hay que mantener pulsado un segundo y medio, así que no se escapa sola. |
+| **Peque** (3 años) | **Pantalla propia**: seis botones enormes con dibujo, sin texto que leer. Toca uno y la estrella cae al momento, con animación y sonido. Tiene su **tarro de estrellas**, que no se vacía de un día para otro, y su propia tienda de premios sin cifras. Para salir hay que mantener pulsado un segundo y medio, así que no se escapa sola. |
 
 La estrella inmediata de la peque no es un atajo: a los tres años la
 recompensa diferida no funciona. Un adulto puede darle la estrella también
@@ -298,7 +298,7 @@ SPEC.md                 Especificación, fuente de verdad para iterar
 ```bash
 npm run dev            # desarrollo
 npm run dev:demo       # desarrollo con backend simulado, sin Supabase
-npm test               # tests (182)
+npm test               # tests (190)
 npm run build          # compilación de producción
 npm run verify         # tests + build + revisión de credenciales
 npm run health         # ¿responden la web publicada y Supabase?

@@ -1323,3 +1323,151 @@ code { background: var(--tablero-hondo); padding: 2px 6px; border-radius: 6px; f
   will-change: transform;
   border-radius: 0 0 22px 22px;
 }
+
+/* ---------------- el tarro de estrellas y su tienda ---------------- */
+
+/* El contador de arriba se vacía cada noche; el tarro no. Esa es la
+   diferencia que hace que esperar tenga sentido a los tres años. */
+.kid-tarro {
+  position: relative;
+  flex: none;
+  width: 58px;
+  height: 62px;
+  padding: 0;
+  border: 3px solid rgba(255, 246, 229, 0.6);
+  border-radius: 10px 10px 18px 18px;
+  background: rgba(255, 246, 229, 0.14);
+  cursor: pointer;
+  overflow: hidden;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.kid-tarro::before {
+  content: '';
+  position: absolute;
+  top: -7px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 34px;
+  height: 8px;
+  border-radius: 4px;
+  background: rgba(255, 246, 229, 0.75);
+}
+
+.kid-tarro-cristal {
+  position: absolute;
+  inset: 6px 4px 4px;
+  display: flex;
+  flex-wrap: wrap-reverse;
+  align-content: flex-start;
+  justify-content: center;
+  gap: 1px;
+}
+
+.kid-tarro-estrella {
+  font-size: 0.8rem;
+  line-height: 1;
+  color: #ffc832;
+  animation: caer-estrella 0.45s var(--ease-salida) both;
+  animation-delay: calc(var(--i) * 25ms);
+}
+
+@keyframes caer-estrella {
+  from { opacity: 0; transform: translateY(-14px); }
+  to { opacity: 1; transform: none; }
+}
+
+.kid-tarro-lleno {
+  position: absolute;
+  right: 2px;
+  bottom: 1px;
+  font-size: 0.75rem;
+  color: #fff6e5;
+}
+
+.kid-tienda {
+  position: fixed;
+  inset: 0;
+  z-index: 85;
+  background: radial-gradient(900px 420px at 50% -60px, #ffe9b8 0%, var(--kid-papel) 60%), var(--kid-papel);
+  color: var(--kid-tinta);
+  padding: calc(14px + var(--sat)) max(14px, var(--sal)) calc(24px + var(--sab)) max(14px, var(--sar));
+  overflow-y: auto;
+  animation: subir var(--t-medio) var(--ease-salida);
+}
+
+.kid-tienda-cabecera {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.kid-tienda-titulo { font-family: var(--display); font-size: 1.35rem; font-weight: 700; flex: none; }
+.kid-tienda-guardadas { flex: 1; display: flex; flex-wrap: wrap; gap: 2px; font-size: 1.3rem; color: #ffc832; }
+.kid-tienda-vacio { color: #7a6a4f; font-size: 0.95rem; }
+
+.kid-tienda-cerrar {
+  flex: none;
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  border: 3px solid var(--kid-borde);
+  background: #fff;
+  color: var(--kid-tinta);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+.kid-tienda-lista { display: grid; grid-template-columns: 1fr; gap: 14px; }
+
+@media (min-width: 620px) {
+  .kid-tienda-lista { grid-template-columns: 1fr 1fr; }
+}
+
+/* Los premios que aún no alcanza NO se esconden: se ven apagados, porque
+   ver lo que viene es parte de lo que sostiene la espera. */
+.kid-premio {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 96px;
+  padding: 14px;
+  border: 5px solid #c9b898;
+  border-radius: 26px;
+  background: #efe7d8;
+  color: #7a6c56;
+  font-family: var(--display);
+  text-align: left;
+  cursor: default;
+  box-shadow: 0 5px 0 #c9b898;
+}
+
+.kid-premio.alcanza {
+  border-color: var(--kid-borde);
+  background: #fff;
+  color: var(--kid-tinta);
+  cursor: pointer;
+  box-shadow: 0 7px 0 var(--kid-borde);
+  transition: transform 0.09s ease, box-shadow 0.09s ease;
+}
+
+.kid-premio.alcanza:active { transform: translateY(5px); box-shadow: 0 2px 0 var(--kid-borde); }
+
+.kid-premio-emoji { font-size: 2.8rem; line-height: 1; flex: none; }
+.kid-premio:not(.alcanza) .kid-premio-emoji { filter: grayscale(0.7); }
+.kid-premio-texto { flex: 1; font-size: 1.05rem; font-weight: 600; line-height: 1.2; }
+
+.kid-premio-precio {
+  flex: none;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  max-width: 88px;
+  gap: 1px;
+  font-size: 0.95rem;
+  color: #cfc3ab;
+}
+
+.kid-premio-precio .llena { color: #ffc832; }

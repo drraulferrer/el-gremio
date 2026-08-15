@@ -101,6 +101,36 @@ export const PREMIOS_INICIALES = CATALOGO_PREMIOS.filter((p) =>
   ].includes(p.title)
 )
 
+// ------------------------------------------------------------------
+// La tienda de la peque.
+//
+// A los tres años no se leen números ni se entiende un saldo, pero sí se
+// entiende un tarro que se llena. Sus monedas se dibujan como estrellas:
+// una estrella = una misión suya, que es la unidad con la que ella cuenta
+// de verdad. Si un adulto cambia lo que valen sus misiones, la conversión
+// deja de cuadrar exactamente; se prefiere eso a enseñarle cifras.
+// ------------------------------------------------------------------
+
+export const MONEDAS_POR_ESTRELLA = 5
+
+export function estrellasDe(monedas) {
+  return Math.floor((monedas || 0) / MONEDAS_POR_ESTRELLA)
+}
+
+export function estrellasQueCuesta(coste) {
+  return Math.max(1, Math.round(coste / MONEDAS_POR_ESTRELLA))
+}
+
+/**
+ * Los premios que se le enseñan a ella: solo los de nivel 1, que son los
+ * de decidir algo (el cuento, la música, el juego). Los de nivel 2 y 3
+ * son planes de días enteros y no tienen sentido para una peque que
+ * necesita ver el final cerca.
+ */
+export function premiosParaPeque(rewards = []) {
+  return rewards.filter((r) => r.active && (r.tier || 2) === 1).sort((a, b) => a.cost - b.cost)
+}
+
 export function nivelDePremio(coste) {
   if (coste <= NIVELES[1].coste[1]) return 1
   if (coste <= NIVELES[2].coste[1]) return 2

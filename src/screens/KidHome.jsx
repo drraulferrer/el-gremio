@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
 import { canDo, dayKey } from '../lib/supabase'
-import { estrellaInmediata, deshacerMision } from '../lib/acciones'
+import { estrellaInmediata, deshacerMision, canjearPremio } from '../lib/acciones'
 import { tocarEstrella, sonidoActivo, alternarSonido } from '../lib/sonido'
 import { log } from '../lib/log'
 import Icono from '../components/Icono'
 import { useMantenerPulsado } from '../lib/mantenerPulsado'
 import { flex, generoDe } from '../lib/genero'
+import { premiosParaPeque, estrellasDe, estrellasQueCuesta } from '../lib/premios'
 import { sugerenciasDeElogio, rachaDeMision } from '../lib/elogio'
 
 // ------------------------------------------------------------------
@@ -30,6 +31,7 @@ export default function KidHome({ family, data, profile, refresh, onSalir }) {
   const [ocupado, setOcupado] = useState(null)
   const [fallo, setFallo] = useState('')
   const [conSonido, setConSonido] = useState(() => sonidoActivo())
+  const [verTarro, setVerTarro] = useState(false)
 
   const misiones = data.challenges.filter(
     (ch) => ch.active && (ch.profile_id === profile.id || ch.profile_id === null)
@@ -70,6 +72,22 @@ export default function KidHome({ family, data, profile, refresh, onSalir }) {
     else setFallo(mensaje || 'No se pudo deshacer.')
   }
 
+  const premios = premiosParaPeque(data.rewards)
+  const guardadas = estrellasDe(profile.coins)
+
+  async function pedirPremio(premio) {
+    setFallo('')
+    const { ok, mensaje } = await canjearPremio({ premio, profile })
+    if (ok) {
+      tocarEstrella()
+      setVerTarro(false)
+      setCelebrando({ emoji: premio.emoji, elogio: '¡Se lo decimos a mamá y a papá!' })
+      await refresh()
+    } else {
+      setFallo(mensaje || 'Uy, ahora mismo no se puede.')
+    }
+  }
+
   async function pulsar(reto) {
     if (ocupado) return
     setOcupado(reto.id)
@@ -107,6 +125,7 @@ export default function KidHome({ family, data, profile, refresh, onSalir }) {
             {estrellasHoy > 5 && <span className="kid-mas">+{estrellasHoy - 5}</span>}
           </div>
         </div>
+        <Tarro estrellas={guardadas} onAbrir={() => setVerTarro(true)} />
         <BotonSonido activo={conSonido} onCambiar={() => setConSonido(alternarSonido())} />
       </header>
 
@@ -135,6 +154,15 @@ export default function KidHome({ family, data, profile, refresh, onSalir }) {
           )
         })}
       </div>
+
+      {verTarro && (
+        <TiendaPeque
+          estrellas={guardadas}
+          premios={premios}
+          onPedir={pedirPremio}
+          onCerrar={() => setVerTarro(false)}
+        />
+      )}
 
       <SalidaAdulta onSalir={onSalir} />
     </div>
@@ -165,6 +193,80 @@ function BaldosaPeque({ reto, disponible, ocupado, onPulsar, onDeshacer, genero 
       <span className="kid-boton-texto">{flex(reto.title, genero)}</span>
       <span className="kid-boton-marca">{disponible ? '★' : '✓'}</span>
     </button>
+  )
+}
+
+/**
+ * El tarro. Las estrellas se quedan aquí de un día para otro, que es lo
+ * que le da sentido a esperar: el contador de arriba se vacía cada noche,
+ * este no. Se dibujan hasta doce y a partir de ahí el tarro se ve lleno;
+ * no hay número por ninguna parte.
+ */
+function Tarro({ estrellas, onAbrir }) {
+  const dibujadas = Math.min(estrellas, 12)
+  return (
+    <button className="kid-tarro" onClick={onAbrir} aria-label={`Tu tarro: ${estrellas} estrellas guardadas`}>
+      <span className="kid-tarro-cristal">
+        {Array.from({ length: dibujadas }, (_, i) => (
+          <span key={i} className="kid-tarro-estrella" style={{ '--i': i }}>★</span>
+        ))}
+      </span>
+      {estrellas > 12 && <span className="kid-tarro-lleno">★</span>}
+    </button>
+  )
+}
+
+/**
+ * Su tienda. Sin precios en números: cada premio enseña una fila de
+ * estrellas, las que ya tiene encendidas y las que faltan apagadas. Se
+ * ve de un vistazo cuánto queda sin saber contar.
+ */
+function TiendaPeque({ estrellas, premios, onPedir, onCerrar }) {
+  return (
+    <div className="kid-tienda" role="dialog" aria-label="Tus premios">
+      <div className="kid-tienda-cabecera">
+        <span className="kid-tienda-titulo">Tus estrellas</span>
+        <div className="kid-tienda-guardadas" aria-hidden="true">
+          {Array.from({ length: Math.min(estrellas, 12) }, (_, i) => (
+            <span key={i}>★</span>
+          ))}
+          {estrellas === 0 && <span className="kid-tienda-vacio">Todavía ninguna</span>}
+        </div>
+        <button className="kid-tienda-cerrar" onClick={onCerrar} aria-label="Cerrar">
+          <Icono nombre="cerrar" tamano={28} />
+        </button>
+      </div>
+
+      {premios.length === 0 && (
+        <p className="kid-tienda-vacio">
+          Aún no hay premios. Los adultos los ponen en el panel.
+        </p>
+      )}
+
+      <div className="kid-tienda-lista">
+        {premios.map((p) => {
+          const cuesta = estrellasQueCuesta(p.cost)
+          const alcanza = estrellas >= cuesta
+          return (
+            <button
+              key={p.id}
+              className={'kid-premio' + (alcanza ? ' alcanza' : '')}
+              disabled={!alcanza}
+              onClick={() => onPedir(p)}
+              aria-label={`${p.title}. ${alcanza ? 'Ya puedes pedirlo' : `Te faltan ${cuesta - estrellas} estrellas`}`}
+            >
+              <span className="kid-premio-emoji">{p.emoji}</span>
+              <span className="kid-premio-texto">{p.title}</span>
+              <span className="kid-premio-precio" aria-hidden="true">
+                {Array.from({ length: cuesta }, (_, i) => (
+                  <span key={i} className={i < estrellas ? 'llena' : ''}>★</span>
+                ))}
+              </span>
+            </button>
+          )
+        })}
+      </div>
+    </div>
   )
 }
 

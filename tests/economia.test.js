@@ -11,7 +11,14 @@ import {
   diagnosticoEconomia,
   veredicto
 } from '../src/lib/economia'
-import { CATALOGO_PREMIOS, NIVELES } from '../src/lib/premios'
+import {
+  CATALOGO_PREMIOS,
+  NIVELES,
+  MONEDAS_POR_ESTRELLA,
+  estrellasDe,
+  estrellasQueCuesta,
+  premiosParaPeque
+} from '../src/lib/premios'
 import { META_INICIAL } from '../src/lib/supabase'
 import { DEFAULTS_ROL } from '../src/lib/tareas'
 
@@ -156,5 +163,69 @@ describe('veredicto', () => {
     expect(veredicto(30, 7).estado).toBe('lento')
     expect(veredicto(null, 7).estado).toBe('sin_datos')
     expect(veredicto(Infinity, 7).estado).toBe('sin_datos')
+  })
+})
+
+
+// ------------------------------------------------------------------
+// La tienda de la peque: monedas dibujadas como estrellas, sin números.
+// ------------------------------------------------------------------
+
+describe('estrellas de la peque', () => {
+  it('una estrella es una misión suya', () => {
+    expect(MONEDAS_POR_ESTRELLA).toBe(5)
+    expect(estrellasDe(0)).toBe(0)
+    expect(estrellasDe(5)).toBe(1)
+    expect(estrellasDe(40)).toBe(8)
+  })
+
+  it('nunca enseña estrellas de más: lo que sobra se guarda, no se redondea', () => {
+    // Si mostrara 2 con 9 monedas y un premio costara 2, pediría algo que
+    // no puede pagar y el servidor lo rechazaría. Se redondea hacia abajo.
+    expect(estrellasDe(9)).toBe(1)
+    expect(estrellasDe(14)).toBe(2)
+  })
+
+  it('aguanta valores ausentes', () => {
+    expect(estrellasDe(null)).toBe(0)
+    expect(estrellasDe(undefined)).toBe(0)
+  })
+
+  it('todo premio cuesta al menos una estrella', () => {
+    expect(estrellasQueCuesta(28)).toBe(6)
+    expect(estrellasQueCuesta(40)).toBe(8)
+    expect(estrellasQueCuesta(1)).toBe(1)
+    expect(estrellasQueCuesta(0)).toBe(1)
+  })
+
+  it('solo se le enseñan los de nivel 1, y ordenados de más barato a más caro', () => {
+    const rewards = [
+      { id: 'a', tier: 3, cost: 600, active: true },
+      { id: 'b', tier: 1, cost: 42, active: true },
+      { id: 'c', tier: 1, cost: 28, active: true },
+      { id: 'd', tier: 1, cost: 30, active: false },
+      { id: 'e', tier: 2, cost: 100, active: true }
+    ]
+    expect(premiosParaPeque(rewards).map((p) => p.id)).toEqual(['c', 'b'])
+  })
+
+  it('un premio sin nivel se trata como nivel 2 y no le sale a ella', () => {
+    expect(premiosParaPeque([{ id: 'x', cost: 30, active: true }])).toEqual([])
+  })
+
+  it('sin premios no rompe', () => {
+    expect(premiosParaPeque()).toEqual([])
+    expect(premiosParaPeque([])).toEqual([])
+  })
+
+  it('los premios de nivel 1 le caen en pocos días, que es lo que aguanta a los tres años', () => {
+    // Sus misiones dan 5 monedas; con 5 activas y 60 % de adherencia son
+    // 15 al día, o sea 3 estrellas diarias.
+    const estrellasPorDia = (SUPUESTOS.misionesActivas * 5 * SUPUESTOS.adherencia) / MONEDAS_POR_ESTRELLA
+    const medio = CATALOGO_PREMIOS.filter((p) => p.tier === 1).reduce((t, p) => t + p.cost, 0) /
+      CATALOGO_PREMIOS.filter((p) => p.tier === 1).length
+    const dias = estrellasQueCuesta(medio) / estrellasPorDia
+    expect(dias, `${dias.toFixed(1)} días`).toBeLessThan(4)
+    expect(dias).toBeGreaterThan(1)
   })
 })

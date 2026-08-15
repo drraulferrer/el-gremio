@@ -29,7 +29,7 @@ modo peque, la capa de producción y la gestión de miembros.
 | Código local | `~/el-gremio` |
 | Supabase | proyecto `chfbrawsoulfiywiqhpe`, Postgres 17.6, región EU |
 | Versión publicada | ver `npm run health`; cada despliegue deja etiqueta `deploy-AAAA-MM-DD-HHMM` |
-| Tests | 182, en 11 ficheros, todos en verde |
+| Tests | 190, en 11 ficheros, todos en verde |
 
 Comprobar que sigue vivo:
 
@@ -180,6 +180,13 @@ semana tres.
 - **Si el fondo vuelve a dar guerra**, hay dos banderas en ⚙️ → Estado:
   `luzEnMovimiento` (la deja quieta, conservando el color que el cristal
   necesita) y `luzAmbiental` (la apaga entera). No hace falta desplegar.
+- **La peque tiene tarro y tienda propios.** Sus monedas se dibujan como
+  estrellas (una por misión, `MONEDAS_POR_ESTRELLA = 5`) y solo se le
+  enseñan premios de nivel 1. Dos decisiones que conviene no deshacer: el
+  tarro **no** se vacía cada día (el contador de la cabecera sí, y esa
+  diferencia es a propósito), y los premios que no alcanza **se ven
+  apagados** en vez de esconderse, porque ver lo que viene es lo que
+  sostiene la espera.
 - **La economía está derivada, no puesta a ojo.** `src/lib/economia.js`
   declara los supuestos (60 % de adherencia, 5 misiones activas, cadencias
   de 2 / 7 / 30 días por nivel y 12 días por meta) y de ahí salen las
@@ -360,7 +367,7 @@ Si se pierde ese fichero: los dos valores se recuperan del panel de Supabase
 ```bash
 cd ~/el-gremio
 npm install          # si es una máquina nueva
-npm test             # 182 tests, deben pasar
+npm test             # 190 tests, deben pasar
 npm run dev:demo     # trastear sin tocar producción
 npm run dev          # contra la Supabase real
 ```
