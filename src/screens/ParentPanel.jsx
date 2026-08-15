@@ -6,7 +6,7 @@ import { perfilesActivos } from '../lib/miembros'
 import { Modal, Celebracion } from '../components/ui'
 import Ajustes from './Ajustes'
 
-export default function ParentPanel({ family, data, refresh, onExit }) {
+export default function ParentPanel({ family, data, refresh, refreshFamily, onExit }) {
   const [tab, setTab] = useState('pendientes')
   const [celeb, setCeleb] = useState(null)
   const [aviso, setAviso] = useState('')
@@ -106,7 +106,9 @@ export default function ParentPanel({ family, data, refresh, onExit }) {
       {tab === 'misiones' && <GestionMisiones family={family} data={data} refresh={refresh} />}
       {tab === 'premios' && <GestionPremios family={family} data={data} refresh={refresh} />}
       {tab === 'meta' && <GestionMeta family={family} data={data} refresh={refresh} />}
-      {tab === 'ajustes' && <Ajustes family={family} data={data} refresh={refresh} />}
+      {tab === 'ajustes' && (
+        <Ajustes family={family} data={data} refresh={refresh} refreshFamily={refreshFamily} />
+      )}
 
       <nav className="tabbar">
         <button className={'tab' + (tab === 'pendientes' ? ' activa' : '')} onClick={() => setTab('pendientes')}>

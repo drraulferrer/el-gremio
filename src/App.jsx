@@ -200,7 +200,15 @@ export default function App() {
   if (!data) return <Cargando error={errorCarga} onReintentar={loadAll} />
 
   if (parentMode) {
-    return <ParentPanel family={family} data={data} refresh={loadAll} onExit={() => setParentMode(false)} />
+    return (
+      <ParentPanel
+        family={family}
+        data={data}
+        refresh={loadAll}
+        refreshFamily={loadFamily}
+        onExit={() => setParentMode(false)}
+      />
+    )
   }
 
   // La peque tiene su propia pantalla: botones enormes y estrella al momento.

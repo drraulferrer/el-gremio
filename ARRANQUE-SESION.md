@@ -28,8 +28,8 @@ modo peque, la capa de producción y la gestión de miembros.
 | Repo (público) | https://github.com/drraulferrer/el-gremio |
 | Código local | `~/el-gremio` |
 | Supabase | proyecto `chfbrawsoulfiywiqhpe`, Postgres 17.6, región EU |
-| Versión publicada | 1.0.0 (`1385d6b`), etiqueta `deploy-2026-08-15-0813` |
-| Tests | 40, en 4 ficheros, todos en verde |
+| Versión publicada | ver `npm run health`; cada despliegue deja etiqueta `deploy-AAAA-MM-DD-HHMM` |
+| Tests | 51, en 5 ficheros, todos en verde |
 
 Comprobar que sigue vivo:
 
@@ -126,14 +126,15 @@ migracion-00N-*.sql        Migraciones idempotentes para bases ya creadas
 src/lib/supabase.js        Cliente, economía, insignias, plantillas, traducción de errores
 src/lib/acciones.js        Acciones de dominio con registro y mensajes presentables
 src/lib/miembros.js        Reglas de alta, edición y baja de perfiles
+src/lib/pin.js             Reglas del PIN parental
 src/lib/tareas.js          Catálogo doméstico por roles, sin puntos
 src/lib/log.js             Registro JSON con redacción de credenciales
 src/lib/monitoring.js      Captura y agrupación de errores; adaptador de Sentry
 src/lib/flags.js           Banderas de funcionalidad
 src/lib/fakeBackend.js     Backend simulado del modo demo
-src/screens/               Login, Onboarding, ProfilePicker, Home, KidHome,
-                           ParentPanel, Ajustes (Miembros + Estado)
-scripts/                   deploy, rollback, publicar, health-check, secrets-check
+src/screens/               Login, Onboarding, ProfilePicker, Home, KidHome, ParentPanel,
+                           Ajustes (Miembros · PIN · Dispositivos · Estado)
+scripts/                   deploy, rollback, publicar, health-check, secrets-check, qr
 supabase/functions/health/ Edge Function de salud (escrita, NO desplegada)
 docs/RUNBOOK.md            Diagnóstico, logs, ritmo, health, rollback, migraciones
 docs/ROTACION-SECRETOS.md  Calendario y procedimiento de rotación
@@ -154,6 +155,11 @@ Verificado **en navegador**, no solo compilando:
 - Miembros: alta, rechazo de nombre duplicado, retirada, sección de
   retirados, y el guardarraíl del último adulto (la base no cambió).
 - Un dispositivo que recordaba un perfil retirado vuelve al selector.
+- Cambio de PIN completo: PIN actual erróneo rechazado, PIN nuevos que no
+  coinciden, aviso de PIN trivial, cambio correcto, y después el PIN viejo
+  ya no abre el panel y el nuevo sí **sin recargar la página**.
+- Los dos QR (el de la app y el imprimible) decodificados con
+  `BarcodeDetector`: devuelven exactamente la URL esperada.
 - Build servida bajo `/el-gremio/` con las rutas correctas.
 - RLS real: escritura anónima rechazada con `42501`.
 
@@ -195,10 +201,13 @@ Verificado **en navegador**, no solo compilando:
 
 ### Huecos reales del producto
 
-- **No hay pantalla para cambiar el PIN parental.** Hoy se hace por SQL
-  (procedimiento en `docs/ROTACION-SECRETOS.md`). Es el hueco más molesto.
 - **Cuarto rol** (un adolescente que ya no encaja en "junior"): implica
   cambiar el `check` de `profiles.role` y decidir su comportamiento.
+- **`npm audit` marca 5 vulnerabilidades** (vite, vitest, esbuild). Todas
+  afectan al **servidor de desarrollo local**, no al bundle publicado, que
+  es HTML y JS estático servido por GitHub Pages. Arreglarlas exige subir a
+  vite 7 y vitest 3, que son cambios con rotura: hacerlo en su propia tanda
+  y volver a verificar, no de paso en otra tarea.
 - **Rotación de credenciales**: fijada el 15-ago-2026, toca el **13 de
   noviembre de 2026**. `npm run secrets:check` avisa.
 
@@ -237,7 +246,7 @@ Si se pierde ese fichero: los dos valores se recuperan del panel de Supabase
 ```bash
 cd ~/el-gremio
 npm install          # si es una máquina nueva
-npm test             # 40 tests, deben pasar
+npm test             # 51 tests, deben pasar
 npm run dev:demo     # trastear sin tocar producción
 npm run dev          # contra la Supabase real
 ```

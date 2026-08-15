@@ -73,7 +73,13 @@ Automáticas (se evalúan en cliente tras cada carga y se insertan con upsert id
 4. **Home** (por miembro): carnet con gema de nivel, barra de XP y monedas; estandarte de la meta del gremio; pestañas Misiones, Tienda, Insignias. Celebración animada al recibir validación (vía realtime) y al subir de nivel.
 5. **KidHome** (rol peque): cabecera con su avatar y las estrellas de hoy, rejilla de misiones a dos columnas con botones de 165 px de alto, botón de silencio y salida por pulsación mantenida. Paleta propia (papel crema, colores saturados, bordes gruesos) deliberadamente distinta del tablero nocturno: no busca combinar, busca que reconozca su sitio.
 6. **ParentPanel** (tras PIN): Validar (misiones y canjes en un toque), Peque (estrella inmediata), Misiones (CRUD + plantillas + pausar), Premios (CRUD + pausar), Meta (crear, editar, cerrar con insignia para todos).
-7. **Ajustes** (⚙️ en la cabecera del panel, con control segmentado): **Miembros** (alta, edición, retirada, reincorporación y borrado con confirmación) y **Estado** (versión desplegada, salud del backend, banderas, últimos errores, antigüedad de la rotación de credenciales). Van aquí y no en la barra de pestañas porque con seis pestañas los rótulos dejan de caber en un móvil.
+7. **Ajustes** (⚙️ en la cabecera del panel, control segmentado de cuatro secciones; dos por fila en móvil, cuatro en línea a partir de 540 px):
+   - **Miembros**: alta, edición, retirada, reincorporación y borrado con confirmación.
+   - **PIN**: cambio del PIN parental, pidiendo el actual. Entre 4 y 8 dígitos; avisa sin bloquear si es trivial. Se comprueba contra el servidor, así que el cambio es inmediato en todos los dispositivos.
+   - **Dispositivos**: QR y URL para abrir el gremio en otro aparato, más instrucciones de instalación por plataforma. La URL se calcula (`origin + BASE_URL`), no se escribe a mano, y el QR se genera en el propio dispositivo: mandar la dirección a un servicio externo de QR sería filtrarla sin motivo.
+   - **Estado**: versión desplegada, salud del backend, banderas, últimos errores, antigüedad de la rotación de credenciales.
+
+   Van aquí y no en la barra de pestañas porque con seis pestañas los rótulos dejan de caber en un móvil.
 
 ## 7. Diseño
 

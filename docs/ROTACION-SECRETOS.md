@@ -67,14 +67,20 @@ dispositivos y hay que volver a entrar en cada uno.
 
 Hacerlo un sábado por la mañana, no un martes a las once de la noche.
 
-### 4. PIN parental (1 minuto)
+### 4. PIN parental (30 segundos)
 
-No hay pantalla para cambiarlo todavía (está en el backlog). Mientras
-tanto, desde el SQL Editor, calculando antes el hash en la consola del
+Desde la propia app: **Panel parental → ⚙️ → 🔑 PIN**. Pide el PIN actual,
+el nuevo y su repetición. Entre 4 y 8 dígitos; avisa (sin bloquear) si es
+uno de los triviales tipo `1234`.
+
+El cambio es inmediato en todos los dispositivos: el PIN se comprueba
+contra el servidor, no contra una copia local.
+
+Si te has quedado fuera porque nadie recuerda el PIN, la salida de
+emergencia sigue siendo el SQL Editor. Calcula el hash en la consola del
 navegador con la app abierta:
 
 ```js
-// En la consola del navegador, con la app abierta:
 const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode('gremio:NUEVO_PIN'))
 console.log([...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, '0')).join(''))
 ```

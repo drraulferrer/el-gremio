@@ -11,6 +11,7 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
+    "qr": "node scripts/qr.mjs",
     "health": "node scripts/health-check.mjs",
     "secrets:check": "node scripts/secrets-check.mjs",
     "deploy": "node scripts/deploy.mjs",
@@ -19,6 +20,7 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.0",
+    "qrcode-generator": "^2.0.4",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },

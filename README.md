@@ -122,9 +122,22 @@ npm run rollback -- deploy-2026-08-15-0930
 
 ## 4. En cada dispositivo
 
-Abrir la URL, entrar con la cuenta familiar y elegir perfil. El dispositivo
-recuerda la elección. En el menú del navegador: **"Añadir a pantalla de
-inicio"** y queda instalada con su icono, a pantalla completa.
+Dentro de la app, en **Panel parental → ⚙️ → 📱 Dispositivos**, hay un **QR
+con la dirección** y las instrucciones de instalación por plataforma: se
+abre en el portátil y se apunta con el móvil o el iPad. La URL se calcula
+sola, así que sigue siendo correcta si algún día el gremio se mueve a un
+dominio propio.
+
+Para el mundo de papel:
+
+```bash
+npm run qr     # genera docs/qr-el-gremio.svg y una tarjeta A5 imprimible
+```
+
+Después: entrar con la cuenta familiar, elegir perfil, y en el menú del
+navegador **"Añadir a pantalla de inicio"** (en iPhone y iPad tiene que ser
+Safari; Chrome en iOS no ofrece la opción). Queda instalada con su icono, a
+pantalla completa.
 
 La tablet de la peque se queda en su perfil: al abrirla ve directamente sus
 botones.
@@ -141,7 +154,7 @@ botones.
   cliente: un cerrojo doméstico contra dedos curiosos dentro de la sesión
   familiar. Alguien con la sesión abierta y conocimientos técnicos se lo
   salta desde la consola. Para misiones y premios de casa sobra; no guardes
-  aquí nada sensible.
+  aquí nada sensible. Se cambia en **⚙️ → 🔑 PIN**.
 - **La clave `anon` es pública por diseño** y viaja en el bundle. Lo que
   protege los datos es RLS, no ella. La que nunca sale del panel de Supabase
   es la `service_role`.
@@ -182,18 +195,19 @@ schema.sql              Esquema completo de Supabase, incluida la capa de produc
 src/lib/supabase.js     Cliente, economía, insignias, plantillas, traducción de errores
 src/lib/acciones.js     Acciones de dominio (pedir, validar, canjear) con registro
 src/lib/miembros.js     Reglas de alta, edición y baja de perfiles
+src/lib/pin.js          Reglas del PIN parental
 src/lib/tareas.js       Biblioteca de tareas de la casa por roles, sin puntos
 src/lib/log.js          Registro estructurado en JSON con redacción de credenciales
 src/lib/monitoring.js   Captura y agrupación de errores; adaptador de Sentry
 src/lib/flags.js        Banderas de funcionalidad
 src/lib/fakeBackend.js  Backend simulado del modo demo
-src/screens/            Login, Onboarding, ProfilePicker, Home, KidHome,
-                        ParentPanel, Ajustes (Miembros + Estado)
+src/screens/            Login, Onboarding, ProfilePicker, Home, KidHome, ParentPanel,
+                        Ajustes (Miembros · PIN · Dispositivos · Estado)
 src/components/         Gema, barra de XP, modal, PIN, celebración, ErrorBoundary
-scripts/                deploy, rollback, health-check, secrets-check
+scripts/                deploy, rollback, health-check, secrets-check, qr
 supabase/functions/     Edge Function de health (opcional)
 docs/                   RUNBOOK y rotación de credenciales
-tests/                  Economía, frecuencias, miembros y observabilidad (vitest)
+tests/                  Economía, frecuencias, miembros, PIN y observabilidad (vitest)
 SPEC.md                 Especificación, fuente de verdad para iterar
 ```
 
@@ -202,10 +216,11 @@ SPEC.md                 Especificación, fuente de verdad para iterar
 ```bash
 npm run dev            # desarrollo
 npm run dev:demo       # desarrollo con backend simulado, sin Supabase
-npm test               # tests (40)
+npm test               # tests (51)
 npm run build          # compilación de producción
 npm run verify         # tests + build + revisión de credenciales
 npm run health         # ¿responden la web publicada y Supabase?
+npm run qr             # QR imprimible con la dirección del gremio
 npm run deploy         # publicar en GitHub Pages
 npm run rollback       # volver a una versión anterior
 ```

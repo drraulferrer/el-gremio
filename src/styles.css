@@ -279,8 +279,11 @@ button { font-family: inherit; }
 
 /* ---------------- control segmentado ---------------- */
 
+/* Dos por fila en móvil, los cuatro en línea a partir de 540 px: con
+   cuatro rótulos en 375 px el texto se parte y deja de leerse. */
 .segmentos {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
   gap: 6px;
   background: var(--tablero-hondo);
   border: 1px solid var(--linea);
@@ -289,8 +292,11 @@ button { font-family: inherit; }
   margin-bottom: 14px;
 }
 
+@media (min-width: 540px) {
+  .segmentos { grid-template-columns: repeat(4, 1fr); }
+}
+
 .segmentos button {
-  flex: 1;
   border: none;
   background: transparent;
   color: var(--tinta-suave);
@@ -304,6 +310,32 @@ button { font-family: inherit; }
 }
 
 .segmentos button.activo { background: var(--carta-alta); color: var(--tinta); }
+
+/* ---------------- QR y alta de dispositivos ---------------- */
+
+.tarjeta-qr { display: flex; flex-direction: column; align-items: center; }
+
+.qr {
+  border-radius: 12px;
+  background: #fff;
+  padding: 8px;
+  max-width: 100%;
+  height: auto;
+}
+
+.url-gremio {
+  display: block;
+  width: 100%;
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: var(--radio-s);
+  background: var(--tablero-hondo);
+  border: 1px solid var(--linea);
+  font-size: 0.82rem;
+  text-align: center;
+  word-break: break-all;
+  color: var(--oro-claro);
+}
 
 /* ---------------- formularios ---------------- */
 
