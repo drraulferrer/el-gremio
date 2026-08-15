@@ -16,6 +16,12 @@ const DEFECTOS = {
   logsRemotos: true,
   // Persistir también los logs informativos. Ruidoso; solo para depurar.
   logsInfo: false,
+  // Luz ambiental del fondo. Si el fondo tintinea en algún aparato, esto
+  // lo apaga sin esperar a un despliegue.
+  luzAmbiental: true,
+  // Y esto deja la luz pero quieta: mantiene el color que el cristal
+  // necesita para refractar, sin nada en movimiento.
+  luzEnMovimiento: true,
   // Backend simulado en memoria, para ver la app sin Supabase.
   demo: false
 }
@@ -24,6 +30,8 @@ const ENV = {
   modoPeque: import.meta.env.VITE_FLAG_MODO_PEQUE,
   logsRemotos: import.meta.env.VITE_FLAG_LOGS_REMOTOS,
   logsInfo: import.meta.env.VITE_FLAG_LOGS_INFO,
+  luzAmbiental: import.meta.env.VITE_FLAG_LUZ,
+  luzEnMovimiento: import.meta.env.VITE_FLAG_LUZ_MOVIMIENTO,
   demo: import.meta.env.VITE_DEMO
 }
 

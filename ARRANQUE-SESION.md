@@ -169,6 +169,17 @@ semana tres.
 - **Nada de `background-attachment: fixed`.** Safari de iOS lo repinta
   mal al hacer scroll. El degradado vive en `.ambiente`, que se promueve
   a capa propia con `translateZ(0)`.
+- **Nunca animar un elemento con `filter: blur()`.** La luz ambiental
+  eran tres capas de ~400 px con `blur(80px)` en movimiento, y encima hay
+  19 reglas de `backdrop-filter` que vuelven a muestrear ese fondo en cada
+  cuadro: el móvil perdía cuadros y se veía como un tintineo. Ahora las
+  manchas son `radial-gradient` que se desvanecen a transparente (misma
+  suavidad, coste cero) y la deriva es la mitad de larga. También hay un
+  grano finísimo encima para romper el bandeado, que al desplazarse muy
+  despacio se percibe como titileo aunque no falte ningún cuadro.
+- **Si el fondo vuelve a dar guerra**, hay dos banderas en ⚙️ → Estado:
+  `luzEnMovimiento` (la deja quieta, conservando el color que el cristal
+  necesita) y `luzAmbiental` (la apaga entera). No hace falta desplegar.
 - **La economía está derivada, no puesta a ojo.** `src/lib/economia.js`
   declara los supuestos (60 % de adherencia, 5 misiones activas, cadencias
   de 2 / 7 / 30 días por nivel y 12 días por meta) y de ahí salen las

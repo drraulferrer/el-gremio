@@ -39,6 +39,7 @@ del backend, banderas activas y los últimos errores registrados.
 | "Demasiadas acciones seguidas" | Límite de ritmo | Es correcto. Esperar una hora o subir el límite (§4) |
 | "Esta sesión no tiene permiso" | Sesión caducada o RLS | Cerrar sesión y volver a entrar |
 | Las validaciones no llegan solas | Realtime desconectado | Recargar; comprobar que las tablas están en la publicación `supabase_realtime` |
+| El fondo tintinea o parpadea | Coste de composición en ese aparato | ⚙️ → Estado → apagar `luzEnMovimiento`; si sigue, `luzAmbiental`. Son por dispositivo y no requieren desplegar |
 | Pantalla en blanco | Error de render | El `ErrorBoundary` muestra "El gremio ha tropezado" con la versión; mirar `app_logs` |
 
 ---

@@ -164,32 +164,50 @@ button { font-family: inherit; }
 .ambiente span {
   position: absolute;
   display: block;
-  border-radius: 50%;
-  filter: blur(80px);
   opacity: 0.5;
   will-change: transform;
+  /* Sin filter: blur(). Un degradado radial que se desvanece a
+     transparente da la misma mancha suave y no cuesta nada, mientras que
+     animar un blur de 80 px sobre una capa de 400 px obliga a rehacer el
+     desenfoque cada cuadro. Con 19 reglas de backdrop-filter encima
+     muestreando ese fondo, el móvil pierde cuadros y se ve como un
+     tintineo. Esta era la causa. */
 }
 
 .ambiente span:nth-child(1) {
-  width: 46vmax; height: 46vmax; left: -8vmax; top: -6vmax;
-  background: #4a3f9e;
-  animation: derivar-a 34s ease-in-out infinite alternate;
+  width: 90vmax; height: 90vmax; left: -30vmax; top: -30vmax;
+  background: radial-gradient(circle closest-side, #4a3f9e 0%, rgba(74, 63, 158, 0) 100%);
+  animation: derivar-a 44s ease-in-out infinite alternate;
 }
 .ambiente span:nth-child(2) {
-  width: 38vmax; height: 38vmax; right: -10vmax; top: 18vmax;
-  background: #2f6f8f;
-  animation: derivar-b 41s ease-in-out infinite alternate;
+  width: 80vmax; height: 80vmax; right: -30vmax; top: 5vmax;
+  background: radial-gradient(circle closest-side, #2f6f8f 0%, rgba(47, 111, 143, 0) 100%);
+  animation: derivar-b 53s ease-in-out infinite alternate;
 }
 .ambiente span:nth-child(3) {
-  width: 30vmax; height: 30vmax; left: 22vmax; bottom: -10vmax;
-  background: #8a5a2b;
-  opacity: 0.32;
-  animation: derivar-c 47s ease-in-out infinite alternate;
+  width: 70vmax; height: 70vmax; left: 5vmax; bottom: -30vmax;
+  background: radial-gradient(circle closest-side, #8a5a2b 0%, rgba(138, 90, 43, 0) 100%);
+  opacity: 0.3;
+  animation: derivar-c 61s ease-in-out infinite alternate;
 }
 
-@keyframes derivar-a { to { transform: translate3d(12vmax, 8vmax, 0) scale(1.15); } }
-@keyframes derivar-b { to { transform: translate3d(-10vmax, 12vmax, 0) scale(1.1); } }
-@keyframes derivar-c { to { transform: translate3d(8vmax, -10vmax, 0) scale(1.2); } }
+/* Grano finísimo encima de todo el fondo.
+   Un degradado amplio sobre un color oscuro produce bandas visibles, y
+   al desplazarse muy despacio esas bandas se arrastran: se percibe como
+   un titileo aunque no se pierda ni un cuadro. Un poco de ruido las
+   rompe. Es estático, no cuesta nada. */
+.ambiente::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='r'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23r)'/%3E%3C/svg%3E");
+}
+
+@keyframes derivar-a { to { transform: translate3d(6vmax, 4vmax, 0); } }
+@keyframes derivar-b { to { transform: translate3d(-5vmax, 6vmax, 0); } }
+@keyframes derivar-c { to { transform: translate3d(4vmax, -5vmax, 0); } }
 
 /* ------------------------------------------------------------------
    El material.
@@ -243,6 +261,10 @@ button { font-family: inherit; }
 @media (prefers-reduced-motion: reduce) {
   .ambiente span { animation: none; }
 }
+
+/* Luz encendida pero quieta: conserva el color que el cristal necesita
+   para refractar y elimina cualquier movimiento del fondo. */
+.ambiente.quieta span { animation: none; }
 
 /* ---------------- tarjetas y listas ---------------- */
 

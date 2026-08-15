@@ -323,8 +323,10 @@ export default function App() {
  * `prefers-reduced-transparency`.
  */
 function Ambiente() {
+  if (!flag('luzAmbiental')) return null
+  const quieta = !flag('luzEnMovimiento')
   return (
-    <div className="ambiente" aria-hidden="true">
+    <div className={'ambiente' + (quieta ? ' quieta' : '')} aria-hidden="true">
       <span />
       <span />
       <span />
