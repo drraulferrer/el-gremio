@@ -22,7 +22,8 @@ const TABLAS = [
   'redemptions',
   'family_goals',
   'profile_badges',
-  'app_logs'
+  'app_logs',
+  'bonuses'
 ]
 
 const vacia = () => TABLAS.reduce((acc, t) => ({ ...acc, [t]: [] }), {})
@@ -32,13 +33,14 @@ const vacia = () => TABLAS.reduce((acc, t) => ({ ...acc, [t]: [] }), {})
 // la encuentra nunca: el fallo silencioso perfecto.
 const DEFECTOS_TABLA = {
   profiles: { emoji: '🙂', color: '#a78bfa', xp: 0, coins: 0, active: true, gender: 'neutro' },
-  challenges: { emoji: '⭐', xp: 10, coins: 5, frequency: 'diario', active: true, profile_id: null, target_role: null, skill: null },
+  challenges: { emoji: '⭐', xp: 10, coins: 5, frequency: 'diario', active: true, profile_id: null, target_roles: null, skill: null },
   completions: { status: 'pendiente', resolved_at: null, praise: null },
   rewards: { emoji: '🎁', cost: 50, active: true, tier: 2 },
   redemptions: { status: 'pendiente', resolved_at: null },
   family_goals: { emoji: '🏆', target_xp: 1000, achieved: false, achieved_at: null },
   profile_badges: {},
   app_logs: { datos: {} },
+  bonuses: { tipo: 'globos', coins: 5 },
   families: {}
 }
 
@@ -248,6 +250,33 @@ function rpc(nombre, args = {}) {
     escribir({ ...db, completions, profiles })
     notificar()
     return { data: null, error: null }
+  }
+
+  // Espejo de grant_daily_bonus (migración 012). El tope de una vez al día
+  // se replica aquí a propósito: en producción lo garantiza un índice
+  // único, y si el modo demo no lo imitara, el juego de globos se
+  // probaría en un mundo donde se puede cobrar quince veces seguidas y el
+  // fallo solo aparecería con datos reales.
+  if (nombre === 'grant_daily_bonus') {
+    const p = db.profiles.find((x) => x.id === args.p_id && x.active !== false)
+    if (!p) return { data: 'no_existe', error: null }
+    const tipo = args.p_tipo || 'globos'
+    // Con ceros, igual que un `date` de Postgres: si el demo usara otro
+    // formato, la comparación con el día de hoy funcionaría aquí y
+    // fallaría en producción, que es el peor sitio para enterarse.
+    const dia = new Date().toLocaleDateString('sv-SE')
+    const bonuses = db.bonuses || []
+    if (bonuses.some((b) => b.profile_id === p.id && b.dia === dia && b.tipo === tipo)) {
+      return { data: 'ya_hoy', error: null }
+    }
+    const monedas = 5
+    escribir({
+      ...db,
+      bonuses: [...bonuses, { id: uuid(), family_id: p.family_id, profile_id: p.id, dia, tipo, coins: monedas }],
+      profiles: db.profiles.map((x) => (x.id === p.id ? { ...x, coins: x.coins + monedas } : x))
+    })
+    notificar()
+    return { data: 'ok', error: null }
   }
 
   if (nombre === 'undo_completion') {

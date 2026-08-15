@@ -23,11 +23,27 @@
 // rol para que esto funcionara.
 // ------------------------------------------------------------------
 
+/**
+ * Los roles a los que apunta una misión, o null si no apunta a ninguno.
+ *
+ * Lee `target_roles` (array) y, si no está, el `target_role` de una sola
+ * pieza que tuvo la columna durante media hora. Aceptar los dos hace que
+ * dé igual el orden entre desplegar y migrar: con el orden equivocado, y
+ * sin esto, «Hobby» se le aparecería a la peque hasta que cuadraran las
+ * dos mitades. Cuando la columna vieja se retire, esta rama sobra.
+ */
+export function rolesDe(reto) {
+  if (Array.isArray(reto?.target_roles) && reto.target_roles.length) return reto.target_roles
+  if (reto?.target_role) return [reto.target_role]
+  return null
+}
+
 /** ¿Esta misión va dirigida a este perfil? No mira si está activa. */
 export function esParaPerfil(reto, perfil) {
   if (!reto || !perfil) return false
   if (reto.profile_id) return reto.profile_id === perfil.id
-  if (reto.target_role) return reto.target_role === perfil.role
+  const roles = rolesDe(reto)
+  if (roles) return roles.includes(perfil.role)
   return true
 }
 
@@ -59,18 +75,55 @@ export const ETIQUETA_ROL = {
   peque: 'Cualquier peque'
 }
 
+/**
+ * Grupos de más de un rol. «Poner la mesa» la hacen la junior y la peque,
+ * cada una a su manera, y no tiene sentido que salga en el tablero de los
+ * adultos. Son combinaciones con nombre y no una lista de casillas porque
+ * a esta escala solo hay dos que se pidan de verdad, y un nombre («Las
+ * niñas y el niño no», «los mayores») se elige más rápido que tres
+ * casillas que además permiten marcar el conjunto vacío.
+ */
+export const GRUPOS_ROL = [
+  { id: 'ninos', roles: ['junior', 'peque'], etiqueta: 'Los peques y la junior' },
+  { id: 'mayores', roles: ['adulto', 'junior'], etiqueta: 'Adultos y junior' }
+]
+
+const mismoConjunto = (a = [], b = []) =>
+  a.length === b.length && [...a].sort().join() === [...b].sort().join()
+
+/** El grupo con nombre que corresponde a unos roles, si lo hay. */
+export function grupoDe(roles) {
+  if (!roles || roles.length < 2) return null
+  return GRUPOS_ROL.find((g) => mismoConjunto(g.roles, roles)) || null
+}
+
+/** Cómo se lee el destino de una misión en una lista. */
+export function textoDestino(reto, nombrePorId = () => null) {
+  if (reto?.profile_id) return nombrePorId(reto.profile_id) || '—'
+  const roles = rolesDe(reto)
+  if (!roles) return 'Todos'
+  return grupoDe(roles)?.etiqueta || ETIQUETA_ROL[roles[0]] || 'Todos'
+}
+
 /** De una misión al valor del desplegable. */
 export function destinoDe(reto) {
   if (reto?.profile_id) return reto.profile_id
-  if (reto?.target_role) return `rol:${reto.target_role}`
-  return ''
+  const roles = rolesDe(reto)
+  if (!roles) return ''
+  const grupo = grupoDe(roles)
+  return grupo ? `grupo:${grupo.id}` : `rol:${roles[0]}`
 }
 
-/** Del valor del desplegable a las dos columnas. Nunca deja las dos puestas. */
+/** Del valor del desplegable a las columnas. Nunca deja las dos puestas. */
 export function destinoA(valor) {
-  if (!valor) return { profile_id: null, target_role: null }
-  if (String(valor).startsWith('rol:')) return { profile_id: null, target_role: String(valor).slice(4) }
-  return { profile_id: valor, target_role: null }
+  const v = String(valor || '')
+  if (!v) return { profile_id: null, target_roles: null }
+  if (v.startsWith('grupo:')) {
+    const grupo = GRUPOS_ROL.find((g) => g.id === v.slice(6))
+    return { profile_id: null, target_roles: grupo ? [...grupo.roles] : null }
+  }
+  if (v.startsWith('rol:')) return { profile_id: null, target_roles: [v.slice(4)] }
+  return { profile_id: v, target_roles: null }
 }
 
 // ------------------------------------------------------------------

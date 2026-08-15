@@ -46,7 +46,10 @@ create table if not exists public.challenges (
   -- duplicar la misión —dos filas que editar y un historial partido—;
   -- marcarla para todos tampoco valía, porque se la comía la peque de tres
   -- años en su pantalla. El predicado vive en src/lib/misiones.js.
-  target_role text check (target_role is null or target_role in ('adulto','junior','peque')),
+  target_roles text[] check (
+    target_roles is null
+    or (cardinality(target_roles) > 0 and target_roles <@ array['adulto','junior','peque']::text[])
+  ),
   title text not null,
   emoji text not null default '⭐',
   xp integer not null default 10,

@@ -1501,3 +1501,197 @@ code { background: var(--tablero-hondo); padding: 2px 6px; border-radius: 6px; f
 }
 
 .kid-premio-precio .llena { color: #ffc832; }
+
+/* ------------------------------------------------------------------
+   Pantalla de la peque · meta y juego de globos
+
+   Van al FINAL del fichero a propósito: las reglas del modo peque
+   comparten especificidad con las base y gana la última. Ya se coló un
+   bug así con la altura de las baldosas en horizontal.
+   ------------------------------------------------------------------ */
+
+/* La tira del siguiente premio. Ocupa todo el ancho y se toca entera:
+   a los tres años el objetivo táctil es la tarjeta, no un icono dentro. */
+.kid-meta {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  min-height: 76px;
+  margin: 4px 0 12px;
+  padding: 12px 16px;
+  border: 3px solid rgba(0, 0, 0, 0.08);
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.75);
+  text-align: left;
+  cursor: pointer;
+}
+
+.kid-meta.lograda {
+  border-color: var(--exito, #6ee7a0);
+  background: rgba(110, 231, 160, 0.18);
+}
+
+.kid-meta-emoji { font-size: 2.4rem; line-height: 1; }
+.kid-meta-texto { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 0; }
+
+.kid-meta-titulo {
+  font-family: var(--display);
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #3a2f2a;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Las estrellas dibujadas, no escritas: «te faltan 2» no significa nada
+   a esta edad, y dos huecos apagados sí. */
+.kid-meta-estrellas { display: flex; gap: 3px; font-size: 1.15rem; color: rgba(0, 0, 0, 0.18); }
+.kid-meta-estrellas .llena { color: #f6b93b; }
+
+.kid-meta-listo {
+  font-family: var(--display);
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #2f7d4f;
+}
+
+/* El acceso al juego, en sus tres estados. */
+.kid-globos {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 64px;
+  margin-bottom: 12px;
+  padding: 10px 16px;
+  border-radius: 22px;
+  border: 3px dashed rgba(0, 0, 0, 0.12);
+  background: rgba(255, 255, 255, 0.55);
+  font-family: var(--display);
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #6b5b52;
+}
+
+.kid-globos-emoji { font-size: 2rem; line-height: 1; }
+.kid-globos.cerrado .kid-globos-emoji { opacity: 0.45; }
+
+/* Un punto por misión que hace falta. Se rellenan al avanzar, así que la
+   distancia al premio se ve sin contar ni leer. */
+.kid-globos-texto { display: flex; align-items: center; gap: 7px; }
+
+.kid-globos-punto {
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.14);
+}
+
+.kid-globos-punto.hecho { background: #f6b93b; }
+
+.kid-globos.abierto {
+  border-style: solid;
+  border-color: #ff6b6b;
+  background: rgba(255, 107, 107, 0.16);
+  color: #b53d3d;
+  cursor: pointer;
+  animation: kid-globos-late 1.8s ease-in-out infinite;
+}
+
+.kid-globos.hecho { opacity: 0.75; }
+
+/* Late solo con transform: escalar no reflowea, y esta pantalla ya se
+   ganó un bug de rendimiento por animar cosas caras en un móvil. */
+@keyframes kid-globos-late {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.035); }
+}
+
+/* El juego a pantalla completa. */
+.kid-juego {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: linear-gradient(180deg, #bfe3ff 0%, #eaf7ff 60%, #fff6e0 100%);
+  padding: max(18px, env(safe-area-inset-top)) 16px max(18px, env(safe-area-inset-bottom));
+}
+
+.kid-juego-cerrar {
+  position: absolute;
+  top: max(14px, env(safe-area-inset-top));
+  right: 16px;
+  width: 52px;
+  height: 52px;
+  display: grid;
+  place-items: center;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.8);
+  color: #6b5b52;
+  cursor: pointer;
+}
+
+.kid-juego-cuenta {
+  margin: 6px 0 0;
+  font-family: var(--display);
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #3a2f2a;
+}
+
+.kid-juego-cielo { position: relative; flex: 1; width: 100%; overflow: hidden; }
+
+/* Cada globo sube con transform. Nada de animar `top` o `height`: eso
+   relayoutea en cada cuadro y en un móvil se nota. */
+.kid-globo {
+  position: absolute;
+  bottom: -140px;
+  width: 92px;
+  height: 112px;
+  padding: 0;
+  border: none;
+  border-radius: 50% 50% 46% 46%;
+  cursor: pointer;
+  animation: kid-globo-sube 7s linear infinite;
+}
+
+/* El nudo. */
+.kid-globo::after {
+  content: '';
+  position: absolute;
+  bottom: -7px;
+  left: 50%;
+  width: 12px;
+  height: 12px;
+  transform: translateX(-50%) rotate(45deg);
+  background: inherit;
+  border-radius: 2px;
+}
+
+.kid-globo-brillo {
+  position: absolute;
+  top: 16px;
+  left: 20px;
+  width: 22px;
+  height: 30px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.55);
+}
+
+@keyframes kid-globo-sube {
+  from { transform: translateY(0); }
+  to { transform: translateY(calc(-100vh - 160px)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kid-globos.abierto { animation: none; }
+  /* Los globos siguen subiendo pero mucho más despacio: pararlos del todo
+     dejaría el juego sin juego. */
+  .kid-globo { animation-duration: 18s; }
+}

@@ -175,6 +175,39 @@ export async function deshacerMision(id) {
   return { ok: true, mensaje: '' }
 }
 
+/**
+ * Cobra el premio del juego de globos: una estrella extra, una al día.
+ *
+ * El tope no se comprueba aquí. Lo decide `grant_daily_bonus` en Postgres,
+ * donde un índice único por perfil y día lo hace imposible de saltar
+ * recargando o cambiando de dispositivo. Esta función solo traduce la
+ * respuesta: 'ya_hoy' NO es un fallo, es el caso normal del segundo
+ * intento, y por eso no pinta nada en rojo.
+ */
+export async function cobrarGlobos(profileId) {
+  const requestId = nuevoRequestId()
+  const { data, error, mensaje } = await operacion(
+    'juego.globos.error',
+    () => supabase.rpc('grant_daily_bonus', { p_id: profileId, p_tipo: 'globos' }),
+    { request_id: requestId, profile_id: profileId }
+  )
+
+  if (error) {
+    // Base sin migrar: la función todavía no existe.
+    if (error.code === 'PGRST202') {
+      return { ok: false, yaHoy: false, mensaje: 'Falta ejecutar migracion-012-juego-de-globos.sql en Supabase.' }
+    }
+    return { ok: false, yaHoy: false, mensaje }
+  }
+
+  if (data === 'ya_hoy') return { ok: false, yaHoy: true, mensaje: '' }
+  if (data === 'no_existe') return { ok: false, yaHoy: false, mensaje: 'Ese perfil ya no está.' }
+  if (data === 'no_es_tuyo') return { ok: false, yaHoy: false, mensaje: 'Ese perfil no es de este gremio.' }
+
+  log.info('juego.globos.cobrado', { request_id: requestId, profile_id: profileId })
+  return { ok: true, yaHoy: false, mensaje: '' }
+}
+
 /** Canjea un premio. Devuelve además el motivo cuando no se puede. */
 export async function canjearPremio({ premio, profile }) {
   const requestId = nuevoRequestId()

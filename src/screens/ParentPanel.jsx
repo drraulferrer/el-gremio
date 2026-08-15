@@ -15,7 +15,15 @@ import { flex, generoDe } from '../lib/genero'
 import { Modal, Celebracion, Pestana } from '../components/ui'
 import Icono from '../components/Icono'
 import Ajustes from './Ajustes'
-import { misionesDe, destinoDe, destinoA, ETIQUETA_ROL } from '../lib/misiones'
+import {
+  misionesDe,
+  destinoDe,
+  destinoA,
+  rolesDe,
+  textoDestino,
+  ETIQUETA_ROL,
+  GRUPOS_ROL
+} from '../lib/misiones'
 
 export default function ParentPanel({ family, data, refresh, refreshFamily, onVerTutorial, onExit }) {
   const [tab, setTab] = useState('pendientes')
@@ -302,7 +310,7 @@ function ModoPeque({ family, data, refresh, onCeleb }) {
       frequency: m.frequency,
       skill: m.skill || null,
       profile_id: m.profile_id || null,
-      target_role: m.target_role || null,
+      target_roles: m.target_roles || null,
       active: m.active
     }
     const { error } = m.id
@@ -365,7 +373,10 @@ function ModoPeque({ family, data, refresh, onCeleb }) {
       </p>
       {fallo && <p className="error-texto" role="alert">{fallo}</p>}
       {peques.map((p) => {
-        const retos = misionesDe(p, data.challenges)
+        // Con las pausadas incluidas: si se ocultaran, pausar una desde
+        // aquí la haría desaparecer de la única pantalla desde la que se
+        // puede volver a activar.
+        const retos = misionesDe(p, data.challenges, { incluirPausadas: true })
         return (
           <div key={p.id}>
             <div className="titulo-seccion">{p.emoji} {p.name}</div>
@@ -373,16 +384,16 @@ function ModoPeque({ family, data, refresh, onCeleb }) {
             {retos.map((ch) => {
               const disponible = canDo(ch, data.completions, p.id)
               return (
-                <div className="fila" key={ch.id} style={{ marginBottom: 10 }}>
+                <div className="fila" key={ch.id} style={{ marginBottom: 10, opacity: ch.active ? 1 : 0.5 }}>
                   <button
                     className="boton-peque crece"
                     style={{ marginBottom: 0 }}
-                    disabled={!disponible || ocupado === ch.id}
+                    disabled={!ch.active || !disponible || ocupado === ch.id}
                     onClick={() => darEstrella(ch, p)}
                   >
                     <span className="peque-emoji">{ch.emoji}</span>
                     <span className="crece" style={{ textAlign: 'left' }}>{flex(ch.title, generoDe(p))}</span>
-                    <span>{disponible ? '⭐' : '✓'}</span>
+                    <span>{!ch.active ? '⏸' : disponible ? '⭐' : '✓'}</span>
                   </button>
                   <button
                     className="btn-icono"
@@ -423,7 +434,7 @@ function ModoPeque({ family, data, refresh, onCeleb }) {
 // Gestión de misiones
 // --------------------------------------------------------------
 
-const MISION_VACIA = { title: '', emoji: '⭐', xp: 10, coins: 5, frequency: 'diario', profile_id: null, target_role: null, skill: 'responsabilidad', active: true }
+const MISION_VACIA = { title: '', emoji: '⭐', xp: 10, coins: 5, frequency: 'diario', profile_id: null, target_roles: null, skill: 'responsabilidad', active: true }
 
 function GestionMisiones({ family, data, refresh }) {
   const [editando, setEditando] = useState(null) // null | objeto misión
@@ -433,9 +444,7 @@ function GestionMisiones({ family, data, refresh }) {
   // misión de «cualquier adulto» se anunciaba como «Todos», que es
   // justo lo que no es.
   const destinoTexto = (ch) =>
-    ch.profile_id
-      ? data.profiles.find((p) => p.id === ch.profile_id)?.name || '—'
-      : ETIQUETA_ROL[ch.target_role] || 'Todos'
+    textoDestino(ch, (id) => data.profiles.find((p) => p.id === id)?.name)
 
   async function guardar(m) {
     const fila = {
@@ -446,7 +455,7 @@ function GestionMisiones({ family, data, refresh }) {
       coins: Number(m.coins) || 0,
       frequency: m.frequency,
       profile_id: m.profile_id || null,
-      target_role: m.target_role || null,
+      target_roles: m.target_roles || null,
       skill: m.skill || null,
       active: m.active
     }
@@ -535,6 +544,11 @@ function FormMision({ mision, perfiles, onGuardar, onBorrar, onClose }) {
   // gremio sin junior es una opción que no hace nada.
   const rolesPresentes = [...new Set(perfiles.map((p) => p.role))].filter((r) => ETIQUETA_ROL[r])
 
+  // Un grupo solo se ofrece si TODOS sus roles tienen gente. «Los peques y
+  // la junior» en un gremio sin junior sería una etiqueta que miente sobre
+  // a quién le va a salir la misión.
+  const gruposPresentes = GRUPOS_ROL.filter((g) => g.roles.every((r) => rolesPresentes.includes(r)))
+
   return (
     <Modal titulo={m.id ? 'Editar misión' : 'Nueva misión'} onClose={onClose}>
       <div className="campo">
@@ -590,19 +604,52 @@ function FormMision({ mision, perfiles, onGuardar, onBorrar, onClose }) {
         <label>Para</label>
         <select value={destinoDe(m)} onChange={(e) => set(destinoA(e.target.value))}>
           <option value="">Todo el gremio</option>
+          {gruposPresentes.map((g) => (
+            <option key={g.id} value={`grupo:${g.id}`}>{g.etiqueta}</option>
+          ))}
           {rolesPresentes.map((r) => (
             <option key={r} value={`rol:${r}`}>{ETIQUETA_ROL[r]}</option>
           ))}
           {perfiles.map((p) => <option key={p.id} value={p.id}>{p.emoji} {p.name}</option>)}
         </select>
         <span className="suave">
-          {m.target_role
+          {rolesDe(m)
             ? 'Una sola misión: la hace cada quien por su cuenta, sin duplicarla ni quitársela a nadie.'
             : m.profile_id
               ? 'Solo esta persona la ve en su tablero.'
               : 'La ven todos, la peque incluida.'}
         </span>
       </div>
+      {/* Pausar en vez de borrar. Borrar arrastra en cascada el historial
+          —XP ya aportada a metas cerradas incluida—, y casi siempre lo que
+          se quiere es que deje de salir, no que nunca hubiera existido.
+          Vive en el formulario y no solo en la lista de Misiones porque
+          desde la pestaña Peque no había forma de llegar. */}
+      <div className="campo">
+        <label>Estado</label>
+        <div className="fila">
+          <button
+            className={'btn btn-mini crece' + (m.active ? '' : ' btn-fantasma')}
+            aria-pressed={m.active}
+            onClick={() => set({ active: true })}
+          >
+            Activa
+          </button>
+          <button
+            className={'btn btn-mini crece' + (m.active ? ' btn-fantasma' : '')}
+            aria-pressed={!m.active}
+            onClick={() => set({ active: false })}
+          >
+            En pausa
+          </button>
+        </div>
+        <span className="suave">
+          {m.active
+            ? 'Sale en el tablero de quien le toque.'
+            : 'No sale en ningún tablero. El historial que ya tenga se conserva.'}
+        </span>
+      </div>
+
       <button className="btn btn-bloque" disabled={!m.title.trim()} onClick={() => onGuardar(m)}>Guardar</button>
       {onBorrar && (
         <button className="btn btn-peligro btn-bloque" style={{ marginTop: 10 }} onClick={() => onBorrar(m)}>Borrar misión</button>

@@ -83,10 +83,16 @@ export default function App() {
       supabase.from('rewards').select('*').eq('family_id', fid).order('created_at'),
       supabase.from('redemptions').select('*').eq('family_id', fid).order('requested_at', { ascending: false }).limit(200),
       supabase.from('family_goals').select('*').eq('family_id', fid).eq('achieved', false).order('starts_at', { ascending: false }).limit(1),
-      supabase.from('profile_badges').select('*').eq('family_id', fid)
+      supabase.from('profile_badges').select('*').eq('family_id', fid),
+      // Los bonus del juego de globos van los últimos y su fallo NO tumba
+      // la carga: si la migración 012 no se ha ejecutado, la tabla no
+      // existe y la app tiene que seguir funcionando entera menos el
+      // juego. Degradar con una cosa de menos, no con la pantalla en
+      // blanco.
+      supabase.from('bonuses').select('*').eq('family_id', fid)
     ])
 
-    const fallo = respuestas.find((r) => r.error)
+    const fallo = respuestas.slice(0, 7).find((r) => r.error)
     if (fallo) {
       capturar(fallo.error, { origen: 'loadAll', request_id: requestId })
       setErrorCarga(mensajeDeError(fallo.error))
@@ -94,7 +100,7 @@ export default function App() {
     }
     setErrorCarga('')
 
-    const [pr, ch, co, rw, rd, gl, bg] = respuestas
+    const [pr, ch, co, rw, rd, gl, bg, bo] = respuestas
     const next = {
       profiles: pr.data || [],
       challenges: ch.data || [],
@@ -102,7 +108,8 @@ export default function App() {
       rewards: rw.data || [],
       redemptions: rd.data || [],
       goal: gl.data && gl.data.length ? gl.data[0] : null,
-      badges: bg.data || []
+      badges: bg.data || [],
+      bonuses: bo.error ? [] : bo.data || []
     }
     log.debug('datos.cargados', {
       request_id: requestId,
