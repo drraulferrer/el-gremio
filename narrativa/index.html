@@ -153,6 +153,10 @@ em{font-style:normal;color:var(--oro-claro)}
 .ceja::before{content:"";width:22px;height:1px;background:var(--linea-fuerte);flex:none}
 .entradilla{font-size:1.2rem;line-height:1.55;color:var(--tinta-2);max-width:60ch}
 .pie{font-size:.86rem;color:var(--tinta-3);line-height:1.5}
+/* Los enlaces de fuentes van dentro de una frase, asi que no pueden medir
+   44 px de alto sin romper la linea. El padding vertical en un elemento
+   en linea no altera la caja de linea, pero si agranda el area de toque. */
+.pie a{padding:.55rem 0}
 .tabnum{font-variant-numeric:tabular-nums}
 
 /* --- Portada ------------------------------------------------------ */
@@ -414,7 +418,13 @@ blockquote cite{display:block;margin-top:1rem;font-style:normal;font-size:.78rem
   section{padding:var(--s6) 0}
   .cifras{gap:var(--s3) var(--s4)}
   .cifra b{font-size:2rem}
+  /* A una columna la cifra ya no cabe flotando sobre la pista: se
+     montaba encima de la barra. Pasa a su propia linea. */
   .eco-fila{grid-template-columns:1fr;gap:.35rem}
+  .eco-cifra{position:static;display:block;order:2;text-align:right}
+  .eco-pista{flex-wrap:wrap;height:auto;gap:.4rem 0}
+  .eco-pista>.eco-obj,.eco-pista>.eco-real,.eco-pista>.eco-marca{top:4px}
+  .eco-pista{padding-top:18px}
 }
 </style>
 
@@ -655,7 +665,7 @@ blockquote cite{display:block;margin-top:1rem;font-style:normal;font-size:.78rem
       <div class="eco-et">Nivel 1<span>Decidir</span></div>
       <div class="eco-pista"><div class="eco-obj" style="--obj:14%"></div>
         <div class="eco-real" style="--real:16%"></div>
-         style="--obj:14%" data-t="objetivo"></div>
+        <div class="eco-marca" style="--obj:14%" data-t="objetivo"></div>
         <span class="eco-cifra">2,2 de 2 días</span></div>
     </div>
     <div class="eco-fila">
