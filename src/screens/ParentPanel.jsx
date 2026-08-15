@@ -956,9 +956,29 @@ function GestionPremios({ family, data, refresh }) {
   return (
     <div>
       {fallo && <p className="error-texto" role="alert">{fallo}</p>}
-      <button className="btn btn-mini btn-bloque" style={{ marginBottom: 12 }} onClick={() => setEditando({ ...PREMIO_VACIO })}>
-        + Nuevo premio
-      </button>
+      <div className="fila" style={{ marginBottom: 12 }}>
+        <button className="btn btn-mini crece" onClick={() => setEditando({ ...PREMIO_VACIO })}>
+          + Nuevo premio
+        </button>
+        {/* Va aquí y no en una pestaña propia: quien entra a Premios es
+            quien está pensando en recompensas, y esto es la recompensa que
+            no cabía en el catálogo. Una pestaña más para algo que se usa
+            una vez al mes sería una pestaña que nadie abre. */}
+        <button className="btn btn-fantasma btn-mini crece" onClick={() => setAMano(!aMano)}>
+          🪙 Monedas a mano
+        </button>
+      </div>
+
+      {aMano && (
+        <PremioAMano
+          data={data}
+          onCerrar={() => setAMano(false)}
+          onHecho={async () => {
+            setAMano(false)
+            await refresh()
+          }}
+        />
+      )}
 
       {data.rewards.length === 0 && (
         <div className="vacio">Sin premios todavía. Funcionan mejor los tangibles: un plan, un privilegio, una salida.</div>

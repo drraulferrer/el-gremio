@@ -62,42 +62,32 @@ si falla `supabase`, casi seguro que el proyecto está pausado (ver §7).
 ✅ 012  juego de globos: tabla bonuses + grant_daily_bonus (15-ago)
 ✅ 013  target_roles[]: misiones para varios roles (15-ago)
 ✅ 014  premio a mano: bonuses.motivo/otorgado_por + grant_manual_bonus (15-ago)
-⚠️ 015  poderes que se gastan + insignias únicas · LANZADA, PERO NO ESTÁ
+✅ 015  poderes que se gastan + insignias únicas (15-ago, noche)
 ```
 
-**La 015 se dio por ejecutada el 15-ago por la noche, pero la base no la
-tiene.** Comprobado desde fuera justo después, y otra vez un minuto más
-tarde: `power_uses` y `spend_power` devuelven 404 con `PGRST205`, mientras
-`bonuses` responde 200 por el mismo camino. O el SQL Editor cortó a mitad
-con un error, o se ejecutó sobre otro proyecto. Lo primero al retomar es
-volver a lanzarla LEYENDO la salida del editor hasta el final. Para
-descartar que sea solo la caché de PostgREST:
+**La 015 costó dos intentos, y conviene saber por qué.** El primero se dio
+por hecho y la base no la tenía: `power_uses` y `spend_power` salían NULL
+con `to_regclass`, mientras `bonuses` respondía por el mismo camino. La
+causa casi seguro fue el diálogo **«Potential issue detected · This query
+includes destructive operations»** que el SQL Editor levanta ante cualquier
+`drop policy` o `revoke`, aunque no toquen un solo dato: si se cierra sin
+pulsar «Run query», el editor no ejecuta nada y tampoco avisa de que no lo
+ha hecho. Con cualquier migración de este proyecto va a salir. **Hay que
+pulsar «Run query» y esperar el «Success. No rows returned».**
 
-```sql
-select to_regclass('public.power_uses');   -- null = la tabla no existe
-notify pgrst, 'reload schema';             -- si existe pero da 404
+Comprobado tras ejecutarla: índice único de las únicas, RLS de
+`power_uses`, su política de lectura y su alta en realtime, los cuatro a 1.
+Y de paso, `select tablename, rowsecurity from pg_tables where schemaname
+= 'public'` no devuelve ni una tabla en `false`: producción nunca estuvo
+expuesta por el agujero de `schema.sql`, que solo afectaba a bases nuevas.
+
+Para comprobarlo desde fuera sin abrir el panel, que es más rápido:
+
+```bash
+U=$VITE_SUPABASE_URL; K=$VITE_SUPABASE_ANON_KEY
+curl -s -o /dev/null -w '%{http_code}\n' "$U/rest/v1/power_uses?select=id&limit=1" \
+  -H "apikey: $K" -H "Authorization: Bearer $K"    # 200 = la tabla existe
 ```
-
-Sin ella la app funciona entera, pero usar un poder devuelve un aviso que
-dice exactamente qué falta ejecutar. Antes de lanzarla, comprobar que no
-hay duplicados de las únicas (debe dar cero filas):
-
-```sql
-select family_id, code, count(*) from public.profile_badges
- where code in ('primer_nivel10','mano_derecha','coleccionista')
- group by 1,2 having count(*) > 1;
-```
-
-**`schema.sql` estaba incompleto y se ha arreglado (15-ago, noche).** Tenía
-la tabla `bonuses` de las migraciones 012 y 014 pero **sin RLS, sin
-política, sin realtime y sin sus dos funciones**: una base nueva creada
-desde ese fichero habría dejado esa tabla abierta a escritura directa, o
-sea, monedas gratis desde la consola del navegador. La base de producción
-nunca estuvo expuesta —allí entró por las migraciones, que sí las traían—,
-pero cualquier base nueva sí. Es el fallo que la regla de «cada cambio de
-esquema se escribe dos veces» existe para evitar, y se coló igual: al
-revisar una migración, conviene comprobar que TODO lo suyo está también en
-`schema.sql`, no solo la tabla.
 
 De la 013 queda **sin ejecutar y a propósito** el `drop column target_role`
 que va comentado al final. No lo lances hasta comprobar que
@@ -509,6 +499,14 @@ aporta más a la meta. Nada de contadores en `profiles`: se
 desincronizarían el día que alguien deshace una misión, y deshacer aquí es
 una operación normal, no una excepción.
 
+**El premio a mano estaba escrito y sin enganchar.** El componente
+`PremioAMano` existía entero desde la sesión anterior, `GestionPremios`
+tenía hasta su `useState`, pero nadie lo renderizaba: funcionalidad
+completa e invisible, que es la peor clase de código muerto porque no
+salta en ningún test ni en el build. Ahora está en Panel → Premios, en el
+botón «🪙 Monedas a mano». Merece la pena buscar más casos así: un
+`grep` de cada componente exportado contra su uso real.
+
 Detalles menores del mismo pase: el nombre de una insignia llevaba un
 carácter chino colado («完 Completo»), corregido; el backend simulado no
 tenía el `grant_manual_bonus` de la 014, así que el premio a mano no se
@@ -546,11 +544,12 @@ condicionan todo lo demás:
 1. **¿Se creó ya la cuenta familiar y se fundó el gremio?** Requiere
    registrar cuenta y teclear contraseña, así que lo hace la familia. Sin
    eso, la app enseña el asistente de alta.
-2. **¿Se ejecutó la migración 015?** Ver §2. Es lo único que la app pide
-   ahora mismo y no puede hacer sola.
-3. **¿Lo están usando de verdad?** De la respuesta depende qué merece la
+2. **¿Lo están usando de verdad?** De la respuesta depende qué merece la
    pena tocar: si llevan dos semanas usándolo, lo siguiente es mirar el
    diagnóstico de economía con datos reales, no añadir funciones.
+
+Ya no hay nada pendiente en la base: las quince migraciones están
+ejecutadas y comprobadas.
 
 ### Un detalle que va a morder
 
