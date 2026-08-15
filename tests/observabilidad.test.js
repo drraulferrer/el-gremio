@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { redactar } from '../src/lib/log'
-import { huella } from '../src/lib/monitoring'
+import { huella, origenDelError } from '../src/lib/monitoring'
 import { mensajeDeError, eventoDeExito } from '../src/lib/supabase'
 
 describe('redacción de logs', () => {
@@ -138,5 +138,30 @@ describe('nombre del evento en las operaciones', () => {
       'premio.canje_resuelto.error'
     ]
     for (const e of eventos) expect(eventoDeExito(e)).not.toMatch(/error/)
+  })
+})
+
+describe('origen de los errores globales', () => {
+  it('marca como ajeno el «Script error.» sin fichero ni línea', () => {
+    const salida = origenDelError({ message: 'Script error.', filename: '', lineno: 0, colno: 0 })
+    expect(salida.ajeno).toBe(true)
+    expect(salida.fichero).toBe('')
+  })
+
+  it('marca como propio un fallo del bundle, con su posición', () => {
+    const salida = origenDelError({
+      filename: 'https://drraulferrer.github.io/el-gremio/assets/index-abc.js',
+      lineno: 412,
+      colno: 77
+    })
+    expect(salida.ajeno).toBe(false)
+    expect(salida.fichero).toMatch(/assets\/index-/)
+    expect(salida.linea).toBe(412)
+    expect(salida.columna).toBe(77)
+  })
+
+  it('no revienta si el evento no trae nada', () => {
+    expect(origenDelError(undefined).ajeno).toBe(true)
+    expect(origenDelError({}).linea).toBe(0)
   })
 })

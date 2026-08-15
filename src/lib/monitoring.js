@@ -57,12 +57,34 @@ export function resumenErrores() {
     .sort((a, b) => b.veces - a.veces)
 }
 
+/**
+ * De dónde viene un error global del navegador.
+ *
+ * Un fallo dentro de un script de otro origen llega como «Script error.»
+ * pelado: el navegador oculta mensaje, fichero y línea a propósito, porque
+ * si no cualquier página podría leer el contenido de scripts ajenos. Los
+ * dos únicos errores reales que ha registrado esta app en toda su historia
+ * son exactamente eso, y no se pudieron diagnosticar.
+ *
+ * Que los tres campos vengan vacíos NO es ruido: es la respuesta. Si están
+ * vacíos, el fallo es ajeno —una extensión del navegador, casi siempre— y
+ * se puede ignorar. Si apuntan a `assets/index-*.js`, es código nuestro y
+ * hay que mirarlo. Sin guardarlos, los dos casos son indistinguibles.
+ */
+export function origenDelError(evento) {
+  const fichero = evento?.filename || ''
+  const linea = Number(evento?.lineno) || 0
+  const columna = Number(evento?.colno) || 0
+  return { fichero, linea, columna, ajeno: !fichero && !linea && !columna }
+}
+
 /** Engancha los errores globales del navegador. Idempotente. */
 export function instalarMonitorizacion() {
   if (instalado || typeof window === 'undefined') return () => {}
   instalado = true
 
-  const alError = (evento) => capturar(evento.error || evento.message, { origen: 'window.onerror' })
+  const alError = (evento) =>
+    capturar(evento.error || evento.message, { origen: 'window.onerror', ...origenDelError(evento) })
   const alRechazo = (evento) => capturar(evento.reason, { origen: 'unhandledrejection' })
 
   window.addEventListener('error', alError)
