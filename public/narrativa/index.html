@@ -283,6 +283,43 @@ em{font-style:normal;color:var(--oro-claro)}
 .et-mal{color:var(--coral)}
 .et-bien{color:var(--verde)}
 
+/* --- Las dos monedas ----------------------------------------------- */
+.divisa{padding:var(--s3);border-top:3px solid var(--c)}
+.divisa h4{font-family:var(--display);font-weight:500;font-size:1.25rem;color:var(--c);margin-bottom:.4rem}
+.divisa>p{font-size:.9rem;color:var(--tinta-2);margin:0}
+.divisa dl{margin:.9rem 0 0;display:grid;grid-template-columns:auto 1fr;gap:.45rem .9rem;font-size:.85rem}
+.divisa dt{color:var(--tinta-3);white-space:nowrap}
+.divisa dd{margin:0;color:var(--tinta-2)}
+
+/* Escalones y no una linea suave: lo que se nota al jugar es el salto
+   entre un nivel y el siguiente, y una curva continua lo disimularia. */
+.curva{display:flex;align-items:flex-end;gap:.55rem;height:150px;margin-top:var(--s3)}
+.curva>div{flex:1;display:flex;flex-direction:column;justify-content:flex-end;height:100%;text-align:center}
+.curva i{display:block;background:linear-gradient(0deg,rgba(245,184,65,.3),var(--oro));
+  border-radius:6px 6px 0 0;height:0;
+  transition:height .9s cubic-bezier(.16,1,.3,1) var(--d,0s)}
+.visible .curva i{height:var(--h)}
+.curva b{font-size:.78rem;font-weight:700;color:var(--oro-claro);
+  font-variant-numeric:tabular-nums;margin-bottom:.35rem}
+.curva span{font-size:.72rem;color:var(--tinta-3);margin-top:.45rem}
+
+/* --- Topes de carga ------------------------------------------------ */
+.carga{display:flex;height:40px;border-radius:10px;overflow:hidden;margin-top:var(--s3);
+  border:1px solid var(--linea-fuerte);background:rgba(0,0,0,.32)}
+.carga i{display:grid;place-items:center;font-size:.74rem;font-weight:700;color:#141726;
+  white-space:nowrap;overflow:hidden;width:0;
+  transition:width 1s cubic-bezier(.16,1,.3,1) var(--d,0s)}
+.visible .carga i{width:var(--w)}
+/* Solo el tramo diario es lo bastante ancho para llevar su rotulo dentro;
+   los otros dos lo perdian por recorte, asi que van todos a la leyenda. */
+.carga-total{margin-left:auto;color:var(--tinta-2);font-weight:700;
+  font-variant-numeric:tabular-nums}
+.aviso{margin-top:var(--s4);padding:var(--s3);border-radius:var(--radio);
+  border:1px solid rgba(255,169,107,.35);background:rgba(255,169,107,.07)}
+.aviso .et{font-size:.7rem;letter-spacing:.13em;text-transform:uppercase;font-weight:700;
+  color:var(--naranja);display:block;margin-bottom:.45rem}
+.aviso p{margin:0;font-size:.95rem;color:var(--tinta)}
+
 /* --- Grafico de economia ------------------------------------------ */
 .eco{margin-top:var(--s4)}
 .eco-fila{display:grid;grid-template-columns:9rem 1fr;gap:var(--s2);align-items:center;
@@ -664,15 +701,204 @@ blockquote cite{display:block;margin-top:1rem;font-style:normal;font-size:.78rem
 
 <section class="rev" data-acto="Cómo funciona">
   <div class="col">
-    <p class="ceja">La economía</p>
+    <p class="ceja">La maquinaria</p>
+    <h2>Dos monedas, y solo una se gasta</h2>
+    <p>
+      Validar una misión abona dos cosas a la vez, y hacen trabajos distintos. Podrían
+      haber sido una sola; son dos por una razón concreta: si canjear un premio bajara
+      el mismo contador que mide lo que llevas hecho, <strong>gastar se sentiría como
+      retroceder</strong>. Y un sistema en el que la recompensa te quita progreso deja
+      de usarse.
+    </p>
+  </div>
+
+  <div class="rejilla g2 ancho">
+    <div class="carta divisa" style="--c:#7fb3ff">
+      <h4>Experiencia</h4>
+      <p>Solo sube. Nunca se gasta, no caduca y no hay forma de perderla.</p>
+      <dl>
+        <dt>Para qué sirve</dt><dd>Determina el nivel y alimenta las ocho barras de habilidad</dd>
+        <dt>Quién la ve</dt><dd>Cada persona la suya, y el gremio la suma en la meta</dd>
+        <dt>Al cerrar temporada</dt><dd>No se toca: lo que se reinicia es la barra de la meta, que es otro contador</dd>
+      </dl>
+    </div>
+    <div class="carta divisa" style="--c:#f5b841">
+      <h4>Monedas</h4>
+      <p>Se ganan igual y se gastan en la tienda. Son el andamio, no el motor.</p>
+      <dl>
+        <dt>Para qué sirven</dt><dd>Canjear premios reales de los tres niveles</dd>
+        <dt>Se pueden dar a mano</dt><dd>Por algo excepcional, con motivo obligatorio y sin abonar experiencia</dd>
+        <dt>Al cerrar temporada</dt><dd>Los precios suben un 30&nbsp;%, así que valen menos que antes</dd>
+      </dl>
+    </div>
+  </div>
+
+  <div class="col" style="margin-top:var(--s5)">
+    <p class="ceja">La curva</p>
+    <h3 style="font-size:1.5rem;margin-bottom:var(--s2)">Cada nivel cuesta más que el anterior</h3>
+    <p>
+      La experiencia acumulada que pide el nivel <em>n</em> es
+      <strong>50&nbsp;·&nbsp;n&nbsp;·&nbsp;(n−1)</strong>. Es una curva cuadrática, así
+      que los primeros niveles caen rápido —el segundo a los 100 puntos— y después se
+      abren: el décimo pide 4.500. Ese reparto es deliberado: al principio hace falta
+      que pase algo pronto, y más adelante lo que sostiene ya no es el nivel sino la
+      meta compartida y los premios.
+    </p>
+  </div>
+
+  <div class="curva ancho">
+    <div><b>0</b><i style="--h:2%;--d:0s"></i><span>Nivel 1</span></div>
+    <div><b>100</b><i style="--h:10%;--d:.08s"></i><span>Nivel 2</span></div>
+    <div><b>300</b><i style="--h:30%;--d:.16s"></i><span>Nivel 3</span></div>
+    <div><b>600</b><i style="--h:60%;--d:.24s"></i><span>Nivel 4</span></div>
+    <div><b>1.000</b><i style="--h:100%;--d:.32s"></i><span>Nivel 5</span></div>
+  </div>
+
+  <div class="col" style="margin-top:var(--s3)">
+    <p class="pie">
+      No hay nivel máximo. Por eso cerrar una meta y abrir temporada nueva no puede
+      hacer bajar a nadie: sube la dificultad de la tienda, no se recorta el progreso.
+    </p>
+  </div>
+
+  <div class="col" style="margin-top:var(--s5)">
+    <p class="ceja">La proporcionalidad</p>
+    <h3 style="font-size:1.5rem;margin-bottom:var(--s2)">Una sola curva, valores distintos</h3>
+    <p>
+      Las edades no tienen curvas propias. La proporcionalidad vive en lo que vale cada
+      misión al activarla para una persona concreta, y ese es el sitio correcto: con
+      curvas distintas por edad, comparar niveles entre miembros dejaría de significar
+      nada.
+    </p>
+  </div>
+
+  <div class="rejilla g3 ancho">
+    <div class="carta principio">
+      <h4>Peque · 10 XP y 5 monedas</h4>
+      <p>Recibe la estrella al momento. Sus monedas se dibujan como estrellas y su
+      tienda filtra por precio, no por nivel.</p>
+    </div>
+    <div class="carta principio">
+      <h4>Junior · 15 XP y 8 monedas</h4>
+      <p>La que más gana por misión. A quien más le cuesta sostener el hábito, más
+      reconocimiento por sostenerlo.</p>
+    </div>
+    <div class="carta principio">
+      <h4>Adulto · 10 XP y 5 monedas</h4>
+      <p>Puntúa bajo en tareas triviales a propósito: si los adultos inflaran su
+      aportación, la meta compartida la cerrarían ellos solos.</p>
+    </div>
+  </div>
+
+  <div class="col" style="margin-top:var(--s4)">
+    <p>
+      Sobre esos valores se aplica el supuesto que lo gobierna todo: una
+      <strong>adherencia del 60&nbsp;%</strong>. Nadie completa el tablón entero todos
+      los días, y el sistema no debería estar calculado para que haga falta. Con esa
+      adherencia, una persona adulta gana unos <strong>48 puntos y 24 monedas al
+      día</strong>, y la junior unos 72 y 38.
+    </p>
+    <p class="pie">
+      Y todo es reversible: cualquier misión se puede deshacer y devuelve los dos
+      contadores, en la baldosa de la peque, en «Hecho hoy» del panel o cancelando la
+      petición. Un rechazo tampoco consume la frecuencia: la misión vuelve a la lista.
+    </p>
+  </div>
+</section>
+
+<section class="rev" data-acto="Cómo funciona">
+  <div class="col">
+    <p class="ceja">Los topes</p>
+    <h2>Cuántas misiones caben por persona</h2>
+    <p>
+      Los precios pueden estar perfectos y la economía dispararse igual, por una vía que
+      no se ve venir: <strong>activar más misiones de la cuenta</strong>. Quince misiones
+      por persona multiplican lo que entra cada día, y con ello los premios y los niveles
+      caen mucho antes de lo previsto sin que nadie haya tocado un precio.
+    </p>
+    <p>
+      Contar misiones a secas engaña, y ese es el detalle que hace falta acertar:
+      <strong>siete misiones semanales pesan lo mismo que una diaria</strong>. Lo que hay
+      que medir no es cuántas hay, es la carga —en misiones-diarias equivalentes—, donde
+      una diaria vale 1, una semanal 1/7, una mensual 1/30 y una única 0, porque no se
+      repite.
+    </p>
+    <p>
+      El presupuesto es de <strong>ocho</strong> por persona, el mismo número con el que
+      están calculados los precios de la tienda. Los tres topes están repartidos para
+      que quepan justo dentro:
+    </p>
+  </div>
+
+  <div class="ancho">
+    <div class="carga">
+      <i style="--w:87.5%;background:var(--oro);--d:0s">7 diarias · 7,00</i>
+      <i style="--w:8.93%;background:var(--turquesa);--d:.2s"></i>
+      <i style="--w:3.33%;background:var(--violeta);--d:.4s"></i>
+    </div>
+    <div class="leyenda">
+      <span><i style="background:var(--oro)"></i>7 diarias · 7,00</span>
+      <span><i style="background:var(--turquesa)"></i>5 semanales · 0,71</span>
+      <span><i style="background:var(--violeta)"></i>8 mensuales · 0,27</span>
+      <span class="carga-total">7,98 del presupuesto de 8,00</span>
+    </div>
+
+    <div class="aviso">
+      <span class="et">El aviso que sale en la pestaña Misiones</span>
+      <p>
+        «Va a 1,5× de lo que la economía tiene calculado: 12 diarias (máximo 7). Con esta
+        carga los premios y los niveles caen antes de lo previsto. Pausa alguna, o sube
+        el precio de los premios.»
+      </p>
+    </div>
+  </div>
+
+  <div class="col" style="margin-top:var(--s4)">
+    <p>
+      El aviso <strong>no bloquea</strong>, y sale solo cuando hay algo que decir: uno
+      que aparece siempre deja de leerse a la semana. Dice el múltiplo, qué franja se ha
+      pasado y las dos salidas posibles, porque «te has pasado» sin una salida concreta
+      solo genera culpa.
+    </p>
+    <p>
+      De los topes sale también el <strong>techo</strong>, que es la misma restricción
+      traducida a puntos. Se calcula en dos versiones a propósito: el máximo duro
+      —cumpliéndolo todo, todos los días, que no pasa nunca— y el esperado con la
+      adherencia real, que es contra el que hay que poner los precios. Poner precios
+      contra el máximo castigaría a quien cumple a medias, que es todo el mundo; usar
+      solo el esperado dejaría que una semana perfecta descuadrase el mes.
+    </p>
+  </div>
+
+  <div class="rejilla g4 ancho">
+    <div class="carta principio"><h4>Adulto</h4><p>48 puntos al día esperados · 80 en el techo duro</p></div>
+    <div class="carta principio"><h4>Junior</h4><p>72 puntos al día esperados · 120 en el techo duro</p></div>
+    <div class="carta principio"><h4>Peque</h4><p>48 puntos al día esperados · 80 en el techo duro</p></div>
+    <div class="carta principio" style="border-color:rgba(245,184,65,.3)">
+      <h4 style="color:var(--oro)">La familia entera</h4>
+      <p>216 puntos al día esperados · 359 en el techo duro</p>
+    </div>
+  </div>
+
+  <div class="col" style="margin-top:var(--s3)">
+    <p class="pie">
+      Ese 216 es lo que dimensiona la meta compartida: multiplicado por los sesenta días
+      de cadencia da <strong>12.950 puntos</strong>, que es exactamente lo que pide la
+      meta. Todo el sistema cuelga del mismo hilo.
+    </p>
+  </div>
+</section>
+
+<section class="rev" data-acto="Cómo funciona">
+  <div class="col">
+    <p class="ceja">Los precios</p>
     <h2>Los precios se derivan, no se ponen a ojo</h2>
     <p>
       El fallo clásico de cualquier sistema con moneda: si se gana más deprisa de lo que
       cuestan las cosas, los premios pierden valor y la familia acaba debiendo salidas
-      que no puede sostener; si se gana demasiado despacio, nadie llega a nada. Aquí
-      los supuestos están declarados —<strong>60&nbsp;% de adherencia</strong>,
-      <strong>ocho misiones activas</strong> por persona— y de ellos salen las bandas de
-      precio.
+      que no puede sostener; si se gana demasiado despacio, nadie llega a nada. Con los
+      supuestos ya declarados —adherencia del 60&nbsp;% y ocho misiones por persona— solo
+      falta una decisión para que salgan los precios solos.
     </p>
   </div>
 
