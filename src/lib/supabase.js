@@ -171,9 +171,11 @@ export const BADGES = [
 // habilidad) y las de premios en src/lib/premios.js (por nivel). Aquí
 // solo queda la meta cooperativa de arranque.
 
-// Meta corta a propósito: el gremio debería ver su primer cierre en
-// semana y media, no en el mes tres.
-export const META_INICIAL = { title: 'Noche de pizza y peli', emoji: '🍕', target_xp: 600 }
+// 1600 XP no es un número redondo elegido a ojo: es lo que una familia de
+// cuatro genera en unos doce días con el 60 % de adherencia. Ver
+// src/lib/economia.js. Con los 600 de antes se cerraba en cuatro días y
+// medio, y una meta que cae sola deja de ser una meta.
+export const META_INICIAL = { title: 'Noche de pizza y peli', emoji: '🍕', target_xp: 1600 }
 
 // 'Junior' y 'Peque' son epicenos; 'Adulto' no.
 export const ROLE_LABEL = { adulto: '{Adulto|Adulta|Persona adulta}', junior: 'Junior', peque: 'Peque' }

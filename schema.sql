@@ -121,6 +121,14 @@ create index if not exists idx_profiles_family on public.profiles (family_id);
 create index if not exists idx_profiles_family_active on public.profiles (family_id, active);
 create index if not exists idx_challenges_family on public.challenges (family_id);
 create index if not exists idx_challenges_skill on public.challenges (family_id, skill);
+-- Un índice por cada consulta real de src/App.jsx, ordenación incluida:
+-- sin la columna de fecha en el índice, pedir "las últimas 400" obliga a
+-- leer y ordenar todo el historial de la familia.
+create index if not exists idx_completions_family_fecha on public.completions (family_id, requested_at desc);
+create index if not exists idx_redemptions_family_fecha on public.redemptions (family_id, requested_at desc);
+create index if not exists idx_rewards_family on public.rewards (family_id, created_at);
+create index if not exists idx_badges_family on public.profile_badges (family_id);
+create index if not exists idx_goals_family_activa on public.family_goals (family_id, achieved, starts_at desc);
 
 -- ---------------------------------------------------------------------
 -- Seguridad por filas (RLS): todo queda aislado por familia.

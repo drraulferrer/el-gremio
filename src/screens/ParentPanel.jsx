@@ -286,6 +286,43 @@ function ModoPeque({ family, data, refresh, onCeleb }) {
   const peques = perfilesActivos(data.profiles).filter((p) => p.role === 'peque')
   const [ocupado, setOcupado] = useState(null)
   const [fallo, setFallo] = useState('')
+  // Editar desde aquí y no solo desde la pestaña Misiones: este es el sitio
+  // donde de verdad se usan sus misiones, y por tanto donde se ve que una
+  // está mal escrita o vale demasiado poco.
+  const [editando, setEditando] = useState(null)
+
+  async function guardar(m) {
+    const { error } = await supabase
+      .from('challenges')
+      .update({
+        title: m.title.trim(),
+        emoji: m.emoji,
+        xp: Number(m.xp) || 0,
+        coins: Number(m.coins) || 0,
+        frequency: m.frequency,
+        skill: m.skill || null,
+        profile_id: m.profile_id || null,
+        active: m.active
+      })
+      .eq('id', m.id)
+    if (error) {
+      setFallo(mensajeDeError(error))
+      return
+    }
+    setEditando(null)
+    await refresh()
+  }
+
+  async function borrar(m) {
+    if (!window.confirm(`¿Borrar "${flex(m.title, 'neutro')}" y su historial?`)) return
+    const { error } = await supabase.from('challenges').delete().eq('id', m.id)
+    if (error) {
+      setFallo(mensajeDeError(error))
+      return
+    }
+    setEditando(null)
+    await refresh()
+  }
 
   async function darEstrella(reto, perfil) {
     setOcupado(reto.id)
@@ -307,7 +344,8 @@ function ModoPeque({ family, data, refresh, onCeleb }) {
   return (
     <div>
       <p className="suave" style={{ margin: '0 4px 10px' }}>
-        Mismo efecto que su pantalla: la estrella y los puntos caen al momento. Útil cuando la tablet no está a mano.
+        Mismo efecto que su pantalla: la estrella y los puntos caen al momento. Útil cuando la tablet no está a
+        mano. El lápiz de al lado edita la misión: título, dibujo, puntos y frecuencia.
       </p>
       {fallo && <p className="error-texto" role="alert">{fallo}</p>}
       {peques.map((p) => {
@@ -321,21 +359,41 @@ function ModoPeque({ family, data, refresh, onCeleb }) {
             {retos.map((ch) => {
               const disponible = canDo(ch, data.completions, p.id)
               return (
-                <button
-                  key={ch.id}
-                  className="boton-peque"
-                  disabled={!disponible || ocupado === ch.id}
-                  onClick={() => darEstrella(ch, p)}
-                >
-                  <span className="peque-emoji">{ch.emoji}</span>
-                  <span className="crece" style={{ textAlign: 'left' }}>{flex(ch.title, generoDe(p))}</span>
-                  <span>{disponible ? '⭐' : '✓'}</span>
-                </button>
+                <div className="fila" key={ch.id} style={{ marginBottom: 10 }}>
+                  <button
+                    className="boton-peque crece"
+                    style={{ marginBottom: 0 }}
+                    disabled={!disponible || ocupado === ch.id}
+                    onClick={() => darEstrella(ch, p)}
+                  >
+                    <span className="peque-emoji">{ch.emoji}</span>
+                    <span className="crece" style={{ textAlign: 'left' }}>{flex(ch.title, generoDe(p))}</span>
+                    <span>{disponible ? '⭐' : '✓'}</span>
+                  </button>
+                  <button
+                    className="btn-icono"
+                    onClick={() => setEditando(ch)}
+                    aria-label={`Editar ${flex(ch.title, generoDe(p))}`}
+                    title="Editar esta misión"
+                  >
+                    <Icono nombre="editar" />
+                  </button>
+                </div>
               )
             })}
           </div>
         )
       })}
+
+      {editando && (
+        <FormMision
+          mision={editando}
+          perfiles={perfilesActivos(data.profiles)}
+          onGuardar={guardar}
+          onBorrar={borrar}
+          onClose={() => setEditando(null)}
+        />
+      )}
     </div>
   )
 }

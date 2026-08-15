@@ -33,7 +33,7 @@ export function marcarTutorialVisto() {
   }
 }
 
-const PASOS = [
+const PASOS_PORQUE = [
   {
     id: 'idea',
     emoji: '⚔️',
@@ -176,12 +176,156 @@ const PASOS = [
   }
 ]
 
-export default function Tutorial({ onCerrar }) {
+// ------------------------------------------------------------------
+// Segundo bloque: dónde está cada cosa.
+//
+// El anterior explica POR QUÉ el sistema es así; este explica DÓNDE se
+// hacen las cosas. Son dos preguntas distintas y se responden por
+// separado, para poder volver a una sin tragarse la otra.
+// ------------------------------------------------------------------
+
+const PASOS_MAPA = [
+  {
+    id: 'pantallas',
+    emoji: '🗺️',
+    titulo: 'Cuatro pantallas y ya',
+    cuerpo: (
+      <>
+        <div className="carta">
+          <strong>👥 Quién juega</strong>
+          <div className="suave">Lo primero al abrir. Cada aparato recuerda el perfil elegido, así que solo sale la primera vez.</div>
+        </div>
+        <div className="carta">
+          <strong>⚔️ Tu carnet</strong>
+          <div className="suave">Adultos y junior: tus misiones, la tienda y tu progreso por habilidades.</div>
+        </div>
+        <div className="carta">
+          <strong>⭐ La pantalla de la peque</strong>
+          <div className="suave">Solo botones grandes. Sin pestañas, sin números, sin salida accidental.</div>
+        </div>
+        <div className="carta">
+          <strong>🔒 El panel parental</strong>
+          <div className="suave">Detrás del PIN. Es donde se valida, se crean misiones y premios y se ajusta todo.</div>
+        </div>
+      </>
+    )
+  },
+  {
+    id: 'tu-pantalla',
+    emoji: '⚔️',
+    titulo: 'Tu pantalla, abajo',
+    cuerpo: (
+      <>
+        <p>La barra inferior tiene cinco sitios:</p>
+        <div className="carta">
+          <strong>Misiones</strong>
+          <div className="suave">Lo que puedes hacer hoy. «¡Hecho!» la manda a validar. Si te equivocas, cada pendiente tiene su «Me he equivocado, cancelar».</div>
+        </div>
+        <div className="carta">
+          <strong>Tienda</strong>
+          <div className="suave">Los premios, con su precio en monedas.</div>
+        </div>
+        <div className="carta">
+          <strong>Progreso</strong>
+          <div className="suave">Tus ocho habilidades y tus insignias. Es donde se ve que subes.</div>
+        </div>
+        <div className="carta">
+          <strong>Cambiar · Panel</strong>
+          <div className="suave">Volver al selector de perfiles, o entrar al panel con el PIN.</div>
+        </div>
+      </>
+    )
+  },
+  {
+    id: 'panel',
+    emoji: '🔒',
+    titulo: 'El panel parental',
+    cuerpo: (
+      <>
+        <div className="carta">
+          <strong>✅ Validar</strong>
+          <div className="suave">Lo pendiente. Tocas un elogio y con eso queda validada. Debajo, «Hecho hoy», por si hay que deshacer algo.</div>
+        </div>
+        <div className="carta">
+          <strong>⭐ Peque</strong>
+          <div className="suave">Sus misiones, para dárselas tú cuando la tablet no está a mano. El lápiz de al lado las edita.</div>
+        </div>
+        <div className="carta">
+          <strong>⚔️ Misiones</strong>
+          <div className="suave">Crear, editar y pausar las de cualquiera. El botón 📚 Biblioteca abre el catálogo entero por edad.</div>
+        </div>
+        <div className="carta">
+          <strong>🎁 Premios · 🏰 Meta</strong>
+          <div className="suave">La tienda y el objetivo común del gremio.</div>
+        </div>
+      </>
+    )
+  },
+  {
+    id: 'deshacer',
+    emoji: '↩️',
+    titulo: 'Si te equivocas',
+    cuerpo: (
+      <>
+        <p>Un toque de más no obliga a entrar en la base de datos. Hay tres sitios:</p>
+        <div className="carta">
+          <strong>En la pantalla de la peque</strong>
+          <div className="suave">Mantén pulsada la baldosa ya hecha un segundo y medio. Un toque suelto no hace nada, para que ella no la desmarque sin querer.</div>
+        </div>
+        <div className="carta">
+          <strong>En el panel</strong>
+          <div className="suave">Validar → «Hecho hoy», con un botón de deshacer por cada misión del día.</div>
+        </div>
+        <div className="carta">
+          <strong>En tu lista</strong>
+          <div className="suave">Si pediste una misión por error, cancélala mientras esté pendiente.</div>
+        </div>
+        <p className="suave">Deshacer devuelve la XP y las monedas.</p>
+      </>
+    )
+  },
+  {
+    id: 'ajustes',
+    emoji: '⚙️',
+    titulo: 'El engranaje del panel',
+    cuerpo: (
+      <>
+        <p>Arriba a la derecha, dentro del panel. Cinco secciones:</p>
+        <div className="carta">
+          <strong>👥 Miembros</strong>
+          <div className="suave">Añadir, editar, retirar y reincorporar. También el género con el que la app le habla a cada persona.</div>
+        </div>
+        <div className="carta">
+          <strong>🔑 PIN</strong>
+          <div className="suave">Cambiar el PIN parental sin tocar nada más.</div>
+        </div>
+        <div className="carta">
+          <strong>📱 Dispositivos</strong>
+          <div className="suave">El QR y la dirección para abrir el gremio en otro móvil o tablet, con las instrucciones de instalación.</div>
+        </div>
+        <div className="carta">
+          <strong>📚 Evidencia</strong>
+          <div className="suave">En qué se apoya cada decisión, con las referencias. Y el botón para volver a ver estas explicaciones.</div>
+        </div>
+        <div className="carta">
+          <strong>🩺 Estado</strong>
+          <div className="suave">Versión desplegada, salud del servidor, equilibrio de la economía y últimos errores.</div>
+        </div>
+      </>
+    )
+  }
+]
+
+const BLOQUES = { porque: PASOS_PORQUE, mapa: PASOS_MAPA, todo: [...PASOS_PORQUE, ...PASOS_MAPA] }
+
+export default function Tutorial({ modo = 'todo', onCerrar }) {
   const [i, setI] = useState(0)
+  const PASOS = BLOQUES[modo] || BLOQUES.todo
   const paso = PASOS[i]
   const ultimo = i === PASOS.length - 1
 
   function cerrar() {
+    // Se marca como visto también al saltarlo: "hasta que lo canceles".
     marcarTutorialVisto()
     onCerrar()
   }

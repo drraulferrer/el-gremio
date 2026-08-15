@@ -95,6 +95,11 @@ pasos lo explica.
 - **Monedas**: se ganan junto a la XP y se gastan en la tienda de premios
   reales. Separarlas evita que canjear se sienta como perder progreso.
 - **Meta del gremio**: la XP aprobada de todos suma hacia un objetivo común.
+- **Equilibrio**: los precios no están puestos a ojo. `src/lib/economia.js`
+  declara cuánto se gana al día y cada cuánto debería caer cada nivel de
+  premio (2 / 7 / 30 días) y de ahí salen las bandas. El panel ⚙️ → Estado
+  enseña el diagnóstico con las misiones activas de verdad, por si el
+  tablón crece y la economía se dispara sin que nadie lo note.
 - **Validación**: lo de adultos y junior queda "pendiente" hasta que alguien
   lo valida. El modo peque salta ese paso.
 
@@ -268,6 +273,7 @@ src/lib/premios.js      Catálogo de recompensas por nivel y lista de evitar
 src/lib/evidencia.js    Principios y referencias del sistema
 src/lib/genero.js       Concordancia de género con tres formas por frase
 src/lib/mantenerPulsado.js  Gesto de pulsación mantenida (salir, deshacer)
+src/lib/economia.js     Equilibrio: supuestos, precios y diagnóstico en vivo
 src/lib/miembros.js     Reglas de alta, edición y baja de perfiles
 src/lib/pin.js          Reglas del PIN parental
 src/lib/tareas.js       Biblioteca de tareas de la casa por roles, sin puntos
@@ -292,10 +298,11 @@ SPEC.md                 Especificación, fuente de verdad para iterar
 ```bash
 npm run dev            # desarrollo
 npm run dev:demo       # desarrollo con backend simulado, sin Supabase
-npm test               # tests (157)
+npm test               # tests (174)
 npm run build          # compilación de producción
 npm run verify         # tests + build + revisión de credenciales
 npm run health         # ¿responden la web publicada y Supabase?
+npm run prueba:concurrencia  # ¿aguantan las funciones dos toques a la vez?
 npm run qr             # QR imprimible con la dirección del gremio
 npm run deploy         # publicar en GitHub Pages
 npm run rollback       # volver a una versión anterior

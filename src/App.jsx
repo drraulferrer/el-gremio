@@ -27,7 +27,7 @@ export default function App() {
   // consulta en cada render. Si se leyera cada vez, cerrar el tutorial
   // llamaría a setVerTutorial(false) sobre un false y React no
   // re-renderizaría: la pantalla se quedaría pegada para siempre.
-  const [verTutorial, setVerTutorial] = useState(() => tutorialPendiente())
+  const [verTutorial, setVerTutorial] = useState(() => (tutorialPendiente() ? 'todo' : null))
   const [parentMode, setParentMode] = useState(false)
 
   // Observabilidad: monitorización de errores globales y destino de logs.
@@ -148,6 +148,41 @@ export default function App() {
     otorgando.current = false
   }
 
+  // Recargas agrupadas.
+  //
+  // Validar una misión dispara realtime en `completions` Y en `profiles`,
+  // y cada evento pedía las siete tablas otra vez: tres recargas completas
+  // por una sola acción. Se agrupan en una ventana de 250 ms, y si llega
+  // otra mientras hay una en vuelo se encola una sola al final.
+  const recargaPendiente = useRef(null)
+  const cargando = useRef(false)
+  const sucio = useRef(false)
+
+  const recargar = useCallback(async () => {
+    if (cargando.current) {
+      sucio.current = true
+      return
+    }
+    cargando.current = true
+    try {
+      await loadAll()
+    } finally {
+      cargando.current = false
+      if (sucio.current) {
+        sucio.current = false
+        recargar()
+      }
+    }
+  }, [loadAll])
+
+  const programarRecarga = useCallback(() => {
+    if (recargaPendiente.current) clearTimeout(recargaPendiente.current)
+    recargaPendiente.current = setTimeout(() => {
+      recargaPendiente.current = null
+      recargar()
+    }, 250)
+  }, [recargar])
+
   // Carga inicial + realtime + recarga al volver a la app
   useEffect(() => {
     if (!family) return
@@ -155,24 +190,25 @@ export default function App() {
 
     const canal = supabase
       .channel('gremio-' + family.id)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'completions', filter: 'family_id=eq.' + family.id }, loadAll)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'redemptions', filter: 'family_id=eq.' + family.id }, loadAll)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles', filter: 'family_id=eq.' + family.id }, loadAll)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'challenges', filter: 'family_id=eq.' + family.id }, loadAll)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'rewards', filter: 'family_id=eq.' + family.id }, loadAll)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'family_goals', filter: 'family_id=eq.' + family.id }, loadAll)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'completions', filter: 'family_id=eq.' + family.id }, programarRecarga)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'redemptions', filter: 'family_id=eq.' + family.id }, programarRecarga)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles', filter: 'family_id=eq.' + family.id }, programarRecarga)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'challenges', filter: 'family_id=eq.' + family.id }, programarRecarga)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'rewards', filter: 'family_id=eq.' + family.id }, programarRecarga)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'family_goals', filter: 'family_id=eq.' + family.id }, programarRecarga)
       .subscribe()
 
     const alVolver = () => {
-      if (document.visibilityState === 'visible') loadAll()
+      if (document.visibilityState === 'visible') programarRecarga()
     }
     document.addEventListener('visibilitychange', alVolver)
 
     return () => {
       supabase.removeChannel(canal)
       document.removeEventListener('visibilitychange', alVolver)
+      if (recargaPendiente.current) clearTimeout(recargaPendiente.current)
     }
-  }, [family, loadAll])
+  }, [family, loadAll, programarRecarga])
 
   // Un perfil retirado deja de ser elegible: si el dispositivo recordaba
   // ese perfil, vuelve al selector en lugar de abrir una sesión fantasma.
@@ -203,11 +239,11 @@ export default function App() {
   if (!session) return <><Ambiente /><Login /></>
   if (family === undefined) return <Cargando error={errorCarga} onReintentar={loadFamily} />
   if (family === null) return <><Ambiente /><Onboarding onDone={loadFamily} /></>
-  if (!data) return <Cargando error={errorCarga} onReintentar={loadAll} />
+  if (!data) return <Cargando error={errorCarga} onReintentar={recargar} />
 
   // El tutorial explica POR QUÉ el sistema está hecho así. Se enseña una
   // vez por dispositivo, y siempre se puede volver a abrir desde ⚙️.
-  if (verTutorial) return <><Ambiente /><Tutorial onCerrar={() => setVerTutorial(false)} /></>
+  if (verTutorial) return <><Ambiente /><Tutorial modo={verTutorial} onCerrar={() => setVerTutorial(null)} /></>
 
   if (parentMode) {
     return (
@@ -216,9 +252,9 @@ export default function App() {
         <ParentPanel
         family={family}
         data={data}
-        refresh={loadAll}
+        refresh={recargar}
         refreshFamily={loadFamily}
-        onVerTutorial={() => { setParentMode(false); setVerTutorial(true) }}
+        onVerTutorial={(modo) => { setParentMode(false); setVerTutorial(modo || 'todo') }}
         onExit={() => setParentMode(false)}
         />
       </>
@@ -227,7 +263,7 @@ export default function App() {
 
   // La peque tiene su propia pantalla: botones enormes y estrella al momento.
   if (profile && profile.role === 'peque' && flag('modoPeque')) {
-    return <KidHome family={family} data={data} profile={profile} refresh={loadAll} onSalir={cambiarPerfil} />
+    return <KidHome family={family} data={data} profile={profile} refresh={recargar} onSalir={cambiarPerfil} />
   }
 
   return (
@@ -239,7 +275,7 @@ export default function App() {
           family={family}
           data={data}
           profile={profile}
-          refresh={loadAll}
+          refresh={recargar}
           onSwitchProfile={cambiarPerfil}
           onParent={() => setPidePin(true)}
         />

@@ -4,6 +4,7 @@ import { VERSION, COMMIT, BUILT_AT, RELEASE } from '../lib/version'
 import { todasLasFlags, setFlag } from '../lib/flags'
 import { resumenErrores } from '../lib/monitoring'
 import { vaciar } from '../lib/log'
+import { diagnosticoEconomia, veredicto, SUPUESTOS } from '../lib/economia'
 
 // ------------------------------------------------------------------
 // Estado del sistema, dentro del panel parental.
@@ -49,6 +50,7 @@ export default function Estado({ family, data }) {
     : null
 
   const enMemoria = resumenErrores()
+  const eco = diagnosticoEconomia(data)
 
   return (
     <div>
@@ -105,6 +107,57 @@ export default function Estado({ family, data }) {
           </div>
         )}
       </div>
+
+      <div className="titulo-seccion">Equilibrio de la economía</div>
+      <p className="suave" style={{ margin: '0 4px 10px' }}>
+        Con lo que hay activo ahora mismo y una adherencia del {Math.round(SUPUESTOS.adherencia * 100)} %. Si un
+        nivel se consigue demasiado rápido, los premios dejan de valer; si cuesta demasiado, nadie llega.
+      </p>
+
+      <div className="carta">
+        {eco.porPersona.map((x) => (
+          <div className="fila-separada" key={x.perfil.id} style={{ padding: '5px 0' }}>
+            <span>{x.perfil.emoji} {x.perfil.name}</span>
+            <span className="suave">
+              {x.misiones} misiones · {x.monedasDia.toFixed(0)} 🪙/día · {x.xpDia.toFixed(0)} XP/día
+            </span>
+          </div>
+        ))}
+      </div>
+
+      {eco.niveles.map((n) => {
+        const v = veredicto(n.diasMax, n.objetivo)
+        return (
+          <div className="carta" key={n.nivel}>
+            <div className="fila-separada">
+              <strong>{'⭐'.repeat(n.nivel)} Nivel {n.nivel}</strong>
+              <span className={'chip' + (v.estado === 'ok' ? ' chip-hecho' : v.estado === 'sin_datos' ? '' : ' chip-pendiente')}>
+                {v.texto}
+              </span>
+            </div>
+            <div className="suave" style={{ marginTop: 4 }}>
+              {n.premios === 0
+                ? 'Sin premios activos de este nivel.'
+                : `${n.premios} premios, ${Math.round(n.precioMedio)} 🪙 de media · se consigue cada ${n.diasMin.toFixed(0)}-${n.diasMax.toFixed(0)} días (objetivo: ${n.objetivo})`}
+            </div>
+          </div>
+        )
+      })}
+
+      {eco.meta && (
+        <div className="carta">
+          <div className="fila-separada">
+            <strong>🏰 Meta del gremio</strong>
+            <span className={'chip' + (veredicto(eco.meta.dias, eco.cadenciaMeta).estado === 'ok' ? ' chip-hecho' : ' chip-pendiente')}>
+              {veredicto(eco.meta.dias, eco.cadenciaMeta).texto}
+            </span>
+          </div>
+          <div className="suave" style={{ marginTop: 4 }}>
+            {eco.meta.objetivoXp} XP a {eco.xpFamiliaDia.toFixed(0)} XP/día ={' '}
+            {isFinite(eco.meta.dias) ? eco.meta.dias.toFixed(0) : '∞'} días (objetivo: {eco.cadenciaMeta})
+          </div>
+        </div>
+      )}
 
       <div className="titulo-seccion">Banderas</div>
       <div className="carta">

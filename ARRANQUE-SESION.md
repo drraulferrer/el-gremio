@@ -29,7 +29,7 @@ modo peque, la capa de producción y la gestión de miembros.
 | Código local | `~/el-gremio` |
 | Supabase | proyecto `chfbrawsoulfiywiqhpe`, Postgres 17.6, región EU |
 | Versión publicada | ver `npm run health`; cada despliegue deja etiqueta `deploy-AAAA-MM-DD-HHMM` |
-| Tests | 157, en 9 ficheros, todos en verde |
+| Tests | 174, en 10 ficheros, todos en verde |
 
 Comprobar que sigue vivo:
 
@@ -40,9 +40,11 @@ cd ~/el-gremio && npm run health
 Debe salir 🟢 en `web` y en `supabase`. Si `web` falla, mira GitHub Pages;
 si falla `supabase`, casi seguro que el proyecto está pausado (ver §7).
 
-**El esquema de la base está completo y migrado**: `schema.sql` ejecutado el
-15-ago y `migracion-003-miembros.sql` aplicada después, confirmada por el
-usuario.
+**Estado del esquema**: `schema.sql` ejecutado el 15-ago; migraciones 003 y
+004 aplicadas. **Pendientes de ejecutar por el usuario en el SQL Editor**:
+005 (retirar la sobrecarga de `resolve_completion`), 006 (`undo_completion`),
+007 (`profiles.gender` + reescritura de títulos) y 008 (índices). La app
+degrada con aviso concreto si falta alguna, no se rompe.
 
 ---
 
@@ -93,6 +95,26 @@ sin estado y no se aprobaban nunca.
 
 ---
 
+## 3b. La lista de arquitectura, revisada
+
+Punto por punto sobre la lista clásica de "detalles que se descubren
+demasiado tarde", con lo que aplica de verdad a ESTA app.
+
+| Punto | Estado | Detalle honesto |
+|---|---|---|
+| Connection pooling | ✅ lo pone la plataforma | El cliente habla por HTTP con PostgREST; no abre conexiones a Postgres. Supabase pone Supavisor delante. Nada que hacer aquí. |
+| Capa de caché | ✅ hecho a la medida | Validar disparaba realtime en dos tablas y provocaba 3 recargas completas de 7 tablas por acción. Ahora se agrupan en 250 ms y no se solapan: 2 por acción (una inmediata para que la interfaz responda, otra de confirmación). |
+| Índices | ✅ migración 008 | Faltaban cinco, y los que había no cubrían la ordenación. A esta escala no arregla ninguna lentitud: es seguro para cuando haya dos años de historial. |
+| Manejo de errores real | ✅ hecho | `mensajeDeError` traduce, `operacion` registra con id de petición, y ninguna acción se traga un fallo en silencio. |
+| CDN | ✅ lo pone la plataforma | GitHub Pages sirve por CDN. Las fuentes, por Google Fonts. |
+| Escalado horizontal | ➖ no aplica | Frontend estático y backend gestionado. No hay servidor propio que escalar. |
+| Pruebas de carga | ⚠️ traducidas | Simular 100 usuarios en una app de cuatro no dice nada. Lo que importa son las CARRERAS: `npm run prueba:concurrencia` lanza validaciones, canjes y deshaceres simultáneos contra la base real y comprueba que la XP se abona una sola vez. Requiere la cuenta familiar y **aún no se ha ejecutado**. |
+| Logs y monitoreo | ✅ hecho | JSON estructurado con id de petición, tabla `app_logs`, captura de errores globales y pantalla de Estado. |
+
+El riesgo real de este proyecto no está en esa lista: es que el plan
+gratuito de Supabase pause el proyecto, y que la novedad se apague en la
+semana tres.
+
 ## 4. Arquitectura y decisiones, con su porqué
 
 - **Una sola cuenta de autenticación para toda la familia**, perfiles
@@ -138,6 +160,15 @@ sin estado y no se aprobaban nunca.
 - **Un cambio de plantilla no toca lo ya guardado.** Los títulos viven en
   la base, así que cambiar el catálogo no cambia las misiones existentes:
   hace falta un UPDATE en la migración. Pasó con "Vestirse sola".
+- **La economía está derivada, no puesta a ojo.** `src/lib/economia.js`
+  declara los supuestos (60 % de adherencia, 5 misiones activas, cadencias
+  de 2 / 7 / 30 días por nivel y 12 días por meta) y de ahí salen las
+  bandas de precio. Medición inicial: el nivel 3 caía en 11-18 días en vez
+  de 30, y la meta en 4,4 días en vez de 12. Hay tests que fallan si
+  alguien cambia los puntos de las misiones y descuadra la cadencia. El
+  panel ⚙️ → Estado enseña el diagnóstico con las misiones ACTIVAS reales:
+  activar quince misiones por persona dispara la economía aunque los
+  precios sean correctos.
 - **La pulsación mantenida no puede depender de requestAnimationFrame.**
   Un `setTimeout` decide cuándo se completa y rAF solo pinta la barra: con
   la pestaña en segundo plano rAF se congela y el gesto se quedaba a
@@ -166,7 +197,8 @@ src/lib/fakeBackend.js     Backend simulado del modo demo
 src/screens/               Login, Onboarding, Tutorial, ProfilePicker, Home, KidHome,
                            ParentPanel, Ajustes (Miembros · PIN · Dispositivos ·
                            Evidencia · Estado)
-scripts/                   deploy, rollback, publicar, health-check, secrets-check, qr
+scripts/                   deploy, rollback, publicar, health-check, secrets-check,
+                           qr, prueba-concurrencia
 supabase/functions/health/ Edge Function de salud (escrita, NO desplegada)
 docs/RUNBOOK.md            Diagnóstico, logs, ritmo, health, rollback, migraciones
 docs/ROTACION-SECRETOS.md  Calendario y procedimiento de rotación
@@ -188,6 +220,10 @@ Verificado **en navegador**, no solo compilando:
 - Miembros: alta, rechazo de nombre duplicado, retirada, sección de
   retirados, y el guardarraíl del último adulto (la base no cambió).
 - Un dispositivo que recordaba un perfil retirado vuelve al selector.
+- Editar las misiones de la peque desde la pestaña Peque del panel
+  (5 lápices, formulario completo, XP de 10 a 25 guardada).
+- Panel de equilibrio con el diagnóstico en vivo, que detectó por su
+  cuenta que la meta vieja de 600 XP «se consigue demasiado rápido».
 - Cambio de PIN completo: PIN actual erróneo rechazado, PIN nuevos que no
   coinciden, aviso de PIN trivial, cambio correcto, y después el PIN viejo
   ya no abre el panel y el nuevo sí **sin recargar la página**.
@@ -238,11 +274,21 @@ Verificado **en navegador**, no solo compilando:
   agente: implica registrar cuenta y teclear contraseña.
 - Instalar la app en cada dispositivo con "Añadir a pantalla de inicio".
 
+### Inmediato, en el SQL Editor de Supabase
+
+Cuatro migraciones sin ejecutar: `005` (sobrecarga duplicada de
+`resolve_completion`), `006` (`undo_completion`), `007` (`profiles.gender`
+y reescritura de títulos) y `008` (índices). Hasta entonces: deshacer y el
+selector de género avisan de que falta la migración; lo demás va.
+
 ### Escrito pero no activado
 
 - **Edge Function de health**: está en `supabase/functions/health/`, sin
   desplegar. Requiere la CLI de Supabase. Solo hace falta si se quiere un
   monitor externo tipo UptimeRobot.
+- **`npm run prueba:concurrencia`**: escrito y sin ejecutar nunca. Necesita
+  `GREMIO_EMAIL` y `GREMIO_PASSWORD` de la cuenta familiar, crea una misión
+  temporal, comprueba la atomicidad y limpia lo que creó.
 - **Sentry**: adaptador listo en `monitoring.js`, apagado. Sin
   `VITE_SENTRY_DSN` no se carga nada ni sale un byte hacia terceros.
   Instrucciones en `docs/RUNBOOK.md` §3.
@@ -294,7 +340,7 @@ Si se pierde ese fichero: los dos valores se recuperan del panel de Supabase
 ```bash
 cd ~/el-gremio
 npm install          # si es una máquina nueva
-npm test             # 157 tests, deben pasar
+npm test             # 174 tests, deben pasar
 npm run dev:demo     # trastear sin tocar producción
 npm run dev          # contra la Supabase real
 ```

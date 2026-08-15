@@ -13,6 +13,7 @@
     "test:watch": "vitest",
     "qr": "node scripts/qr.mjs",
     "health": "node scripts/health-check.mjs",
+    "prueba:concurrencia": "node scripts/prueba-concurrencia.mjs",
     "secrets:check": "node scripts/secrets-check.mjs",
     "deploy": "node scripts/deploy.mjs",
     "rollback": "node scripts/rollback.mjs",

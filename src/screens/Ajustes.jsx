@@ -40,8 +40,11 @@ export default function Ajustes({ family, data, refresh, refreshFamily, onVerTut
       {seccion === 'dispositivos' && <Dispositivos />}
       {seccion === 'evidencia' && (
         <>
-          <button className="btn btn-bloque" style={{ marginBottom: 14 }} onClick={onVerTutorial}>
-            ⚔️ Volver a ver cómo funciona
+          <button className="btn btn-bloque" style={{ marginBottom: 8 }} onClick={() => onVerTutorial('porque')}>
+            ⚔️ Por qué funciona así
+          </button>
+          <button className="btn btn-fantasma btn-bloque" style={{ marginBottom: 14 }} onClick={() => onVerTutorial('mapa')}>
+            🗺️ Dónde está cada cosa
           </button>
           <Evidencia />
         </>

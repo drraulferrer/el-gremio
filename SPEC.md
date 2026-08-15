@@ -28,6 +28,18 @@ Especificación de la webapp de gamificación familiar. Este documento es la fue
 - Un rechazo no consume la frecuencia: la misión vuelve a estar disponible.
 - **Toda misión conseguida se puede deshacer** (`undo_completion`): borra la petición y devuelve XP y monedas. En la pantalla de la peque, manteniendo pulsada la baldosa 1,5 s; en el panel, desde la sección "Hecho hoy" del día en curso; y quien pide una misión por error puede cancelarla desde su propia lista. Límite conocido: si las monedas ya se gastaron, el saldo se queda en cero en lugar de irse a negativo y el canje sigue en pie.
 
+## 2b. Equilibrio de la economía
+
+Los precios se derivan de un modelo, no se eligen a ojo (`src/lib/economia.js`):
+
+- **Supuestos**: 60 % de adherencia, 5 misiones activas por persona.
+- **Cadencias objetivo**: nivel 1 cada 2 días, nivel 2 cada 7, nivel 3 cada 30, meta del gremio cada 12.
+- **Bandas** = tasa de referencia × cadencia, ±25 %.
+
+Medición de agosto de 2026 con los valores originales: nivel 3 caía en 11-18 días (debía ser 30) y la meta en 4,4 (debía ser 12). Se corrigieron subiendo precios de nivel 3 y la meta inicial de 600 a 1600 XP, **no** bajando lo que se gana: reducir la ganancia habría hecho el tablón menos gratificante para arreglar un problema que estaba en el otro lado.
+
+Hay tests que fallan si alguien cambia los puntos de las misiones y descuadra las cadencias, y un diagnóstico en vivo en ⚙️ → Estado que usa las misiones activas reales: veinte misiones por persona disparan la economía aunque los precios sean correctos.
+
 ## 3. Roles
 
 | Rol | Flujo |
@@ -72,7 +84,9 @@ Automáticas (se evalúan en cliente tras cada carga y se insertan con upsert id
 
 ## 6. Pantallas
 
-0. **Tutorial**: seis pasos que explican la lógica del sistema (habilidades y no tareas, las ocho competencias, el día a día con elogio, los niveles de premio, la retirada del andamio y los siete principios). Se enseña una vez por dispositivo y se puede reabrir desde ⚙️ → Evidencia.
+0. **Tutorial**, en dos bloques con el mismo formato: **por qué funciona así** (seis pasos: habilidades y no tareas, las ocho competencias, el día a día con elogio, los niveles de premio, la retirada del andamio y los siete principios) y **dónde está cada cosa** (cinco pasos: las cuatro pantallas, la barra inferior, el panel, los tres sitios donde se deshace y el engranaje de ajustes). En el primer arranque se ven los once seguidos; se puede saltar en cualquier momento y no vuelve a salir. Se reabren por separado desde ⚙️ → Evidencia.
+
+   Los seis pasos originales explican la lógica del sistema (habilidades y no tareas, las ocho competencias, el día a día con elogio, los niveles de premio, la retirada del andamio y los siete principios). Se enseña una vez por dispositivo y se puede reabrir desde ⚙️ → Evidencia.
 1. **Login**: cuenta familiar única, alta y entrada.
 2. **Onboarding**: nombre del gremio → PIN parental (mínimo 4 dígitos, hash SHA-256 en cliente) → miembros con rol, emoji y color → plantillas de misiones por edad opcionales.
 3. **ProfilePicker**: rejilla de perfiles, recuerda la elección por dispositivo (localStorage).

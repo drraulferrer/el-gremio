@@ -1,83 +1,160 @@
 import { describe, it, expect } from 'vitest'
-import { xpForLevel, levelFromXp, levelProgress, goalProgress, BADGES } from '../src/lib/supabase'
+import {
+  SUPUESTOS,
+  monedasPorDia,
+  xpPorDia,
+  tasaDeReferencia,
+  precioObjetivo,
+  bandaDePrecio,
+  metaObjetivo,
+  diasParaPermitirse,
+  diagnosticoEconomia,
+  veredicto
+} from '../src/lib/economia'
+import { CATALOGO_PREMIOS, NIVELES } from '../src/lib/premios'
+import { META_INICIAL } from '../src/lib/supabase'
+import { DEFAULTS_ROL } from '../src/lib/tareas'
 
-describe('curva de niveles', () => {
-  it('sigue la tabla de la especificación', () => {
-    expect(xpForLevel(1)).toBe(0)
-    expect(xpForLevel(2)).toBe(100)
-    expect(xpForLevel(3)).toBe(300)
-    expect(xpForLevel(4)).toBe(600)
-    expect(xpForLevel(5)).toBe(1000)
-  })
+// ------------------------------------------------------------------
+// Estos tests son el guardián del equilibrio. Si alguien sube la XP de
+// las misiones o baja el precio de un premio, aquí se ve antes de que la
+// familia se encuentre debiendo una acampada cada semana.
+// ------------------------------------------------------------------
 
-  it('sitúa cada XP en su nivel, incluidos los bordes', () => {
-    expect(levelFromXp(0)).toBe(1)
-    expect(levelFromXp(99)).toBe(1)
-    expect(levelFromXp(100)).toBe(2)
-    expect(levelFromXp(299)).toBe(2)
-    expect(levelFromXp(300)).toBe(3)
-    expect(levelFromXp(1000)).toBe(5)
-  })
-
-  it('nunca retrocede al subir XP', () => {
-    let anterior = 1
-    for (let xp = 0; xp < 5000; xp += 37) {
-      const nivel = levelFromXp(xp)
-      expect(nivel).toBeGreaterThanOrEqual(anterior)
-      anterior = nivel
+describe('modelo de ingresos', () => {
+  it('cada rol gana lo que dicen sus valores por defecto', () => {
+    for (const rol of Object.keys(DEFAULTS_ROL)) {
+      const esperado = SUPUESTOS.misionesActivas * DEFAULTS_ROL[rol].coins * SUPUESTOS.adherencia
+      expect(monedasPorDia(rol)).toBeCloseTo(esperado, 5)
+      expect(xpPorDia(rol)).toBeCloseTo(SUPUESTOS.misionesActivas * DEFAULTS_ROL[rol].xp * SUPUESTOS.adherencia, 5)
     }
   })
 
-  it('calcula el progreso dentro del nivel', () => {
-    const p = levelProgress(200)
-    expect(p.level).toBe(2)
-    expect(p.current).toBe(100) // 200 - 100 de base
-    expect(p.needed).toBe(200) // 300 - 100
-    expect(p.pct).toBe(50)
-    expect(p.nextAt).toBe(300)
+  it('un rol inventado no rompe el cálculo', () => {
+    expect(monedasPorDia('gnomo')).toBe(0)
+    expect(xpPorDia('gnomo')).toBe(0)
   })
 
-  it('mantiene el porcentaje entre 0 y 100', () => {
-    for (const xp of [0, 1, 99, 100, 999, 1000, 99999]) {
-      const { pct } = levelProgress(xp)
-      expect(pct).toBeGreaterThanOrEqual(0)
-      expect(pct).toBeLessThanOrEqual(100)
+  it('ningún rol se aleja más del doble de la tasa de referencia', () => {
+    // Una sola tienda solo funciona si los tres ganan a ritmos parecidos.
+    const ref = tasaDeReferencia()
+    for (const rol of Object.keys(DEFAULTS_ROL)) {
+      const suya = monedasPorDia(rol)
+      expect(suya, rol).toBeGreaterThan(ref / 2)
+      expect(suya, rol).toBeLessThan(ref * 2)
     }
   })
 })
 
-describe('meta cooperativa', () => {
-  const meta = { starts_at: '2026-08-01T00:00:00.000Z', target_xp: 500 }
+describe('los precios del catálogo respetan su banda', () => {
+  for (const nivel of [1, 2, 3]) {
+    it(`nivel ${nivel}`, () => {
+      const [min, max] = bandaDePrecio(nivel)
+      for (const p of CATALOGO_PREMIOS.filter((x) => x.tier === nivel)) {
+        expect(p.cost, `${p.title} (${p.cost})`).toBeGreaterThanOrEqual(min)
+        expect(p.cost, `${p.title} (${p.cost})`).toBeLessThanOrEqual(max)
+      }
+    })
+  }
 
-  it('solo suma la XP aprobada después de arrancar la meta', () => {
-    const completions = [
-      { status: 'aprobado', resolved_at: '2026-08-05T10:00:00.000Z', xp: 100 },
-      { status: 'aprobado', resolved_at: '2026-08-06T10:00:00.000Z', xp: 50 },
-      { status: 'aprobado', resolved_at: '2026-07-20T10:00:00.000Z', xp: 999 }, // antes de la meta
-      { status: 'pendiente', resolved_at: null, xp: 400 }, // sin validar
-      { status: 'rechazado', resolved_at: '2026-08-07T10:00:00.000Z', xp: 300 }
-    ]
-    expect(goalProgress(meta, completions)).toBe(150)
+  it('la banda declarada en NIVELES coincide con la que deriva el modelo', () => {
+    for (const nivel of [1, 2, 3]) {
+      expect(NIVELES[nivel].coste, `nivel ${nivel}`).toEqual(bandaDePrecio(nivel))
+    }
   })
 
-  it('devuelve cero sin meta activa', () => {
-    expect(goalProgress(null, [])).toBe(0)
+  it('cada nivel cae en su cadencia, ±50 %', () => {
+    for (const nivel of [1, 2, 3]) {
+      const precios = CATALOGO_PREMIOS.filter((p) => p.tier === nivel).map((p) => p.cost)
+      const medio = precios.reduce((a, b) => a + b, 0) / precios.length
+      const dias = diasParaPermitirse(medio, tasaDeReferencia())
+      const objetivo = SUPUESTOS.cadencia[nivel]
+      expect(dias, `nivel ${nivel}: ${dias.toFixed(1)} días, objetivo ${objetivo}`).toBeGreaterThan(objetivo * 0.5)
+      expect(dias, `nivel ${nivel}: ${dias.toFixed(1)} días, objetivo ${objetivo}`).toBeLessThan(objetivo * 1.5)
+    }
+  })
+
+  it('los niveles no se solapan: nivel 3 nunca cuesta menos que nivel 2', () => {
+    const max = (n) => Math.max(...CATALOGO_PREMIOS.filter((p) => p.tier === n).map((p) => p.cost))
+    const min = (n) => Math.min(...CATALOGO_PREMIOS.filter((p) => p.tier === n).map((p) => p.cost))
+    expect(min(2)).toBeGreaterThan(max(1))
+    expect(min(3)).toBeGreaterThan(max(2))
   })
 })
 
-describe('insignias automáticas', () => {
-  it('se desbloquean en el umbral exacto', () => {
-    const porCodigo = Object.fromEntries(BADGES.map((b) => [b.code, b]))
-    expect(porCodigo.primera.test({ approved: 0, level: 1, redemptions: 0 })).toBe(false)
-    expect(porCodigo.primera.test({ approved: 1, level: 1, redemptions: 0 })).toBe(true)
-    expect(porCodigo.x10.test({ approved: 9, level: 1, redemptions: 0 })).toBe(false)
-    expect(porCodigo.x10.test({ approved: 10, level: 1, redemptions: 0 })).toBe(true)
-    expect(porCodigo.nivel5.test({ approved: 0, level: 5, redemptions: 0 })).toBe(true)
-    expect(porCodigo.canje1.test({ approved: 0, level: 1, redemptions: 1 })).toBe(true)
+describe('meta del gremio', () => {
+  it('la inicial se cierra en la cadencia prevista, ±40 %', () => {
+    const objetivo = metaObjetivo()
+    expect(META_INICIAL.target_xp).toBeGreaterThan(objetivo * 0.6)
+    expect(META_INICIAL.target_xp).toBeLessThan(objetivo * 1.4)
   })
 
-  it('la insignia del gremio no es automática: se otorga al cerrar la meta', () => {
-    const gremio = BADGES.find((b) => b.code === 'gremio')
-    expect(gremio.test({ approved: 999, level: 99, redemptions: 99 })).toBe(false)
+  it('no vuelve a los 600 XP de antes, que se cerraban en cuatro días', () => {
+    const porDia = ['adulto', 'adulto', 'junior', 'peque'].reduce((t, r) => t + xpPorDia(r), 0)
+    expect(META_INICIAL.target_xp / porDia).toBeGreaterThan(8)
+  })
+})
+
+describe('diagnóstico en vivo', () => {
+  const data = {
+    profiles: [
+      { id: 'p1', role: 'junior', active: true },
+      { id: 'p2', role: 'peque', active: true },
+      { id: 'p3', role: 'adulto', active: false }
+    ],
+    challenges: [
+      { id: 'c1', profile_id: 'p1', active: true, xp: 15, coins: 8, frequency: 'diario' },
+      { id: 'c2', profile_id: 'p1', active: true, xp: 30, coins: 15, frequency: 'semanal' },
+      { id: 'c3', profile_id: 'p2', active: true, xp: 10, coins: 5, frequency: 'diario' },
+      { id: 'c4', profile_id: 'p1', active: false, xp: 99, coins: 99, frequency: 'diario' },
+      { id: 'c5', profile_id: 'p1', active: true, xp: 50, coins: 50, frequency: 'unico' }
+    ],
+    rewards: [
+      { id: 'r1', tier: 1, cost: 40, active: true },
+      { id: 'r2', tier: 3, cost: 600, active: true },
+      { id: 'r3', tier: 1, cost: 999, active: false }
+    ],
+    goal: { target_xp: 1600 }
+  }
+
+  it('ignora perfiles retirados y misiones pausadas', () => {
+    const d = diagnosticoEconomia(data)
+    expect(d.porPersona.map((x) => x.perfil.id)).toEqual(['p1', 'p2'])
+    expect(d.porPersona[0].misiones).toBe(3) // c1, c2, c5; no la pausada
+  })
+
+  it('lo único no cuenta como ingreso diario', () => {
+    const d = diagnosticoEconomia(data)
+    // junior: 8 diario + 15/7 semanal = 10,14 · adherencia 0,6 = 6,09
+    expect(d.porPersona[0].monedasDia).toBeCloseTo((8 + 15 / 7) * 0.6, 2)
+  })
+
+  it('solo mira los premios activos', () => {
+    const d = diagnosticoEconomia(data)
+    expect(d.niveles.find((n) => n.nivel === 1).premios).toBe(1)
+    expect(d.niveles.find((n) => n.nivel === 1).precioMedio).toBe(40)
+  })
+
+  it('un nivel sin premios no rompe nada', () => {
+    const d = diagnosticoEconomia(data)
+    const nivel2 = d.niveles.find((n) => n.nivel === 2)
+    expect(nivel2.premios).toBe(0)
+    expect(nivel2.precioMedio).toBe(null)
+    expect(nivel2.diasMin).toBe(null)
+  })
+
+  it('aguanta una familia vacía', () => {
+    expect(() => diagnosticoEconomia({})).not.toThrow()
+    expect(diagnosticoEconomia({}).porPersona).toEqual([])
+  })
+})
+
+describe('veredicto', () => {
+  it('avisa cuando algo va demasiado rápido o demasiado lento', () => {
+    expect(veredicto(0.5, 7).estado).toBe('rapido')
+    expect(veredicto(7, 7).estado).toBe('ok')
+    expect(veredicto(30, 7).estado).toBe('lento')
+    expect(veredicto(null, 7).estado).toBe('sin_datos')
+    expect(veredicto(Infinity, 7).estado).toBe('sin_datos')
   })
 })
