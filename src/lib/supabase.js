@@ -167,20 +167,11 @@ export function goalProgress(goal, completions) {
     .reduce((sum, c) => sum + c.xp, 0)
 }
 
-// ------------------------------------------------------------------
-// Insignias (las automáticas se evalúan en cliente tras cada carga)
-// ------------------------------------------------------------------
-
-export const BADGES = [
-  { code: 'primera', name: 'Primera misión', emoji: '🌟', desc: 'Completa tu primera misión', test: (s) => s.approved >= 1 },
-  { code: 'x10', name: 'Diez misiones', emoji: '🔥', desc: '10 misiones aprobadas', test: (s) => s.approved >= 10 },
-  { code: 'x25', name: '{Veterano|Veterana|Veteranía}', emoji: '🏅', desc: '25 misiones aprobadas', test: (s) => s.approved >= 25 },
-  { code: 'x50', name: 'Leyenda', emoji: '👑', desc: '50 misiones aprobadas', test: (s) => s.approved >= 50 },
-  { code: 'nivel5', name: 'Nivel 5', emoji: '💎', desc: 'Alcanza el nivel 5', test: (s) => s.level >= 5 },
-  { code: 'nivel10', name: 'Nivel 10', emoji: '🚀', desc: 'Alcanza el nivel 10', test: (s) => s.level >= 10 },
-  { code: 'canje1', name: 'Primer canje', emoji: '🛍️', desc: 'Canjea tu primer premio', test: (s) => s.redemptions >= 1 },
-  { code: 'gremio', name: 'Meta del gremio', emoji: '🏰', desc: 'Lograsteis una meta familiar juntos', test: () => false }
-]
+// Las insignias viven en src/lib/insignias.js desde que dejaron de ser
+// decorativas. Aquí hubo un `BADGES` con las ocho originales que sobrevivió
+// a la mudanza sin que lo usara nadie más que sus tests: dos catálogos, uno
+// de 8 y otro de 16, y el viejo era el que revisaba el test de género. Por
+// eso las ocho nuevas nunca se comprobaron.
 
 // Las plantillas de misiones viven ahora en src/lib/tareas.js (por
 // habilidad) y las de premios en src/lib/premios.js (por nivel). Aquí

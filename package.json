@@ -12,6 +12,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "qr": "node scripts/qr.mjs",
+    "muertos": "node scripts/muertos.mjs",
     "health": "node scripts/health-check.mjs",
     "prueba:concurrencia": "node scripts/prueba-concurrencia.mjs",
     "secrets:check": "node scripts/secrets-check.mjs",

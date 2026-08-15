@@ -14,7 +14,7 @@
 
 import { useState } from 'react'
 import { Modal } from './ui'
-import { PODERES, PODERES_LISTOS, insigniaPorCodigo, poderActivo } from '../lib/insignias'
+import { PODERES, PODERES_LISTOS, insigniaPorCodigo, poderActivo, usosRestantes } from '../lib/insignias'
 import { gastarPoder } from '../lib/acciones'
 import { perfilesActivos } from '../lib/miembros'
 import { flex } from '../lib/genero'
@@ -75,7 +75,7 @@ export default function Poderes({ data, profile, refresh, genero }) {
         {activos.map(({ ganada, def, poder }) => {
           const meta = PODERES[poder.tipo]
           const gastable = poder.tipo === 'salva_racha' || poder.tipo === 'asigna_tarea'
-          const restantes = gastable ? Math.max(0, (poder.usos || 0) - (gastados[def.code] || 0)) : null
+          const restantes = gastable ? usosRestantes(ganada, gastados) : null
           const dias = diasQueQuedan(ganada, poder)
 
           return (

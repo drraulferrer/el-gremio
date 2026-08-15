@@ -472,6 +472,14 @@ function rpc(nombre, args = {}) {
 const CLAVE_SESION = 'gremio_demo_sesion'
 
 export function crearClienteDemo() {
+  // La demo se trastea desde la consola del navegador, y hasta ahora eso
+  // significaba editar `localStorage` a mano. `reiniciarDemo` existía
+  // exportada y sin llamarla nadie, o sea, inalcanzable justo desde el
+  // único sitio donde sirve. Aquí queda a un `gremio.reiniciar()`.
+  if (typeof window !== 'undefined') {
+    window.gremio = { reiniciar: () => { reiniciarDemo(); location.reload() }, volcar: leer }
+  }
+
   const sesionGuardada = () => {
     try {
       return JSON.parse(localStorage.getItem(CLAVE_SESION) || 'null')

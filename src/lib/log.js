@@ -48,10 +48,6 @@ export function setContexto(campos) {
   contexto = { ...contexto, ...campos }
 }
 
-export function limpiarContexto() {
-  contexto = {}
-}
-
 /** Destino persistente. Lo inyecta la app cuando hay sesión de Supabase. */
 export function setSink(fn) {
   sink = fn

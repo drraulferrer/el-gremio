@@ -98,7 +98,7 @@ export const INSIGNIAS = [
     poder: { tipo: 'monedas_x', factor: 1.25, dias: 7 }
   },
   {
-    code: 'ocho_habilidades', name: 'Completo', emoji: '🧭',
+    code: 'ocho_habilidades', name: '{Completo|Completa|Al completo}', emoji: '🧭',
     desc: 'Has entrenado las ocho competencias al menos una vez',
     clase: 'normal', test: (s) => s.habilidadesTocadas >= 8,
     poder: { tipo: 'abre_premio' }
@@ -117,8 +117,8 @@ export const INSIGNIAS = [
 
   // --- Únicas: solo una persona del gremio puede tenerlas --------------
   {
-    code: 'primer_nivel10', name: 'Pionera', emoji: '🥇',
-    desc: 'La primera del gremio en llegar al nivel 10. Solo puede tenerla una persona',
+    code: 'primer_nivel10', name: '{Pionero|Pionera|Quien abrió camino}', emoji: '🥇',
+    desc: 'Nadie del gremio llegó antes al nivel 10. Solo puede tenerla una persona',
     clase: 'unica', test: (s) => s.level >= 10,
     poder: { tipo: 'monedas_x', factor: 1.5, dias: 14 }
   },
@@ -130,7 +130,7 @@ export const INSIGNIAS = [
   },
   {
     code: 'coleccionista', name: 'Coleccionista', emoji: '🗝️',
-    desc: 'La primera en juntar diez insignias. Solo una',
+    desc: 'Nadie juntó diez insignias antes. Solo una persona puede tenerla',
     clase: 'unica', test: (s) => s.insignias >= 10,
     poder: { tipo: 'abre_premio' }
   }
@@ -175,12 +175,26 @@ export function multiplicadorDe(ganadas = [], ahora = new Date()) {
   return factores.length ? Math.max(...factores) : 1
 }
 
-/** Los usos que le quedan de un poder gastable, ya descontados. */
+/**
+ * Los usos que le quedan a UNA insignia ganada. Cero si su poder ya
+ * caducó o si no era de los que se gastan.
+ *
+ * Es la única cuenta de usos que hay en el cliente, y tiene que seguir
+ * siéndolo: la pantalla la tenía copiada a mano y una copia de una regla
+ * es una regla que se desincroniza. La cuenta que MANDA sigue estando en
+ * Postgres (`spend_power`); esta solo decide si se dibuja el botón.
+ */
+export function usosRestantes(ganada, gastados = {}, ahora = new Date()) {
+  const p = poderActivo(ganada, ahora)
+  if (!p?.usos) return 0
+  return Math.max(0, p.usos - (gastados[ganada.code] || 0))
+}
+
+/** Los usos que le quedan de un poder gastable, sumando sus insignias. */
 export function usosDisponibles(ganadas = [], tipo, gastados = {}, ahora = new Date()) {
   return ganadas.reduce((total, g) => {
-    const p = poderActivo(g, ahora)
-    if (p?.tipo !== tipo) return total
-    return total + Math.max(0, (p.usos || 0) - (gastados[g.code] || 0))
+    if (poderActivo(g, ahora)?.tipo !== tipo) return total
+    return total + usosRestantes(g, gastados, ahora)
   }, 0)
 }
 

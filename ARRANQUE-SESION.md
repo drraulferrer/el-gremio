@@ -499,6 +499,42 @@ aporta más a la meta. Nada de contadores en `profiles`: se
 desincronizarían el día que alguien deshace una misión, y deshacer aquí es
 una operación normal, no una excepción.
 
+**Repaso de código sin usar, y ahora es repetible con `npm run muertos`.**
+El detector (`scripts/muertos.mjs`) separa tres clases: muerto de verdad,
+vivo solo en los tests, y exportado de más. Se validó contra la versión
+anterior del panel: señalaba `PremioAMano` y nada más, que era justo el
+fallo. Lo que salió y qué se hizo:
+
+- **`BADGES` en `supabase.js`**: el catálogo viejo de 8 insignias
+  sobrevivió a la mudanza a `insignias.js` (16) sin que lo usara la app…
+  pero **sí lo usaba el test de género**. O sea que las ocho insignias
+  nuevas nunca se habían revisado. Retirado, y los dos tests apuntan ya al
+  catálogo bueno.
+- De ahí salió un fallo de contenido real: **«Pionera»** se la lleva quien
+  primero llega al nivel 10, que en esta casa puede ser el padre. Marcada
+  como `{Pionero|Pionera|Quien abrió camino}`, igual que «Completo». Ojo:
+  las DESCRIPCIONES se pintan sin `flex`, así que se reescribieron para no
+  necesitar marca («Nadie del gremio llegó antes al nivel 10»). Si algún
+  día se marca una desc, hay que pasarla por `flex` en `Home.jsx` o se
+  leerá el `{a|b|c}` en crudo.
+- **La cuenta de usos de un poder estaba copiada a mano** en
+  `Poderes.jsx`. Ahora sale de `usosRestantes`, que es también la que usa
+  `usosDisponibles`. Una copia de una regla es una regla que se
+  desincroniza.
+- Borrados por muertos: `ICONOS`, `MONEDAS_DEL_JUEGO` (alias de
+  `MONEDAS_POR_ESTRELLA`) y `limpiarContexto`.
+- `reiniciarDemo` estaba exportada y era inalcanzable justo desde el único
+  sitio donde sirve. Ahora el modo demo expone `window.gremio.reiniciar()`
+  y `window.gremio.volcar()`, que ahorran editar `localStorage` a mano.
+- `techoDe` y `techoFamiliar` NO se borraron: son el cálculo con el que se
+  dimensionó la meta del gremio. Se fijaron con tests, porque un modelo
+  que nadie ejecuta se pudre sin que nadie se entere.
+
+Quedan diez en la clase «solo tests» y son correctos: modelo escrito por
+delante de la interfaz (temporadas, poderes sin cablear) y ayudantes de
+los propios tests. `npm run muertos` solo sale con error si aparece algo
+en la clase A.
+
 **El premio a mano estaba escrito y sin enganchar.** El componente
 `PremioAMano` existía entero desde la sesión anterior, `GestionPremios`
 tenía hasta su `useState`, pero nadie lo renderizaba: funcionalidad

@@ -2,7 +2,8 @@ import { describe, it, expect } from 'vitest'
 import { flex, generoDe, plantillaCompleta, marcasDe, GENEROS, IDS_GENERO } from '../src/lib/genero'
 import { CATALOGO, tareasDeRol } from '../src/lib/tareas'
 import { rangoDeHabilidad } from '../src/lib/habilidades'
-import { BADGES, ROLE_LABEL } from '../src/lib/supabase'
+import { ROLE_LABEL } from '../src/lib/supabase'
+import { INSIGNIAS } from '../src/lib/insignias'
 import { sugerenciasDeElogio } from '../src/lib/elogio'
 
 describe('resolución de marcas', () => {
@@ -85,7 +86,7 @@ describe('todas las plantillas traen las tres formas', () => {
   })
 
   it('en los nombres de las insignias', () => {
-    for (const b of BADGES) revisar(b.name, 'insignia ' + b.code)
+    for (const b of INSIGNIAS) revisar(b.name, 'insignia ' + b.code)
   })
 
   it('en las etiquetas de rol', () => {

@@ -9,7 +9,9 @@ import {
   metaObjetivo,
   diasParaPermitirse,
   diagnosticoEconomia,
-  veredicto
+  veredicto,
+  techoDe,
+  techoFamiliar
 } from '../src/lib/economia'
 import {
   CATALOGO_PREMIOS,
@@ -256,5 +258,32 @@ describe('estrellas de la peque', () => {
       { id: 'c', cost: 540, active: true, tier: 2 }
     ])
     expect(suyos.map((p) => p.id)).toEqual(['a'])
+  })
+})
+
+// ------------------------------------------------------------------
+// Los techos no los usa ninguna pantalla: son el cálculo con el que se
+// dimensionó la meta del gremio. Un modelo que nadie ejecuta se pudre en
+// silencio —cambia un tope, cambia un rol, y nadie se entera—, así que
+// aquí quedan fijadas sus dos propiedades estructurales. Si algún día se
+// necesitan para poner una meta, se sabrá que siguen diciendo la verdad.
+// ------------------------------------------------------------------
+describe('techos de producción', () => {
+  it('lo esperado nunca pasa del máximo, que es el sentido de tener los dos', () => {
+    for (const rol of ['adulto', 'junior', 'peque']) {
+      const t = techoDe(rol)
+      expect(t.esperado.xpDia).toBeLessThan(t.maximo.xpDia)
+      expect(t.esperado.monedasDia).toBeLessThan(t.maximo.monedasDia)
+    }
+  })
+
+  it('un rol que no existe no inventa un techo', () => {
+    expect(techoDe('perro')).toBe(null)
+  })
+
+  it('el techo familiar es la suma de sus roles, no una estimación aparte', () => {
+    const familia = techoFamiliar(['adulto', 'junior'])
+    const suma = techoDe('adulto').maximo.xpDia + techoDe('junior').maximo.xpDia
+    expect(familia.maximo.xpDia).toBeCloseTo(suma, 1)
   })
 })

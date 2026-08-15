@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { xpForLevel, levelFromXp, levelProgress, goalProgress, BADGES } from '../src/lib/supabase'
+import { xpForLevel, levelFromXp, levelProgress, goalProgress } from '../src/lib/supabase'
+import { INSIGNIAS } from '../src/lib/insignias'
 
 describe('curva de niveles', () => {
   it('sigue la tabla de la especificación', () => {
@@ -67,7 +68,7 @@ describe('meta cooperativa', () => {
 
 describe('insignias automáticas', () => {
   it('se desbloquean en el umbral exacto', () => {
-    const porCodigo = Object.fromEntries(BADGES.map((b) => [b.code, b]))
+    const porCodigo = Object.fromEntries(INSIGNIAS.map((b) => [b.code, b]))
     expect(porCodigo.primera.test({ approved: 0, level: 1, redemptions: 0 })).toBe(false)
     expect(porCodigo.primera.test({ approved: 1, level: 1, redemptions: 0 })).toBe(true)
     expect(porCodigo.x10.test({ approved: 9, level: 1, redemptions: 0 })).toBe(false)
@@ -77,7 +78,7 @@ describe('insignias automáticas', () => {
   })
 
   it('la insignia del gremio no es automática: se otorga al cerrar la meta', () => {
-    const gremio = BADGES.find((b) => b.code === 'gremio')
+    const gremio = INSIGNIAS.find((b) => b.code === 'gremio')
     expect(gremio.test({ approved: 999, level: 99, redemptions: 99 })).toBe(false)
   })
 })

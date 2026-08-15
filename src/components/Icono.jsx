@@ -57,5 +57,3 @@ export default function Icono({ nombre, tamano = 22, className = '', titulo }) {
     </svg>
   )
 }
-
-export const ICONOS = Object.keys(TRAZOS)

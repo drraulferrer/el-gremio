@@ -23,9 +23,6 @@ import { MONEDAS_POR_ESTRELLA } from './premios'
 /** Globos que hay que reventar. Ni tantos que canse, ni tan pocos que no sepa a nada. */
 export const GLOBOS_DEL_JUEGO = 6
 
-/** Lo que paga, una estrella exacta. El valor de verdad lo pone la base. */
-export const MONEDAS_DEL_JUEGO = MONEDAS_POR_ESTRELLA
-
 /**
  * ¿Ese día de la base es hoy?
  *
