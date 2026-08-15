@@ -77,3 +77,40 @@ describe('mensajes de error para la interfaz', () => {
     expect(mensajeDeError(null)).toBe('')
   })
 })
+
+describe('errores de PostgREST en el registro', () => {
+  // Un PostgrestError es un Error con code/details/hint colgados encima.
+  class PostgrestError extends Error {
+    constructor(c) {
+      super(c.message)
+      this.name = 'PostgrestError'
+      this.details = c.details
+      this.hint = c.hint
+      this.code = c.code
+    }
+  }
+
+  it('conserva code, details y hint, que son los que dicen qué hacer', () => {
+    const salida = redactar(
+      new PostgrestError({
+        message: 'permission denied for table completions',
+        details: 'RLS denegó la operación',
+        hint: 'GRANT DELETE ON public.completions TO authenticated;',
+        code: '42501'
+      })
+    )
+    expect(salida.mensaje).toBe('permission denied for table completions')
+    expect(salida.code).toBe('42501')
+    expect(salida.hint).toMatch(/GRANT DELETE/)
+    expect(salida.details).toBe('RLS denegó la operación')
+  })
+
+  it('sigue borrando credenciales colgadas de un error', () => {
+    const err = new Error('fallo al entrar')
+    err.password = 'secreto'
+    err.code = 'PGRST301'
+    const salida = redactar(err)
+    expect(salida.password).toBe('[redactado]')
+    expect(salida.code).toBe('PGRST301')
+  })
+})

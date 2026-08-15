@@ -1,0 +1,36 @@
+-- Migración 009 · retirar los dos índices redundantes.
+--
+-- Ejecuta este fichero en el SQL Editor de Supabase. Si empiezas de cero,
+-- schema.sql ya no los crea. Es idempotente.
+--
+-- Los dos índices que se retiran tienen como columnas el PREFIJO EXACTO de
+-- otro índice que ya existe sobre la misma tabla:
+--
+--   idx_profiles_family      (family_id)          ⊂  idx_profiles_family_active (family_id, active)
+--   idx_challenges_family    (family_id)          ⊂  idx_challenges_skill       (family_id, skill)
+--
+-- Postgres puede resolver con el índice largo cualquier consulta que
+-- resolvería con el corto, porque `family_id` va primero en los dos. El
+-- corto no se elegirá nunca mientras el largo exista; lo único que hace es
+-- cobrar su mantenimiento en cada insert y cada update de esas dos tablas,
+-- que son precisamente las que más se escriben.
+--
+-- Ojo con el orden si algún día se toca esto: si se borrase el índice
+-- LARGO, el corto dejaría de ser redundante y habría que conservarlo.
+--
+-- Van comentados a propósito. Descoméntalos cuando quieras aplicarlo:
+-- un `drop index` es de los pocos cambios de este proyecto que un
+-- rollback de frontend no deshace.
+
+-- drop index if exists public.idx_profiles_family;
+-- drop index if exists public.idx_challenges_family;
+
+-- Comprobación después de descomentar y ejecutar. Deben quedar 9 filas,
+-- sin `idx_profiles_family` ni `idx_challenges_family`. El patrón mira
+-- TODOS los índices de la aplicación, no solo los que llevan «family» en
+-- mitad del nombre: con `idx_%_family%`, `idx_challenges_skill` se queda
+-- fuera del listado y esconde justo la mitad de cada comparación.
+--
+-- select indexname, indexdef from pg_indexes
+--   where schemaname = 'public' and indexname like 'idx_%'
+--   order by indexname;

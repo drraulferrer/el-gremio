@@ -53,18 +53,32 @@ si falla `supabase`, casi seguro que el proyecto está pausado (ver §7).
 ✅ 005  una sola versión de resolve_completion (la sobrecarga, retirada)
 ✅ 006  undo_completion responde
 ✅ 007  profiles.gender
-❔ 007b reescritura de los dos títulos con marca de género
-❔ 008  los cinco índices
+✅ 007b reescritura de los títulos con marca de género
+✅ 008  los cinco índices
+⚠️ 009  dos índices redundantes por retirar (drops comentados)
 ```
 
-Los dos últimos **no se pueden verificar sin sesión**: leer filas de
-`challenges` choca con RLS, y `pg_indexes` no lo expone PostgREST. No
-significa que falten. Para salir de dudas, en el SQL Editor:
+Verificado en el SQL Editor el 15-ago: los once índices `idx_%_family%`
+están, y `titulos_con_marca = 1`.
+
+**Ese 1 es el número correcto, no un déficit.** En las 119 misiones del
+catálogo solo hay DOS cuyo título concuerda con quien la hace, y las dos
+llevan ya su marca: «Vestirse {solo|sola|sin ayuda}» y «Resolver un
+problema {solo|sola|sin ayuda}». La familia tiene activada la primera y
+no la segunda, que es semanal y de la junior. Las demás son infinitivos
+(«Recoger juguetes», «Poner servilletas»): no hay nada con lo que
+concordar. Cuidado con los falsos amigos —«Higiene completa», «Limpieza
+completa de inodoros»— donde el adjetivo concuerda con el sustantivo, no
+con la persona: marcarlos sería un error.
+
+Para volver a comprobarlo, en el SQL Editor. **No uses el patrón
+`idx_%_family%`**: deja fuera `idx_challenges_skill` y esconde justo la
+mitad de cada comparación de redundancia.
 
 ```sql
 select count(*) as titulos_con_marca from public.challenges where title like '%{%|%|%}%';
-select indexname from pg_indexes where schemaname = 'public'
-  and indexname like 'idx_%_family%' order by indexname;
+select indexname, indexdef from pg_indexes where schemaname = 'public'
+  and indexname like 'idx_%' order by indexname;
 ```
 
 Las migraciones son idempotentes: volver a ejecutar `007` y `008` no hace

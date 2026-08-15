@@ -65,7 +65,23 @@ export function redactar(valor, profundidad = 0) {
   }
   if (typeof valor === 'number' || typeof valor === 'boolean') return valor
   if (valor instanceof Error) {
-    return { nombre: valor.name, mensaje: redactar(valor.message, profundidad + 1), stack: redactar(valor.stack, profundidad + 1) }
+    // Los errores de PostgREST son un Error con `code`, `details` y `hint`
+    // colgados encima, y esos tres son justo los que dicen qué hacer: en un
+    // 42501 el `hint` trae el GRANT literal que lo arregla, y `code` es el
+    // que distingue "falta la migración" de "RLS te ha parado". Como no son
+    // propiedades de Error, esta rama los tiraba y en `app_logs` solo
+    // quedaba el resumen humano, que es el menos útil de los cuatro campos.
+    const extra = {}
+    for (const [k, v] of Object.entries(valor)) {
+      if (k === 'name' || k === 'message' || k === 'stack') continue
+      extra[k] = PROHIBIDAS.test(k) ? '[redactado]' : redactar(v, profundidad + 1)
+    }
+    return {
+      nombre: valor.name,
+      mensaje: redactar(valor.message, profundidad + 1),
+      ...extra,
+      stack: redactar(valor.stack, profundidad + 1)
+    }
   }
   if (Array.isArray(valor)) return valor.slice(0, 20).map((v) => redactar(v, profundidad + 1))
   if (typeof valor === 'object') {

@@ -117,9 +117,13 @@ create table if not exists public.profile_badges (
 create index if not exists idx_completions_family_status on public.completions (family_id, status);
 create index if not exists idx_completions_profile on public.completions (profile_id, requested_at desc);
 create index if not exists idx_redemptions_family_status on public.redemptions (family_id, status);
-create index if not exists idx_profiles_family on public.profiles (family_id);
+-- Aquí hubo dos índices de más, `idx_profiles_family (family_id)` e
+-- `idx_challenges_family (family_id)`. Un índice cuyas columnas son el
+-- prefijo exacto de otro no se usa nunca: Postgres resuelve con el largo
+-- lo mismo que resolvía con el corto, así que el corto solo cobra su
+-- mantenimiento en cada insert y cada update. Para bases ya creadas, los
+-- `drop` están en migracion-009-indices-redundantes.sql.
 create index if not exists idx_profiles_family_active on public.profiles (family_id, active);
-create index if not exists idx_challenges_family on public.challenges (family_id);
 create index if not exists idx_challenges_skill on public.challenges (family_id, skill);
 -- Un índice por cada consulta real de src/App.jsx, ordenación incluida:
 -- sin la columna de fecha en el índice, pedir "las últimas 400" obliga a
