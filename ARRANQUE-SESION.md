@@ -63,13 +63,12 @@ si falla `supabase`, casi seguro que el proyecto está pausado (ver §7).
 ✅ 013  target_roles[]: misiones para varios roles (15-ago)
 ✅ 014  premio a mano: bonuses.motivo/otorgado_por + grant_manual_bonus (15-ago)
 ✅ 015  poderes que se gastan + insignias únicas (15-ago, noche)
-⏳ 016  camino de rachas: claim_streak · ESCRITA, SIN EJECUTAR
+✅ 016  camino de rachas: claim_streak (15-ago, noche)
 ```
 
-**Pendiente: ejecutar la 016** (`migracion-016-camino-de-rachas.sql`).
-Hasta entonces el camino de la racha se ve y se cuenta bien, pero al
-cobrar un hito la app avisa de que falta esa migración. Cuidado con lo
-mismo que pasó con la 015, que se cuenta justo debajo.
+La 016 se ejecutó y se comprobó desde fuera: `claim_streak` contesta
+`no_existe` a un perfil inventado y `hito_invalido` a un hito que no está
+en la tabla, que son las dos respuestas correctas.
 
 **La 015 costó dos intentos, y conviene saber por qué.** El primero se dio
 por hecho y la base no la tenía: `power_uses` y `spend_power` salían NULL
