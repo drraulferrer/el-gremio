@@ -458,6 +458,14 @@ Verificado **en navegador**, no solo compilando:
   nombres suenan a caso particular («skill», «active») e invitan a
   borrarlos en una limpieza; si algún día se hace, hay que crear ANTES el
   índice simple por `family_id`. Primero el create, después el drop.
+- **El backend simulado solo entiende `eq`.** Su constructor de consultas
+  (`fakeBackend.js`) implementa `eq()` y nada más: `.in()`, `.neq()` y
+  compañía **compilan, pasan los 524 tests y revientan en la pantalla**
+  con un «update(...).in is not a function». Pasó el 16-ago al revivir
+  misiones pausadas desde la biblioteca: en producción habría funcionado
+  y en demo no, que es la peor combinación porque el modo demo es donde
+  se prueba. Si hace falta un filtro nuevo, o se escribe con `eq` en un
+  bucle, o se añade al backend simulado; lo que no vale es suponer.
 - **El orden importa en `styles.css`**: las reglas de `@media` para el
   modo peque tienen que ir DESPUÉS de las reglas base, porque comparten
   especificidad y gana la última. Ya se coló un bug así con la altura de
