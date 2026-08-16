@@ -17,7 +17,21 @@
 
 const VERSION = Deno.env.get('APP_VERSION') ?? 'desconocida'
 
-Deno.serve(async () => {
+// El único CORS de este proyecto que se puede configurar, porque es el
+// único servidor propio. Ni el REST de Supabase ni GitHub Pages dejan
+// tocarlo: los dos responden `*` por diseño.
+//
+// Se restringe al sitio de la app y no a `*` por lo de siempre —no
+// repartir más de lo que hace falta—, pero conviene ser honestos sobre lo
+// que compra: CORS es una regla del NAVEGADOR. Un monitor externo, un
+// `curl` o un script la ignoran por completo, y este endpoint está hecho
+// justamente para que lo lea un monitor. O sea que esto no lo esconde de
+// nadie: solo evita que la página de un tercero lo lea desde el navegador
+// de quien la visita. Lo que de verdad protege este endpoint es que no
+// devuelve nada sensible: versión, si la base responde y cuánto tarda.
+const ORIGEN = Deno.env.get('APP_ORIGIN') ?? 'https://elgremioapp.com'
+
+Deno.serve(async (peticion) => {
   const inicio = Date.now()
   const url = Deno.env.get('SUPABASE_URL')
   const key = Deno.env.get('SUPABASE_ANON_KEY')
@@ -25,7 +39,19 @@ Deno.serve(async () => {
   const cabeceras = {
     'Content-Type': 'application/json',
     'Cache-Control': 'no-store',
-    'Access-Control-Allow-Origin': '*'
+    'Access-Control-Allow-Origin': ORIGEN,
+    // Sin esto, un proxy que cachee la respuesta puede servirle a un
+    // origen la cabecera calculada para otro.
+    Vary: 'Origin',
+    'X-Content-Type-Options': 'nosniff'
+  }
+
+  // El preflight tiene que contestarse o el navegador ni llega a pedir.
+  if (peticion.method === 'OPTIONS') {
+    return new Response(null, {
+      status: 204,
+      headers: { ...cabeceras, 'Access-Control-Allow-Methods': 'GET,OPTIONS', 'Access-Control-Max-Age': '3600' }
+    })
   }
 
   if (!url || !key) {

@@ -463,6 +463,50 @@ Verificado **en navegador**, no solo compilando:
 
 ---
 
+## 6b. CORS y cabeceras de seguridad: lo que aquí NO se puede configurar
+
+Medido el 16-ago, no supuesto. Conviene tenerlo escrito porque es la
+clase de tarea que se pide, se «hace», y no hace nada.
+
+**CORS no es una palanca en este proyecto.** Hay tres superficies y dos no
+se tocan:
+
+| Dónde | Qué responde | ¿Configurable? |
+|---|---|---|
+| REST de Supabase | `access-control-allow-origin: *` | **No.** Es el diseño: protege RLS + la clave, no el origen |
+| Auth de Supabase | refleja *cualquier* Origin, con `allow-credentials: true` | **No** |
+| GitHub Pages | `access-control-allow-origin: *` | **No.** No sirve cabeceras propias |
+| Edge Function `health` | nuestra | **Sí**, y es la única |
+
+Y aunque se pudiera: **CORS es una regla del NAVEGADOR**. Un `curl`, un
+script o una app de móvil la ignoran. No defiende una API de nadie; solo
+impide que la página de un tercero lea la respuesta desde el navegador de
+quien la visita. Lo que protege los datos del gremio es RLS, y eso está
+comprobado desde fuera (lectura anónima: `[]` en las cinco tablas;
+escritura: 401; funciones: 401/404).
+
+**Cabeceras de seguridad: elgremioapp.com no envía ninguna** —ni HSTS, ni
+`X-Content-Type-Options`, ni `X-Frame-Options`, ni `Permissions-Policy`—
+y **no se pueden añadir**, porque GitHub Pages no deja. Como meta se
+ignoran todas salvo CSP y `referrer`, que ya están puestas: escribirlas en
+el HTML sería teatro.
+
+Las dos salidas reales, las dos son una decisión, no código:
+
+1. **Poner Cloudflare delante del dominio** (ya hay cuenta, por Turnstile).
+   Con el DNS proxeado, las Transform Rules añaden todas las cabeceras sin
+   tocar el proyecto. Implica mover el DNS desde Hostinger.
+2. **Mudar el alojamiento a Cloudflare Pages o Netlify**, que leen un
+   fichero `_headers`. El sitio es estático: la mudanza es el CNAME y poco
+   más.
+
+Mientras tanto, el único hueco que de verdad muerde —el clickjacking del
+formulario de entrada y del panel— lo tapa `src/lib/marco.js` desde
+JavaScript. Es peor que una cabecera y hay que saberlo: si alguien
+desactiva JS, no hay defensa. Pero cubre el caso real.
+
+---
+
 ## 7. Trampas conocidas
 
 - **El plan gratuito de Supabase pausa el proyecto tras 7 días sin

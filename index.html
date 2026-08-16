@@ -14,6 +14,12 @@
       haría falta un alojamiento que sirva cabeceras (Cloudflare Pages,
       Netlify) sin cambiar nada más del proyecto.
 
+      Mientras tanto, el iframe lo tapa `src/lib/marco.js` desde
+      JavaScript: la app salta fuera del marco y, si el marco no la deja
+      salir, NO SE MONTA. Es peor que una cabecera —depende de que corra
+      JS— pero es lo único disponible aquí, y deja el formulario de entrada
+      y el panel parental fuera del alcance de un clickjacking.
+
       Lo que sí protege, y es lo que importa aquí: la sesión de Supabase
       vive en `localStorage`, así que un XSS se llevaría la cuenta entera
       del gremio. Sin `script-src` no hay nada que impida a un script
