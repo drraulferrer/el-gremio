@@ -922,8 +922,12 @@ function Biblioteca({ family, data, refresh, onClose }) {
         })
       }
     }
-    if (revivir.length) {
-      const { error } = await supabase.from('challenges').update({ active: true }).in('id', revivir)
+    // Una por una con `eq`, y NO con `.in()`: el backend simulado solo
+    // implementa `eq` en su constructor de consultas (fakeBackend.js), así
+    // que `.in()` compila, pasa los tests y revienta en la pantalla con un
+    // «update(...).in is not a function». Aquí son cuatro filas como mucho.
+    for (const id of revivir) {
+      const { error } = await supabase.from('challenges').update({ active: true }).eq('id', id)
       if (error) {
         setFallo(mensajeDeError(error))
         setActivando(false)

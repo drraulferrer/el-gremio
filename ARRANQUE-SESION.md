@@ -1738,3 +1738,47 @@ registro de autorización en `gmail.com` que no se puede publicar.
 Y `https://www.elgremioapp.com/**` añadida a las Redirect URLs de
 Supabase, que faltaba: quien llegara por `www` y pidiera recuperar la
 contraseña habría visto rebotar el enlace.
+
+---
+
+## 7l. CI, por fin (16 de agosto)
+
+Dos workflows en `.github/workflows/`, y la diferencia entre ellos es lo
+que hay que entender:
+
+- **`ci.yml`** corre en cada empujón: tests, build, credenciales y código
+  muerto. **No despliega nada.** Existe porque hasta hoy los tests solo
+  corrían si alguien se acordaba, y ese alguien era siempre la misma
+  persona en el mismo portátil.
+- **`desplegar.yml`** se lanza A MANO desde Actions. No es despliegue
+  continuo a propósito: aquí se empuja documentación varias veces al día y
+  publicar en cada empujón convierte el despliegue en ruido. Es la póliza
+  contra el punto único de fallo — si el portátil desaparece, se puede
+  publicar un arreglo desde el móvil.
+
+**El workflow de despliegue REUTILIZA `npm run deploy`.** No reimplementa
+la publicación, y eso no es pereza: ese script escribe el `version.json`
+que lee `npm run health`, publica la rama `gh-pages` y deja la etiqueta
+para poder volver atrás. Una copia paralela de todo eso se habría separado
+del camino local en tres meses, y nos habríamos enterado el día que
+hiciera falta.
+
+Antes de que el despliegue por Actions funcione hacen falta **tres
+variables de repositorio** (Ajustes → Secrets and variables → Actions →
+pestaña *Variables*, NO *Secrets*: las tres son públicas y viajan en el
+bundle):
+
+```
+VITE_SUPABASE_URL         https://chfbrawsoulfiywiqhpe.supabase.co
+VITE_SUPABASE_ANON_KEY    la clave publishable del proyecto
+VITE_TURNSTILE_SITE_KEY   0x4AAAAAAERftVUmt9C26CW7
+```
+
+Si falta alguna, el workflow **para en el primer paso** en vez de publicar
+una app que no conecta con nada o que no dibuja el captcha. Un despliegue
+roto y silencioso es peor que no desplegar.
+
+**Trampa del token:** el token de `gh` de esta máquina no tiene el scope
+`workflow`, así que **empujar ficheros de `.github/workflows/` falla**.
+Se arregla una sola vez con `gh auth refresh -s workflow`, que es
+interactivo y tiene que hacerlo la persona.

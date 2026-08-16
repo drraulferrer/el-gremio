@@ -1,0 +1,114 @@
+# Desplegar sin depender de un portátil concreto.
+#
+# Esto NO es despliegue continuo: se lanza A MANO desde la pestaña Actions
+# («Run workflow»). La razón es la de siempre en este proyecto: aquí se
+# empuja documentación varias veces al día, y publicar en cada empujón
+# convierte el despliegue en ruido, que es exactamente cómo se acaba
+# publicando algo a medias un martes por la noche.
+#
+# Es la póliza contra el punto único de fallo: si el portátil desde el que
+# sale `npm run deploy` desaparece, esto sigue pudiendo publicar un
+# arreglo urgente desde el móvil.
+#
+# ⚠️ REUTILIZA `npm run deploy`, no reimplementa nada. Ese script escribe
+# el `version.json` que lee `npm run health`, publica en `gh-pages` y deja
+# la etiqueta `deploy-AAAA-MM-DD-HHMM` para poder volver atrás. Un
+# workflow que hiciera su propia copia de todo eso se separaría del
+# camino local en tres meses y nadie se daría cuenta hasta necesitarlo.
+
+name: Desplegar
+
+on:
+  workflow_dispatch:
+
+# Escribir en el repositorio: publicar la rama gh-pages y empujar la
+# etiqueta del despliegue. Nada más.
+permissions:
+  contents: write
+
+# Dos despliegues a la vez se pisarían la rama gh-pages. Este espera, no
+# se cancela: cancelar a mitad dejaría la rama a medio publicar.
+concurrency:
+  group: desplegar
+  cancel-in-progress: false
+
+jobs:
+  desplegar:
+    runs-on: ubuntu-latest
+    steps:
+      # Historia completa: `publicarDist` crea un worktree sobre
+      # `origin/gh-pages`, y con un clon superficial no la encuentra.
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      # Las tres son PÚBLICAS por diseño y viajan dentro del bundle, así
+      # que van como «Variables» del repositorio y no como «Secrets»:
+      # guardarlas como secreto daría una falsa sensación de que hay algo
+      # que proteger, y de paso complica leerlas.
+      #
+      # Ajustes → Secrets and variables → Actions → pestaña Variables:
+      #   VITE_SUPABASE_URL
+      #   VITE_SUPABASE_ANON_KEY
+      #   VITE_TURNSTILE_SITE_KEY
+      #
+      # Si falta alguna, se PARA AQUÍ. Sin ellas el build compila igual y
+      # publica una app que no conecta con nada o que no dibuja el
+      # captcha: un despliegue roto y silencioso, que es peor que no
+      # desplegar.
+      - name: Comprobar que están las variables
+        env:
+          URL: ${{ vars.VITE_SUPABASE_URL }}
+          ANON: ${{ vars.VITE_SUPABASE_ANON_KEY }}
+          TURNSTILE: ${{ vars.VITE_TURNSTILE_SITE_KEY }}
+        run: |
+          faltan=""
+          [ -z "$URL" ] && faltan="$faltan VITE_SUPABASE_URL"
+          [ -z "$ANON" ] && faltan="$faltan VITE_SUPABASE_ANON_KEY"
+          [ -z "$TURNSTILE" ] && faltan="$faltan VITE_TURNSTILE_SITE_KEY"
+          if [ -n "$faltan" ]; then
+            echo "::error::Faltan variables del repositorio:$faltan"
+            echo "Ajustes → Secrets and variables → Actions → Variables."
+            exit 1
+          fi
+          echo "🟢 Las tres variables están puestas"
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      # No se publica nada sin tests. Es la misma regla que en local, y
+      # aquí importa más: quien lanza esto desde el móvil no puede leer un
+      # fallo de test que pasó de largo.
+      - name: Tests
+        run: npm test
+
+      - name: Identidad de git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Desplegar
+        env:
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
+          VITE_TURNSTILE_SITE_KEY: ${{ vars.VITE_TURNSTILE_SITE_KEY }}
+        run: npm run deploy
+
+      # GitHub Pages tarda un poco en servir lo nuevo. Se espera y se
+      # comprueba, pero NO se marca el despliegue como fallido si aún no
+      # ha propagado: lo que se publicó está publicado, y un rojo por
+      # impaciencia enseña a ignorar los rojos.
+      - name: Comprobar que está vivo
+        continue-on-error: true
+        env:
+          HEALTH_URL: ${{ vars.HEALTH_URL || 'https://elgremioapp.com/' }}
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
+        run: |
+          sleep 90
+          npm run health

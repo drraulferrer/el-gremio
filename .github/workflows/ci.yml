@@ -1,0 +1,56 @@
+# Comprobación automática en cada empujón.
+#
+# No despliega nada: solo dice si lo que hay en la rama está sano. El
+# despliegue vive en desplegar.yml y se lanza a mano, a propósito.
+#
+# Por qué existe: hasta hoy los tests solo corrían si alguien se acordaba
+# de ejecutarlos antes de `npm run deploy`, y ese alguien era siempre la
+# misma persona en el mismo portátil.
+
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+# Si se empuja dos veces seguidas, la primera comprobación se cancela: lo
+# que importa es el estado de lo último, no la cola.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verificar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      # El mismo orden que `npm run verify` en local, pero por pasos
+      # separados para que el resumen diga QUÉ falló sin abrir el registro.
+      - name: Tests
+        run: npm test
+
+      - name: Construir
+        run: npm run build
+
+      # Aquí no hay `.env`, así que este paso comprueba lo que de verdad
+      # importa en un repositorio público: que no haya credenciales en los
+      # ficheros versionados. La fecha de rotación saldrá como aviso, y un
+      # aviso no tumba la comprobación.
+      - name: Credenciales
+        run: npm run secrets:check
+
+      # Solo falla si aparece código muerto de verdad (clase A). Lo que
+      # está vivo únicamente en los tests no cuenta: es modelo escrito por
+      # delante de la interfaz, y es deliberado.
+      - name: Código sin usar
+        run: npm run muertos
