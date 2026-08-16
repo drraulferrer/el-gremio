@@ -24,11 +24,15 @@ jobs:
   verificar:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      # La misma versión que la máquina desde la que se despliega a mano
+      # (hoy v24). Si CI probara con otra, estaría comprobando algo que
+      # nadie ejecuta: los fallos de runtime aparecerían justo donde no se
+      # está mirando.
+      - uses: actions/setup-node@v5
         with:
-          node-version: '20'
+          node-version: '24'
           cache: 'npm'
 
       - name: Instalar dependencias

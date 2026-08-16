@@ -17,6 +17,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { caminoDe, rachaActual, enRiesgo, hitosPorCobrar, siguienteHito } from '../lib/rachas'
 import { cobrarRacha } from '../lib/acciones'
+import { diasNeutros } from '../lib/misiones'
 
 export default function CaminoRacha({ data, profile, refresh }) {
   const salvados = (data.powerUses || [])
@@ -26,8 +27,12 @@ export default function CaminoRacha({ data, profile, refresh }) {
       return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`
     })
 
-  const racha = rachaActual(data.completions, profile.id, salvados)
-  const riesgo = enRiesgo(data.completions, profile.id, salvados)
+  // Los días sin misiones asignadas no rompen la racha ni la alargan. Se
+  // calculan aquí y se pasan a las dos cuentas: si solo una de las dos los
+  // supiera, el camino diría un número y el aviso de riesgo otro.
+  const neutros = diasNeutros(profile, data.challenges)
+  const racha = rachaActual(data.completions, profile.id, salvados, new Date(), neutros)
+  const riesgo = enRiesgo(data.completions, profile.id, salvados, new Date(), neutros)
   const camino = caminoDe(racha)
   const siguiente = siguienteHito(racha)
   const [cobrando, setCobrando] = useState(null)

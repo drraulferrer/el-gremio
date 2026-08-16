@@ -1210,6 +1210,64 @@ code { background: var(--tablero-hondo); padding: 2px 6px; border-radius: 6px; f
 .pastilla-habilidad:active { transform: scale(0.96); }
 .pastilla-habilidad.sel { background: var(--carta-alta); }
 
+/* Los siete días, como una tira de casillas.
+   En una fila y no en siete filas: la condición de partida era que
+   planificar no volviera a llenar la pantalla. Las casillas se reparten el
+   ancho a partes iguales (`flex: 1`) porque a 360 px siete cuadrados de 44
+   no caben, y la altura sí se mantiene en 44 para que el objetivo táctil
+   no baje de lo que se puede tocar con el pulgar.
+   La LETRA es lo que hace legible el patrón sin depender del color: quien
+   no distingue el relleno del hueco sigue leyendo L X V. */
+.tira-dias { display: flex; gap: 5px; }
+
+.dia-casilla {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 44px;
+  border-radius: 12px;
+  border: 1.5px solid var(--linea);
+  background: var(--tablero-hondo);
+  color: var(--tinta-suave);
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: transform var(--t-rapido) var(--ease-salida), border-color var(--t-rapido) var(--ease-salida);
+}
+
+.dia-casilla:active { transform: scale(0.94); }
+
+.dia-casilla.sel {
+  background: var(--carta-alta);
+  border-color: var(--acento);
+  color: var(--tinta);
+}
+
+/* La misma tira, en tamaño de lectura dentro de la lista de misiones.
+   Aquí no se toca nada: son puntos con letra, no botones. */
+.tira-dias.mini { gap: 3px; margin-top: 4px; }
+
+.dia-punto {
+  flex: none;
+  width: 18px;
+  line-height: 18px;
+  text-align: center;
+  border-radius: 6px;
+  border: 1px solid var(--linea);
+  color: var(--tinta-suave);
+  font-family: var(--display);
+  font-size: 0.62rem;
+  font-weight: 700;
+  opacity: 0.55;
+}
+
+.dia-punto.sel {
+  background: var(--carta-alta);
+  border-color: var(--acento);
+  color: var(--tinta);
+  opacity: 1;
+}
+
 .chip-habilidad {
   flex: none;
   display: inline-flex;

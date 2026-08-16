@@ -192,6 +192,19 @@ export function dayKey(d, tz = ZONA) {
   return `${p.anio}-${p.mes}-${p.dia}`
 }
 
+// El día de la semana EN esa zona, 1 = lunes … 7 = domingo (el mismo
+// número que `isodow` de Postgres, que es quien decide lo mismo del otro
+// lado). No se usa `getDay()` por lo mismo que dayKey no usa `getDate()`:
+// a las 00:30 de un lunes en Madrid un aparato puesto en otra zona sigue
+// en domingo, y la misión de los lunes tiene que salir el lunes de la
+// casa, no el del reloj.
+export function diaSemana(d, tz = ZONA) {
+  const p = tz
+    ? partesEnZona(d, tz)
+    : { anio: d.getFullYear(), mes: d.getMonth() + 1, dia: d.getDate() }
+  return new Date(Date.UTC(p.anio, p.mes - 1, p.dia)).getUTCDay() || 7
+}
+
 export function weekKey(d, tz = ZONA) {
   const p = tz
     ? partesEnZona(d, tz)

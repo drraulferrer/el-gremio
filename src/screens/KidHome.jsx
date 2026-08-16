@@ -54,7 +54,11 @@ export default function KidHome({ family, data, profile, refresh, onSalir }) {
     setVerFicha(true)
   }
 
-  const misiones = misionesDe(profile, data.challenges)
+  // Solo las de hoy: a los tres años una baldosa que no toca no se puede
+  // explicar («hoy esa no») y se toca igual. Que no esté es la única forma
+  // de que la pantalla siga diciendo la verdad completa, que es lo que
+  // hace que la fiesta de «ya están todas» signifique algo.
+  const misiones = misionesDe(profile, data.challenges, { dia: new Date() })
 
   const hoy = dayKey(new Date())
   const estrellasHoy = data.completions.filter(

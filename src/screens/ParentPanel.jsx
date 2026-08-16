@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { supabase, canDo, dayKey, goalProgress, ROLE_LABEL, FREQ_LABEL, mensajeDeError } from '../lib/supabase'
+import { supabase, canDo, dayKey, goalProgress, ROLE_LABEL, FREQ_LABEL, mensajeDeError, esColumnaQueNoExiste } from '../lib/supabase'
 import { CATALOGO, DEFAULTS_ROL, RECOMENDADAS } from '../lib/tareas'
 import {
   resolverMision as resolverMisionRemota,
@@ -29,7 +29,12 @@ import {
   textoDestino,
   ETIQUETA_ROL,
   GRUPOS_ROL,
-  agruparPorFrecuencia
+  agruparPorFrecuencia,
+  DIAS_SEMANA,
+  diasDe,
+  tocaDia,
+  textoDias,
+  alternarDia
 } from '../lib/misiones'
 import SelectorEmoji from '../components/SelectorEmoji'
 import { emojiSugerido, GRUPOS_EMOJI_MISION, EMOJIS_MISION } from '../lib/emojis'
@@ -528,7 +533,7 @@ function ModoPeque({ family, data, refresh, onCeleb }) {
 // Gestión de misiones
 // --------------------------------------------------------------
 
-const MISION_VACIA = { title: '', emoji: '⭐', xp: 10, coins: 5, frequency: 'diario', profile_id: null, target_roles: null, skill: 'responsabilidad', active: true }
+const MISION_VACIA = { title: '', emoji: '⭐', xp: 10, coins: 5, frequency: 'diario', profile_id: null, target_roles: null, skill: 'responsabilidad', days: null, active: true }
 
 function GestionMisiones({ family, data, refresh }) {
   const [editando, setEditando] = useState(null) // null | objeto misión
@@ -554,11 +559,29 @@ function GestionMisiones({ family, data, refresh }) {
       profile_id: m.profile_id || null,
       target_roles: m.target_roles || null,
       skill: m.skill || null,
+      days: diasDe(m),
       active: m.active
     }
-    const { error } = m.id
-      ? await supabase.from('challenges').update(fila).eq('id', m.id)
-      : await supabase.from('challenges').insert(fila)
+    const escribir = (f) =>
+      m.id
+        ? supabase.from('challenges').update(f).eq('id', m.id)
+        : supabase.from('challenges').insert(f)
+
+    let { error } = await escribir(fila)
+    // Una base sin la migración 024 no tiene la columna. Se guarda el
+    // resto en vez de dejar la misión sin escribir, y se dice qué se ha
+    // perdido: callarlo sería peor que el fallo, porque el patrón se
+    // daría por puesto. Mismo criterio que con `families.timezone`.
+    if (error && esColumnaQueNoExiste(error)) {
+      const { days, ...sinDias } = fila
+      ;({ error } = await escribir(sinDias))
+      if (!error && days) {
+        setFallo('La misión se ha guardado, pero los días de la semana no: a esta base le falta la migración 024.')
+        setEditando(null)
+        await refresh()
+        return
+      }
+    }
     if (error) {
       setFallo(mensajeDeError(error))
       return
@@ -673,6 +696,22 @@ function GestionMisiones({ family, data, refresh }) {
                 {habilidad(ch.skill) && <>{habilidad(ch.skill).emoji} {habilidad(ch.skill).nombre} · </>}
                 +{ch.xp} XP · {ch.coins} 🪙
               </div>
+              {/* La tira solo sale cuando hay patrón: dibujar siete puntos
+                  llenos en todas las misiones sería repetir «todos los
+                  días» treinta veces y esconder justo a las que no. */}
+              {diasDe(ch) && (
+                <div className="tira-dias mini" aria-label={textoDias(ch)}>
+                  {DIAS_SEMANA.map((d) => (
+                    <span
+                      key={d.n}
+                      className={'dia-punto' + (tocaDia(ch, d.n) ? ' sel' : '')}
+                      aria-hidden="true"
+                    >
+                      {d.letra}
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
             <button
               className="btn-icono"
@@ -796,13 +835,49 @@ function FormMision({ mision, perfiles, onGuardar, onBorrar, onClose }) {
 
       <div className="campo">
         <label>Frecuencia</label>
-        <select value={m.frequency} onChange={(e) => set({ frequency: e.target.value })}>
+        {/* Pasar a «única» borra el patrón: una misión que se hace una
+            sola vez y además solo los martes es una forma silenciosa de
+            que no aparezca hasta el martes que viene. */}
+        <select
+          value={m.frequency}
+          onChange={(e) =>
+            set(e.target.value === 'unico' ? { frequency: 'unico', days: null } : { frequency: e.target.value })
+          }
+        >
           <option value="diario">Diaria</option>
           <option value="semanal">Semanal</option>
           <option value="mensual">Mensual</option>
           <option value="unico">Única</option>
         </select>
       </div>
+      {/* Los días son un patrón de siete casillas, no un calendario: no
+          tienen fecha de inicio, así que se repiten solos y empezar a
+          usarlos un jueves no deja ninguna semana a medias. Se ofrecen
+          también para las semanales y mensuales —«la colada, los
+          sábados»— y no para las únicas, que no se repiten. */}
+      {m.frequency !== 'unico' && (
+        <div className="campo">
+          <label id="mision-dias">Qué días</label>
+          <div className="tira-dias" role="group" aria-labelledby="mision-dias">
+            {DIAS_SEMANA.map((d) => {
+              const puesto = tocaDia(m, d.n)
+              return (
+                <button
+                  key={d.n}
+                  type="button"
+                  className={'dia-casilla' + (puesto ? ' sel' : '')}
+                  aria-pressed={puesto}
+                  aria-label={d.nombre}
+                  onClick={() => set({ days: alternarDia(m.days, d.n) })}
+                >
+                  {d.letra}
+                </button>
+              )
+            })}
+          </div>
+          <span className="suave">{textoDias(m)}</span>
+        </div>
+      )}
       <div className="campo">
         <label>Para</label>
         <select value={destinoDe(m)} onChange={(e) => set(destinoA(e.target.value))}>

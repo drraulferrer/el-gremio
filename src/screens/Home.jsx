@@ -187,7 +187,9 @@ function Misiones({ data, profile, ocupado, onPedir, misPendientes, misAprobadas
   )
 
   const hoy = dayKey(new Date())
-  const disponibles = misionesDe(profile, data.challenges).filter((ch) =>
+  // `dia` deja fuera las que hoy no tocan por su patrón semanal. El
+  // tablero responde «¿qué me toca HOY?»; el panel sigue viéndolas todas.
+  const disponibles = misionesDe(profile, data.challenges, { dia: new Date() }).filter((ch) =>
     canDo(ch, data.completions, profile.id)
   )
   const porFrecuencia = agruparPorFrecuencia(disponibles)

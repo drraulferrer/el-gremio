@@ -19,7 +19,21 @@
 //    Marcarla como rota a mediodía sería castigar por adelantado, y el
 //    aviso «hoy todavía no» es lo que de verdad hace que se levante.
 //
-// 3. Cada hito se paga UNA VEZ EN LA VIDA, no una vez por racha. Si se
+// 3. Un día SIN misiones asignadas es neutro: ni rompe la racha ni la
+//    alarga. Llegó con la planificación por días de la semana, y sin él
+//    esa funcionalidad se lleva por delante esta: a quien le tocan lunes,
+//    miércoles y viernes, el martes no tiene nada que hacer.
+//
+//    Los días neutros van SEPARADOS de los salvados con comodín, y esa
+//    separación no es un detalle de implementación. Un comodín cuenta
+//    como día HECHO —tapa y suma—; un día neutro solo tapa. Si los
+//    neutros entraran por `diasSalvados`, a quien solo tuviera misiones
+//    los lunes le contarían los otros seis días como hechos y llegaría a
+//    los cien días sin haber hecho nada. El número que se enseña sigue
+//    siendo real: con días alternos, el hito de 30 cuesta más semanas de
+//    calendario, y eso es correcto y no hay que maquillarlo.
+//
+// 4. Cada hito se paga UNA VEZ EN LA VIDA, no una vez por racha. Si se
 //    rompe y se vuelve a los siete días, no se cobra otra vez: si no,
 //    romper la racha a propósito cada semana sería la forma más rentable
 //    de jugar, y el sistema estaría premiando exactamente lo contrario de
@@ -65,28 +79,42 @@ export function hoyHecho(completions = [], profileId, diasSalvados = [], hoy = n
 }
 
 /**
- * La racha viva: días seguidos hasta hoy.
+ * La racha viva: días CUMPLIDOS hacia atrás desde hoy.
  *
  * Si hoy todavía no hay nada, se cuenta hasta ayer y la racha sigue viva:
  * el día no ha terminado. Ver la decisión 2 de arriba.
+ *
+ * `diasNeutros` son los días sin misiones asignadas: se atraviesan sin
+ * sumar y sin cortar. Por eso el bucle lleva dos contadores —lo caminado
+ * y lo contado—: el tope de 400 es del primero, o una lista larga de días
+ * neutros lo dejaría dando vueltas.
  */
-export function rachaActual(completions = [], profileId, diasSalvados = [], hoy = new Date()) {
+export function rachaActual(completions = [], profileId, diasSalvados = [], hoy = new Date(), diasNeutros = []) {
   const dias = diasConAlgo(completions, profileId, diasSalvados)
+  const neutros = new Set(diasNeutros)
   const cursor = new Date(hoy)
   if (!dias.has(dayKey(cursor))) cursor.setDate(cursor.getDate() - 1)
 
   let racha = 0
-  while (dias.has(dayKey(cursor)) && racha < 400) {
-    racha++
+  for (let pasos = 0; pasos < 400; pasos++) {
+    const clave = dayKey(cursor)
+    if (dias.has(clave)) racha++
+    else if (!neutros.has(clave)) break
     cursor.setDate(cursor.getDate() - 1)
   }
   return racha
 }
 
-/** Racha viva pero sin nada hecho hoy: es cuando hay que avisar. */
-export function enRiesgo(completions = [], profileId, diasSalvados = [], hoy = new Date()) {
+/**
+ * Racha viva pero sin nada hecho hoy: es cuando hay que avisar.
+ *
+ * Un día neutro nunca está en riesgo: no se puede avisar de que se va a
+ * perder algo por no hacer lo que no hay que hacer.
+ */
+export function enRiesgo(completions = [], profileId, diasSalvados = [], hoy = new Date(), diasNeutros = []) {
+  if (diasNeutros.includes(dayKey(hoy))) return false
   return (
-    rachaActual(completions, profileId, diasSalvados, hoy) > 0 &&
+    rachaActual(completions, profileId, diasSalvados, hoy, diasNeutros) > 0 &&
     !hoyHecho(completions, profileId, diasSalvados, hoy)
   )
 }

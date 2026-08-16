@@ -13,6 +13,7 @@
 // ------------------------------------------------------------------
 
 import { dayKey, levelFromXp } from './supabase'
+import { diasNeutros } from './misiones'
 
 /** Las aprobadas de una persona, que es la base de casi todo lo demás. */
 function aprobadasDe(completions, profileId) {
@@ -35,8 +36,23 @@ function aprobadasDe(completions, profileId) {
  * `diasSalvados` son los días cubiertos con un comodín. Cuentan como día
  * hecho, y ese es TODO el efecto del comodín: sin esto sería un botón que
  * gasta un uso y no cambia nada, que es peor que no tenerlo.
+ *
+ * `diasNeutros` son los días sin misiones asignadas y son otra cosa: no
+ * cuentan como día hecho, solo dejan pasar. Un hueco entre dos días
+ * hechos se puentea si TODOS los días de en medio son neutros, y lo que
+ * se suma sigue siendo el número de días cumplidos. Ver la decisión 3 de
+ * `rachas.js`.
  */
-export function rachaMaxima(completions, profileId, diasSalvados = []) {
+export function rachaMaxima(completions, profileId, diasSalvados = [], diasNeutros = []) {
+  // dayKey no lleva ceros a la izquierda ('2026-8-9'), así que ordenar
+  // como texto pone el 10 antes que el 9 y parte la racha por la mitad.
+  // Todo se pasa a la misma medianoche local, que es también la que
+  // reconstruye el paseo por los huecos.
+  const aFecha = (k) => {
+    const [a, m, d] = k.split('-').map(Number)
+    return new Date(a, m - 1, d).getTime()
+  }
+
   const dias = [
     ...new Set([
       ...aprobadasDe(completions, profileId).map((c) => dayKey(new Date(c.resolved_at))),
@@ -45,24 +61,36 @@ export function rachaMaxima(completions, profileId, diasSalvados = []) {
   ]
   if (!dias.length) return 0
 
-  // Se ordenan por fecha real, no por la cadena: dayKey no lleva ceros a
-  // la izquierda ('2026-8-9'), así que ordenar como texto pone el 10 antes
-  // que el 9 y parte la racha por la mitad.
-  const ordenados = dias
-    .map((k) => {
-      const [a, m, d] = k.split('-').map(Number)
-      return new Date(a, m - 1, d).getTime()
-    })
-    .sort((x, y) => x - y)
+  const neutros = new Set(diasNeutros.map(aFecha))
+  const ordenados = dias.map(aFecha).sort((x, y) => x - y)
 
   let mejor = 1
   let actual = 1
   for (let i = 1; i < ordenados.length; i++) {
-    const saltoDeUnDia = Math.round((ordenados[i] - ordenados[i - 1]) / 86400000) === 1
-    actual = saltoDeUnDia ? actual + 1 : 1
+    actual = huecoSalvable(ordenados[i - 1], ordenados[i], neutros) ? actual + 1 : 1
     if (actual > mejor) mejor = actual
   }
   return mejor
+}
+
+/**
+ * ¿Se puede ir de un día hecho al siguiente sin romper? Sí si son
+ * consecutivos, o si todo lo que hay en medio son días neutros.
+ *
+ * Se camina con `setDate` y no sumando 86.400.000 ms porque las noches de
+ * cambio de hora duran 23 o 25: sumando milisegundos, la medianoche se
+ * desplaza y ninguna de las claves de después coincide.
+ */
+function huecoSalvable(desde, hasta, neutros) {
+  const saltos = Math.round((hasta - desde) / 86400000)
+  if (saltos === 1) return true
+  if (saltos < 1 || saltos > 400) return false
+  const cursor = new Date(desde)
+  for (let i = 1; i < saltos; i++) {
+    cursor.setDate(cursor.getDate() + 1)
+    if (!neutros.has(cursor.getTime())) return false
+  }
+  return true
 }
 
 /** Cuántas aprobadas de cada habilidad. Sin XP: aquí cuenta la repetición. */
@@ -126,7 +154,7 @@ export function meritosDe(perfil, datos) {
     level: levelFromXp(perfil.xp),
     redemptions: redemptions.filter((r) => r.profile_id === perfil.id && r.status !== 'cancelado').length,
     insignias: badges.filter((b) => b.profile_id === perfil.id).length,
-    rachaMax: rachaMaxima(completions, perfil.id, diasSalvados),
+    rachaMax: rachaMaxima(completions, perfil.id, diasSalvados, diasNeutros(perfil, challenges)),
     porHabilidad,
     habilidadesTocadas: Object.keys(porHabilidad).length,
     // La hora es la de validación, no la de petición: es la única que

@@ -38,13 +38,17 @@ jobs:
     steps:
       # Historia completa: `publicarDist` crea un worktree sobre
       # `origin/gh-pages`, y con un clon superficial no la encuentra.
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
-      - uses: actions/setup-node@v4
+      # La misma versión que la máquina desde la que se despliega a mano
+      # (hoy v24). Si CI probara con otra, estaría comprobando algo que
+      # nadie ejecuta: los fallos de runtime aparecerían justo donde no se
+      # está mirando.
+      - uses: actions/setup-node@v5
         with:
-          node-version: '20'
+          node-version: '24'
           cache: 'npm'
 
       # Las tres son PÚBLICAS por diseño y viajan dentro del bundle, así

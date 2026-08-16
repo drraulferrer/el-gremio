@@ -18,7 +18,7 @@
 // ------------------------------------------------------------------
 
 import { DEFAULTS_ROL } from './tareas'
-import { misionesDe } from './misiones'
+import { misionesDe, diasDe, tocaDia, DIAS_SEMANA } from './misiones'
 
 export const SUPUESTOS = {
   // Nadie completa el tablón entero todos los días, y el sistema no
@@ -111,10 +111,17 @@ export function diagnosticoEconomia(data, s = SUPUESTOS) {
 
   const porPersona = activos.map((p) => {
     const suyas = misionesDe(p, data.challenges || [])
-    // Solo lo repetible entra en el ritmo diario; lo único es un extra.
+    // Solo lo repetible entra en el ritmo diario; lo único es un extra. Y
+    // una diaria repartida en tres días de la semana rinde 3/7 de lo que
+    // rendiría todos los días, igual que en `cargaDe`.
     const factor = { diario: 1, semanal: 1 / 7, mensual: 1 / 30, unico: 0 }
-    const monedasDia = suyas.reduce((t, c) => t + c.coins * (factor[c.frequency] ?? 0), 0) * s.adherencia
-    const xpDia = suyas.reduce((t, c) => t + c.xp * (factor[c.frequency] ?? 0), 0) * s.adherencia
+    const porDia = (c) => {
+      const dias = c.frequency === 'diario' ? diasDe(c) : null
+      const base = factor[c.frequency] ?? 0
+      return dias ? (base * dias.length) / 7 : base
+    }
+    const monedasDia = suyas.reduce((t, c) => t + c.coins * porDia(c), 0) * s.adherencia
+    const xpDia = suyas.reduce((t, c) => t + c.xp * porDia(c), 0) * s.adherencia
     return { perfil: p, misiones: suyas.length, monedasDia, xpDia }
   })
 
@@ -178,9 +185,32 @@ export const TOPES = { diario: 7, semanal: 5, mensual: 8, unico: Infinity }
 /** Cuánto pesa cada frecuencia en misiones-diarias equivalentes. */
 export const PESO_FRECUENCIA = { diario: 1, semanal: 1 / 7, mensual: 1 / 30, unico: 0 }
 
-/** La carga de un conjunto de misiones, en misiones-diarias equivalentes. */
+/**
+ * La carga de un conjunto de misiones, en misiones-diarias equivalentes.
+ *
+ * Una diaria repartida en tres días de la semana pesa 3/7, no 1: es lo
+ * que de verdad se pide. El reparto solo afecta a las diarias —una
+ * semanal puesta en sábado sigue siendo una vez por semana, y volver a
+ * dividirla la contaría siete veces menos de lo que cuesta.
+ */
 export function cargaDe(misiones = []) {
-  return misiones.reduce((t, m) => t + (PESO_FRECUENCIA[m.frequency] ?? 0), 0)
+  return misiones.reduce((t, m) => {
+    const peso = PESO_FRECUENCIA[m.frequency] ?? 0
+    const dias = m.frequency === 'diario' ? diasDe(m) : null
+    return t + (dias ? (peso * dias.length) / 7 : peso)
+  }, 0)
+}
+
+/**
+ * Cuántas misiones de esa frecuencia caen a la vez. Para las diarias es
+ * el peor día de la semana y no el total: repartir ocho diarias en cuatro
+ * y cuatro deja cuatro por día, y avisar de que se pasa de siete sería
+ * regañar por haber hecho justo lo que el aviso pide.
+ */
+export function cuantasALaVez(misiones = [], frecuencia) {
+  const suyas = misiones.filter((m) => m.frequency === frecuencia)
+  if (frecuencia !== 'diario') return suyas.length
+  return DIAS_SEMANA.reduce((max, d) => Math.max(max, suyas.filter((m) => tocaDia(m, d.n)).length), 0)
 }
 
 /**
@@ -194,7 +224,7 @@ export function revisarCarga(misiones = [], s = SUPUESTOS) {
   const carga = cargaDe(misiones)
   const tope = s.misionesActivas
   const porFrecuencia = Object.keys(TOPES).map((frecuencia) => {
-    const cuantas = misiones.filter((m) => m.frequency === frecuencia).length
+    const cuantas = cuantasALaVez(misiones, frecuencia)
     return { frecuencia, cuantas, tope: TOPES[frecuencia], excede: cuantas > TOPES[frecuencia] }
   })
   return {

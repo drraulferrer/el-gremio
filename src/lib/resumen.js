@@ -19,7 +19,7 @@
 // ------------------------------------------------------------------
 
 import { levelFromXp, dayKey, goalProgress } from './supabase'
-import { misionesDe } from './misiones'
+import { misionesDe, diasNeutros } from './misiones'
 import { semana, validadasDe, resumenDeSemana } from './historial'
 import { rachaMaxima } from './meritos'
 import { ORDEN_FRECUENCIA } from './misiones'
@@ -140,7 +140,7 @@ export function resumenDePersona(perfil, datos, ahora = new Date()) {
     // Las devueltas de la semana son la señal temprana de que algo no va:
     // o la misión le queda grande, o se está pidiendo sin hacerla.
     devueltas: validadasDe(completions, perfil.id, rango, 'rechazado').length,
-    racha: rachaMaxima(completions, perfil.id),
+    racha: rachaMaxima(completions, perfil.id, [], diasNeutros(perfil, challenges)),
     meta: aportacionAMeta(perfil, goal, completions),
     premios: premiosDe(perfil, redemptions, rewards),
     extras: extrasDe(perfil, bonuses)
