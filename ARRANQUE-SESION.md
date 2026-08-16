@@ -1266,10 +1266,21 @@ Para repetirla sin pasar por la app, con el mismo `redirectTo` que usa
 `Login.jsx`:
 
 ```bash
-curl -s -X POST "$VITE_SUPABASE_URL/auth/v1/recover" \
+curl -s -X POST \
+  "$VITE_SUPABASE_URL/auth/v1/recover?redirect_to=https%3A%2F%2Felgremioapp.com%2F" \
   -H "apikey: $VITE_SUPABASE_ANON_KEY" -H "Content-Type: application/json" \
-  -d '{"email":"<la cuenta>","redirect_to":"https://elgremioapp.com/"}'
+  -d '{"email":"<la cuenta>"}'
 ```
+
+**El `redirect_to` va en la QUERY, no en el cuerpo.** GoTrue lo lee de la
+URL y en el JSON lo ignora en silencio: el enlace sale igualmente, pero
+apuntando al «Site URL». Comprobado el 16-ago mandando uno con
+`{"redirect_to":"http://localhost:5173/"}` dentro del cuerpo —una
+dirección que está en la lista de permitidas, así que no la filtró nadie—
+y el correo llegó con `redirect_to=https://elgremioapp.com/`. Hoy los dos
+valores coinciden y por eso el fallo no se nota; el día que se pruebe un
+destino distinto (localhost para depurar, una rama), el enlace se iría al
+sitio equivocado y parecería un problema de Redirect URLs.
 
 ---
 
