@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { urlDeLaNarrativa } from '../lib/dominio'
 import {
   resultadoDeAlta,
   resultadoDeRecuperacion,
@@ -134,6 +135,20 @@ export default function Login() {
           </button>
         )}
       </div>
+
+      {/* Esta pantalla es lo primero que ve quien abre el dominio, tenga
+          cuenta o no. Sin esto, la única forma de saber qué es esto era
+          tener ya una cuenta y bajar hasta la séptima pestaña de ajustes,
+          detrás del PIN. La explicación no pide sesión, así que puede
+          vivir delante de ella. */}
+      <a
+        className="enlace-suave"
+        href={urlDeLaNarrativa()}
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        📖 Qué es El Gremio y por qué funciona así
+      </a>
     </div>
   )
 }

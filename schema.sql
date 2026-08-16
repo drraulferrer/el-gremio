@@ -1099,7 +1099,7 @@ alter table public.push_subs enable row level security;
 
 drop policy if exists push_subs_familia on public.push_subs;
 create policy push_subs_familia on public.push_subs
-  for all
+  for all to authenticated
   using (family_id in (select id from public.families where owner = auth.uid()))
   with check (family_id in (select id from public.families where owner = auth.uid()));
 
@@ -1128,7 +1128,8 @@ alter table public.push_log enable row level security;
 
 drop policy if exists push_log_lectura on public.push_log;
 create policy push_log_lectura on public.push_log
-  for select using (family_id in (select id from public.families where owner = auth.uid()));
+  for select to authenticated
+  using (family_id in (select id from public.families where owner = auth.uid()));
 
 -- Sin política de insert: solo escribe la función de envío, que es
 -- `security definer`. Que el navegador pueda marcar un día como «ya

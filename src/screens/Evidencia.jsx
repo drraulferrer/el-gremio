@@ -11,9 +11,9 @@ import { PRINCIPIOS, REFERENCIAS, LIMITE_HONESTO } from '../lib/evidencia'
 
 // La exposición larga vive en public/narrativa/, fuera del bundle: es una
 // página estática que no necesita React ni sesión, y así se puede pasar a
-// alguien de fuera sin que entre en el gremio. La URL se calcula desde
-// BASE_URL, igual que el QR, para que valga en dev y en el dominio propio.
-const URL_NARRATIVA = (import.meta.env.BASE_URL || '/') + 'narrativa/'
+// alguien de fuera sin que entre en el gremio. La URL sale del mismo sitio
+// que la del QR (src/lib/dominio.js), que desde la mudanza es el CNAME y
+// no el origen del navegador.
 
 export default function Evidencia() {
   return (
