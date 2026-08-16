@@ -298,7 +298,7 @@ SPEC.md                 Especificación, fuente de verdad para iterar
 ```bash
 npm run dev            # desarrollo
 npm run dev:demo       # desarrollo con backend simulado, sin Supabase
-npm test               # tests (190)
+npm test               # tests (441)
 npm run build          # compilación de producción
 npm run verify         # tests + build + revisión de credenciales
 npm run health         # ¿responden la web publicada y Supabase?
@@ -307,3 +307,16 @@ npm run qr             # QR imprimible con la dirección del gremio
 npm run deploy         # publicar en GitHub Pages
 npm run rollback       # volver a una versión anterior
 ```
+
+## Licencia
+
+**AGPL-3.0** (ver `LICENSE`). En corto: puedes usarlo, copiarlo y
+desplegarlo; si lo ofreces como servicio a otras personas, tienes que
+publicar tus cambios.
+
+Se eligió esta y no una permisiva por lo que le pasó a OurHome, que fue
+la referencia gratuita del sector hasta que sus responsables apagaron el
+servidor con los datos de las familias dentro. Aquí el trato es el
+contrario: el gremio vive en **tu** base de datos, la app deja
+descargártelo entero (⚙️ → Datos) y el código no se puede cerrar. Si este
+proyecto se para, tu gremio no.
