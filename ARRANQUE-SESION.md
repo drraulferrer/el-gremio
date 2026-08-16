@@ -1231,11 +1231,21 @@ nuevo»—, comprobado que el cuerpo es el nuestro y que conserva
 `{{ .ConfirmationURL }}`. Que se dejaran editar es, de paso, la prueba de
 que el SMTP propio quedó activo: sin él Supabase las bloquea.
 
-**Falta la prueba de humo del correo**, que pide un buzón y por tanto una
-persona: `docs/CORREOS.md` §«Cómo se prueban». La de contraseña es la que
-importa, y ojo al detalle que ya está escrito allí: si el enlace abre el
-tablero en vez de la pantalla de contraseña nueva, lo que falla es la
-Redirect URL, no la plantilla.
+**Prueba de humo hecha y correcta el 16-ago**: `POST /auth/v1/recover`
+devolvió 200, los Auth Logs registraron `/recover · request completed` sin
+error de SMTP, y el correo llegó bien —remitente, asunto, formato y
+enlace—. Un error de contraseña, puerto o host habría salido en ese log en
+vez de un «completed»; es el sitio donde mirar si algún día deja de
+llegar.
+
+Para repetirla sin pasar por la app, con el mismo `redirectTo` que usa
+`Login.jsx`:
+
+```bash
+curl -s -X POST "$VITE_SUPABASE_URL/auth/v1/recover" \
+  -H "apikey: $VITE_SUPABASE_ANON_KEY" -H "Content-Type: application/json" \
+  -d '{"email":"<la cuenta>","redirect_to":"https://elgremioapp.com/"}'
+```
 
 ---
 
