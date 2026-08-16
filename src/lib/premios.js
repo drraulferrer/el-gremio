@@ -101,18 +101,9 @@ export const EVITAR = [
   { que: 'Premios impredeciblemente grandes', porque: 'Rompen la previsibilidad, que es lo que sostiene el hábito.' }
 ]
 
-/** Selección de arranque: casi todo nivel 1, un par de nivel 2 y uno grande. */
-export const PREMIOS_INICIALES = CATALOGO_PREMIOS.filter((p) =>
-  [
-    'Elegir el cuento',
-    'Elegir la música del coche',
-    'Elegir la película',
-    'Tiempo de calidad',
-    'Cocinar juntos',
-    'Noche de juegos',
-    'Ir al parque de aventuras'
-  ].includes(p.title)
-)
+// La tienda de arranque tampoco se decide aquí: la arma `setup.js` con lo
+// que contesta la familia en el alta, respetando dos reglas suyas (al
+// menos tres premios de nivel 1 y como mucho uno de nivel 3).
 
 // ------------------------------------------------------------------
 // La tienda de la peque.
@@ -153,6 +144,19 @@ export const TECHO_PEQUE = 72
  */
 export function premiosParaPeque(rewards = []) {
   return rewards.filter((r) => r.active && r.cost <= TECHO_PEQUE).sort((a, b) => a.cost - b.cost)
+}
+
+/**
+ * Y los de todos los demás: los que están POR ENCIMA de su techo.
+ *
+ * El mismo número parte la tienda en dos, y hace falta que la parta: los
+ * premios de la peque cuestan quince o veinte monedas porque ella gana
+ * cinco al día, y en la tienda de la junior serían gratis. Mientras
+ * `rewards` no tenga columna de dueño —la misma que hace falta para el
+ * poder `abre_premio`—, el ámbito lo marca el precio.
+ */
+export function premiosParaMayores(rewards = []) {
+  return rewards.filter((r) => r.active && r.cost > TECHO_PEQUE)
 }
 
 export function nivelDePremio(coste) {

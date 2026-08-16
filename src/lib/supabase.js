@@ -123,14 +123,80 @@ export function levelProgress(xp) {
 
 // ------------------------------------------------------------------
 // Frecuencia de misiones
+//
+// Todo esto cuelga de una sola pregunta: ¿qué día es hoy en esta casa?
+//
+// Hasta la migración 018 había DOS respuestas distintas y nadie las
+// comparaba: Postgres contaba en Europe/Madrid y el navegador en la hora
+// del aparato. Con la familia en Madrid coinciden y no se nota nada; con
+// la familia en México se separan siete horas y entonces la estrella
+// diaria de la peque se puede pedir dos veces o ninguna, y una racha viva
+// se lee como rota. Ahora la zona la pone la familia y se configura una
+// vez al cargarla (`configurarZona`), de modo que las funciones de abajo
+// mantienen su firma y ningún sitio de llamada tuvo que cambiar.
 // ------------------------------------------------------------------
 
-export function dayKey(d) {
-  return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`
+// null = la del dispositivo, que es lo que hacía antes. Se queda como
+// comportamiento por defecto para que los tests y el modo demo no
+// dependan de una configuración previa.
+let ZONA = null
+
+export function configurarZona(tz) {
+  ZONA = tz || null
+  return ZONA
 }
 
-export function weekKey(d) {
-  const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()))
+export function zonaActual() {
+  return ZONA || zonaDelDispositivo()
+}
+
+// La que dice el aparato. Con red de seguridad: si el navegador no
+// resuelve ninguna (pasa en entornos raros), Europe/Madrid, que es el
+// valor por defecto de la columna y deja las dos partes de acuerdo.
+export function zonaDelDispositivo() {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/Madrid'
+  } catch {
+    return 'Europe/Madrid'
+  }
+}
+
+// «Esa columna no existe» dicho por PostgREST. Sirve para escribir contra
+// una base que aún no tiene la última migración sin dejar tirada a la
+// familia: se reintenta sin la columna nueva.
+export function esColumnaQueNoExiste(error) {
+  if (!error) return false
+  const codigo = error.code || ''
+  const texto = `${error.message || ''} ${error.details || ''}`.toLowerCase()
+  return codigo === 'PGRST204' || codigo === '42703' ||
+    (texto.includes('column') && texto.includes('does not exist'))
+}
+
+// Año, mes y día tal y como se ven EN esa zona. 'en-CA' porque da
+// AAAA-MM-DD, que se parte sin ambigüedad.
+function partesEnZona(d, tz) {
+  const partes = new Intl.DateTimeFormat('en-CA', {
+    timeZone: tz,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).format(d).split('-').map(Number)
+  return { anio: partes[0], mes: partes[1], dia: partes[2] }
+}
+
+// El formato NO lleva ceros a la izquierda, y eso es deliberado: es el que
+// ya estaba y hay claves guardadas y comparadas con él por toda la app.
+export function dayKey(d, tz = ZONA) {
+  if (!tz) return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`
+  const p = partesEnZona(d, tz)
+  return `${p.anio}-${p.mes}-${p.dia}`
+}
+
+export function weekKey(d, tz = ZONA) {
+  const p = tz
+    ? partesEnZona(d, tz)
+    : { anio: d.getFullYear(), mes: d.getMonth() + 1, dia: d.getDate() }
+  const date = new Date(Date.UTC(p.anio, p.mes - 1, p.dia))
   const day = date.getUTCDay() || 7
   date.setUTCDate(date.getUTCDate() + 4 - day)
   const year = date.getUTCFullYear()
@@ -139,8 +205,10 @@ export function weekKey(d) {
   return `${year}-w${week}`
 }
 
-export function monthKey(d) {
-  return `${d.getFullYear()}-m${d.getMonth() + 1}`
+export function monthKey(d, tz = ZONA) {
+  if (!tz) return `${d.getFullYear()}-m${d.getMonth() + 1}`
+  const p = partesEnZona(d, tz)
+  return `${p.anio}-m${p.mes}`
 }
 
 // ¿Puede este perfil pedir esta misión ahora mismo?
@@ -185,7 +253,9 @@ export function goalProgress(goal, completions) {
 // que se cierra cada dos semanas compite con los premios individuales en
 // vez de ser el horizonte largo. El número sale de metaObjetivo() con los
 // supuestos del modelo; hay un test que falla si se separan.
-export const META_INICIAL = { title: 'Noche de pizza y peli', emoji: '🍕', target_xp: 8100 }
+// La meta inicial la calcula `setup.js` con los roles reales de la casa
+// (`metaObjetivo`), no una cifra fija: una familia de dos tardaría el
+// triple en cerrar la misma meta.
 
 // 'Junior' y 'Peque' son epicenos; 'Adulto' no.
 export const ROLE_LABEL = { adulto: '{Adulto|Adulta|Persona adulta}', junior: 'Junior', peque: 'Peque' }

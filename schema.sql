@@ -14,8 +14,49 @@ create table if not exists public.families (
   owner uuid not null references auth.users(id) on delete cascade,
   name text not null check (length(name) <= 60),
   parent_pin_hash text not null,
+  -- Migración 018. El día de esta casa se calcula aquí y en el navegador
+  -- con la MISMA zona: si el servidor cuenta en Madrid y el móvil en la
+  -- hora del aparato, la estrella diaria se puede pedir dos veces o
+  -- ninguna y una racha viva se lee como rota.
+  timezone text not null default 'Europe/Madrid',
   created_at timestamptz not null default now()
 );
+
+-- Se valida contra el catálogo de Postgres, no contra una lista escrita a
+-- mano: una lista propia envejece cada vez que un país cambia de horario.
+-- Va en disparador porque un `check` no puede consultar una tabla.
+create or replace function public.zona_valida()
+returns trigger
+language plpgsql
+as $fn$
+begin
+  if new.timezone is null
+     or not exists (select 1 from pg_timezone_names where name = new.timezone) then
+    raise exception 'zona horaria desconocida: %', new.timezone;
+  end if;
+  return new;
+end $fn$;
+
+drop trigger if exists families_zona_valida on public.families;
+create trigger families_zona_valida
+  before insert or update of timezone on public.families
+  for each row execute function public.zona_valida();
+
+create or replace function public.zona_de_perfil(p_id uuid)
+returns text
+language sql
+stable
+security definer
+set search_path = public
+as $fn$
+  select coalesce(
+    (select f.timezone
+       from public.profiles p
+       join public.families f on f.id = p.family_id
+      where p.id = p_id),
+    'Europe/Madrid'
+  );
+$fn$;
 
 create table if not exists public.profiles (
   id uuid primary key default gen_random_uuid(),
@@ -693,6 +734,7 @@ set search_path = public
 as $fn$
 declare
   v_family uuid;
+  v_tz text;
   v_coins integer := 5;   -- una estrella exacta (MONEDAS_POR_ESTRELLA)
 begin
   select family_id into v_family from public.profiles where id = p_id and active;
@@ -706,12 +748,14 @@ begin
     return 'no_es_tuyo';
   end if;
 
+  select timezone into v_tz from public.families where id = v_family;
+
   -- La carrera se resuelve aquí: dos toques simultáneos entran los dos al
   -- insert y uno se lleva la violación de unicidad. Comprobar antes con un
   -- select y luego insertar dejaría la ventana abierta.
   begin
-    insert into public.bonuses (family_id, profile_id, tipo, coins)
-    values (v_family, p_id, p_tipo, v_coins);
+    insert into public.bonuses (family_id, profile_id, tipo, coins, dia)
+    values (v_family, p_id, p_tipo, v_coins, (now() at time zone v_tz)::date);
   exception when unique_violation then
     return 'ya_hoy';
   end;
@@ -739,6 +783,7 @@ set search_path = public
 as $fn$
 declare
   v_family uuid;
+  v_tz text;
   v_rol_quien text;
   v_family_quien uuid;
 begin
@@ -774,8 +819,11 @@ begin
     return 'no_es_adulto';
   end if;
 
-  insert into public.bonuses (family_id, profile_id, tipo, coins, motivo, otorgado_por)
-  values (v_family, p_id, 'manual', p_coins, btrim(p_motivo), p_otorgado_por);
+  select timezone into v_tz from public.families where id = v_family;
+
+  insert into public.bonuses (family_id, profile_id, tipo, coins, motivo, otorgado_por, dia)
+  values (v_family, p_id, 'manual', p_coins, btrim(p_motivo), p_otorgado_por,
+          (now() at time zone v_tz)::date);
 
   -- Solo monedas. La XP no se toca a propósito: marca el nivel y alimenta
   -- la meta, y las dos están calculadas contra un ritmo.
@@ -965,10 +1013,11 @@ set search_path = public
 as $fn$
 declare
   v_family uuid;
+  v_tz text;
   v_coins integer;
   v_racha integer := 0;
   v_dia date;
-  v_hoy date := (now() at time zone 'Europe/Madrid')::date;
+  v_hoy date;
 begin
   -- El importe lo pone la base. La tabla de hitos vive también en
   -- src/lib/rachas.js y hay un test que compara las dos: si se añade un
@@ -999,6 +1048,9 @@ begin
     return 'no_es_tuyo';
   end if;
 
+  select timezone into v_tz from public.families where id = v_family;
+  v_hoy := (now() at time zone v_tz)::date;
+
   -- La racha, contada aquí y no aceptada de quien llama.
   --
   -- Se camina hacia atrás día a día, igual que en el cliente, en vez de
@@ -1013,11 +1065,11 @@ begin
   if not exists (
     select 1 from public.completions
      where profile_id = p_id and status = 'aprobado' and resolved_at is not null
-       and (resolved_at at time zone 'Europe/Madrid')::date = v_dia
+       and (resolved_at at time zone v_tz)::date = v_dia
   ) and not exists (
     select 1 from public.power_uses
      where profile_id = p_id and tipo = 'salva_racha'
-       and (used_at at time zone 'Europe/Madrid')::date = v_dia
+       and (used_at at time zone v_tz)::date = v_dia
   ) then
     v_dia := v_dia - 1;
   end if;
@@ -1027,12 +1079,12 @@ begin
       exists (
         select 1 from public.completions
          where profile_id = p_id and status = 'aprobado' and resolved_at is not null
-           and (resolved_at at time zone 'Europe/Madrid')::date = v_dia
+           and (resolved_at at time zone v_tz)::date = v_dia
       )
       or exists (
         select 1 from public.power_uses
          where profile_id = p_id and tipo = 'salva_racha'
-           and (used_at at time zone 'Europe/Madrid')::date = v_dia
+           and (used_at at time zone v_tz)::date = v_dia
       )
     );
     v_racha := v_racha + 1;
@@ -1047,8 +1099,9 @@ begin
   -- dos pestañas abiertas entran las dos y una se lleva la violación de
   -- unicidad. Comprobar antes con un select dejaría la ventana abierta.
   begin
-    insert into public.bonuses (family_id, profile_id, tipo, coins, motivo)
-    values (v_family, p_id, 'racha:' || p_hito, v_coins, 'Racha de ' || p_hito || ' días');
+    insert into public.bonuses (family_id, profile_id, tipo, coins, motivo, dia)
+    values (v_family, p_id, 'racha:' || p_hito, v_coins,
+            'Racha de ' || p_hito || ' días', v_hoy);
   exception when unique_violation then
     return 'ya_cobrado';
   end;
@@ -1062,3 +1115,55 @@ end $fn$;
 
 revoke all on function public.claim_streak(uuid, integer) from public;
 grant execute on function public.claim_streak(uuid, integer) to authenticated;
+
+-- ------------------------------------------------------------------
+-- Borrar la cuenta entera desde la app (migración 018).
+--
+-- Se lleva por delante el gremio —y con él, en cascada, perfiles,
+-- misiones, historial, premios, insignias, bonus, poderes y registros— y
+-- después la propia cuenta de `auth.users`. Sin esto último quedaría un
+-- correo huérfano que nadie puede quitar desde la app.
+--
+-- Va en la base y no en una Edge Function a propósito: una Edge Function
+-- exige la CLI de Supabase y una clave de servicio guardada en algún
+-- sitio. Aquí el permiso lo da ser `security definer` con dueño
+-- `postgres`, y la única fila que puede tocar es la de `auth.uid()`: no
+-- acepta ningún identificador desde fuera, así que no hay forma de pedir
+-- el borrado de otra cuenta.
+--
+-- La confirmación (escribir el nombre del gremio) vive en la interfaz,
+-- que es donde se puede leer lo que se va a perder.
+-- ------------------------------------------------------------------
+
+create or replace function public.delete_my_account()
+returns text
+language plpgsql
+security definer
+set search_path = public
+as $fn$
+declare
+  v_uid uuid := auth.uid();
+  v_gremios integer;
+begin
+  if v_uid is null then
+    return 'sin_sesion';
+  end if;
+
+  delete from public.families where owner = v_uid;
+  get diagnostics v_gremios = row_count;
+
+  -- Los registros SIN familia no se tocan, y conviene saber por qué: son
+  -- errores anteriores a saber de qué casa era la sesión, no tienen forma
+  -- fiable de atribuirse a una cuenta, y borrarlos por sesión se llevaría
+  -- por delante los de otra gente. Los barre `purge_logs` por antigüedad.
+  delete from public.user_limits where user_id = v_uid;
+  delete from auth.users where id = v_uid;
+
+  if v_gremios = 0 then
+    return 'ok_sin_gremio';
+  end if;
+  return 'ok';
+end $fn$;
+
+revoke all on function public.delete_my_account() from public;
+grant execute on function public.delete_my_account() to authenticated;

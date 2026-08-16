@@ -43,7 +43,7 @@ const DEFECTOS_TABLA = {
   app_logs: { datos: {} },
   bonuses: { tipo: 'globos', coins: 5 },
   power_uses: { target_id: null, nota: null },
-  families: {}
+  families: { timezone: 'Europe/Madrid' }
 }
 
 /** Columnas de fecha que la base rellena sola, por tabla. */
@@ -444,6 +444,17 @@ function rpc(nombre, args = {}) {
     })
     notificar()
     return { data: 'ok', error: null }
+  }
+
+  // Espejo de delete_my_account (migración 018). En demo no hay cuenta de
+  // autenticación que borrar, así que se vacía el almacén entero: es el
+  // equivalente exacto de lo que ve la familia, y además deja la demo
+  // lista para volver a empezar.
+  if (nombre === 'delete_my_account') {
+    const habia = db.families.length
+    escribir(TABLAS.reduce((acc, t) => ({ ...acc, [t]: [] }), {}))
+    notificar()
+    return { data: habia ? 'ok' : 'ok_sin_gremio', error: null }
   }
 
   if (nombre === 'undo_completion') {

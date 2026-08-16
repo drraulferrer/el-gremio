@@ -66,7 +66,33 @@ si falla `supabase`, casi seguro que el proyecto está pausado (ver §7).
 ✅ 015  poderes que se gastan + insignias únicas (15-ago, noche)
 ✅ 016  camino de rachas: claim_streak (15-ago, noche)
 ✅ 017  lo que hace falta para MUCHAS familias (16-ago, madrugada)
+✅ 018  zona horaria por familia + borrado de cuenta (16-ago)
 ```
+
+La 018 se ejecutó y se comprobó con el `select` del final del fichero:
+columna `timezone`, disparador `families_zona_valida`, `zona_de_perfil`,
+`delete_my_account`, y `claim_streak` y `grant_daily_bonus` reescritas con
+la zona (`v_tz`), todo a 1. El gremio quedó en `Europe/Madrid`, que es lo
+que era de facto. Comprobado además desde fuera: `families?select=timezone`
+responde 200 y una columna inventada responde 400, así que la columna está
+de verdad.
+
+**Trampa del trayecto, que costó un rato y va a volver a pasar:** pegar el
+SQL en el editor de Supabase desde el navegador **destroza los acentos**
+(el UTF-8 se lee como MacRoman: `ó` acaba siendo `√≥`). En los comentarios
+sería feo; en la 018 se colaba dentro de un DATO —«Racha de N días», que
+se escribe en `bonuses.motivo`— y encima los comentarios viajan dentro del
+cuerpo de las funciones y se quedan en `pg_proc` para siempre. La solución
+que funciona es copiar el fichero **pre-codificado en MacRoman**, y así el
+viaje lo deshace:
+
+```bash
+python3 -c "import subprocess;s=open('migracion-0NN.sql',encoding='utf-8').read().replace('⚠ ','OJO: ');subprocess.run(['pbcopy'],input=s.encode('mac_roman'))"
+```
+
+(El `⚠` es el único carácter del fichero que MacRoman no tiene.) Y antes
+de pulsar Run, comprobar en la consola de la pestaña que el texto llegó
+bien: `monaco.editor.getModels()[0].getValue().includes('días')`.
 
 La 017 se ejecutó y se comprobó con el `select` del final del fichero:
 índice único por `owner`, `user_limits` con RLS, `rate_guard_user`,
@@ -848,6 +874,127 @@ hereda.
 
 ---
 
+## 7f. Lo que se hizo el 16 de agosto: licencia, zona horaria y borrado
+
+Tres piezas que no añaden juego y sin las cuales esto no se le puede
+enseñar a nadie de fuera. Salen del repaso de la competencia
+(`docs/COMPETENCIA.md`) y del plan de negocio, que vive **fuera del repo**
+en `~/el-gremio-negocio/` porque este es público y allí hay precios.
+
+**1. El repo era público y no tenía `LICENSE`**, o sea, «todos los
+derechos reservados»: cualquiera podía leerlo y nadie podía usarlo. Es lo
+contrario de lo que promete la exposición pública. Ahora es **AGPL-3.0**:
+quien despliegue esto como servicio tiene que publicar sus cambios, y la
+frase «si esto se cierra, tus datos salen contigo y el código sigue siendo
+de todos» pasa a ser cierta en vez de una intención. Es también la
+respuesta a lo que le pasó a OurHome, que es el argumento comercial más
+fuerte que tiene el proyecto.
+
+**2. La zona horaria vive en la familia** (migración 018). Hasta ahora
+Postgres contaba en `Europe/Madrid` y el navegador en la hora del aparato,
+y nadie comparaba las dos. Con la familia en Madrid coinciden; con la
+familia en México se separan siete horas y entonces la estrella diaria se
+puede pedir dos veces o ninguna, y una racha viva se lee como rota.
+
+- `families.timezone`, validada contra `pg_timezone_names` con un
+  disparador (un `check` no puede consultar una tabla) y **detectada en el
+  alta, no preguntada**: el alta ya tiene cuatro pasos y nadie se equivoca
+  al decir en qué país vive. Se cambia en ⚙️ → Datos, que es cuando
+  importa: una mudanza.
+- En el cliente, `configurarZona()` se llama **una vez, al cargar la
+  familia**, y `dayKey`/`weekKey`/`monthKey` mantienen su firma. Así no
+  hubo que tocar un solo sitio de llamada, que eran veintitantos.
+- El formato de `dayKey` sigue **sin ceros a la izquierda** a propósito:
+  hay claves comparadas con él por toda la app y el juego de globos casa
+  el `dia` de Postgres contra eso.
+
+**3. Se puede llevar los datos y borrar la cuenta** (⚙️ → Datos). Las dos
+son obligación legal en cuanto esto lo use alguien que no sea esta casa
+—aquí hay actividad diaria de menores— y las dos son, además, el argumento
+de venta del punto 1.
+
+- La copia es un JSON con las nueve tablas de la familia. **No lleva el
+  hash del PIN** (hay un test que lo comprueba) y **no lleva `app_logs`**:
+  son diagnósticos, no historia de la familia, y ahogarían el fichero.
+- El borrado es `delete_my_account()`, `security definer`, **sin
+  argumentos**: no acepta ningún identificador de fuera, así que no hay
+  forma de pedir el borrado de otra cuenta. Se lleva el gremio (y en
+  cascada todo lo demás) y después la fila de `auth.users`, que es lo que
+  una Edge Function haría con una clave de servicio guardada en algún
+  sitio. Aquí no hace falta ni la CLI ni la clave.
+- Para confirmar hay que escribir el nombre del gremio, y se acepta sin
+  acentos ni mayúsculas: la confirmación existe para obligar a mirar la
+  lista de lo que se pierde, no para ganar un examen de mecanografía.
+
+Verificado en el navegador de punta a punta en modo demo: alta con
+`timezone` puesta sola, descarga del JSON (4 miembros, 20 misiones, 7
+premios, 1 meta, sin PIN dentro) y borrado que deja el almacén a cero y
+devuelve a la pantalla de entrada. 441 tests, `muertos` en cero.
+
+---
+
+## 7g. El arranque dejó de ser un tutorial y pasó a ser un setup (16 de agosto)
+
+Once diapositivas antes de haber visto nada, y después un tablero idéntico
+para todo el mundo con las misiones que escribió UNA familia. Las dos
+mitades del problema se arreglan con lo mismo: **preguntar**.
+
+Ahora el alta son **ocho pasos con barra de progreso** (nombre, miembros,
+cuatro preguntas, PIN, resumen), al estilo de los onboarding de Deepstash
+y compañía. Cada pregunta lleva debajo el principio que la sostiene, así
+que **se aprende el sistema configurándolo** en vez de leyéndolo:
+
+| Pregunta | Qué construye |
+|---|---|
+| ¿Qué queréis que cambie primero? (hasta 3) | Las habilidades de las que salen las misiones |
+| ¿Cuánto abarcáis la primera semana? | 3, 5 o 7 misiones por persona |
+| ¿Qué funciona en vuestra casa? | Qué llena la tienda |
+| ¿Qué queréis conseguir juntos? | El título de la meta |
+
+**El plan vive en `src/lib/setup.js` y no toca la red**, que es lo que
+permite fijarlo con tests (26). Cuatro decisiones que conviene no
+deshacer:
+
+- **Reparto por turnos entre las habilidades elegidas.** «Las N primeras
+  que coincidan» daba cinco misiones del primer foco y ninguna de los
+  otros dos: la familia contestaba tres veces y solo se usaba una.
+- **El suelo de tres premios de nivel 1 se aplica DESPUÉS y el recorte
+  respeta el nivel.** Cortar por la cola a siete deshacía el suelo, y
+  quien contestaba «planes fuera» acababa con dos. Salió en un test, no
+  en la pantalla.
+- **La cifra de la meta no se pregunta**: sale de `metaObjetivo()` con los
+  roles reales, para que caiga alrededor de los 60 días con dos personas
+  o con seis.
+- **Es determinista.** El resumen que se enseña antes de fundar tiene que
+  ser exactamente lo que se funda.
+
+**Y de paso se arregló el fallo que estaba anotado en §8 como "un detalle
+que va a morder", que era peor de lo que decía:** no es que los premios
+se guardaran con el nivel equivocado, es que **ninguno del catálogo cabía
+en la tienda de la peque**. Su tienda filtra por precio (`TECHO_PEQUE`,
+72 monedas) y el premio más barato cuesta 325: a cinco monedas al día,
+trece días. Su tarro se llenaba de estrellas y su tienda salía vacía.
+Ahora, si hay peque en casa, el setup crea **sus** premios (15 a 55
+monedas) y la tienda de los demás filtra al revés (`premiosParaMayores`),
+o en el tablero de la junior serían gratis. El ámbito lo marca el precio
+porque `rewards` no tiene columna de dueño; el día que la tenga —la misma
+que hace falta para `abre_premio`— esto se sustituye por lo evidente.
+
+**Lo que se retiró**, para que no queden dos formas de sembrar un gremio:
+`ARRANQUE_TITULOS` y `misionesDeArranque` (tareas.js), `PREMIOS_INICIALES`
+(premios.js) y `META_INICIAL` (supabase.js). Los tests que los defendían
+ahora defienden lo mismo sobre el setup. `npm run muertos` en cero.
+
+**El tutorial largo no ha desaparecido**: se lee entero desde ⚙️ →
+Evidencia y sigue abriéndose solo en un dispositivo NUEVO de una familia
+que ya existe, que es donde de verdad hace falta. Lo que ya no hace es
+salir después del setup —se marca visto al fundar— porque sería contar
+por segunda vez lo que se acaba de contestar. Ojo con el detalle que
+costó verlo: marcar la bandera no basta, hay que apagar también el estado
+de `App.jsx`, que se calculó en el primer render.
+
+---
+
 ## 8. Pendientes
 
 ### Lo primero al retomar: probar el correo de recuperación de verdad
@@ -899,12 +1046,17 @@ condicionan todo lo demás:
 Ya no hay nada pendiente en la base: las quince migraciones están
 ejecutadas y comprobadas.
 
-### Un detalle que va a morder
+### Un detalle que mordía, ya arreglado
 
-Para que la peque vea premios en su tienda tienen que estar marcados como
-**nivel 1**. Los premios creados antes de que existieran los niveles se
-guardaron como nivel 2 por defecto. Síntoma: su tarro tiene estrellas y la
-tienda le sale vacía. Se arregla en Panel → Premios → editar → nivel 1.
+La tienda de la peque salía vacía con el tarro lleno de estrellas. La
+causa real no era el nivel del premio sino el precio: su tienda filtra por
+`TECHO_PEQUE` (72 monedas) y el premio más barato del catálogo cuesta 325.
+Resuelto en el setup (§7g): si hay peque, se le crean premios a su alcance
+y la tienda de los demás filtra por encima de ese techo.
+
+**En el gremio que ya está en producción esto NO se arregla solo**, porque
+su tienda se creó antes. Hay que crearle tres o cuatro premios de 15 a 55
+monedas desde Panel → Premios.
 
 ### Escrito pero no activado
 

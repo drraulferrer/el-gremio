@@ -22,7 +22,7 @@ import {
   premiosParaPeque,
   TECHO_PEQUE
 } from '../src/lib/premios'
-import { META_INICIAL } from '../src/lib/supabase'
+import { metaDelPlan } from '../src/lib/setup'
 import { DEFAULTS_ROL } from '../src/lib/tareas'
 
 // ------------------------------------------------------------------
@@ -107,15 +107,19 @@ describe('los precios del catálogo respetan su banda', () => {
 })
 
 describe('meta del gremio', () => {
+  // La meta ya no es una constante: la calcula el setup con los roles de
+  // la casa. Se comprueba sobre la familia de referencia del modelo.
+  const metaInicial = metaDelPlan({ meta: 'peli' }, ['adulto', 'adulto', 'junior', 'peque'])
+
   it('la inicial se cierra en la cadencia prevista, ±40 %', () => {
     const objetivo = metaObjetivo()
-    expect(META_INICIAL.target_xp).toBeGreaterThan(objetivo * 0.6)
-    expect(META_INICIAL.target_xp).toBeLessThan(objetivo * 1.4)
+    expect(metaInicial.target_xp).toBeGreaterThan(objetivo * 0.6)
+    expect(metaInicial.target_xp).toBeLessThan(objetivo * 1.4)
   })
 
   it('no vuelve a los 600 XP de antes, que se cerraban en cuatro días', () => {
     const porDia = ['adulto', 'adulto', 'junior', 'peque'].reduce((t, r) => t + xpPorDia(r), 0)
-    expect(META_INICIAL.target_xp / porDia).toBeGreaterThan(8)
+    expect(metaInicial.target_xp / porDia).toBeGreaterThan(8)
   })
 })
 

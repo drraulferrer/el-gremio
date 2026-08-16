@@ -9,6 +9,7 @@ import { Gema, XPBar, Moneda, Celebracion, Pestana } from '../components/ui'
 import { HABILIDADES, habilidad, xpPorHabilidad, rangoDeHabilidad, habilidadDominante } from '../lib/habilidades'
 import { flex, generoDe } from '../lib/genero'
 import { misionesDe, agruparPorFrecuencia } from '../lib/misiones'
+import { premiosParaMayores } from '../lib/premios'
 import { semana, etiquetaDeSemana, validadasDe, resumenDeSemana, semanasConDatos } from '../lib/historial'
 
 export default function Home({ family, data, profile, refresh, onSwitchProfile, onParent }) {
@@ -323,7 +324,10 @@ function Misiones({ data, profile, ocupado, onPedir, misPendientes, misAprobadas
 }
 
 function Tienda({ data, profile, ocupado, onCanjear }) {
-  const premios = data.rewards.filter((r) => r.active)
+  // Los premios por debajo del techo de la peque son SUYOS y no salen
+  // aquí: cuestan quince o veinte monedas porque ella gana cinco al día,
+  // y en esta tienda serían gratis.
+  const premios = premiosParaMayores(data.rewards)
   const misCanjes = data.redemptions.filter((r) => r.profile_id === profile.id && r.status === 'pendiente')
   const premioDe = (id) => data.rewards.find((r) => r.id === id)
 

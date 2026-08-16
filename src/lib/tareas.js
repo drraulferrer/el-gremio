@@ -298,24 +298,9 @@ export const RECOMENDADAS = { min: 3, max: 6 }
 // habilidad distinta, y todas cotidianas. La idea es que el primer día
 // se pueda completar el tablón entero: empezar ganando es lo que hace
 // que haya segundo día.
-const ARRANQUE_TITULOS = {
-  peque: ['Vestirse {solo|sola|sin ayuda}', 'Recoger juguetes', 'Cepillarse los dientes con ayuda', 'Poner servilletas', 'Leer un cuento'],
-  junior: ['Hacer la cama', 'Leer 20 minutos', 'Poner mesa', 'Ejercicio', 'Ayudar a su hermana'],
-  adulto: ['Leer con las niñas', 'Caminar', 'Cocina', 'Juego familiar', 'Organización semanal']
-}
 
-/** Misiones de arranque para un rol, listas para insertar. */
-export function misionesDeArranque(rol) {
-  const titulos = ARRANQUE_TITULOS[rol] || []
-  const defaults = DEFAULTS_ROL[rol] || DEFAULTS_ROL.junior
-  return tareasDeRol(rol)
-    .filter((t) => titulos.includes(t.t))
-    .map((t) => ({
-      title: t.t,
-      emoji: t.e,
-      frequency: t.f,
-      skill: t.skill,
-      xp: defaults.xp,
-      coins: defaults.coins
-    }))
-}
+// El tablero de arranque ya no vive aquí. Lo arma `src/lib/setup.js` a
+// partir de lo que contesta la familia en el alta: una lista fija de
+// títulos «de arranque» era exactamente lo que hacía que cualquier casa
+// empezara con las misiones de otra, incluidas dos que hablaban de las
+// criaturas de quien escribió el catálogo.

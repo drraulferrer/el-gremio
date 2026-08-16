@@ -8,8 +8,9 @@ import {
   rangoDeHabilidad
 } from '../src/lib/habilidades'
 import { flex } from '../src/lib/genero'
-import { CATALOGO, tareasDeRol, misionesDeArranque, DEFAULTS_ROL } from '../src/lib/tareas'
-import { CATALOGO_PREMIOS, PREMIOS_INICIALES, NIVELES, nivelDePremio } from '../src/lib/premios'
+import { CATALOGO, tareasDeRol, DEFAULTS_ROL } from '../src/lib/tareas'
+import { CATALOGO_PREMIOS, NIVELES, nivelDePremio } from '../src/lib/premios'
+import { misionesParaRol, premiosDelPlan, RESPUESTAS_POR_DEFECTO } from '../src/lib/setup'
 import { REFERENCIAS, PRINCIPIOS } from '../src/lib/evidencia'
 
 describe('habilidades', () => {
@@ -141,17 +142,27 @@ describe('catálogo de misiones', () => {
 })
 
 describe('misiones de arranque', () => {
-  it('son cinco por rol y de habilidades distintas', () => {
+  // Antes salían de una lista fija de títulos; ahora las arma el setup con
+  // lo que contesta la familia. Lo que se defiende es lo mismo: cinco por
+  // persona con la respuesta por defecto, variadas, y con los puntos de su
+  // rol.
+  it('son cinco por rol con la respuesta por defecto', () => {
     for (const rol of ['peque', 'junior', 'adulto']) {
-      const arranque = misionesDeArranque(rol)
+      const arranque = misionesParaRol(rol, RESPUESTAS_POR_DEFECTO)
       expect(arranque, rol).toHaveLength(5)
-      expect(new Set(arranque.map((m) => m.skill)).size, `${rol} repite habilidad`).toBe(5)
+    }
+  })
+
+  it('tocan más de una habilidad, para que ninguna barra nazca muerta', () => {
+    for (const rol of ['peque', 'junior', 'adulto']) {
+      const skills = new Set(misionesParaRol(rol, RESPUESTAS_POR_DEFECTO).map((m) => m.skill))
+      expect(skills.size, `${rol} entrena una sola habilidad`).toBeGreaterThanOrEqual(2)
     }
   })
 
   it('llevan los puntos por defecto de su rol', () => {
     for (const rol of ['peque', 'junior', 'adulto']) {
-      for (const m of misionesDeArranque(rol)) {
+      for (const m of misionesParaRol(rol, RESPUESTAS_POR_DEFECTO)) {
         expect(m.xp).toBe(DEFAULTS_ROL[rol].xp)
         expect(m.coins).toBe(DEFAULTS_ROL[rol].coins)
       }
@@ -181,8 +192,9 @@ describe('premios', () => {
   })
 
   it('la tienda de arranque es sobre todo de nivel 1', () => {
-    const nivel1 = PREMIOS_INICIALES.filter((p) => p.tier === 1).length
-    expect(nivel1).toBeGreaterThan(PREMIOS_INICIALES.length / 2)
+    const tienda = premiosDelPlan(RESPUESTAS_POR_DEFECTO)
+    const nivel1 = tienda.filter((p) => p.tier === 1).length
+    expect(nivel1).toBeGreaterThan(tienda.length / 2)
   })
 
   it('no hay dinero, chuches ni pantallas en el catálogo', () => {

@@ -2213,3 +2213,150 @@ button.kid-avatar.latiendo { animation: latido-aviso 2.6s var(--ease-salida) inf
 
 .carta-hito { display: flex; align-items: center; gap: 14px; border-color: var(--oro); }
 .hito-emoji-grande { font-size: 2.4rem; }
+
+/* ==================================================================
+   Setup de arranque
+   Ocho pasos con barra de progreso. La regla que gobierna todo esto:
+   una pregunta por pantalla y el porqué debajo, para que se aprenda el
+   sistema mientras se configura y no en once diapositivas previas.
+   ================================================================== */
+
+/* El hueco del pie fijo. 120 px = el alto del botón (48) más su relleno
+   (24) más aire: con 96 el pie tapaba la última línea del «Por qué», que
+   es justo lo que hay que leer antes de contestar. */
+.setup { padding-bottom: 120px; }
+
+.setup-progreso { margin: 4px 0 18px; }
+
+.setup-barra {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--carta);
+  overflow: hidden;
+}
+.setup-barra span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--oro), var(--oro-claro));
+  /* Se anima el ancho y no una transformación a propósito: la barra mide
+     6 px de alto, no hay reflujo que pagar y un `scaleX` deformaría el
+     redondeo de la punta. */
+  transition: width var(--t-medio) var(--ease-salida);
+}
+@media (prefers-reduced-motion: reduce) {
+  .setup-barra span { transition: none; }
+}
+
+.setup-cuenta {
+  margin-top: 8px;
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--tinta-suave);
+}
+
+.setup-paso h1 { font-size: 1.55rem; line-height: 1.15; margin-bottom: 6px; }
+.setup-ayuda { margin-bottom: 16px; }
+
+.setup-porque {
+  margin-top: 18px;
+  padding: 12px 14px;
+  border-radius: var(--radio-s);
+  background: rgba(245, 184, 65, 0.08);
+  border: 1px solid rgba(245, 184, 65, 0.24);
+  color: var(--tinta-suave);
+  font-size: 0.87rem;
+  line-height: 1.5;
+}
+.setup-porque strong { color: var(--oro-claro); }
+
+.setup-opciones { display: grid; gap: 10px; }
+
+.setup-opcion {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 64px;
+  padding: 12px 14px;
+  text-align: left;
+  border-radius: var(--radio);
+  border: 1.5px solid var(--linea);
+  background: var(--carta);
+  color: var(--tinta);
+  font-family: var(--cuerpo);
+  cursor: pointer;
+  transition: border-color var(--t-rapido) var(--ease-salida),
+              background var(--t-rapido) var(--ease-salida);
+}
+.setup-opcion:disabled { opacity: 0.45; cursor: default; }
+.setup-opcion.sel {
+  border-color: var(--oro);
+  background: linear-gradient(180deg, rgba(245, 184, 65, 0.16), rgba(245, 184, 65, 0.06));
+}
+.setup-opcion strong { display: block; font-size: 1rem; }
+.setup-opcion em {
+  display: block;
+  font-style: normal;
+  font-size: 0.82rem;
+  color: var(--tinta-suave);
+  margin-top: 2px;
+}
+.setup-emoji { font-size: 1.6rem; line-height: 1; }
+.setup-tic { color: var(--oro-claro); font-weight: 800; font-size: 1.1rem; }
+.setup-sello {
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--oro-claro);
+  border: 1px solid rgba(245, 184, 65, 0.4);
+  border-radius: 999px;
+  padding: 3px 8px;
+}
+
+.setup-cifras {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.setup-cifras .carta { padding: 12px 6px; text-align: center; }
+.setup-cifras strong {
+  display: block;
+  font-family: var(--display);
+  font-size: 1.5rem;
+  color: var(--oro-claro);
+}
+.setup-cifras span { font-size: 0.73rem; color: var(--tinta-suave); }
+
+.setup-lista { list-style: none; margin-top: 8px; }
+.setup-lista li {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  font-size: 0.9rem;
+}
+.setup-lista li:last-child { border-bottom: 0; }
+.setup-lista em {
+  font-style: normal;
+  font-size: 0.75rem;
+  color: var(--tinta-suave);
+  text-transform: lowercase;
+  white-space: nowrap;
+}
+
+/* El pie va fijo: con la lista de miembros abierta, el botón de seguir
+   quedaba a tres pantallas de scroll y parecía que no había forma de
+   avanzar. */
+.setup-pie {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  display: flex;
+  gap: 10px;
+  padding: 12px 16px calc(12px + var(--sab));
+  background: linear-gradient(180deg, rgba(30, 33, 64, 0), var(--tablero) 38%);
+}
+.setup-pie .btn { min-height: 48px; }

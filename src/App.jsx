@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { supabase, configured, modoDemo, crearSinkDeLogs, mensajeDeError } from './lib/supabase'
+import { supabase, configured, modoDemo, crearSinkDeLogs, mensajeDeError, configurarZona } from './lib/supabase'
 import { ganablesPor, insigniaPorCodigo } from './lib/insignias'
 import { meritosDe } from './lib/meritos'
 import { log, setContexto, setSink, instalarVaciadoAlSalir, nuevoRequestId } from './lib/log'
@@ -83,7 +83,18 @@ export default function App() {
       setErrorCarga(mensajeDeError(error))
       return
     }
-    setFamily(fams && fams.length ? fams[0] : null)
+    const gremio = fams && fams.length ? fams[0] : null
+
+    // El día de esta casa lo decide la familia, no el aparato. Se
+    // configura aquí, en el único sitio por el que pasa siempre, y antes
+    // de que nada pinte: si se hiciera más abajo, la primera pasada de
+    // `dayKey` usaría la zona del dispositivo y «hecho hoy» podría salir
+    // vacío durante un cuadro. Una base sin la migración 018 no trae la
+    // columna: en ese caso se queda la del dispositivo, que es lo que
+    // había antes.
+    configurarZona(gremio?.timezone)
+
+    setFamily(gremio)
   }, [])
 
   useEffect(() => {
@@ -324,7 +335,14 @@ export default function App() {
     if (session && cambiandoClave) return <NuevaClave onHecho={() => setCambiandoClave(false)} />
     if (!session) return <Login />
     if (family === undefined) return <Cargando error={errorCarga} onReintentar={loadFamily} />
-    if (family === null) return <Onboarding onDone={loadFamily} />
+    // Al terminar el setup se apaga el tutorial ADEMÁS de marcarlo visto:
+    // `verTutorial` se calculó en el primer render, cuando todavía estaba
+    // pendiente, así que solo con la marca la familia se comía las once
+    // diapositivas justo después de haber contestado las preguntas que
+    // vienen a contar lo mismo.
+    if (family === null) {
+      return <Onboarding onDone={() => { setVerTutorial(null); loadFamily() }} />
+    }
     if (!data) return <Cargando error={errorCarga} onReintentar={recargar} />
 
     // El tutorial explica cómo funciona y dónde está cada cosa. Se enseña

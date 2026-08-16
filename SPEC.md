@@ -84,11 +84,40 @@ Automáticas (se evalúan en cliente tras cada carga y se insertan con upsert id
 
 ## 6. Pantallas
 
-0. **Tutorial**, en dos bloques con el mismo formato: **por qué funciona así** (seis pasos: habilidades y no tareas, las ocho competencias, el día a día con elogio, los niveles de premio, la retirada del andamio y los siete principios) y **dónde está cada cosa** (cinco pasos: las cuatro pantallas, la barra inferior, el panel, los tres sitios donde se deshace y el engranaje de ajustes). En el primer arranque se ven los once seguidos; se puede saltar en cualquier momento y no vuelve a salir. Se reabren por separado desde ⚙️ → Evidencia.
+0. **Setup de arranque** (agosto de 2026). El primer contacto ya no son
+   once diapositivas explicando el sistema antes de haber visto nada: son
+   **ocho pasos con barra de progreso** que construyen el gremio —nombre,
+   miembros, cuatro preguntas y PIN— y terminan en un resumen de lo que se
+   va a crear.
 
-   Los seis pasos originales explican la lógica del sistema (habilidades y no tareas, las ocho competencias, el día a día con elogio, los niveles de premio, la retirada del andamio y los siete principios). Se enseña una vez por dispositivo y se puede reabrir desde ⚙️ → Evidencia.
+   Las cuatro preguntas son las que personalizan la app, y cada una lleva
+   debajo el principio que la sostiene (`porque`), de modo que se aprende
+   el sistema **configurándolo**:
+
+   | Pregunta | Qué decide | Principio que enseña |
+   |---|---|---|
+   | ¿Qué queréis que cambie primero? (hasta 3) | Las habilidades de las que salen las misiones | Aquí no se reparten tareas: se entrenan habilidades |
+   | ¿Cuánto abarcáis la primera semana? | 3, 5 o 7 misiones por persona | Pocas y cumplidas sostienen más; la carga mueve la economía |
+   | ¿Qué funciona en vuestra casa? | Qué premios llenan la tienda | El premio es andamio, y los que aguantan son decisiones |
+   | ¿Qué queréis conseguir juntos? | El título de la meta del gremio | La única comparación del sistema es cooperativa |
+
+   El plan lo calcula `src/lib/setup.js`, que no toca la red: reparte las
+   misiones **por turnos** entre las habilidades elegidas (si no, elegir
+   tres focos daba cinco misiones del primero), garantiza tres premios de
+   nivel 1 y como mucho uno de nivel 3, y saca la cifra de la meta de
+   `metaObjetivo()` con los roles reales de la casa. Es determinista: el
+   resumen que se enseña es exactamente lo que se funda.
+
+   Queda una salida en el resumen —«prefiero empezar en blanco»— y el
+   contenido de arranque ya **no** sale de una lista fija de títulos, que
+   era lo que hacía que cualquier casa empezase con las misiones de otra.
+
+   **El tutorial largo sigue existiendo** (once pasos, por qué funciona
+   así y dónde está cada cosa) pero ya no se abre al fundar: se lee desde
+   ⚙️ → Evidencia, y sigue saliendo solo en un **dispositivo nuevo de una
+   familia que ya existe**, que es donde de verdad hace falta.
 1. **Login**: cuenta familiar única, alta y entrada.
-2. **Onboarding**: nombre del gremio → PIN parental (mínimo 4 dígitos, hash SHA-256 en cliente) → miembros con rol, emoji y color → plantillas de misiones por edad opcionales.
+2. **Onboarding**: es el setup del punto 0. Nombre del gremio → miembros con rol, género, emoji y color → las cuatro preguntas → PIN parental (de 4 a 8 dígitos, hash SHA-256 en cliente) → resumen y fundación. La zona horaria no se pregunta: se detecta y se cambia después en ⚙️ → Datos.
 3. **ProfilePicker**: rejilla de perfiles, recuerda la elección por dispositivo (localStorage).
 4. **Home** (por miembro): carnet con gema de nivel, barra de XP y monedas; estandarte de la meta del gremio; pestañas Misiones, Tienda, Insignias. Celebración animada al recibir validación (vía realtime) y al subir de nivel.
 5. **KidHome** (rol peque): además de la rejilla de misiones, **el tarro de estrellas**. El contador de la cabecera se vacía cada noche; el tarro no, y esa es la diferencia que hace que esperar tenga sentido a los tres años. Al tocarlo se abre su tienda: los premios de **nivel 1** (los de decidir algo), cada uno con una fila de estrellas —encendidas las que ya tiene, apagadas las que faltan—. Sin cifras en ninguna parte: sus monedas se dibujan como estrellas a razón de una por misión suya. Los premios que aún no alcanza **no se esconden**, se ven apagados: ver lo que viene es parte de lo que sostiene la espera.
