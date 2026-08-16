@@ -723,8 +723,23 @@ Tres cosas que conviene saber si se toca:
 - **Un solo tema, el nocturno, y declarado explícitamente.** No hay bloque
   `prefers-color-scheme`: una versión clara sería otro producto.
 
-El fuente con marcadores de fuente está en `~/el-gremio-narrativa/`, junto
-al `.b64` de cada tipografía.
+- **Lleva su propia salida** (16-ago). Dentro de la app instalada en el
+  móvil no hay barra de navegador: quien abría la página desde ⚙️ →
+  Evidencia se quedaba encerrado en ella, sin nada que pulsar para volver.
+  Ahora hay un enlace fijo arriba a la derecha, «← Volver a la app», que
+  apunta a `../` —la raíz del sitio— y por tanto vale igual dentro de la
+  app que para quien llegue de fuera por el QR. Va **sin
+  `backdrop-filter`** a propósito: el fondo de esta página se mueve, y un
+  cristal fijo encima obliga a remuestrearlo en cada cuadro, que es la
+  lección de §4. Comprobado en el navegador: 44 px de alto, fijo tras
+  3.000 px de scroll, 13,4:1 de contraste, y el clic aterriza en la app.
+
+**OJO con `~/el-gremio-narrativa/`: es un borrador viejo, no el fuente.**
+Este documento decía que ahí vivía el original con marcadores de fuente;
+comparados hoy, difieren en 406 líneas —esa copia es anterior al pase de
+estilo del texto—. **La fuente de verdad es
+`public/narrativa/index.html`**, que es además lo que se publica. Editar
+la copia de fuera sería trabajar para nadie.
 
 ---
 

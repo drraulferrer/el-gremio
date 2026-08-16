@@ -117,6 +117,37 @@ body{
 }
 .rail.activo .rail-acto{color:var(--oro)}
 
+/* ------------------------------------------------------------------
+   LA SALIDA.
+   Dentro de la app instalada en el movil no hay barra de navegador, asi
+   que quien abre esta pagina desde Ajustes se queda aqui encerrado: no
+   hay boton de atras que pulsar. Por eso la salida va en la propia
+   pagina, fija y siempre visible.
+
+   Sin backdrop-filter a proposito: el fondo de esta pagina se mueve, y
+   un cristal fijo encima obliga a volver a muestrearlo en cada cuadro.
+   Es la misma leccion que costo cara en la app.
+   ------------------------------------------------------------------ */
+.volver{
+  position:fixed; z-index:60;
+  top:calc(env(safe-area-inset-top,0px) + 14px);
+  right:calc(env(safe-area-inset-right,0px) + 14px);
+  display:inline-flex; align-items:center; gap:.4rem;
+  min-height:44px; padding:.55rem 1.05rem; border-radius:99px;
+  font-family:var(--display); font-size:14px; font-weight:500;
+  color:var(--tinta); text-decoration:none;
+  background:#1e2140f2; border:1px solid var(--linea-fuerte);
+  box-shadow:0 6px 20px rgba(0,0,0,.35);
+  transition:color .2s ease, border-color .2s ease;
+}
+.volver:hover,.volver:focus-visible{color:var(--oro-claro); border-color:var(--oro)}
+@media (max-width:1180px){
+  /* El rail pasa a ser una barra de 4px arriba: la salida baja lo justo
+     para no montarse encima. */
+  .volver{top:calc(env(safe-area-inset-top,0px) + 12px); font-size:13px; padding:.5rem .9rem}
+}
+@media print{.volver{display:none}}
+
 @media (max-width:1180px){
   .rail{left:0;right:0;top:0;bottom:auto;width:auto;height:4px;flex-direction:row;gap:0}
   .rail-canal{width:100%;height:4px;margin:0;border-radius:0;border:0;border-bottom:1px solid var(--linea)}
@@ -496,6 +527,12 @@ blockquote cite{display:block;margin-top:1rem;font-style:normal;font-size:.78rem
   </div>
   <div class="rail-acto" id="railActo">Qué es</div>
 </div>
+
+<!-- La salida. Va aquí arriba y fija porque dentro de la app instalada
+     no hay barra de navegador: sin esto, quien entra desde Ajustes se
+     queda encerrado en la página. `../` es la raíz del sitio, así que
+     sirve igual dentro de la app que para quien llegue de fuera. -->
+<a class="volver" href="../">← Volver a la app</a>
 
 <div class="hoja">
 <main>
