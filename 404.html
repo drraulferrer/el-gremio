@@ -3,6 +3,48 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+
+    <!--
+      Política de seguridad de contenidos.
+
+      Va en una etiqueta y no en una cabecera HTTP porque GitHub Pages no
+      deja poner cabeceras. Es una limitación real y conviene tenerla
+      escrita: `frame-ancestors` y `report-uri` SE IGNORAN en meta, así que
+      esto no protege contra que alguien meta la app en un iframe. Para eso
+      haría falta un alojamiento que sirva cabeceras (Cloudflare Pages,
+      Netlify) sin cambiar nada más del proyecto.
+
+      Lo que sí protege, y es lo que importa aquí: la sesión de Supabase
+      vive en `localStorage`, así que un XSS se llevaría la cuenta entera
+      del gremio. Sin `script-src` no hay nada que impida a un script
+      inyectado ejecutarse ni mandarse los datos a donde quiera.
+
+      El build no genera ni un script en línea, por eso `script-src` puede
+      ir sin `unsafe-inline`, que es lo que hace que esto valga de algo.
+      `style-src` sí lo necesita: React escribe estilos como atributo y
+      Turnstile inyecta los suyos.
+
+      Los dominios son exactamente los cuatro que usa la app: ella misma,
+      Supabase (datos y realtime), Google Fonts y Cloudflare Turnstile. El
+      comodín en supabase.co es a propósito, para que esto siga valiendo si
+      algún día cambia el proyecto de Supabase.
+    -->
+    <meta http-equiv="Content-Security-Policy" content="
+      default-src 'self';
+      script-src 'self' https://challenges.cloudflare.com;
+      style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+      font-src 'self' https://fonts.gstatic.com;
+      img-src 'self' data: blob:;
+      connect-src 'self' https://*.supabase.co wss://*.supabase.co https://challenges.cloudflare.com;
+      frame-src https://challenges.cloudflare.com;
+      worker-src 'self';
+      manifest-src 'self';
+      base-uri 'self';
+      form-action 'self';
+      object-src 'none'
+    " />
+    <!-- Que una dirección de recuperación no viaje entera al salir del sitio. -->
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
     <meta name="theme-color" content="#1e2140" />
     <meta name="description" content="Misiones, XP, monedas y premios reales para toda la familia." />
     <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -15,8 +57,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:ital,wght@0,400;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet" />
     <title>El Gremio</title>
-    <script type="module" crossorigin src="/assets/index-CICUn26b.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/index-qm2Wsknw.css">
+    <script type="module" crossorigin src="/assets/index-HqsxVBym.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-CLlNQvMQ.css">
   </head>
   <body>
     <div id="root"></div>
