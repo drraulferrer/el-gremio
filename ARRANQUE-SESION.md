@@ -1127,16 +1127,26 @@ rechaza «1 días» y «1 misiones». **El test podría haberlo cazado desde el
 primer día**: `todasLasPlantillas()` ya pintaba cada frase con `n = 1` y
 nadie miraba el resultado.
 
-**PENDIENTE, y es lo único que queda de los avisos: volver a desplegar la
-función `notificar`** con el `mensajes.ts` corregido. Está en el repo pero
-no en producción, y las Edge Functions no se despliegan solas ni salen del
-`npm run deploy`: se pegan en el editor del panel (no hay CLI de Supabase
-en esta máquina). Mientras tanto, quien tenga un día de racha seguirá
-recibiendo «1 días seguidos».
+**Redesplegada y comprobada el mismo día.** Las Edge Functions no salen
+del `npm run deploy` ni se despliegan solas: se pegan en el editor del
+panel (esta máquina no tiene CLI de Supabase). Y la comprobación no fue
+leer el editor, sino esta, que sirve para cualquier cambio futuro de los
+mensajes: **la función escribe en `push_log.titulo` la frase que compone**,
+así que basta con borrar la fila del día, volver a lanzarla y leer la
+columna. Salió «**1 día seguido**», con su acento. De paso quedó probado
+que el tope aguanta: a la adulta ya avisada la saltó con
+`saltados: ["Carol: ya avisado hoy"]` en vez de mandarle un segundo aviso.
 
-También quedó una fila de `push_log` de hoy con `enviados = 0` (la de la
-junior). Si activa su móvil esta tarde, esa fila le silencia el aviso de
-hoy; se limpia con la línea de arriba.
+**La trampa de los acentos también vive en el editor de Edge Functions, no
+solo en el SQL Editor.** El primer pegado dejó el fichero lleno de
+`d√≠as`, `ni√±a` y `G√âNERO`: el UTF-8 llega leído como MacRoman. El
+remedio es el mismo de §2 —copiar el fichero pre-codificado en MacRoman
+para que el viaje lo deshaga— y **hay que mirar el resultado antes de
+pulsar Deploy**, porque el editor pinta la basura tan tranquilo:
+
+```bash
+python3 -c "import subprocess;s=open('supabase/functions/notificar/mensajes.ts',encoding='utf-8').read();subprocess.run(['pbcopy'],input=s.encode('mac_roman'))"
+```
 
 ### Decisiones que conviene no deshacer
 
