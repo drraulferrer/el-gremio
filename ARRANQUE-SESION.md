@@ -3,7 +3,9 @@
 Documento de continuidad. Si abres una sesión nueva sobre este proyecto,
 lee esto primero: dice dónde está todo, qué está hecho, qué falta y qué
 trampas tiene. Última actualización: **16 de agosto de 2026**, con la app
-ya en su propio dominio, **elgremioapp.com**.
+en su propio dominio, **elgremioapp.com**, y el correo cerrado de punta a
+punta (SMTP propio, plantillas en español y confirmación de correo
+encendida).
 
 Si solo vas a leer un párrafo: la app está **en producción y estable**; lo
 que queda no es código, es uso. Antes de añadir nada, lee §8 y pregunta
@@ -830,14 +832,13 @@ Contraseña     mínimo 8 (era 6, que es el mínimo que deja Supabase)
 
 Y lo que sigue abierto ahí dentro, por orden de importancia:
 
-- **«Confirm email» está APAGADO**: cualquiera se registra con un correo
-  que no es suyo, y quien se equivoque al teclearlo no podrá recuperar la
-  cuenta nunca. No se ha encendido a propósito, porque **sin SMTP propio
-  el remitente de Supabase está limitado a un puñado de correos por hora**
-  para todo el proyecto: encenderlo hoy convertiría el alta en una cola.
-  El orden correcto es SMTP propio primero (Resend, Postmark, SES),
-  confirmación después. **Actualizado el 16-ago**: el SMTP propio ya no
-  hace falta contratarlo, sale del correo del dominio; ver §7i.
+- ~~**«Confirm email» está APAGADO**~~ **RESUELTO el 16-ago**: encendido,
+  una vez que el SMTP propio subió el tope a 30 correos/hora. Estaba
+  apagado a propósito hasta entonces, porque con el remitente por defecto
+  de Supabase —un puñado de correos por hora para TODO el proyecto—
+  encenderlo habría convertido el alta en una cola. Ese era el orden
+  correcto y se respetó: SMTP propio primero, confirmación después. Ver
+  §7i.
 - **El registro está abierto a cualquiera y sin captcha.** El captcha pide
   cuenta de hCaptcha o Turnstile y su clave secreta, así que es una
   decisión con dueño, no un interruptor.
@@ -1184,17 +1185,27 @@ llegó **al instante y a la bandeja de entrada, no a spam**, remitido por
 `noreply@mail.app.supabase.io` es la prueba de que salió por Hostinger y
 no por el remitente por defecto de Supabase.
 
-Lo que queda de aquí, por orden:
+Los tres puntos que quedaban de aquí están **cerrados el 16-ago**:
 
-1. **Las plantillas siguen en inglés** («Reset your password»). Ahora ya
-   se pueden editar —era lo que bloqueaba el SMTP— y las tres en español
-   están escritas y revisadas en `docs/CORREOS.md`, listas para pegar.
-2. **Falta abrir el enlace de un correo de verdad** y comprobar que cae
-   en la pantalla de contraseña nueva y no en el tablero. Si cayera en el
-   tablero, lo que falla es la Redirect URL, no la plantilla.
-3. Con lo anterior hecho, ya se puede **encender «Confirm email»**, que es
-   lo que §7e dejaba esperando a tener SMTP propio. El tope de envío está
-   ahora en 30/hora (Authentication → Rate Limits).
+1. ✅ **Las plantillas, en español.** Las tres de `docs/CORREOS.md`,
+   pegadas y guardadas (poder editarlas es, de paso, la prueba de que el
+   SMTP propio quedó activo: sin él Supabase las bloquea).
+2. ✅ **El enlace del correo, probado de verdad** por la familia: abre la
+   pantalla de contraseña nueva, no el tablero. O sea que la Redirect URL
+   es correcta y la cadena entera —petición, SMTP, plantilla, enlace,
+   pantalla— funciona de punta a punta.
+3. ✅ **«Confirm email» encendido**, que es lo que §7e dejaba esperando a
+   tener SMTP propio. Comprobado el tope en Authentication → Rate Limits:
+   **30 correos/hora**, que es el que trae el SMTP propio y ahora también
+   consumen las altas.
+
+**Lo que cambia a partir de ahora**: toda alta nueva exige confirmar el
+correo antes del primer acceso. `signUp` ya devolvía `session: null` en
+ese caso y la pantalla lo dice (§7e), así que no hay nada que tocar en el
+código; pero si algún día alguien «se registra y no puede entrar», la
+respuesta es esa y no un fallo. El alta de prueba, si se hace, tiene que
+ir con un correo distinto al de la familia, crea un gremio de verdad y hay
+que borrarlo después (desde la 017, una cuenta solo puede tener uno).
 
 ---
 
@@ -1264,18 +1275,31 @@ curl -s -X POST "$VITE_SUPABASE_URL/auth/v1/recover" \
 
 ## 8. Pendientes
 
-### Lo primero al retomar: probar el correo de recuperación de verdad
+### El correo ya no está pendiente
 
-Es lo único de la cadena nueva que no se ha visto funcionar de punta a
-punta. La pantalla, las reglas y el borrado del token de la URL están
-verificados en el navegador (modo demo), y el panel ya tiene el Site URL
-y las Redirect URLs correctas, pero **nadie ha recibido todavía un correo
-real**. Basta con abrir la app publicada, pulsar «He olvidado la
-contraseña» y comprobar dos cosas: que el correo llega, y que su enlace
-abre la pantalla de contraseña nueva —no el tablero—.
+La cadena entera está hecha y probada: dominio, buzón, SMTP propio, las
+tres plantillas en español, el enlace de recuperación abierto de verdad
+y «Confirm email» encendido (§7i). Si algún día un correo deja de llegar,
+el sitio donde mirar es **Authentication → Auth Logs** —un fallo de SMTP
+sale ahí en vez de un «request completed»— y después el tope de 30/hora
+en Rate Limits.
 
-Si el correo no llega, mira primero el límite del remitente de Supabase
-(§7e): sin SMTP propio son unos pocos por hora para todo el proyecto.
+### Lo primero al retomar: los avisos en los móviles
+
+**Activar Ajustes → 🔔 Avisos en cada teléfono, con la app reinstalada
+desde elgremioapp.com.** Un PWA queda atado al origen donde se instaló, y
+el viejo ahora redirige fuera de su ámbito: sin reinstalar, la suscripción
+push no vale. Es lo único que le falta a una funcionalidad que ya está
+montada y comprobada de punta a punta.
+
+### Y después: mirar el cuadro de mando con datos reales
+
+Un par de semanas de uso **antes de añadir nada más**. El diagnóstico de
+economía y el cuadro de mando parental están para eso, y con datos reales
+dicen lo que ninguna sesión de código puede adivinar: si la carga está
+repartida, si alguien lleva una semana sin aparecer y si las cadencias de
+premio se parecen a las calculadas. Añadir funciones antes de esa lectura
+es decidir a ciegas.
 
 ### Y lo segundo: desplegar y migrar dejaron de ser dos actos sueltos
 

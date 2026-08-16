@@ -3,11 +3,17 @@
 Las tres plantillas que la app dispara de verdad, listas para pegar en
 Supabase → Authentication → Emails → Templates.
 
-**Ojo con el orden**: Supabase **no deja editar las plantillas hasta que
-haya SMTP propio configurado**. Sin SMTP se envían las suyas, en inglés y
-sin tocar. Por eso este fichero existe: para que las plantillas estén
-escritas y revisadas antes de que llegue el momento de pegarlas, que es un
-minuto de trabajo.
+**Estado (16-ago-2026): todo esto está hecho en producción.** SMTP propio
+por Hostinger, las tres plantillas pegadas y guardadas, el enlace de
+recuperación probado de verdad y «Confirm email» encendido. Este fichero
+sigue siendo la fuente de las plantillas: si hay que rehacer el proyecto o
+cambiar una, se pega desde aquí.
+
+**Ojo con el orden**, si algún día se monta esto de cero: Supabase **no
+deja editar las plantillas hasta que haya SMTP propio configurado**. Sin
+SMTP se envían las suyas, en inglés y sin tocar. Por eso este fichero
+existe: para que las plantillas estén escritas y revisadas antes de que
+llegue el momento de pegarlas, que es un minuto de trabajo.
 
 ## Qué se envía y qué no
 
@@ -204,6 +210,29 @@ buzón con el que te autenticas —no vale poner otro `From`—, y Supabase
 Al activar SMTP propio, el tope de envío sube de un puñado de correos por
 hora a **30/hora**, ajustable en Authentication → Rate Limits.
 
+## La trampa: guardarlas no basta con que se vean guardadas
+
+Pasó el 16-ago y va a volver a pasar. Las tres plantillas estaban en el
+panel, completas, con los acentos bien y con el botón «Save changes»
+apagado —o sea, sin cambios pendientes—, y aun así **tres correos
+seguidos salieron con el texto por defecto de Supabase, en inglés**. No
+era prisa: entre el último `reloading api with new configuration` de los
+logs de Auth y esos envíos pasaron minutos de sobra.
+
+Lo que lo arregló fue **volver a guardar cada plantilla**: un salto de
+línea de más en el cuerpo (inocuo en HTML) para que «Save changes» se
+encienda, y guardar. El siguiente correo salió en español.
+
+Así que la comprobación no es «se ve bien en el panel», es **que llegue
+un correo de verdad**. Si llega en inglés con la plantilla puesta:
+
+1. Toca el cuerpo, guarda, y vuelve a probar.
+2. Hazlo con las TRES, no solo con la que estás probando: si una se quedó
+   sin aplicar, lo más probable es que las otras dos también.
+
+Ojo con el ritmo al probar: `/auth/v1/recover` tiene tope por usuario y
+contesta **HTTP 429** si insistes. Deja un par de minutos entre intentos.
+
 ## Cómo se prueban
 
 Con SMTP propio ya configurado, y en este orden:
@@ -212,10 +241,10 @@ Con SMTP propio ya configurado, y en este orden:
    que llegar el correo, y su enlace tiene que abrir la pantalla de
    contraseña nueva, **no el tablero**. Si abre el tablero, lo que falla es
    la Redirect URL, no la plantilla.
-2. **Alta**: solo cuando «Confirm email» esté encendido, y con un correo
-   distinto del de la familia. Ojo: el alta de prueba crea un gremio de
-   verdad; hay que borrarlo después, y desde la migración 017 una cuenta
-   solo puede tener uno.
+2. **Alta**: «Confirm email» ya está encendido (16-ago), así que la prueba
+   se puede hacer, con un correo distinto del de la familia. Ojo: el alta
+   de prueba crea un gremio de verdad; hay que borrarlo después, y desde
+   la migración 017 una cuenta solo puede tener uno.
 
 Si un correo no llega, mira antes que nada el tope de envío: Supabase lo
 sube a **30 correos/hora** al activar SMTP propio, y se puede ajustar en
