@@ -8,8 +8,8 @@
    no haya modo offline de verdad, este se mantiene tonto.
 
    Va en `public/` para que salga en la raíz del sitio publicado
-   (/el-gremio/sw.js) y su ámbito cubra toda la app. Un service worker
-   solo controla lo que cuelga de su propia ruta.
+   (https://elgremioapp.com/sw.js) y su ámbito cubra toda la app. Un
+   service worker solo controla lo que cuelga de su propia ruta.
    ------------------------------------------------------------------ */
 
 // Sin esto, un service worker nuevo se queda "esperando" a que se cierren
@@ -49,12 +49,20 @@ self.addEventListener('notificationclick', (evento) => {
   // Si la app ya está abierta se le da el foco en lugar de abrir otra
   // ventana: en un móvil, dos instancias de la misma app es justo lo que
   // hace que alguien piense que "se ha roto".
+  // La ventana se busca por el ÁMBITO del propio service worker, no por
+  // una ruta escrita a mano. Aquí ponía `/el-gremio` y la app acaba de
+  // mudarse a dominio propio: con la ruta fija, tocar el aviso habría
+  // abierto una ventana nueva en vez de traer al frente la que ya estaba,
+  // y en un móvil dos copias de la misma app se leen como «se ha roto».
+  // `registration.scope` vale igual en `/el-gremio/` que en la raíz.
+  const raiz = self.registration.scope
+
   evento.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((ventanas) => {
       for (const ventana of ventanas) {
-        if (ventana.url.includes('/el-gremio') && 'focus' in ventana) return ventana.focus()
+        if (ventana.url.startsWith(raiz) && 'focus' in ventana) return ventana.focus()
       }
-      return self.clients.openWindow('./')
+      return self.clients.openWindow(raiz)
     })
   )
 })
