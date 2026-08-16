@@ -1556,8 +1556,14 @@ parental, y aquí se guardan nombres y actividad diaria de menores. El
 borrado y la exportación de datos sí funcionan (`delete_my_account`
 comprobada), que es la mitad difícil.
 
-**Y un dato que conviene mirar:** hay **cero suscripciones a los avisos
-push** con el sistema entero montado y el cron corriendo cada hora. O no
-los ha activado nadie, o la suscripción falla en silencio; desde dentro no
-hay forma de distinguirlo, y eso —la ceguera— es el problema de fondo, no
-el push.
+**Y un dato que conviene mirar**, porque cambió durante la propia
+auditoría: a media mañana no había **ninguna** suscripción a los avisos
+push, con el sistema montado y el cron corriendo; dos horas después había
+dos activas, dadas de alta por la sesión paralela. La ceguera es el
+problema de fondo: desde dentro no había forma de distinguir «nadie lo ha
+activado» de «la suscripción falla en silencio».
+
+Al volver a contar apareció además que **hay dos avisos apuntados en
+`push_log` y un solo envío real**. Uno se dio por avisado sin llegar a
+ningún aparato. Es el comportamiento previsto —se apunta antes de enviar
+para no duplicar—, pero solo se ve si alguien escribe la consulta.

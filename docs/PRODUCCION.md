@@ -147,11 +147,21 @@ puede hacer el usuario).
 deja al operador ciego: no hay una sola consulta que diga «cuántas altas
 fallaron hoy». Sentry sigue apagado.
 
-**La prueba de que esto ya muerde**: hay **cero suscripciones a los avisos
-push**, con el sistema entero montado, la Edge Function desplegada y el
-cron corriendo cada hora desde ayer. Puede ser que nadie los haya
-activado, o que la suscripción falle en silencio. **No hay forma de
-saberlo desde dentro**, y eso es exactamente el problema.
+**La prueba de que esto ya muerde**, y salió sola durante la auditoría. A
+media mañana la tabla de suscripciones estaba a cero con el sistema entero
+montado y el cron corriendo cada hora: imposible saber, desde dentro, si
+era que nadie los había activado o que la suscripción fallaba en silencio.
+Dos horas después había dos suscripciones activas —las había dado de alta
+la otra sesión mientras tanto—, o sea que la respuesta era la primera.
+
+Pero al volver a mirar apareció lo siguiente: **dos avisos apuntados en
+`push_log` y un solo envío real**. Uno de los dos se marcó como avisado y
+no llegó a ningún aparato. Es el comportamiento previsto —la función
+apunta antes de enviar a propósito, porque perder un aviso es mejor que
+mandar dos—, pero que sea previsto no quiere decir que se vea: solo
+aparece si alguien escribe la consulta. Multiplicado por mil familias, la
+diferencia entre «se entregó» y «se dio por entregado» no la va a notar
+nadie.
 
 Hace falta una vista agregada y anónima (contadores por evento y día, sin
 `family_id`) o encender Sentry, que está escrito y esperando en
