@@ -32,7 +32,7 @@ import {
   agruparPorFrecuencia
 } from '../lib/misiones'
 import SelectorEmoji from '../components/SelectorEmoji'
-import { emojiSugerido } from '../lib/emojis'
+import { emojiSugerido, GRUPOS_EMOJI_MISION, EMOJIS_MISION } from '../lib/emojis'
 
 export default function ParentPanel({ family, data, refresh, refreshFamily, onVerTutorial, onExit }) {
   const [tab, setTab] = useState('pendientes')
@@ -679,7 +679,15 @@ function GestionMisiones({ family, data, refresh }) {
 
 function FormMision({ mision, perfiles, onGuardar, onBorrar, onClose }) {
   const [m, setM] = useState({ ...mision })
+  // Igual que en los premios: se sugiere mientras nadie haya elegido a
+  // mano, y al editar una que ya existe no se sugiere nunca, que su emoji
+  // ya lo decidió alguien.
+  const [emojiAMano, setEmojiAMano] = useState(Boolean(mision.id))
   const set = (cambios) => setM({ ...m, ...cambios })
+
+  function escribirTitulo(title) {
+    set(emojiAMano ? { title } : { title, emoji: emojiSugerido(title, MISION_VACIA.emoji, EMOJIS_MISION) })
+  }
 
   // Solo se ofrecen los roles que tienen gente: «cualquier junior» en un
   // gremio sin junior es una opción que no hace nada.
@@ -693,16 +701,23 @@ function FormMision({ mision, perfiles, onGuardar, onBorrar, onClose }) {
   return (
     <Modal titulo={m.id ? 'Editar misión' : 'Nueva misión'} onClose={onClose}>
       <div className="campo">
-        <label>Título</label>
-        <input value={m.title} onChange={(e) => set({ title: e.target.value })} autoFocus />
+        <label htmlFor="mision-titulo">Título</label>
+        <input
+          id="mision-titulo"
+          value={m.title}
+          onChange={(e) => escribirTitulo(e.target.value)}
+          autoFocus
+        />
       </div>
       <div className="campo">
-        <label>Emoji</label>
-        <div className="grid-emojis">
-          {['⭐', '🧸', '🪥', '📚', '✏️', '🎒', '🧹', '🍽️', '🏃', '📵', '📖', '🗓️', '🐶', '🧺', '🛏️', '🎻'].map((e) => (
-            <button key={e} className={m.emoji === e ? 'sel' : ''} onClick={() => set({ emoji: e })}>{e}</button>
-          ))}
-        </div>
+        <label htmlFor="mision-emoji">Emoji <span className="emoji-elegido">{m.emoji}</span></label>
+        <SelectorEmoji
+          id="mision-emoji"
+          valor={m.emoji}
+          grupos={GRUPOS_EMOJI_MISION}
+          ejemplos="dientes, cama, plantas"
+          onElegir={(e) => { setEmojiAMano(true); set({ emoji: e }) }}
+        />
       </div>
       <div className="fila">
         <div className="campo crece">
@@ -1066,7 +1081,12 @@ function FormPremio({ premio, onGuardar, onBorrar }) {
 function GestionMeta({ family, data, refresh }) {
   const goal = data.goal
   const [form, setForm] = useState(goal ? { ...goal } : { title: '', emoji: '🏆', target_xp: 1000 })
+  const [emojiAMano, setEmojiAMano] = useState(Boolean(goal))
   const [fallo, setFallo] = useState('')
+
+  function escribirTitulo(title) {
+    setForm(emojiAMano ? { ...form, title } : { ...form, title, emoji: emojiSugerido(title, '🏆') })
+  }
   const progreso = goalProgress(goal, data.completions)
 
   async function guardar() {
@@ -1197,19 +1217,33 @@ function GestionMeta({ family, data, refresh }) {
       <div className="carta">
         <div className="campo">
           <label>{goal ? 'Editar meta' : 'Nueva meta del gremio'}</label>
-          <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Noche de pizza y peli" />
+          <input
+            id="meta-titulo"
+            value={form.title}
+            onChange={(e) => escribirTitulo(e.target.value)}
+            placeholder="Noche de pizza y peli"
+          />
         </div>
-        <div className="fila">
-          <div className="campo" style={{ width: 110 }}>
-            <label>Emoji</label>
-            <select value={form.emoji} onChange={(e) => setForm({ ...form, emoji: e.target.value })}>
-              {['🏆', '🍕', '🎬', '🏕️', '🎢', '🏖️', '🎲'].map((e) => <option key={e}>{e}</option>)}
-            </select>
-          </div>
-          <div className="campo crece">
-            <label>XP objetivo</label>
-            <input type="number" min="100" step="50" value={form.target_xp} onChange={(e) => setForm({ ...form, target_xp: e.target.value })} />
-          </div>
+        <div className="campo">
+          <label htmlFor="meta-emoji">Emoji <span className="emoji-elegido">{form.emoji}</span></label>
+          {/* La meta usa el catálogo de los PREMIOS y no el de misiones:
+              una meta del gremio es un premio compartido, no una tarea. */}
+          <SelectorEmoji
+            id="meta-emoji"
+            valor={form.emoji}
+            onElegir={(e) => { setEmojiAMano(true); setForm({ ...form, emoji: e }) }}
+          />
+        </div>
+        <div className="campo">
+          <label htmlFor="meta-xp">XP objetivo</label>
+          <input
+            id="meta-xp"
+            type="number"
+            min="100"
+            step="50"
+            value={form.target_xp}
+            onChange={(e) => setForm({ ...form, target_xp: e.target.value })}
+          />
         </div>
         <button className="btn btn-bloque" disabled={!form.title.trim()} onClick={guardar}>Guardar meta</button>
       </div>

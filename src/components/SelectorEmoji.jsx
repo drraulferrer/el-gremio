@@ -1,23 +1,30 @@
 import { useState } from 'react'
-import { GRUPOS_EMOJI_PREMIO, buscarEmojiPremio } from '../lib/emojis'
+import { GRUPOS_EMOJI_PREMIO, buscarEmoji } from '../lib/emojis'
+
 
 // ------------------------------------------------------------------
 // Rejilla de emojis con grupos y buscador.
 //
-// Con doce emojis bastaba una fila; con ochenta y seis hace falta poder
+// Con doce emojis bastaba una fila; con noventa hace falta poder
 // encontrarlos, y por eso el buscador va por nombre («piscina», «peli»,
 // «abuela») y no por categoría: quien está creando un premio ya sabe qué
 // premio es, lo que no sabe es en qué grupo lo hemos metido nosotros.
+//
+// Sirve para las tres cosas que llevan emoji —premios, misiones y la meta
+// del gremio— con el catálogo que se le pase. Los de misión son otros: una
+// misión es una acción de la casa y el dibujo tiene que decir cuál en un
+// vistazo, que es como lo lee la peque en su rejilla.
 //
 // La caja tiene altura máxima y se desplaza dentro. Sin eso, el
 // formulario de un premio pasaba a medir tres pantallas y el botón de
 // guardar quedaba en Marte.
 // ------------------------------------------------------------------
 
-export default function SelectorEmoji({ valor, onElegir, id = 'emoji' }) {
+export default function SelectorEmoji({ valor, onElegir, id = 'emoji', grupos = GRUPOS_EMOJI_PREMIO, ejemplos = 'piscina, peli, abuela' }) {
   const [busqueda, setBusqueda] = useState('')
   const buscando = busqueda.trim().length > 0
-  const encontrados = buscando ? buscarEmojiPremio(busqueda) : []
+  const catalogo = grupos.flatMap((g) => g.emojis)
+  const encontrados = buscando ? buscarEmoji(busqueda, catalogo) : []
 
   return (
     <div className="selector-emoji">
@@ -25,7 +32,7 @@ export default function SelectorEmoji({ valor, onElegir, id = 'emoji' }) {
         id={id}
         type="search"
         className="selector-emoji-buscar"
-        placeholder="Buscar: piscina, peli, abuela…"
+        placeholder={`Buscar: ${ejemplos}…`}
         value={busqueda}
         onChange={(e) => setBusqueda(e.target.value)}
       />
@@ -38,7 +45,7 @@ export default function SelectorEmoji({ valor, onElegir, id = 'emoji' }) {
         {buscando ? (
           <Rejilla emojis={encontrados} valor={valor} onElegir={onElegir} />
         ) : (
-          GRUPOS_EMOJI_PREMIO.map((g) => (
+          grupos.map((g) => (
             <div key={g.grupo} className="selector-emoji-grupo">
               <div className="selector-emoji-titulo">
                 {g.grupo}

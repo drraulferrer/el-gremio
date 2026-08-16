@@ -1003,24 +1003,37 @@ en la tienda de la peque el emoji es **lo único que se ve** —ahí no hay
 texto ni cifras—, así que dos premios con el mismo dibujo son, para ella,
 el mismo premio.
 
-Ahora son **88 en ocho grupos** (`src/lib/emojis.js`), con nombre en
-castellano y sinónimos de andar por casa («peli» además de «película»).
-Tres decisiones:
+Ahora son **88 de premio y 107 de misión**, en ocho grupos cada uno
+(`src/lib/emojis.js`), con nombre en castellano y sinónimos de andar por
+casa («peli» además de «película»). El mismo selector
+(`components/SelectorEmoji.jsx`) sirve en los tres sitios que llevan
+emoji:
+
+- **Premios** y **meta del gremio** usan el catálogo de premio: una meta
+  es un premio compartido, no una tarea.
+- **Misiones** usa el suyo, agrupado **por las ocho habilidades** y no por
+  zona de la casa, que es la misma decisión que gobierna el resto del
+  sistema: lo que se entrena no es la tarea, es la competencia.
+
+Cuatro decisiones:
 
 - **El nombre no es documentación, es el buscador.** Con ochenta y ocho,
   agrupar no basta: quien crea un premio sabe cuál es, lo que no sabe es
   en qué grupo lo hemos metido nosotros. Se busca por «piscina», «abuela»
   o «peli», sin acentos y sin mayúsculas.
 - **El emoji se sugiere al escribir el título** y deja de sugerirse en
-  cuanto alguien elige uno a mano. Gana la palabra más larga que case:
-  «cuento» le gana a «leer» en «Leer un cuento».
+  cuanto alguien elige uno a mano; al editar algo que ya existe no se
+  sugiere nunca, que su emoji ya lo decidió alguien. Gana la palabra más
+  larga que case y, **en caso de empate, la que aparece más tarde**:
+  «Limpiar el inodoro» es 🚽 y no 🧽, porque en castellano el objeto va
+  detrás del verbo y es el objeto el que manda.
 - **La caja tiene altura máxima y se desplaza dentro.** Sin eso el
   formulario medía tres pantallas y el botón de guardar no se veía.
 
-Hay un test que compara el catálogo de emojis con `CATALOGO_PREMIOS`: si
-un premio usa un emoji que no está en la rejilla, editarlo desde el panel
-lo cambiaría sin querer, porque no habría ninguno marcado. Saltó a la
-primera con 🍽️ y 🌟.
+Hay dos tests de cobertura, uno por catálogo: si un premio de
+`CATALOGO_PREMIOS` o una tarea de `CATALOGO` usa un emoji que no está en
+su rejilla, editarlo desde el panel lo cambiaría sin querer, porque no
+habría ninguno marcado. El de premios saltó a la primera con 🍽️ y 🌟.
 
 ---
 

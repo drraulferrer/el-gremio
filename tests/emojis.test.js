@@ -1,8 +1,11 @@
 import { describe, it, expect } from 'vitest'
 import {
-  GRUPOS_EMOJI_PREMIO, EMOJIS_PREMIO, buscarEmojiPremio, emojiSugerido
+  GRUPOS_EMOJI_PREMIO, EMOJIS_PREMIO, GRUPOS_EMOJI_MISION, EMOJIS_MISION,
+  buscarEmoji, emojiSugerido
 } from '../src/lib/emojis'
 import { CATALOGO_PREMIOS } from '../src/lib/premios'
+import { CATALOGO } from '../src/lib/tareas'
+import { HABILIDADES } from '../src/lib/habilidades'
 
 // ------------------------------------------------------------------
 // Emojis de premio.
@@ -44,25 +47,25 @@ describe('el catálogo', () => {
   })
 })
 
-describe('buscarEmojiPremio', () => {
+describe('buscarEmoji', () => {
   it('encuentra por palabra suelta', () => {
-    expect(buscarEmojiPremio('piscina').map((x) => x.e)).toContain('🏊')
-    expect(buscarEmojiPremio('abuela').map((x) => x.e)).toContain('👵')
+    expect(buscarEmoji('piscina').map((x) => x.e)).toContain('🏊')
+    expect(buscarEmoji('abuela').map((x) => x.e)).toContain('👵')
   })
 
   it('perdona acentos y mayúsculas', () => {
     // Nadie escribe «película» con tilde en una caja de búsqueda.
-    expect(buscarEmojiPremio('PELICULA').map((x) => x.e)).toContain('🎬')
-    expect(buscarEmojiPremio('musica').map((x) => x.e)).toContain('🎵')
+    expect(buscarEmoji('PELICULA').map((x) => x.e)).toContain('🎬')
+    expect(buscarEmoji('musica').map((x) => x.e)).toContain('🎵')
   })
 
   it('sin búsqueda devuelve todo', () => {
-    expect(buscarEmojiPremio('')).toHaveLength(EMOJIS_PREMIO.length)
-    expect(buscarEmojiPremio('   ')).toHaveLength(EMOJIS_PREMIO.length)
+    expect(buscarEmoji('')).toHaveLength(EMOJIS_PREMIO.length)
+    expect(buscarEmoji('   ')).toHaveLength(EMOJIS_PREMIO.length)
   })
 
   it('y con algo que no existe, nada', () => {
-    expect(buscarEmojiPremio('zzzz')).toEqual([])
+    expect(buscarEmoji('zzzz')).toEqual([])
   })
 })
 
@@ -92,5 +95,53 @@ describe('emojiSugerido', () => {
     // Con umbral corto, cualquier título casaba con cualquier cosa.
     expect(emojiSugerido('La')).toBe('🎁')
     expect(emojiSugerido('De')).toBe('🎁')
+  })
+})
+
+// ------------------------------------------------------------------
+// Y los de misión, que son otro catálogo: una misión es una acción de la
+// casa y el dibujo tiene que decir cuál de un vistazo, que es como lo lee
+// la peque en su rejilla.
+// ------------------------------------------------------------------
+
+describe('los emojis de misión', () => {
+  it('no repiten y hay de sobra', () => {
+    const todos = EMOJIS_MISION.map((x) => x.e)
+    expect(todos.length).toBeGreaterThanOrEqual(80)
+    expect(new Set(todos).size).toBe(todos.length)
+  })
+
+  it('van agrupados por las ocho habilidades', () => {
+    // No por zona de la casa: lo que se entrena no es la tarea, es la
+    // competencia, y es la misma decisión que gobierna el resto.
+    const grupos = GRUPOS_EMOJI_MISION.map((g) => g.grupo.toLocaleLowerCase('es'))
+    expect(grupos).toHaveLength(HABILIDADES.length)
+    for (const h of HABILIDADES) {
+      const nombre = h.nombre.toLocaleLowerCase('es')
+      expect(grupos, `falta el grupo de ${h.nombre}`).toContain(nombre)
+    }
+  })
+
+  it('cubre TODOS los emojis del catálogo de tareas', () => {
+    // Si una tarea de la biblioteca usa uno que no está en la rejilla,
+    // editarla desde el panel se lo cambiaría sin querer.
+    const disponibles = new Set(EMOJIS_MISION.map((x) => x.e))
+    const usados = new Set(
+      Object.values(CATALOGO).flatMap((grupos) => grupos.flatMap((g) => g.tareas)).map((t) => t.e)
+    )
+    expect([...usados].filter((e) => !disponibles.has(e))).toEqual([])
+  })
+
+  it('busca y sugiere dentro de su propio catálogo', () => {
+    expect(buscarEmoji('dientes', EMOJIS_MISION).map((x) => x.e)).toEqual(['🪥'])
+    expect(emojiSugerido('Cepillarse los dientes', '⭐', EMOJIS_MISION)).toBe('🪥')
+    expect(emojiSugerido('Regar las plantas', '⭐', EMOJIS_MISION)).toBe('🪴')
+    expect(emojiSugerido('Hacer la cama', '⭐', EMOJIS_MISION)).toBe('🛏️')
+  })
+
+  it('y no se mezcla con el de premios', () => {
+    // Un premio no puede acabar con el emoji del inodoro.
+    expect(emojiSugerido('Limpiar el inodoro', '⭐', EMOJIS_MISION)).toBe('🚽')
+    expect(emojiSugerido('Limpiar el inodoro')).toBe('🎁')
   })
 })
