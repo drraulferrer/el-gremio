@@ -1284,6 +1284,39 @@ sitio equivocado y parecería un problema de Redirect URLs.
 
 ---
 
+## 7f. La dirección buena sale del CNAME, no del origen (16-ago)
+
+Hasta ahora Dispositivos calculaba la URL del origen del navegador. Con
+un solo sitio publicado eso valía; con la mudanza dejó de valer, y de una
+forma que no salta a la vista: **la dirección vieja sigue redirigiendo,
+así que la app abierta desde ahí funciona igual**, pero esa pantalla
+ENSEÑA la dirección a los demás. Un QR impreso o una URL copiada desde un
+aparato con la PWA vieja propagaba la dirección heredada a gente nueva.
+
+Ahora la fuente de verdad es `public/CNAME`, que es donde ya vivía la
+decisión: `vite.config.js` lo lee y lo mete en el bundle como
+`__DOMINIO__`, y `src/lib/dominio.js` decide. En local sigue mandando el
+origen real, o un QR de `npm run dev` no serviría para probar nada.
+Fijado en `tests/dominio.test.js`, incluido el caso de que un dominio
+público no se confunda con uno local (`localhost.attacker.com`).
+
+Si algún día se vuelve a publicar bajo subcarpeta, borrar el CNAME
+devuelve el comportamiento antiguo sin tocar código.
+
+**Trampa de desarrollo:** `/narrativa/` **no funciona con `npm run dev`**.
+El servidor de Vite no sirve el índice de un directorio de `public/`: cae
+en el fallback de la SPA y devuelve la app otra vez, así que el enlace
+parece roto justo cuando vas a comprobarlo. En producción GitHub Pages sí
+resuelve el directorio. Por eso `urlDeLaNarrativa()` pide
+`narrativa/index.html` en local y la dirección corta fuera.
+
+**Dónde se ve la exposición, por orden de visibilidad:** en la pantalla de
+entrada (delante de la sesión, que es lo primero que ve quien abre el
+dominio), en ⚙️ → Dispositivos con su botón de copiar enlace, y en
+⚙️ → Evidencia. Estaba solo en la última, que son cinco toques y un PIN.
+
+---
+
 ## 8. Pendientes
 
 ### El correo ya no está pendiente

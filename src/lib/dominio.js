@@ -55,9 +55,20 @@ export function urlDelGremio() {
   return urlCanonica(window.location.origin, import.meta.env.BASE_URL || '/', DOMINIO)
 }
 
-/** La exposición pública. Cuelga de la misma raíz, así que se deriva. */
+/**
+ * La exposición pública. Cuelga de la misma raíz, así que se deriva.
+ *
+ * En desarrollo hay que pedir el fichero por su nombre. El servidor de
+ * Vite no sirve el índice de un directorio de `public/`: `/narrativa/`
+ * cae en el fallback de la SPA y devuelve la app otra vez, así que el
+ * enlace parece roto justo cuando se va a comprobar. En producción,
+ * GitHub Pages sí resuelve el directorio, y ahí la dirección corta es la
+ * que se comparte.
+ */
 export function urlDeLaNarrativa() {
-  return urlDelGremio() + 'narrativa/'
+  const raiz = urlDelGremio()
+  const local = typeof window !== 'undefined' && esOrigenLocal(window.location.origin)
+  return raiz + (local ? 'narrativa/index.html' : 'narrativa/')
 }
 
 /** ¿Se está mirando la app desde una dirección que ya no es la buena? */

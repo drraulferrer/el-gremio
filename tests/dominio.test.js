@@ -35,6 +35,13 @@ describe('la dirección que se comparte', () => {
   })
 })
 
+describe('la dirección de la exposición', () => {
+  it('cuelga de la raíz que se comparte, no del origen del navegador', () => {
+    expect(urlCanonica('https://drraulferrer.github.io', '/el-gremio/', D) + 'narrativa/')
+      .toBe('https://elgremioapp.com/narrativa/')
+  })
+})
+
 describe('reconocer el origen local', () => {
   it('acepta localhost, el bucle y las redes privadas', () => {
     for (const o of ['http://localhost:5173', 'http://127.0.0.1:4173', 'http://192.168.0.9', 'http://10.0.0.4', 'http://172.16.3.2']) {
