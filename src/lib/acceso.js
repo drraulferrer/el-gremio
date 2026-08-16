@@ -79,6 +79,29 @@ export function esRecuperacion(hash = '', search = '') {
   return /(^|[#&?])type=recovery(&|$)/.test(texto.replace(/^#/, '#')) || /type=recovery/.test(texto)
 }
 
+/**
+ * Los argumentos exactos de `signInWithPassword`.
+ *
+ * Existe por un fallo que costó un despliegue y que NO cazó ningún test:
+ * el token del captcha se estaba pasando al lado de `email` y `password`,
+ * y ahí **supabase-js lo ignora en silencio**. No avisa, no falla, no
+ * devuelve error: simplemente manda `gotrue_meta_security: {}` y Supabase
+ * responde «no captcha_token found». Con el captcha recién encendido eso
+ * dejó a la familia sin poder entrar, mientras que registrarse y
+ * recuperar la contraseña —que sí llevan el token en `options`— seguían
+ * funcionando, que es lo que hacía el fallo tan difícil de ver.
+ *
+ * La regla es de una línea y por eso vive aquí, con su test: **en las
+ * tres operaciones el token va DENTRO de `options`.**
+ */
+export function argumentosDeEntrada(email, clave, token = '') {
+  return {
+    email,
+    password: clave,
+    options: token ? { captchaToken: token } : {}
+  }
+}
+
 /** Traduce los mensajes de Supabase Auth. Nunca deja jerga en pantalla. */
 export function traducirAcceso(msg = '') {
   const t = String(msg)

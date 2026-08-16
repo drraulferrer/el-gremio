@@ -5,6 +5,7 @@ import Captcha from '../components/Captcha'
 import { esErrorDeCaptcha } from '../lib/captcha'
 import { datosDeAceptacion, puedeAceptar, urlLegal } from '../lib/legal'
 import {
+  argumentosDeEntrada,
   resultadoDeAlta,
   resultadoDeRecuperacion,
   traducirAcceso,
@@ -88,8 +89,10 @@ export default function Login() {
       return
     }
 
+    // Ojo con la forma: aquí el token va dentro de `options`, no al lado
+    // de email y password. Ver argumentosDeEntrada() y su test.
     const { error: err } = await supabase.auth.signInWithPassword(
-      conCaptcha({ email, password: pass })
+      argumentosDeEntrada(email, pass, token)
     )
     setCargando(false)
     if (err) fallo(traducirAcceso(err.message))

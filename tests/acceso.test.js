@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
+  argumentosDeEntrada,
   resultadoDeAlta,
   resultadoDeRecuperacion,
   validarClaveNueva,
@@ -112,5 +113,33 @@ describe('traducción de mensajes de acceso', () => {
 
   it('lo que no conoce lo deja pasar tal cual, nunca lo esconde', () => {
     expect(traducirAcceso('algo rarísimo del servidor')).toBe('algo rarísimo del servidor')
+  })
+})
+
+describe('la forma de la llamada de entrar', () => {
+  // Este bloque existe por un fallo real, y de los caros de ver: el token
+  // del captcha iba al lado de `email` y `password`, donde supabase-js lo
+  // IGNORA en silencio. No hay error, no hay aviso: manda
+  // `gotrue_meta_security: {}` y Supabase contesta «no captcha_token
+  // found». Registrarse y recuperar la contraseña seguían funcionando
+  // —esos sí lo llevan en `options`—, así que el único síntoma era que la
+  // familia no podía entrar. Se cazó mirando el cuerpo de la petición en
+  // el navegador, no en los tests, que es justo por lo que ahora hay uno.
+  it('el token del captcha va DENTRO de options, nunca en la raíz', () => {
+    const a = argumentosDeEntrada('a@b.com', 'secreta123', 'tok-123')
+    expect(a.options.captchaToken).toBe('tok-123')
+    expect(a.captchaToken).toBeUndefined()
+  })
+
+  it('sin token, options va vacío y no rompe nada', () => {
+    const a = argumentosDeEntrada('a@b.com', 'secreta123', '')
+    expect(a.options).toEqual({})
+    expect(a.email).toBe('a@b.com')
+    expect(a.password).toBe('secreta123')
+  })
+
+  it('las tres claves de arriba son las que espera supabase-js', () => {
+    expect(Object.keys(argumentosDeEntrada('a@b.com', 'x', 't')).sort())
+      .toEqual(['email', 'options', 'password'])
   })
 })
