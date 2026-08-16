@@ -2,9 +2,8 @@
 
 Documento de continuidad. Si abres una sesión nueva sobre este proyecto,
 lee esto primero: dice dónde está todo, qué está hecho, qué falta y qué
-trampas tiene. Última actualización: **15 de agosto de 2026 (noche)**, con la app
-desplegada, las temporadas cableadas y la migración 015 pendiente de
-ejecutar.
+trampas tiene. Última actualización: **16 de agosto de 2026**, con la app
+ya en su propio dominio, **elgremioapp.com**.
 
 Si solo vas a leer un párrafo: la app está **en producción y estable**; lo
 que queda no es código, es uso. Antes de añadir nada, lee §8 y pregunta
@@ -30,8 +29,9 @@ modo peque, la capa de producción y la gestión de miembros.
 
 | Cosa | Dónde |
 |---|---|
-| Web | https://drraulferrer.github.io/el-gremio/ |
-| Exposición pública | https://drraulferrer.github.io/el-gremio/narrativa/ |
+| Web | https://elgremioapp.com/ (la dirección vieja redirige sola) |
+| Exposición pública | https://elgremioapp.com/narrativa/ |
+| Dominio y correo | Hostinger, cuenta de Raúl; el sitio lo sigue sirviendo GitHub Pages |
 | Repo (público) | https://github.com/drraulferrer/el-gremio |
 | Código local | `~/el-gremio` |
 | Supabase | proyecto `chfbrawsoulfiywiqhpe`, Postgres 17.6, región EU |
@@ -190,6 +190,20 @@ npm run rollback -- deploy-2026-08-15-0813  # volver a una
 Si algún día hace falta CI/CD: `gh auth refresh -s workflow` (interactivo,
 lo tiene que hacer el usuario) y montar el workflow. Los scripts seguirán
 sirviendo como salida de emergencia.
+
+**Ese mismo `npm run deploy` es el que actualiza elgremioapp.com**: el
+dominio no cambió quién sirve el sitio, solo cómo se llama. No hay un
+segundo despliegue a Hostinger, ni FTP, ni nada que subir a mano.
+
+### El dominio va dentro de la build, en `public/CNAME`
+
+Cada publicación **vacía la rama `gh-pages`** antes de copiar la build. Si
+el `CNAME` viviera suelto en esa rama, el primer despliegue lo borraría,
+GitHub daría el dominio por retirado y elgremioapp.com dejaría de
+responder hasta que alguien lo volviera a escribir a mano en Settings.
+Por eso vive en `public/`, lo copia Vite, y `prepararDist` **aborta** si
+no lo encuentra en `dist/`. `urlDePages()` lee ese mismo fichero, así que
+despliegue, `health` y QR no pueden discrepar sobre cuál es la URL buena.
 
 ### El repo tiene que ser público
 
@@ -411,7 +425,8 @@ Verificado **en navegador**, no solo compilando:
   guardado: «Vestirse sola / solo / sin ayuda».
 - El fondo ya no reinicia su animación al cambiar de pantalla: el reloj
   avanza sin cortes (12862 → 15862 → 16862 → 17862 ms) con una sola capa.
-- Build servida bajo `/el-gremio/` con las rutas correctas.
+- Build servida en la raíz de elgremioapp.com con las rutas correctas
+  (antes, bajo `/el-gremio/`; las dos con el mismo código).
 - RLS real: escritura anónima rechazada con `42501`.
 
 ---
@@ -805,8 +820,10 @@ de quien lo abriera.
 Queda así (16-ago):
 
 ```
-Site URL       https://drraulferrer.github.io/el-gremio/
-Redirect URLs  https://drraulferrer.github.io/el-gremio/**
+Site URL       https://elgremioapp.com/                 (16-ago, con la mudanza)
+Redirect URLs  https://elgremioapp.com/**
+               https://drraulferrer.github.io/el-gremio/**   (dirección vieja,
+                          se deja por los correos que ya salieron con ella)
                http://localhost:5173/**          (para npm run dev)
 Contraseña     mínimo 8 (era 6, que es el mínimo que deja Supabase)
 ```
@@ -1092,6 +1109,59 @@ NO el tope de uno al día, que no se salta ni probando).
 - **La peque no recibe avisos.** A los tres años el teléfono no es suyo.
 - La franja es de 17 a 20 en **hora de la familia** (`families.timezone`),
   no del servidor.
+
+---
+
+## 7i. La mudanza a elgremioapp.com (16 de agosto)
+
+El dominio y un plan de correo se compraron en Hostinger. **Lo que NO se
+compró es alojamiento**, y está bien así: el sitio lo sigue sirviendo
+GitHub Pages y Hostinger solo pone el nombre. Comprar hosting habría
+significado subir ficheros por FTP en cada cambio y perder el despliegue
+versionado con etiquetas y rollback, que es justo lo que hace que esto se
+pueda tocar sin miedo.
+
+**DNS en Hostinger** (nameservers `*.dns-parking.com`, sin tocar):
+
+```
+A     @    185.199.108.153 · .109.153 · .110.153 · .111.153   (GitHub Pages)
+CNAME www  drraulferrer.github.io
+```
+
+Se retiró el `A @ → 2.57.91.91`, que era la página de aparcamiento. Los
+cuatro A con el mismo nombre son lo correcto aquí, aunque el panel avise
+de que «puede dejar tu web inaccesible»: son las cuatro entradas del CDN
+de GitHub.
+
+**En GitHub**: dominio tomado del `CNAME` de la build, certificado emitido
+para el ápice y para `www`, y **HTTPS forzado** (`https_enforced`, que hay
+que encender aparte y no se enciende solo).
+
+Lo que se comprobó desde fuera, ya en verde: `https://elgremioapp.com/`
+responde 200 con el `version.json` del despliegue de hoy, `www` redirige
+al ápice, `/narrativa/` responde 200 y **la dirección vieja
+`drraulferrer.github.io/el-gremio/` redirige sola al dominio nuevo**, así
+que los QR impresos y los enlaces que ya circulan siguen valiendo.
+
+Tres cosas que conviene saber, y que muerden en este orden:
+
+- **Todo el mundo tiene que volver a entrar.** La sesión de Supabase vive
+  en el `localStorage` del ORIGEN, y el origen cambió: los dispositivos de
+  casa aparecen deslogueados aunque nadie haya cerrado sesión. No es un
+  fallo. Lo mismo vale para el perfil recordado en cada aparato.
+- **Quien tuviera la app instalada desde la dirección vieja tiene que
+  volver a instalarla.** Un PWA queda atado al origen donde se instaló, y
+  ese origen ahora redirige fuera de su ámbito.
+- **El correo de Hostinger está comprado pero SIN configurar**, así que el
+  dominio no tiene ni MX ni SPF. Cuando se termine el alta (crear el buzón
+  pide contraseña, o sea que lo hace una persona), Hostinger añadirá esos
+  registros: son de correo y no chocan con los A del sitio. **Lo que no
+  hay que pulsar es «Reset DNS records»**, que devuelve la zona al estado
+  de aparcamiento y tira los cuatro A por delante.
+
+Queda pendiente y es opcional: los cuatro `AAAA` de GitHub Pages. Hoy no
+hacen falta —las redes IPv6-only de los operadores sintetizan la dirección
+a partir del registro A— y por eso no se pusieron.
 
 ---
 
