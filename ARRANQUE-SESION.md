@@ -1176,13 +1176,25 @@ de la mudanza: el plan viejo pedía un subdominio `send.` porque
 `elgremioapp.com` no envía nada más, así que ese rodeo sobra. La receta
 al día está en `docs/CORREOS.md`.
 
-Lo que **falta y solo puede hacer una persona**: pegar la contraseña del
-buzón en Supabase → Authentication → Emails → SMTP Settings y guardar. El
-resto de casillas ya están puestas. Con eso encendido: el tope de envío
-sube a 30/hora, las plantillas pasan a ser editables —y las tres en
-español ya están escritas en `docs/CORREOS.md`, listas para pegar— y
-entonces sí se puede encender «Confirm email», que es lo que §7e dejaba
-esperando a tener SMTP propio.
+**El SMTP propio quedó encendido y probado el mismo día.** Un
+`POST /auth/v1/recover` contra la app publicada contestó 200 y el correo
+llegó **al instante y a la bandeja de entrada, no a spam**, remitido por
+`noreply@elgremioapp.com` y con el `redirect_to` apuntando a
+`https://elgremioapp.com/`. Que el remitente sea ese y no
+`noreply@mail.app.supabase.io` es la prueba de que salió por Hostinger y
+no por el remitente por defecto de Supabase.
+
+Lo que queda de aquí, por orden:
+
+1. **Las plantillas siguen en inglés** («Reset your password»). Ahora ya
+   se pueden editar —era lo que bloqueaba el SMTP— y las tres en español
+   están escritas y revisadas en `docs/CORREOS.md`, listas para pegar.
+2. **Falta abrir el enlace de un correo de verdad** y comprobar que cae
+   en la pantalla de contraseña nueva y no en el tablero. Si cayera en el
+   tablero, lo que falla es la Redirect URL, no la plantilla.
+3. Con lo anterior hecho, ya se puede **encender «Confirm email»**, que es
+   lo que §7e dejaba esperando a tener SMTP propio. El tope de envío está
+   ahora en 30/hora (Authentication → Rate Limits).
 
 ---
 
