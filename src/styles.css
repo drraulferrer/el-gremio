@@ -2449,3 +2449,58 @@ button.kid-avatar.latiendo { animation: latido-aviso 2.6s var(--ease-salida) inf
   margin-left: 6px;
   vertical-align: -3px;
 }
+
+/* ------------------------------------------------------------------
+   Panel · Misiones plegadas por persona.
+
+   Con cuatro personas y seis misiones cada una, la pestaña era una pared
+   de treinta tarjetas. Cerrada, la familia entera cabe en cuatro filas.
+   La cuenta va SIEMPRE visible en la cabecera: si plegar escondiera
+   cuántas misiones tiene cada quien, no sería resumir, sería ocultar.
+   ------------------------------------------------------------------ */
+.grupo-cabecera {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 48px;
+  margin: 14px 0 4px;
+  padding: 10px 12px;
+  background: var(--carta);
+  border: 1px solid var(--linea);
+  border-radius: 14px;
+  color: var(--tinta);
+  font-family: var(--display);
+  font-size: 1rem;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  /* Solo color: animar el fondo o el borde no mueve la caja, y esta lista
+     puede tener cuatro cabeceras a la vez. */
+  transition: border-color 0.18s ease, background 0.18s ease;
+}
+.grupo-cabecera:hover,
+.grupo-cabecera:focus-visible { border-color: var(--oro); }
+.grupo-titulo { flex: 1; }
+.grupo-cuenta {
+  min-width: 26px;
+  padding: 2px 8px;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--tinta-suave);
+  font-size: 0.82rem;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+.grupo-chevron { color: var(--tinta-suave); font-size: 0.9rem; }
+
+.pie-pausadas {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 18px 4px 4px;
+  color: var(--tinta-suave);
+  font-size: 0.86rem;
+  line-height: 1.5;
+}

@@ -533,6 +533,9 @@ const MISION_VACIA = { title: '', emoji: '⭐', xp: 10, coins: 5, frequency: 'di
 function GestionMisiones({ family, data, refresh }) {
   const [editando, setEditando] = useState(null) // null | objeto misión
   const [plantillas, setPlantillas] = useState(false)
+  // Qué persona está desplegada. Solo una a la vez, y ninguna al entrar:
+  // la vista de arranque es el resumen de la familia, no el detalle.
+  const [abierto, setAbierto] = useState(null)
   const [fallo, setFallo] = useState('')
   // El destino, tal y como se lee en la lista. Sin el caso del rol, una
   // misión de «cualquier adulto» se anunciaba como «Todos», que es
@@ -590,17 +593,27 @@ function GestionMisiones({ family, data, refresh }) {
   // misiones seguidas no se puede organizar: para saber qué tiene la
   // junior había que leerlas todas comprobando el destino de cada una.
   // El orden de los bloques es el de urgencia, igual que en el tablero.
+  // Las PAUSADAS no salen aquí: una misión pausada está, a todos los
+  // efectos, devuelta a la biblioteca —desde allí se vuelve a activar—, y
+  // dejarla en esta lista al 50 % de opacidad solo servía para doblar la
+  // altura del panel con cosas que no están pasando. Se cuentan abajo,
+  // que es lo único que hay que saber de ellas.
+  const pausadas = data.challenges.filter((c) => !c.active)
+
   const grupos = (() => {
     const gente = perfilesActivos(data.profiles)
     const salida = gente.map((p) => ({
       clave: p.id,
       titulo: `${p.emoji} ${p.name}`,
-      misiones: misionesDe(p, data.challenges, { incluirPausadas: true })
+      misiones: misionesDe(p, data.challenges)
     }))
     // Las que no le tocan a nadie activo no pueden quedarse sin sitio: se
     // perderían de vista y seguirían contando en la economía.
     const asignadas = new Set(salida.flatMap((g) => g.misiones.map((m) => m.id)))
-    const huerfanas = data.challenges.filter((c) => !asignadas.has(c.id))
+    // Solo entre las activas: desde que las pausadas salen de la lista,
+    // mirar `data.challenges` entero metía TODAS las pausadas aquí como
+    // si no tuvieran destino.
+    const huerfanas = data.challenges.filter((c) => c.active && !asignadas.has(c.id))
     if (huerfanas.length) {
       salida.push({ clave: 'sin-destino', titulo: '— Sin nadie a quien le toque', misiones: huerfanas })
     }
@@ -628,15 +641,30 @@ function GestionMisiones({ family, data, refresh }) {
 
       {grupos.map((g) => (
         <section key={g.clave}>
-          <div className="titulo-seccion">{g.titulo}</div>
-          {g.bloques.map((b) => (
+          {/* Plegado por persona. Con cuatro personas y seis misiones cada
+              una esto era una pared de treinta tarjetas donde no se veía
+              nada; cerrado, la familia entera cabe en cuatro filas y se
+              abre solo a quien vienes a tocar. La cuenta va en la cabecera
+              para que plegar no esconda la información que hace falta
+              para decidir. */}
+          <button
+            type="button"
+            className="grupo-cabecera"
+            aria-expanded={abierto === g.clave}
+            onClick={() => setAbierto(abierto === g.clave ? null : g.clave)}
+          >
+            <span className="grupo-titulo">{g.titulo}</span>
+            <span className="grupo-cuenta">{g.misiones.length}</span>
+            <span className="grupo-chevron" aria-hidden="true">{abierto === g.clave ? '▾' : '▸'}</span>
+          </button>
+          {abierto === g.clave && g.bloques.map((b) => (
             <div key={b.frecuencia}>
               <h4 className="titulo-frecuencia">
                 {b.titulo}
                 <span className="cuenta-frecuencia">{b.misiones.length}</span>
               </h4>
               {b.misiones.map((ch) => (
-        <div className="carta" key={ch.id} style={{ opacity: ch.active ? 1 : 0.5 }}>
+        <div className="carta" key={ch.id}>
           <div className="fila">
             <div className="avatar">{ch.emoji}</div>
             <div className="crece">
@@ -646,8 +674,13 @@ function GestionMisiones({ family, data, refresh }) {
                 +{ch.xp} XP · {ch.coins} 🪙
               </div>
             </div>
-            <button className="btn-icono" onClick={() => alternar(ch)} aria-label={ch.active ? 'Pausar' : 'Activar'}>
-              <Icono nombre={ch.active ? 'pausar' : 'reanudar'} />
+            <button
+              className="btn-icono"
+              onClick={() => alternar(ch)}
+              aria-label={`Devolver "${ch.title}" a la biblioteca`}
+              title="Devolver a la biblioteca"
+            >
+              <Icono nombre="pausar" />
             </button>
             <button className="btn-icono" onClick={() => setEditando(ch)} aria-label={`Editar ${ch.title}`}>
               <Icono nombre="editar" />
@@ -668,6 +701,20 @@ function GestionMisiones({ family, data, refresh }) {
           onBorrar={editando.id ? borrar : null}
           onClose={() => setEditando(null)}
         />
+      )}
+
+      {/* Una misión pausada no desaparece: vuelve a la biblioteca y desde
+          allí se reactiva con su historial intacto. Decirlo aquí es lo que
+          separa «lo he guardado» de «lo he perdido». */}
+      {pausadas.length > 0 && (
+        <p className="pie-pausadas">
+          {pausadas.length === 1
+            ? '1 misión pausada está de vuelta en la biblioteca.'
+            : `${pausadas.length} misiones pausadas están de vuelta en la biblioteca.`}
+          <button className="btn btn-fantasma btn-mini" onClick={() => setPlantillas(true)}>
+            📚 Abrirla
+          </button>
+        </p>
       )}
 
       {plantillas && (
@@ -830,6 +877,16 @@ function Biblioteca({ family, data, refresh, onClose }) {
   const perfil = candidatos.find((p) => p.id === perfilId)
   const yaActivas = new Set(misionesDe(perfil, data.challenges).map((ch) => ch.title))
 
+  // Las pausadas SÍ se vuelven a ofrecer aquí, y al activarlas hay que
+  // revivir la fila que ya existe. Insertando una nueva —que es lo que
+  // hacía— quedaban dos misiones del mismo título para la misma persona,
+  // una parada y otra viva, con el historial partido entre las dos.
+  const pausadasPorTitulo = new Map(
+    misionesDe(perfil, data.challenges, { incluirPausadas: true })
+      .filter((ch) => !ch.active)
+      .map((ch) => [ch.title, ch])
+  )
+
   const grupos = perfil ? CATALOGO[perfil.role] || [] : []
 
   function alternarSel(titulo) {
@@ -844,9 +901,15 @@ function Biblioteca({ family, data, refresh, onClose }) {
     setActivando(true)
     const defaults = DEFAULTS_ROL[perfil.role]
     const filas = []
+    const revivir = []
     for (const g of grupos) {
       for (const tt of g.tareas) {
         if (!sel.has(tt.t) || yaActivas.has(tt.t)) continue
+        const pausada = pausadasPorTitulo.get(tt.t)
+        if (pausada) {
+          revivir.push(pausada.id)
+          continue
+        }
         filas.push({
           family_id: family.id,
           profile_id: perfil.id,
@@ -857,6 +920,14 @@ function Biblioteca({ family, data, refresh, onClose }) {
           frequency: tt.f,
           skill: tt.skill
         })
+      }
+    }
+    if (revivir.length) {
+      const { error } = await supabase.from('challenges').update({ active: true }).in('id', revivir)
+      if (error) {
+        setFallo(mensajeDeError(error))
+        setActivando(false)
+        return
       }
     }
     if (filas.length) {
