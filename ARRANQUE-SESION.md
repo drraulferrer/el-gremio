@@ -1118,6 +1118,14 @@ recibió, la junior todavía no tiene el suyo activado, así que su aviso se
 apuntó y no salió a ninguna parte. Se distingue mirando `push_subs`: un
 envío fallido deja `fallos` a 1, y ahí los dos siguen a cero.
 
+**A media mañana entró el tercer aparato, el de la junior** (11:17), y con
+la función ya corregida recibió el suyo: `avisados: 1, enviados: 1`. Los
+tres teléfonos de la casa están dentro y los tres han recibido algo de
+verdad. Cuidado con el orden, que es el que puede confundir: su fila de
+`push_log` de esa mañana era anterior a tener aparato, y **una fila así
+silencia el aviso del día aunque el teléfono ya esté puesto**. Hubo que
+borrarla (`enviados = 0`) para que el reparto volviera a contar con ella.
+
 **Lo que sí destapó el envío fue un fallo de contenido**: a la junior, con
 un día de racha, la frase compuesta era «**1 días seguidos**». Cuatro de
 las cinco plantillas de `racha_riesgo` interpolaban `${n} días` sin forma
