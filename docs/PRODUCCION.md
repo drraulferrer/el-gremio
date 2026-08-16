@@ -76,23 +76,24 @@ Todo correcto, con un matiz que es el que importa a escala.
 |---|---|---|
 | SPF | ✅ `v=spf1 include:_spf.mail.hostinger.com ~all` | `dig TXT elgremioapp.com` |
 | DKIM | ✅ `hostingermail-a` con clave RSA real | `dig TXT hostingermail-a._domainkey.elgremioapp.com` |
-| DMARC | ⚠️ `v=DMARC1; p=none`, **sin `rua=`** | `dig TXT _dmarc.elgremioapp.com` |
+| DMARC | ✅ `p=none` con `rua=mailto:info@elgremioapp.com` (16-ago) | `dig TXT _dmarc.elgremioapp.com` |
 | Remitente | ✅ `noreply@elgremioapp.com` · «El Gremio» | panel |
 | Servidor | ✅ `smtp.hostinger.com:465` | panel |
 | Site URL | ✅ `https://elgremioapp.com/` | panel |
-| Redirect URLs | ✅ dominio nuevo, viejo y localhost | panel |
+| Redirect URLs | ✅ nuevo, `www`, viejo y localhost | panel |
 | Confirmar correo | ✅ encendido | panel |
 | Plantillas | ✅ sin URLs fijas: solo `{{ .ConfirmationURL }}` | `grep` |
 | Dominio viejo | ✅ 301 al nuevo | `curl -I` |
 
 **Los dos peros:**
 
-- **DMARC en `p=none` y sin dirección de informes.** `p=none` es la
-  postura correcta para empezar, pero sin `rua=` no llega ni un informe:
-  no hay forma de saber si alguien está suplantando el dominio ni si los
-  correos legítimos pasan la alineación. Añadir `rua=mailto:...` cuesta un
-  registro TXT y da visibilidad desde el primer día; subir a `quarantine`
-  después, con datos.
+- **DMARC ya manda informes** a `info@elgremioapp.com` (arreglado el
+  16-ago). Sigue en `p=none`, que es la postura correcta mientras no haya
+  datos: el siguiente paso es leer un par de semanas de informes y, si
+  todo lo legítimo pasa la alineación, subir a `quarantine`. Nota que
+  costó despejar: el `rua` vale aunque ese buzón reenvíe a otro sitio,
+  porque lo que exige la norma es que la dirección esté en el mismo
+  dominio que el registro.
 - **El techo real son 30 correos/hora** (Authentication → Rate Limits), y
   detrás hay un **buzón de Hostinger, no un servicio transaccional**. Cada
   alta consume un correo de confirmación, y las recuperaciones compiten
@@ -111,7 +112,14 @@ que mover los correos de autenticación a un servicio transaccional
 (Resend, Postmark, SES) y subir el tope. La señal de que llegó el momento
 no es el número de usuarios: es el primer «no me ha llegado el correo».
 
-### 2. Las copias de seguridad no dan para un descuido
+### 2. Las copias de seguridad no dan para un descuido · ⏸ APLAZADO A PROPÓSITO
+
+> **Decisión del 16-ago: no se pasa a Pro por ahora.** Es un coste
+> recurrente que la app no recupera por sí misma —no cobra, no tiene
+> ingresos— y con una familia dentro el riesgo real es asumible. Se
+> arregla cuando sea imprescindible, y el disparador está escrito abajo:
+> el día que haya familias que no sean la de casa, este es el primer
+> gasto, por delante de cualquier otro.
 
 El plan Free hace copia diaria con **7 días de retención y sin
 point-in-time recovery**. Traducido: un `delete` equivocado a las 10:00 se
@@ -119,13 +127,22 @@ recupera con los datos de ayer, y se pierde un día entero de todas las
 familias. Con historial de menores dentro eso no es un riesgo asumible.
 **Es la razón más sólida para pasar a Pro**, por encima del rendimiento.
 
-### 3. El registro está abierto y sin captcha
+### 3. El registro está abierto y sin captcha · ✅ ARREGLADO (16-ago)
 
-Comprobado: «Enable Captcha protection» apagado y altas abiertas. Cada
+> **Cloudflare Turnstile encendido y verificado.** Sin token, los tres
+> endpoints responden `captcha_failed`; con la app real, las tres pasan.
+> Detalle y trampas en `docs/CAPTCHA.md`.
+>
+> La trampa que casi se queda dentro: `signInWithPassword` quiere el token
+> DENTRO de `options`, y al pasarlo al lado de `email` y `password`
+> **supabase-js lo descarta en silencio**. Registrarse y recuperar
+> funcionaban; entrar no. Lo cazó mirar el cuerpo real de la petición en
+> el navegador, no los tests.
+
+Lo que motivaba esto sigue siendo cierto y conviene no olvidarlo: cada
 registro es una fila en `auth.users` **y un correo del cupo de 30/hora**.
-Un script trivial deja a las familias reales sin poder darse de alta, y no
-hace falta ni malicia: basta un rastreador. Encenderlo exige cuenta de
-hCaptcha o Turnstile —decisión con dueño, no un interruptor.
+Sin captcha, un script trivial —o un simple rastreador— dejaba a las
+familias reales sin poder darse de alta.
 
 ### 4. Todo depende de una persona y un portátil
 
@@ -141,7 +158,19 @@ credenciales en un gestor compartido con alguien de confianza, y el
 workflow de Actions (necesita `gh auth refresh -s workflow`, que solo
 puede hacer el usuario).
 
-### 5. Nadie puede ver los fallos de nadie
+### 5. Nadie puede ver los fallos de nadie · ✅ ARREGLADO (16-ago)
+
+> **`salud_diaria`** (migración 023): una fila al día con los agregados
+> —cuentas, gremios, altas, misiones validadas, errores, gremios activos,
+> suscripciones y avisos enviados—, escrita por `pg_cron` a las 4:20.
+> **Sobrevive a la purga de logs**, que era el problema de fondo: los
+> números se borraban a los 30 días y nadie los había mirado. Y no guarda
+> datos de nadie, solo cuentas: sin `family_id`, sin nombres, sin correos.
+> Lo que no se guarda no se puede usar para otra cosa.
+>
+> Se mira con una línea: `select * from salud_diaria order by dia desc;`
+>
+> Lo que sigue faltando es que ALGUIEN mire. La tabla no avisa sola.
 
 `app_logs` está bajo RLS por familia —correcto para la privacidad— y eso
 deja al operador ciego: no hay una sola consulta que diga «cuántas altas
@@ -167,7 +196,19 @@ Hace falta una vista agregada y anónima (contadores por evento y día, sin
 `family_id`) o encender Sentry, que está escrito y esperando en
 `monitoring.js`.
 
-### 6. La app no manda una sola cabecera de seguridad
+### 6. La app no manda una sola cabecera de seguridad · ✅ ARREGLADO EN PARTE (16-ago)
+
+> CSP estricta por `<meta>` en `index.html`, verificada contra el bundle
+> de producción: fuentes, Turnstile, Supabase y service worker
+> funcionando, cero violaciones. `script-src` va **sin** `unsafe-inline`
+> porque el build no genera scripts en línea, que es lo que hace que la
+> política valga de algo frente a un XSS que se lleve la sesión.
+>
+> **Lo que NO cubre, y no es opinable:** `frame-ancestors` y `report-uri`
+> se ignoran en `<meta>`, así que sigue sin haber protección contra
+> iframes ni informes de violación. Eso exige cabeceras HTTP de verdad, y
+> GitHub Pages no las sirve. Se arregla el día que se mueva el
+> alojamiento (Cloudflare Pages o Netlify), sin tocar nada más.
 
 Comprobado: sin CSP, sin HSTS, sin `X-Frame-Options`. La sesión de
 Supabase vive en `localStorage`, así que **cualquier XSS se lleva el token
