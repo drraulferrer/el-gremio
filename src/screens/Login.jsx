@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { urlDeLaNarrativa, urlDelGremio } from '../lib/dominio'
 import Captcha from '../components/Captcha'
-import { hayCaptcha } from '../lib/captcha'
+import { esErrorDeCaptcha } from '../lib/captcha'
 import { datosDeAceptacion, puedeAceptar, urlLegal } from '../lib/legal'
 import {
   resultadoDeAlta,
@@ -40,7 +40,10 @@ export default function Login() {
   const conCaptcha = (opciones = {}) => (token ? { ...opciones, captchaToken: token } : opciones)
 
   function fallo(mensaje) {
-    setError(mensaje)
+    // «captcha protection: request disallowed» no le dice nada a nadie.
+    setError(esErrorDeCaptcha(mensaje)
+      ? 'No hemos podido comprobar que no eres un robot. Espera un momento y vuelve a intentarlo.'
+      : mensaje)
     setToken('')
     setIntento((n) => n + 1)
   }
@@ -98,10 +101,15 @@ export default function Login() {
     (modo === 'olvidada' || pass.length >= minimo) &&
     // Sin la casilla no hay alta. La regla vive en legal.js para poder
     // probarla sin abrir el navegador.
-    (modo !== 'crear' || puedeAceptar(acepta)) &&
-    // Con captcha configurado, el botón espera al token. Sin él, ni se
-    // dibuja ni estorba.
-    (!hayCaptcha() || Boolean(token))
+    (modo !== 'crear' || puedeAceptar(acepta))
+  // OJO: el botón NO espera al token del captcha, y es a propósito.
+  // Bloquearlo hasta tenerlo parece más limpio y es una trampa: el día
+  // que Cloudflare no cargue —o que el widget no dibuje por lo que sea—
+  // NADIE puede entrar, registrarse ni recuperar su contraseña, y encima
+  // sin un mensaje que lo explique. Quien de verdad exige el captcha es
+  // Supabase, que rechaza la petición sin token válido; entonces se ve un
+  // error concreto y se puede reintentar. Un candado en el navegador que
+  // deja fuera a las familias reales protege menos que el de arriba.
 
   return (
     <div className="pantalla-centrada">

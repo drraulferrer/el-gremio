@@ -1,13 +1,19 @@
 # El captcha del registro
 
-Está **escrito y apagado**. El código vive en `src/lib/captcha.js` y
-`src/components/Captcha.jsx`, y mientras no haya clave configurada la app
-se comporta exactamente igual que antes: no dibuja nada, no carga ningún
-script de Cloudflare y el alta funciona como siempre.
+**Estado a 16-ago-2026: medio encendido.** El widget existe en Cloudflare
+(«El Gremio», hostnames `elgremioapp.com`, `www.elgremioapp.com` y
+`localhost`, modo Gestionado), la clave pública está en `.env` y
+desplegada, y el recuadro aparece y resuelve en la app.
 
-Se enciende con dos claves que **tienes que crear tú**: la pública va en
-el bundle y la secreta va en Supabase, y esa segunda no la teclea nadie
-más que su dueño.
+**Falta un paso, y es el único que no puede hacer un agente: pegar la
+clave SECRETA en Supabase** (Authentication → Attack Protection →
+proveedor Turnstile). Hasta que eso ocurra, el captcha se dibuja y
+entrega su token, pero **nadie lo verifica**: la protección real la aplica
+Supabase, no el navegador.
+
+El código vive en `src/lib/captcha.js` y `src/components/Captcha.jsx`. Sin
+`VITE_TURNSTILE_SITE_KEY` no dibuja nada y no carga ningún script de
+terceros, que es como estuvo hasta hoy.
 
 ## Por qué hace falta
 
@@ -69,7 +75,13 @@ mire.
 
 - El captcha se dibuja en las **tres** operaciones que Supabase protege:
   entrar, registrarse y pedir contraseña nueva. No solo en el alta.
-- El botón espera a tener token. Sin él no se puede enviar.
+- **El botón NO espera al token**, y es a propósito. Bloquearlo hasta
+  tenerlo parece más limpio y es una trampa: el día que Cloudflare no
+  cargue, nadie podría entrar, registrarse ni recuperar su contraseña, y
+  sin un mensaje que lo explicara. Quien exige el captcha es Supabase, que
+  rechaza la petición sin token válido; entonces sale un error concreto y
+  se puede reintentar. (La primera versión de esta pantalla sí lo
+  bloqueaba. Se cazó probándolo en el navegador, no leyendo el código.)
 - El token es **de un solo uso**: cada intento fallido remonta el widget
   (`key={modo + intento}` en `Login.jsx`) para pedir uno nuevo. Sin eso, el
   segundo intento fallaría siempre y parecería un fallo de contraseña.
