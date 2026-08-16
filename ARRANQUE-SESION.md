@@ -1054,11 +1054,13 @@ habría ninguno marcado. El de premios saltó a la primera con 🍽️ y 🌟.
 
 ---
 
-## 7d. Avisos push (16-ago) · CONSTRUIDO A MEDIAS
+## 7d. Avisos push (16-ago) · MONTADO ENTERO
 
-Todo el código está escrito, probado y desplegado, y la migración 019 está
-ejecutada. **Lo que falta son tres pasos en el panel de Supabase**, y hasta
-que se den no llega ni un aviso.
+Cadena completa y comprobada de punta a punta. Lo único que falta no es
+código: que cada persona active los avisos en su móvil desde Ajustes →
+🔔 Avisos, **con la app instalada desde el dominio nuevo** (una suscripción
+push pertenece al origen, así que la instalación vieja de
+`drraulferrer.github.io` no vale).
 
 ### Lo que ya está
 
@@ -1078,22 +1080,26 @@ que se den no llega ni un aviso.
   marca de género.
 - Claves VAPID generadas y guardadas en `.env` (fuera de git).
 
-### Los tres pasos que faltan
+### Lo que quedó montado en el panel (16-ago)
 
-1. **Desplegar la función.** Panel → Edge Functions → *Open Editor*, crear
-   `notificar` y pegar `supabase/functions/notificar/`. Hay que dejar
-   **«Verify JWT» en OFF**: la función se protege con un secreto propio en
-   la cabecera para que el cron no tenga que llevar encima la clave de
-   servicio.
-2. **Los secretos** (Edge Functions → Secrets), tal cual están en `.env`:
-   `VAPID_PUBLIC`, `VAPID_PRIVATE`, `VAPID_SUBJECT` y `GREMIO_CRON_SECRET`.
-3. **El cron**: ejecutar `supabase/cron-notificar.sql` sustituyendo
-   `<SECRETO>` por el valor de `GREMIO_CRON_SECRET`. Ese fichero NO lleva
-   el secreto porque el repositorio es público.
+- **Función `notificar` desplegada** desde el editor del navegador, con
+  `index.ts` y `mensajes.ts`. **«Verify JWT» está en OFF** a propósito: se
+  protege con un secreto propio en la cabecera, y así el cron no tiene que
+  llevar encima la clave de servicio. Comprobado: sin cabecera responde
+  401, con ella reparte.
+- **Los cuatro secretos** puestos (`VAPID_PUBLIC`, `VAPID_PRIVATE`,
+  `VAPID_SUBJECT`, `GREMIO_CRON_SECRET`). Sus valores están en `.env`,
+  fuera de git.
+- **Cron `gremio-avisos`, cada hora en punto** (`cron.job` lo confirma). El
+  fichero `supabase/cron-notificar.sql` lleva `<SECRETO>` como marcador
+  porque el repositorio es público: al reejecutarlo hay que sustituirlo.
 
-Después, la prueba de humo: activar los avisos en un móvil desde Ajustes y
-llamar a la función con `?forzar=1` (salta la franja de la tarde, pero
-NO el tope de uno al día, que no se salta ni probando).
+Prueba de humo hecha: `?forzar=1` (salta la franja de la tarde, pero NO el
+tope de uno al día) devolvió `candidatos: 2, avisados: 2, enviados: 0`,
+correcto porque aún no hay ningún aparato suscrito. **Esas dos filas de
+`push_log` se borraron después**: dejarlas habría silenciado el aviso real
+de ese día. Si se vuelve a probar, hay que volver a limpiarlas:
+`delete from public.push_log where dia = current_date and enviados = 0;`
 
 ### Decisiones que conviene no deshacer
 
