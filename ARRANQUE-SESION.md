@@ -836,7 +836,8 @@ Y lo que sigue abierto ahí dentro, por orden de importancia:
   el remitente de Supabase está limitado a un puñado de correos por hora**
   para todo el proyecto: encenderlo hoy convertiría el alta en una cola.
   El orden correcto es SMTP propio primero (Resend, Postmark, SES),
-  confirmación después.
+  confirmación después. **Actualizado el 16-ago**: el SMTP propio ya no
+  hace falta contratarlo, sale del correo del dominio; ver §7i.
 - **El registro está abierto a cualquiera y sin captcha.** El captcha pide
   cuenta de hCaptcha o Turnstile y su clave secreta, así que es una
   decisión con dueño, no un interruptor.
@@ -1158,16 +1159,63 @@ Tres cosas que conviene saber, y que muerden en este orden:
 - **Quien tuviera la app instalada desde la dirección vieja tiene que
   volver a instalarla.** Un PWA queda atado al origen donde se instaló, y
   ese origen ahora redirige fuera de su ámbito.
-- **El correo de Hostinger está comprado pero SIN configurar**, así que el
-  dominio no tiene ni MX ni SPF. Cuando se termine el alta (crear el buzón
-  pide contraseña, o sea que lo hace una persona), Hostinger añadirá esos
-  registros: son de correo y no chocan con los A del sitio. **Lo que no
-  hay que pulsar es «Reset DNS records»**, que devuelve la zona al estado
-  de aparcamiento y tira los cuatro A por delante.
+- **Ninguna de estas dos cosas se toca con «Reset DNS records»**, que
+  devuelve la zona al estado de aparcamiento y se lleva por delante el
+  sitio y el correo a la vez. Es el único botón peligroso de esa página.
 
-Queda pendiente y es opcional: los cuatro `AAAA` de GitHub Pages. Hoy no
-hacen falta —las redes IPv6-only de los operadores sintetizan la dirección
-a partir del registro A— y por eso no se pusieron.
+**IPv6 puesto** el mismo día: los cuatro `AAAA` de GitHub Pages
+(`2606:50c0:800{0,1,2,3}::153`), que conviven con los `A` sin más.
+
+**El correo del dominio quedó dado de alta** (plan Starter Business Email
+de Hostinger, buzón `noreply@elgremioapp.com`), y con él sus registros:
+`MX` a `mx1`/`mx2.hostinger.com`, SPF, tres `CNAME` de DKIM, `_dmarc` en
+`p=none` y los `autodiscover`/`autoconfig`. Todos comprobados desde
+fuera. Que el remitente pueda ir en la **raíz** del dominio es un efecto
+de la mudanza: el plan viejo pedía un subdominio `send.` porque
+`raulferrer.org` ya enviaba correo y un dominio solo admite un SPF;
+`elgremioapp.com` no envía nada más, así que ese rodeo sobra. La receta
+al día está en `docs/CORREOS.md`.
+
+Lo que **falta y solo puede hacer una persona**: pegar la contraseña del
+buzón en Supabase → Authentication → Emails → SMTP Settings y guardar. El
+resto de casillas ya están puestas. Con eso encendido: el tope de envío
+sube a 30/hora, las plantillas pasan a ser editables —y las tres en
+español ya están escritas en `docs/CORREOS.md`, listas para pegar— y
+entonces sí se puede encender «Confirm email», que es lo que §7e dejaba
+esperando a tener SMTP propio.
+
+---
+
+## 7e. Correo propio y dominio (16-ago)
+
+**El dominio ya estaba al día** cuando lo revisé: `Site URL` y las
+`Redirect URLs` de Supabase apuntan a `https://elgremioapp.com`. Las
+referencias a `drraulferrer.github.io` que quedan en el repo son
+históricas a propósito —comentarios que explican por qué el código es como
+es, y un test que fija el comportamiento de cuando colgaba de
+`/el-gremio/`—, así que no se tocan.
+
+**La redirect URL vieja se deja puesta a propósito.** Mientras alguien
+tenga instalada la app antigua en el móvil, quitarla le rompería un
+cambio de contraseña a mitad. Se retira cuando todos los aparatos estén
+reinstalados desde el dominio nuevo.
+
+`VAPID_SUBJECT` pasó a `mailto:noreply@elgremioapp.com`, en `.env` y en
+los secretos de la Edge Function (comprobado por el digest: cambió de
+`95ba2615…` a `b3a06df1…`).
+
+### SMTP: relleno menos la contraseña
+
+Authentication → Emails → SMTP Settings queda con el remitente
+`noreply@elgremioapp.com`, nombre «El Gremio», `smtp.hostinger.com`,
+puerto 465 y usuario la dirección completa. **La contraseña la tiene que
+escribir una persona**: manejar contraseñas ajenas no entra en lo que
+hace el agente, ni siquiera para pegarlas en el panel de su dueño.
+
+Y el orden importa, que lo avisa `docs/CORREOS.md`: **Supabase no deja
+editar las plantillas de correo hasta que el SMTP propio está guardado y
+funcionando**. Primero la contraseña y guardar; después se pegan las tres
+plantillas de ese fichero.
 
 ---
 
