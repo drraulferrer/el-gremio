@@ -1653,13 +1653,25 @@ Tres decisiones que conviene no deshacer:
   justo la consulta que encuentra a quién habrá que volver a preguntar.
   Hoy da 1, que es el gremio de casa.
 
-**El captcha está escrito y apagado**, y así se queda hasta que alguien
-cree la cuenta de Cloudflare Turnstile: sin `VITE_TURNSTILE_SITE_KEY` no
-dibuja nada, no carga ningún script de terceros y el alta funciona igual
-que siempre. Receta completa, con el orden correcto de encendido y las
-claves de prueba, en `docs/CAPTCHA.md`. **El orden importa**: primero
-desplegar la clave pública, después exigirla en Supabase; al revés hay una
-ventana en la que nadie puede registrarse ni recuperar su contraseña.
+**El captcha está ENCENDIDO y verificado de punta a punta** (Cloudflare
+Turnstile, widget «El Gremio», modo Gestionado). Sin token, los tres
+endpoints de Supabase responden `captcha_failed`; con la app real, las
+tres operaciones pasan. Receta completa en `docs/CAPTCHA.md`.
+
+**Y de ahí salió el fallo más traicionero de toda la sesión.** Con el
+captcha ya exigido, registrarse y recuperar la contraseña funcionaban y
+**entrar no**: `signInWithPassword` quiere el token DENTRO de `options`, y
+se estaba pasando al lado de `email` y `password`, donde **supabase-js lo
+descarta en silencio** —ni error, ni aviso, ni nada en consola—. El único
+síntoma era que la familia no podía entrar, justo la operación que nadie
+prueba después de tocar el registro.
+
+No lo cazó ningún test ni el build: se vio interceptando el cuerpo real de
+la petición en el navegador. La forma vive ahora en `argumentosDeEntrada()`
+(`src/lib/acceso.js`) con tests que la fijan. **Regla para la próxima: al
+tocar el acceso se prueban las TRES, y se empieza por entrar.** La
+comprobación rápida no crea ninguna cuenta: entrar con un correo
+inventado; si sale «Email o contraseña incorrectos», el captcha pasó.
 
 **El correo, ya autenticado del todo.** El DMARC pasó de `p=none` pelado a
 `v=DMARC1; p=none; rua=mailto:info@elgremioapp.com`, o sea que a partir de
