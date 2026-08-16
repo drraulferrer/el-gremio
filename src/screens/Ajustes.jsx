@@ -3,6 +3,7 @@ import Miembros from './Miembros'
 import Seguridad from './Seguridad'
 import Dispositivos from './Dispositivos'
 import Datos from './Datos'
+import Avisos from './Avisos'
 import Evidencia from './Evidencia'
 import Estado from './Estado'
 
@@ -14,6 +15,7 @@ const SECCIONES = [
   { id: 'pin', etiqueta: '🔑 PIN' },
   { id: 'dispositivos', etiqueta: '📱 Dispositivos' },
   { id: 'datos', etiqueta: '🗂️ Datos' },
+  { id: 'avisos', etiqueta: '🔔 Avisos' },
   { id: 'evidencia', etiqueta: '📚 Evidencia' },
   { id: 'estado', etiqueta: '🩺 Estado' }
 ]
@@ -41,6 +43,7 @@ export default function Ajustes({ family, data, refresh, refreshFamily, onVerTut
       {seccion === 'pin' && <Seguridad family={family} onCambiado={refreshFamily} />}
       {seccion === 'dispositivos' && <Dispositivos />}
       {seccion === 'datos' && <Datos family={family} onCambiada={refreshFamily} />}
+      {seccion === 'avisos' && <Avisos family={family} data={data} />}
       {seccion === 'evidencia' && (
         <>
           <button className="btn btn-bloque" style={{ marginBottom: 8 }} onClick={() => onVerTutorial('porque')}>

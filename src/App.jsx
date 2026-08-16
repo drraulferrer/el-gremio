@@ -7,6 +7,7 @@ import { instalarMonitorizacion, capturar } from './lib/monitoring'
 import { flag } from './lib/flags'
 import { perfilesActivos, estaActivo } from './lib/miembros'
 import { RELEASE } from './lib/version'
+import { registrarServiceWorker, apuntarPerfil } from './lib/push'
 import { PinModal } from './components/ui'
 import Login from './screens/Login'
 import NuevaClave from './screens/NuevaClave'
@@ -50,6 +51,13 @@ export default function App() {
       quitarMonitor()
       quitarVaciado()
     }
+  }, [])
+
+  // El service worker se registra al arrancar y no pide permiso a nadie:
+  // registrarlo es gratis y silencioso, y sin él la pantalla de Avisos no
+  // tendría a qué suscribirse cuando alguien pulse el botón.
+  useEffect(() => {
+    registrarServiceWorker().catch((err) => log.warn('push.sw.error', { detalle: String(err) }))
   }, [])
 
   // Sesión
@@ -128,7 +136,8 @@ export default function App() {
       // la app tiene que seguir funcionando entera menos esa pieza.
       // Degradar con una cosa de menos, no con la pantalla en blanco.
       supabase.from('bonuses').select('*').eq('family_id', fid),
-      supabase.from('power_uses').select('*').eq('family_id', fid)
+      supabase.from('power_uses').select('*').eq('family_id', fid),
+      supabase.from('push_log').select('*').eq('family_id', fid).order('dia', { ascending: false }).limit(30)
     ])
 
     const fallo = respuestas.slice(0, 7).find((r) => r.error)
@@ -139,7 +148,7 @@ export default function App() {
     }
     setErrorCarga('')
 
-    const [pr, ch, co, rw, rd, gl, bg, bo, pu] = respuestas
+    const [pr, ch, co, rw, rd, gl, bg, bo, pu, pl] = respuestas
     const metas = gl.data || []
     const next = {
       profiles: pr.data || [],
@@ -153,7 +162,8 @@ export default function App() {
       goals: metas,
       badges: bg.data || [],
       bonuses: bo.error ? [] : bo.data || [],
-      powerUses: pu.error ? [] : pu.data || []
+      powerUses: pu.error ? [] : pu.data || [],
+      pushLog: pl.error ? [] : pl.data || []
     }
     log.debug('datos.cargados', {
       request_id: requestId,
@@ -305,6 +315,13 @@ export default function App() {
       rol: profile?.role || null
     })
   }, [family?.id, profile?.id, profile?.role])
+
+  // Este aparato pasa a ser de quien lo esté usando. Sin esto, la tablet
+  // compartida seguiría recibiendo los avisos de quien la encendió hace
+  // tres semanas. No pide permisos: si no hay suscripción, no hace nada.
+  useEffect(() => {
+    if (family && profile) apuntarPerfil({ family, profile })
+  }, [family?.id, profile?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   function elegirPerfil(id) {
     localStorage.setItem('gremio_profile', id)
