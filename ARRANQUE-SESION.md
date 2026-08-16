@@ -1231,6 +1231,19 @@ nuevo»—, comprobado que el cuerpo es el nuestro y que conserva
 `{{ .ConfirmationURL }}`. Que se dejaran editar es, de paso, la prueba de
 que el SMTP propio quedó activo: sin él Supabase las bloquea.
 
+**Dos trampas de esta prueba, que costaron un rato:**
+
+1. **Un correo pedido ANTES de guardar las plantillas llega con la
+   plantilla vieja**, en inglés, aunque el remitente ya sea el propio. Es
+   lo que pasó: había cuatro `/recover` en los logs, unos anteriores a
+   guardar y otros posteriores, y Gmail los agrupa por asunto en hilos
+   distintos. Si algo «no se ha aplicado», mira la HORA del correo contra
+   la del guardado antes de tocar nada.
+2. **Comprobar el editor recién pegado no prueba que se haya guardado.**
+   Leer la página después de pegar devuelve lo que uno mismo acaba de
+   escribir. Hay que RECARGAR y volver a leer; es la única lectura que
+   viene de la base.
+
 **Prueba de humo hecha y correcta el 16-ago**: `POST /auth/v1/recover`
 devolvió 200, los Auth Logs registraron `/recover · request completed` sin
 error de SMTP, y el correo llegó bien —remitente, asunto, formato y
