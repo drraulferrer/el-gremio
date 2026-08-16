@@ -254,7 +254,12 @@ select a.profile_id,
 grant select on public.push_pendientes to authenticated;
 
 -- ------------------------------------------------------------------
--- COMPROBACIÓN (pégala entera después de ejecutar; los cuatro a 1)
+-- COMPROBACIÓN (pégala entera después de ejecutar; los CINCO a 1)
+--
+-- EJECUTADA Y COMPROBADA el 16-ago-2026: los cinco dieron 1, la tabla
+-- quedó con 51 misiones y CERO con patrón —o sea, nadie notó nada— y la
+-- vista de avisos siguió respondiendo con `dia_libre` en false para los
+-- cuatro perfiles, que es lo correcto mientras no haya patrones puestos.
 -- ------------------------------------------------------------------
 -- select
 --   (select count(*) from information_schema.columns
@@ -263,11 +268,27 @@ grant select on public.push_pendientes to authenticated;
 --   (select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
 --     where n.nspname = 'public' and p.proname = 'sin_mision_ese_dia') as funcion,
 --   (select count(*) from information_schema.columns
---     where table_schema = 'public' and table_name = 'push_pendientes' and column_name = 'motivo') as vista;
+--     where table_schema = 'public' and table_name = 'push_pendientes' and column_name = 'motivo') as vista,
+--   -- El quinto es el que de verdad importa: que `streak_days` sea la
+--   -- NUEVA. Los otros cuatro pueden estar a 1 con la racha sin arreglar.
+--   (select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+--     where n.nspname = 'public' and p.proname = 'streak_days'
+--       and pg_get_functiondef(p.oid) like '%sin_mision_ese_dia%') as racha_arreglada;
 --
--- Y el array vacío tiene que ser rechazado (espera un error 23514):
+-- Y que el array vacío se rechace de verdad. OJO: `where false` NO sirve
+-- para comprobarlo —un `check` solo se evalúa sobre las filas que se
+-- tocan, así que con cero filas sale «Success» y parece que pasa—. Este
+-- bloque sí toca una fila, y la deshace pase lo que pase: si la
+-- restricción salta, la revierte el manejador; si no salta, la revierte
+-- la excepción de la línea siguiente.
 --
--- update public.challenges set days = '{}'::smallint[] where false;
+-- do $v$
+-- begin
+--   update public.challenges set days = '{}'::smallint[]
+--    where id = (select id from public.challenges order by created_at limit 1);
+--   raise exception 'MAL: el array vacio se acepto';
+-- exception when check_violation then null;
+-- end $v$;
 --
 -- Quién tiene patrón puesto, cuando la familia empiece a usarlo:
 --

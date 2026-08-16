@@ -72,13 +72,34 @@ si falla `supabase`, casi seguro que el proyecto está pausado (ver §7).
 ✅ 019  notificaciones: streak_days y push_pendientes (16-ago)
 ✅ 020  escala · 021 anon no ejecuta · 022 aceptación legal (16-ago)
 ✅ 023  salud diaria (16-ago)
-⏳ 024  días de la semana en las misiones (16-ago, tarde) · ESCRITA, SIN EJECUTAR
+✅ 024  días de la semana en las misiones (16-ago, tarde)
 ```
 
-**La 024 es lo único pendiente en la base.** Va antes del próximo
-`npm run deploy`, no después: entre desplegar y migrar, la app guarda las
-misiones sin su patrón de días (avisa de ello, no se rompe). Su
-comprobación va al final del fichero y son cuatro contadores a 1.
+**Ya no queda nada pendiente en la base.** La 024 se ejecutó y se
+comprobó: los cinco contadores del final del fichero a 1, el array vacío
+rechazado de verdad, 51 misiones con **cero patrones puestos** —o sea,
+nadie notó nada, que es lo que tenía que pasar— y la vista de avisos
+respondiendo con `dia_libre` en false para los cuatro perfiles.
+
+**Y hay una forma mejor de pegar una migración, que jubila el truco de
+MacRoman.** El repo es público, así que la propia página del SQL Editor
+puede traerse el fichero y ponerlo en el editor sin que el portapapeles lo
+toque. Se acabó el viaje de codificaciones y la comprobación de acentos a
+posteriori:
+
+```js
+// En la consola del SQL Editor, con el fichero ya empujado a main:
+const r = await fetch('https://raw.githubusercontent.com/drraulferrer/el-gremio/main/migracion-0NN-loquesea.sql')
+const sql = await r.text()
+monaco.editor.getModels()[0].setValue(sql)
+```
+
+Conviene comparar el SHA-256 de lo traído con el del fichero local
+(`shasum -a 256`) antes de pulsar Run: confirma que se ejecuta EXACTAMENTE
+lo que hay en el repo, que es más de lo que garantizaba pegar a mano.
+Pegar con ⌘V desde una automatización no funciona —el portapapeles del
+sistema no llega—, y `navigator.clipboard.readText()` se queda colgado
+esperando un permiso que nadie concede.
 
 La 018 se ejecutó y se comprobó con el `select` del final del fichero:
 columna `timezone`, disparador `families_zona_valida`, `zona_de_perfil`,
@@ -1438,13 +1459,16 @@ el sitio donde mirar es **Authentication → Auth Logs** —un fallo de SMTP
 sale ahí en vez de un «request completed»— y después el tope de 30/hora
 en Rate Limits.
 
-### Lo primero al retomar: ejecutar la migración 024
+### Lo primero al retomar: desplegar
 
-Está escrita y sin ejecutar (`migracion-024-dias-de-la-semana.sql`), y es
-lo que enciende la planificación por días. **Va antes del próximo
-`npm run deploy`.** Copiar el fichero pre-codificado en MacRoman, pulsar
-«Run query» aunque salga el diálogo de operaciones destructivas, y pegar
-después la comprobación del final: cuatro contadores a 1.
+La migración 024 ya está ejecutada (§2), o sea que la base va POR DELANTE
+del bundle publicado: la columna existe y nadie puede usarla todavía. Es
+el orden bueno —el revés fue el que dejó fuera a una familia entera, §7e—
+pero deja la funcionalidad a medio encender hasta que se despliegue.
+
+```bash
+cd ~/el-gremio && npm run verify && npm run deploy && npm run health
+```
 
 ### Y después: los avisos en los móviles
 
@@ -1473,11 +1497,10 @@ más nuevo que la última etiqueta de despliegue.
 
 ### Planificar por días de la semana · CONSTRUIDO (16-ago, tarde)
 
-Está hecho de punta a punta y verificado en el navegador. **Falta un solo
-paso, y es de la persona: ejecutar `migracion-024-dias-de-la-semana.sql`
-en el SQL Editor ANTES del siguiente `npm run deploy`.** Sin ella la
-columna no existe: la app no se rompe —guarda la misión y avisa de que
-los días no se han guardado— pero la funcionalidad no está.
+Está hecho de punta a punta, verificado en el navegador y **con la
+migración 024 ya ejecutada en producción** (§2). Lo único que falta para
+que la familia pueda usarlo es **desplegar**: la base va por delante del
+bundle.
 
 Lo verificado en el navegador, no solo compilando: la tira de siete
 casillas en el formulario (44 px de alto, entra en 375 px sin scroll
@@ -1599,8 +1622,8 @@ condicionan todo lo demás:
    pena tocar: si llevan dos semanas usándolo, lo siguiente es mirar el
    diagnóstico de economía con datos reales, no añadir funciones.
 
-En la base queda pendiente **una sola cosa: ejecutar la migración 024**
-(días de la semana). Todo lo anterior está ejecutado y comprobado.
+Ya no hay nada pendiente en la base: las veinticuatro migraciones están
+ejecutadas y comprobadas, la 024 incluida.
 
 ### Un detalle que mordía, ya arreglado
 
