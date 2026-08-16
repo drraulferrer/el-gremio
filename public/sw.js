@@ -49,11 +49,11 @@ self.addEventListener('notificationclick', (evento) => {
   // Si la app ya está abierta se le da el foco en lugar de abrir otra
   // ventana: en un móvil, dos instancias de la misma app es justo lo que
   // hace que alguien piense que "se ha roto".
+  //
   // La ventana se busca por el ÁMBITO del propio service worker, no por
   // una ruta escrita a mano. Aquí ponía `/el-gremio` y la app acaba de
-  // mudarse a dominio propio: con la ruta fija, tocar el aviso habría
-  // abierto una ventana nueva en vez de traer al frente la que ya estaba,
-  // y en un móvil dos copias de la misma app se leen como «se ha roto».
+  // mudarse a dominio propio: con la ruta fija, tocar el aviso abriría
+  // una ventana nueva en vez de traer al frente la que ya estaba.
   // `registration.scope` vale igual en `/el-gremio/` que en la raíz.
   const raiz = self.registration.scope
 

@@ -162,7 +162,11 @@ npm run deploy
 Después, en GitHub: **Settings → Pages → Source: Deploy from a branch →
 rama `gh-pages`, carpeta `/ (root)`**.
 
-Queda publicado en `https://TU-USUARIO.github.io/el-gremio/`.
+Queda publicado en `https://TU-USUARIO.github.io/el-gremio/`, o en tu
+propio dominio si escribes uno en `public/CNAME` (esta copia sirve en
+`https://elgremioapp.com/`). El fichero viaja dentro de la build a
+propósito: cada publicación vacía la rama `gh-pages`, y sin él GitHub
+daría el dominio por retirado.
 
 Cada despliegue deja una etiqueta git, así que volver atrás son dos minutos:
 

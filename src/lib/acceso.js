@@ -97,9 +97,10 @@ export function traducirAcceso(msg = '') {
 /**
  * A dónde vuelve el enlace del correo.
  *
- * Tiene que ser la URL publicada COMPLETA, con su subcarpeta: en GitHub
- * Pages la app vive en /el-gremio/ y un enlace a la raíz del dominio
- * lleva a una página que no existe. Además hay que darla de alta en
+ * Tiene que ser la URL publicada COMPLETA, con su subcarpeta si la
+ * tuviera. Hoy la app vive en la raíz de elgremioapp.com y coincide con
+ * el origen, pero mientras colgaba de /el-gremio/ un enlace a la raíz del
+ * dominio llevaba a una página que no existe. Además hay que darla de alta en
  * Supabase → Authentication → URL Configuration → Redirect URLs, o el
  * enlace del correo rebota al «site url» por defecto.
  */

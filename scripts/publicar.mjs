@@ -7,11 +7,12 @@
 // ------------------------------------------------------------------
 
 import { execSync } from 'node:child_process'
-import { existsSync, mkdirSync, readdirSync, rmSync, cpSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, cpSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 export const RAMA = 'gh-pages'
 const WORKTREE = '.gh-pages-worktree'
+const DOMINIO = join('public', 'CNAME')
 
 export const sh = (cmd, opciones = {}) =>
   execSync(cmd, { stdio: 'pipe', encoding: 'utf8', ...opciones }).trim()
@@ -39,6 +40,13 @@ export function prepararDist(distDir, metadatos) {
   writeFileSync(join(distDir, 'version.json'), JSON.stringify(metadatos, null, 2) + '\n')
   // Sin .nojekyll, Pages procesa la build con Jekyll y se come ficheros.
   writeFileSync(join(distDir, '.nojekyll'), '')
+  // El dominio propio lo declara el CNAME, y cada publicación VACÍA la rama
+  // gh-pages: si el fichero no viaja dentro de la build, GitHub da el
+  // dominio por retirado y el sitio deja de responder en elgremioapp.com.
+  // Viene de public/CNAME (lo copia Vite); esto solo comprueba que llegó.
+  if (existsSync(DOMINIO) && !existsSync(join(distDir, 'CNAME'))) {
+    fallar(`Hay ${DOMINIO} pero la build no lo copió a ${distDir}/CNAME: publicar así retiraría el dominio.`)
+  }
   // Sin servidor propio no hay reescritura de rutas: la 404 sirve la app.
   cpSync(join(distDir, 'index.html'), join(distDir, '404.html'))
 }
@@ -88,8 +96,16 @@ export function publicarDist({ distDir, mensaje }) {
   return publicado
 }
 
-/** URL pública de GitHub Pages a partir del remoto origin. */
+/**
+ * URL pública del sitio: el dominio propio si lo hay, y si no, la de
+ * GitHub Pages deducida del remoto. Una sola fuente de verdad —el CNAME—
+ * para que el despliegue, el health y el QR no puedan discrepar.
+ */
 export function urlDePages() {
+  if (existsSync(DOMINIO)) {
+    const dominio = readFileSync(DOMINIO, 'utf8').trim()
+    if (dominio) return `https://${dominio}/`
+  }
   const remoto = intentar('git remote get-url origin')
   if (!remoto) return null
   const limpio = remoto.replace(/^git@github\.com:/, 'https://github.com/').replace(/\.git$/, '')

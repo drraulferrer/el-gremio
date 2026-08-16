@@ -2,9 +2,11 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { execSync } from 'node:child_process'
 
-// GitHub Pages sirve el proyecto bajo /<repo>/, así que la base no puede ser
-// la raíz. Se puede sobrescribir con BASE_PATH (dominio propio: BASE_PATH=/).
-const base = process.env.BASE_PATH || '/el-gremio/'
+// La app vive en su propio dominio (elgremioapp.com, declarado en
+// public/CNAME), así que la base es la raíz. Se puede sobrescribir con
+// BASE_PATH para publicar bajo subcarpeta, que es lo que hacía falta
+// mientras el sitio colgaba de usuario.github.io/el-gremio/.
+const base = process.env.BASE_PATH || '/'
 
 function gitCommit() {
   try {

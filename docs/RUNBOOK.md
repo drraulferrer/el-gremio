@@ -171,7 +171,7 @@ Cada despliegue deja una etiqueta git y un `version.json` en la raíz
 publicada, así que siempre se puede saber qué versión está sirviendo:
 
 ```bash
-curl -s https://TU-USUARIO.github.io/el-gremio/version.json
+curl -s https://elgremioapp.com/version.json
 ```
 
 El modelo es **solo hacia delante**: un rollback compila el código de una

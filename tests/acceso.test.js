@@ -84,8 +84,15 @@ describe('detección del enlace de recuperación', () => {
 })
 
 describe('la url de vuelta del correo', () => {
-  // En GitHub Pages la app vive en /el-gremio/. Un enlace a la raíz del
-  // dominio lleva a una página que no existe.
+  // Hoy la app vive en la raíz de su propio dominio, pero la regla que
+  // importa sigue siendo la misma: la vuelta es la URL publicada COMPLETA.
+  it('en el dominio propio es la raíz', () => {
+    expect(urlDeVuelta('https://elgremioapp.com', '/')).toBe('https://elgremioapp.com/')
+  })
+
+  // Y si algún día vuelve a colgar de una subcarpeta —así estuvo en
+  // usuario.github.io/el-gremio/—, un enlace a la raíz del dominio
+  // llevaría a una página que no existe.
   it('conserva la subcarpeta de la publicación', () => {
     expect(urlDeVuelta('https://drraulferrer.github.io', '/el-gremio/'))
       .toBe('https://drraulferrer.github.io/el-gremio/')

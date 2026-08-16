@@ -150,7 +150,7 @@ describe('origen de los errores globales', () => {
 
   it('marca como propio un fallo del bundle, con su posición', () => {
     const salida = origenDelError({
-      filename: 'https://drraulferrer.github.io/el-gremio/assets/index-abc.js',
+      filename: 'https://elgremioapp.com/assets/index-abc.js',
       lineno: 412,
       colno: 77
     })

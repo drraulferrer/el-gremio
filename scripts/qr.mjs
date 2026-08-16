@@ -15,6 +15,7 @@
 
 import { writeFileSync, mkdirSync, existsSync, readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
+import { urlDePages } from './publicar.mjs'
 
 const require = createRequire(import.meta.url)
 const qrcode = require('qrcode-generator')
@@ -25,7 +26,9 @@ function urlPorDefecto() {
     const encontrada = (env.match(/HEALTH_URL=(.+)/) || [])[1]?.trim()
     if (encontrada) return encontrada
   }
-  return 'https://drraulferrer.github.io/el-gremio/'
+  // El dominio propio, deducido de public/CNAME: un QR impreso con la URL
+  // vieja se queda colgado en una pared durante meses.
+  return urlDePages() || 'https://elgremioapp.com/'
 }
 
 const url = process.argv.slice(2).filter((a) => a !== '--')[0] || urlPorDefecto()

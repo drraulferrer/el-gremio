@@ -4,7 +4,7 @@
 // despliegue.
 //
 //   npm run health
-//   npm run health -- https://usuario.github.io/el-gremio/
+//   npm run health -- https://elgremioapp.com/
 //
 // Comprueba dos cosas, que son las dos que pueden caer por separado:
 //   1. la web publicada responde y qué versión sirve;
