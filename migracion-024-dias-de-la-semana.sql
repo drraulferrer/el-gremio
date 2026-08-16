@@ -239,11 +239,14 @@ select a.profile_id,
          -- hubiera algo que hacer. El de «sin validar» NO: quien valida
          -- es adulto y la cola de pendientes es de la casa, no suya.
          when a.dia_libre and a.role <> 'adulto' then null
-         when not a.dia_libre and a.ultimo_dia = a.dia - 1 then 'racha_riesgo'
+         -- «Racha viva» pasa a leerse de `racha` en vez de deducirse de
+         -- «ayer hizo algo». Eran lo mismo hasta hoy; con días neutros
+         -- por medio, ayer puede ser un martes libre y la racha seguir
+         -- entera. Una sola definición, y es la que paga los hitos.
+         when not a.dia_libre and a.racha > 0 then 'racha_riesgo'
          when a.role = 'adulto' and a.por_validar > 0 then 'sin_validar'
          when a.dia_libre then null
-         when a.ultimo_dia is null or a.ultimo_dia < a.dia - 1 then 'vuelve'
-         else null
+         else 'vuelve'
        end as motivo,
        a.por_validar
   from actividad a;

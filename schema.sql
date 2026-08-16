@@ -109,6 +109,23 @@ create table if not exists public.challenges (
     'hogar','salud','aprendizaje','amabilidad',
     'responsabilidad','cooperacion','creatividad','autonomia'
   )),
+  -- Qué días de la semana toca (1 = lunes … 7 = domingo, el mismo número
+  -- que `isodow`). null = todos los días, que es lo que hacen todas las
+  -- misiones mientras nadie marque casillas.
+  --
+  -- Se planifica por DÍA DE LA SEMANA y no por «semana que empieza hoy»:
+  -- un patrón de siete casillas no tiene fecha de inicio, así que se
+  -- repite solo y empezar a usarlo un jueves no deja ninguna semana a
+  -- medias. Por eso tampoco hay «cada N días», que sí necesitaría un
+  -- ancla. El predicado vive en src/lib/misiones.js y su espejo, en
+  -- `sin_mision_ese_dia`.
+  --
+  -- El array vacío está prohibido: significaría «no toca ningún día», o
+  -- sea una misión activa que no sale nunca y que nadie sabría por qué.
+  days smallint[] check (
+    days is null
+    or (cardinality(days) between 1 and 7 and days <@ array[1,2,3,4,5,6,7]::smallint[])
+  ),
   active boolean not null default true,
   created_at timestamptz not null default now()
 );
@@ -1151,6 +1168,62 @@ create policy push_log_lectura on public.push_log
 -- cobro pagaría por 11. Se extrae aquí y `claim_streak` pasa a usarla.
 -- ------------------------------------------------------------------
 
+-- Antes de la racha, el espejo del predicado de misiones.js: ¿tenía esta
+-- persona algo que hacer ese día? Es el único sitio de Postgres donde se
+-- copia esa regla, y existe porque la racha se certifica aquí y no en el
+-- cliente.
+--
+-- Se mira el patrón de HOY, no el que hubiera entonces: la columna no
+-- guarda historia y no va a guardarla.
+--
+-- La cautela está en la primera mitad del `and`: si no tiene NINGUNA
+-- misión activa, ningún día es neutro. Sin ese corte, un perfil recién
+-- creado tendría los 400 días neutros y su racha caminaría hacia atrás
+-- hasta el tope sin que hubiera hecho nada.
+create or replace function public.sin_mision_ese_dia(p_id uuid, p_dia date)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $fn$
+  with yo as (
+    select id, family_id, role from public.profiles where id = p_id and active
+  ),
+  mias as (
+    select c.days
+      from public.challenges c
+      join yo on c.family_id = yo.family_id
+     where c.active
+       and (
+         c.profile_id = yo.id
+         or (c.profile_id is null and c.target_roles is null)
+         or (c.profile_id is null and yo.role = any(c.target_roles))
+       )
+  )
+  select exists (select 1 from mias)
+     and not exists (
+       select 1 from mias
+        where days is null
+           or extract(isodow from p_dia)::smallint = any(days)
+     );
+$fn$;
+
+revoke all on function public.sin_mision_ese_dia(uuid, date) from public;
+revoke all on function public.sin_mision_ese_dia(uuid, date) from anon;
+grant execute on function public.sin_mision_ese_dia(uuid, date) to authenticated;
+
+-- La racha cuenta días CUMPLIDOS. Dos clases de día no la rompen y solo
+-- una de ellas la alarga:
+--
+--   · el comodín TAPA Y SUMA: cuenta como día hecho, y ese es todo su
+--     efecto;
+--   · un día sin misiones asignadas SOLO TAPA. Si sumara, a quien solo
+--     tuviera misiones los lunes le contarían los otros seis días y
+--     llegaría a los cien días sin haber hecho nada.
+--
+-- Por eso el bucle lleva dos cuentas, la racha y los pasos, y el tope de
+-- 400 es de los pasos.
 create or replace function public.streak_days(p_id uuid, p_tz text default 'Europe/Madrid')
 returns integer
 language plpgsql
@@ -1160,12 +1233,16 @@ set search_path = public
 as $fn$
 declare
   v_racha integer := 0;
+  v_pasos integer := 0;
+  v_hoy date := (now() at time zone p_tz)::date;
   v_dia date := (now() at time zone p_tz)::date;
   v_hay boolean;
 begin
-  -- Un día cuenta si tiene una misión aprobada O si está tapado con un
-  -- comodín, que para eso existe el comodín.
   loop
+    exit when v_pasos >= 400;
+
+    -- Un día cuenta si tiene una misión aprobada O si está tapado con un
+    -- comodín, que para eso existe el comodín.
     select exists (
       select 1 from public.completions
        where profile_id = p_id and status = 'aprobado' and resolved_at is not null
@@ -1176,17 +1253,16 @@ begin
          and (used_at at time zone p_tz)::date = v_dia
     ) into v_hay;
 
-    -- Hoy sin nada no rompe la racha: el día no ha terminado. Se salta al
-    -- de ayer y se sigue contando desde ahí.
-    if not v_hay then
-      exit when v_racha > 0 or v_dia < (now() at time zone p_tz)::date;
-      v_dia := v_dia - 1;
-      continue;
+    if v_hay then
+      v_racha := v_racha + 1;
+    else
+      -- Hoy sin nada no rompe: el día no ha terminado.
+      -- Un día sin misiones asignadas tampoco: no había nada que hacer.
+      exit when v_dia < v_hoy and not public.sin_mision_ese_dia(p_id, v_dia);
     end if;
 
-    v_racha := v_racha + 1;
     v_dia := v_dia - 1;
-    exit when v_racha >= 400;
+    v_pasos := v_pasos + 1;
   end loop;
 
   return v_racha;
@@ -1278,6 +1354,9 @@ grant execute on function public.claim_streak(uuid, integer) to authenticated;
 --
 -- Quien ya ha hecho algo hoy NO recibe nada: ya está dentro, y avisar a
 -- quien acaba de cumplir es la forma más rápida de que silencie la app.
+-- Por lo mismo, quien hoy no tenía ninguna misión asignada tampoco
+-- recibe nada: avisar de que se va a perder la racha por no hacer lo que
+-- no hay que hacer es la clase de aviso que hace que se apaguen todos.
 -- ------------------------------------------------------------------
 
 -- `security_invoker = true` NO es opcional. Desde Postgres 15 una vista se
@@ -1310,7 +1389,9 @@ actividad as (
            where c.profile_id = p.id and c.status = 'aprobado' and c.resolved_at is not null) as ultimo_dia,
          (select count(*) from public.completions c
            where c.family_id = p.family_id and c.status = 'pendiente') as por_validar,
-         public.streak_days(p.id, f.timezone) as racha
+         public.streak_days(p.id, f.timezone) as racha,
+         -- ¿Hoy no le tocaba nada? Entonces no hay de qué avisarle.
+         public.sin_mision_ese_dia(p.id, h.dia) as dia_libre
     from public.profiles p
     join public.families f on f.id = p.family_id
     join hoy h on h.family_id = p.family_id
@@ -1329,10 +1410,18 @@ select a.profile_id,
        a.racha,
        case
          when a.hechas_hoy > 0 then null
-         when a.ultimo_dia = a.dia - 1 then 'racha_riesgo'
+         -- El día libre calla los dos avisos que dependen de que hoy
+         -- hubiera algo que hacer. El de «sin validar» NO: quien valida
+         -- es adulto y la cola de pendientes es de la casa, no suya.
+         when a.dia_libre and a.role <> 'adulto' then null
+         -- «Racha viva» se lee de `racha` en vez de deducirse de «ayer
+         -- hizo algo». Eran lo mismo hasta que hubo días neutros por
+         -- medio: ayer puede ser un martes libre y la racha seguir
+         -- entera. Una sola definición, y es la que paga los hitos.
+         when not a.dia_libre and a.racha > 0 then 'racha_riesgo'
          when a.role = 'adulto' and a.por_validar > 0 then 'sin_validar'
-         when a.ultimo_dia is null or a.ultimo_dia < a.dia - 1 then 'vuelve'
-         else null
+         when a.dia_libre then null
+         else 'vuelve'
        end as motivo,
        a.por_validar
   from actividad a;

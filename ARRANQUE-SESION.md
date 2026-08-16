@@ -69,7 +69,16 @@ si falla `supabase`, casi seguro que el proyecto está pausado (ver §7).
 ✅ 016  camino de rachas: claim_streak (15-ago, noche)
 ✅ 017  lo que hace falta para MUCHAS familias (16-ago, madrugada)
 ✅ 018  zona horaria por familia + borrado de cuenta (16-ago)
+✅ 019  notificaciones: streak_days y push_pendientes (16-ago)
+✅ 020  escala · 021 anon no ejecuta · 022 aceptación legal (16-ago)
+✅ 023  salud diaria (16-ago)
+⏳ 024  días de la semana en las misiones (16-ago, tarde) · ESCRITA, SIN EJECUTAR
 ```
+
+**La 024 es lo único pendiente en la base.** Va antes del próximo
+`npm run deploy`, no después: entre desplegar y migrar, la app guarda las
+misiones sin su patrón de días (avisa de ello, no se rompe). Su
+comprobación va al final del fichero y son cuatro contadores a 1.
 
 La 018 se ejecutó y se comprobó con el `select` del final del fichero:
 columna `timezone`, disparador `families_zona_valida`, `zona_de_perfil`,
@@ -1429,7 +1438,15 @@ el sitio donde mirar es **Authentication → Auth Logs** —un fallo de SMTP
 sale ahí en vez de un «request completed»— y después el tope de 30/hora
 en Rate Limits.
 
-### Lo primero al retomar: los avisos en los móviles
+### Lo primero al retomar: ejecutar la migración 024
+
+Está escrita y sin ejecutar (`migracion-024-dias-de-la-semana.sql`), y es
+lo que enciende la planificación por días. **Va antes del próximo
+`npm run deploy`.** Copiar el fichero pre-codificado en MacRoman, pulsar
+«Run query» aunque salga el diálogo de operaciones destructivas, y pegar
+después la comprobación del final: cuatro contadores a 1.
+
+### Y después: los avisos en los móviles
 
 **Activar Ajustes → 🔔 Avisos en cada teléfono, con la app reinstalada
 desde elgremioapp.com.** Un PWA queda atado al origen donde se instaló, y
@@ -1437,7 +1454,7 @@ el viejo ahora redirige fuera de su ámbito: sin reinstalar, la suscripción
 push no vale. Es lo único que le falta a una funcionalidad que ya está
 montada y comprobada de punta a punta.
 
-### Y después: mirar el cuadro de mando con datos reales
+### Y luego: mirar el cuadro de mando con datos reales
 
 Un par de semanas de uso **antes de añadir nada más**. El diagnóstico de
 economía y el cuadro de mando parental están para eso, y con datos reales
@@ -1454,12 +1471,57 @@ migración va SIEMPRE antes del `npm run deploy`**, nunca después. Merece
 una línea en el propio `deploy.mjs` que avise si hay un `migracion-0NN`
 más nuevo que la última etiqueta de despliegue.
 
-### Planificar por días de la semana (diseñado, sin construir)
+### Planificar por días de la semana · CONSTRUIDO (16-ago, tarde)
 
-Lo pidió la familia el 16-ago: las misiones de la junior y de la peque
-son las mismas todos los días, y hace falta poder repartirlas —días
-alternos, lunes/miércoles/viernes, lo que sea—. Queda el diseño cerrado
-con las dos decisiones que lo sostienen; falta construirlo.
+Está hecho de punta a punta y verificado en el navegador. **Falta un solo
+paso, y es de la persona: ejecutar `migracion-024-dias-de-la-semana.sql`
+en el SQL Editor ANTES del siguiente `npm run deploy`.** Sin ella la
+columna no existe: la app no se rompe —guarda la misión y avisa de que
+los días no se han guardado— pero la funcionalidad no está.
+
+Lo verificado en el navegador, no solo compilando: la tira de siete
+casillas en el formulario (44 px de alto, entra en 375 px sin scroll
+lateral), la tira de lectura en la lista de misiones, guardar `[1,7]` y
+que persista, el tablero de la junior enseñando solo lo que toca hoy, la
+pantalla de la peque igual, el vacío «No queda ninguna por hoy» cuando el
+día está libre, y la racha marcando **3 días** con lunes/miércoles/viernes
+hechos y los martes y jueves libres por el medio —que sin los días
+neutros habrían dado 1— sin el aviso de «hoy todavía no».
+
+Lo que se tocó, por si hay que seguir el hilo: `challenges.days` en
+`schema.sql` y en la migración, `sin_mision_ese_dia` y `streak_days` en
+Postgres, la vista `push_pendientes`, `misiones.js` (el patrón entero),
+`rachas.js` y `meritos.js` (días neutros), `economia.js` (la carga),
+`Home`, `KidHome`, `ParentPanel`, `CaminoRacha`, `resumen.js` y
+`styles.css`. 32 tests nuevos en `tests/dias.test.js`.
+
+**Una corrección al diseño que estaba escrito aquí**, porque importa: el
+diseño decía que los días sin misiones podían entrar por `diasSalvados`,
+el mecanismo del comodín. **No podían.** Un comodín TAPA Y SUMA —cuenta
+como día hecho—, y un día neutro solo tapa. Metidos por ahí, a quien solo
+tuviera misiones los lunes le habrían contado los otros seis días como
+hechos y habría llegado a los cien días sin hacer nada. Van por un
+parámetro propio, `diasNeutros`, en las tres funciones y en Postgres. Es
+la trampa a recordar si alguien vuelve a tocar las rachas.
+
+Dos cosas que no estaban en el plan y salieron por el camino:
+
+- **La carga se recalcula con el reparto.** Una diaria repartida en tres
+  días pesa 3/7, no 1, y el tope de siete diarias mira el PEOR DÍA y no
+  el total. Sin esto, repartir ocho misiones en cuatro y cuatro seguía
+  avisando de que se pasa de siete: regañar por haber hecho justo lo que
+  el aviso pide.
+- **«Racha viva» en `push_pendientes` se lee de `racha`** y ya no se
+  deduce de «ayer hizo algo». Eran lo mismo hasta hoy; con días neutros
+  por medio, ayer puede ser un martes libre y la racha seguir entera.
+
+Y una decisión de interfaz: el patrón se ofrece también a las semanales y
+mensuales («la colada, los sábados») y **no a las únicas**, que no se
+repiten; pasar una misión a «única» borra el patrón, porque una misión de
+una sola vez y además solo los martes es una forma silenciosa de que no
+aparezca hasta el martes que viene.
+
+El diseño original, que se cumplió salvo en lo corregido arriba:
 
 **1. Se planifica por DÍA DE LA SEMANA, no por «semana que empieza hoy».**
 Esta es la respuesta a «una semana puede empezar cualquier día», y la
@@ -1501,11 +1563,16 @@ rellenos los que tocan), no una fila nueva por día. Con la letra Y el
 relleno se lee sin depender del color. Cabe en la fila que ya existe y no
 vuelve a llenar la pantalla, que era la condición de partida.
 
-Lo que hay que tocar, en orden: migración `challenges.days` + `schema.sql`
+Lo que hubo que tocar, en orden: migración `challenges.days` + `schema.sql`
 → `misiones.js` → el formulario de misión y la biblioteca → `KidHome` y el
 tablero → `rachas.js`/`meritos.js` con los días neutros → `claim_streak` →
-la vista `push_pendientes`, que decide a quién avisar y hoy da por hecho
+la vista `push_pendientes`, que decide a quién avisar y daba por hecho
 que todos los días son iguales.
+
+`claim_streak` no se tocó, y eso es una buena noticia: usa `streak_days`
+desde la 019, así que arreglar la cuenta en un sitio la arregló en los
+dos. Si llevara su propia copia, hoy habría dos que mantener y el aviso
+diría 12 mientras el cobro pagaba por 4.
 
 ### Los dos poderes que faltan por cablear
 
@@ -1532,8 +1599,8 @@ condicionan todo lo demás:
    pena tocar: si llevan dos semanas usándolo, lo siguiente es mirar el
    diagnóstico de economía con datos reales, no añadir funciones.
 
-Ya no hay nada pendiente en la base: las quince migraciones están
-ejecutadas y comprobadas.
+En la base queda pendiente **una sola cosa: ejecutar la migración 024**
+(días de la semana). Todo lo anterior está ejecutado y comprobado.
 
 ### Un detalle que mordía, ya arreglado
 
@@ -1790,3 +1857,15 @@ roto y silencioso es peor que no desplegar.
 `workflow`, así que **empujar ficheros de `.github/workflows/` falla**.
 Se arregla una sola vez con `gh auth refresh -s workflow`, que es
 interactivo y tiene que hacerlo la persona.
+
+**Y el camino se recorrió entero el mismo día**, que era el objetivo: un
+camino de emergencia que nadie ha usado nunca no es un camino, es una
+suposición. El primer despliegue desde Actions (`deploy-2026-08-16-1058`)
+publicó el mismo commit que la rama, mantuvo el CNAME, dejó su etiqueta de
+rollback y la app siguió funcionando: captcha resolviendo, sesión llegando
+a Supabase y service worker activo.
+
+**Los dos caminos conviven a propósito.** `npm run deploy` desde el
+portátil sigue siendo el de todos los días —es más rápido y se ve lo que
+pasa—; Actions es para cuando ese portátil no está. Los dos ejecutan el
+MISMO script, así que no pueden separarse.
