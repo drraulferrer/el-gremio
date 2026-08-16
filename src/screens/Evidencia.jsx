@@ -1,4 +1,5 @@
 import { PRINCIPIOS, REFERENCIAS, LIMITE_HONESTO } from '../lib/evidencia'
+import { urlDeLaNarrativa } from '../lib/dominio'
 
 // ------------------------------------------------------------------
 // Fundamento científico, dentro del panel parental.
@@ -21,7 +22,7 @@ export default function Evidencia() {
       <div className="titulo-seccion">La versión larga</div>
       <a
         className="carta"
-        href={URL_NARRATIVA}
+        href={urlDeLaNarrativa()}
         target="_blank"
         rel="noopener noreferrer"
         style={{ display: 'block', textDecoration: 'none', color: 'inherit' }}

@@ -37,12 +37,24 @@ export interface Aviso {
 
 type Plantilla = (datos: { nombre: string; n: number }) => Aviso
 
+// «1 día» y no «1 días». El banco de validar ya cuidaba el singular y
+// este se olvidó, así que a quien llevaba un día de racha le llegó «1
+// días seguidos». Es el detalle que delata que detrás no hay nadie, y
+// justo en el aviso que pretende sonar a persona que te pica.
+function dias(n: number): string {
+  return n === 1 ? '1 día' : `${n} días`
+}
+
+function diasSeguidos(n: number): string {
+  return n === 1 ? '1 día seguido' : `${n} días seguidos`
+}
+
 const RACHA_RIESGO: Plantilla[] = [
-  ({ n }) => ({ titulo: `Tu racha de ${n} días`, cuerpo: 'Sigue viva. Una misión y aquí no ha pasado nada.' }),
-  ({ n }) => ({ titulo: 'A que no…', cuerpo: `A que no llegas a ${n + 1} días seguidos. Demuéstramelo.` }),
-  ({ n }) => ({ titulo: `${n} días seguidos`, cuerpo: 'Sería una pena justo hoy, ¿no te parece?' }),
+  ({ n }) => ({ titulo: `Tu racha de ${dias(n)}`, cuerpo: 'Sigue viva. Una misión y aquí no ha pasado nada.' }),
+  ({ n }) => ({ titulo: 'A que no…', cuerpo: `A que no llegas a ${diasSeguidos(n + 1)}. Demuéstramelo.` }),
+  ({ n }) => ({ titulo: diasSeguidos(n), cuerpo: 'Sería una pena justo hoy, ¿no te parece?' }),
   ({ nombre }) => ({ titulo: `${nombre}, dos minutos`, cuerpo: 'Con una misión salvas el día. Literalmente.' }),
-  ({ n }) => ({ titulo: 'Se acaba el día', cuerpo: `Tienes ${n} días de racha esperando a que hagas algo.` })
+  ({ n }) => ({ titulo: 'Se acaba el día', cuerpo: `Tienes ${dias(n)} de racha esperando a que hagas algo.` })
 ]
 
 const VUELVE: Plantilla[] = [

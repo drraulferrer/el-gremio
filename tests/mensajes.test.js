@@ -66,6 +66,16 @@ describe('qué frase toca', () => {
     expect(`${a.titulo} ${a.cuerpo}`).not.toMatch(/-\d/)
   })
 
+  it('con un solo día o una sola misión, nada suena a máquina', () => {
+    // Pasó de verdad el 16-ago, en el primer envío real: a la junior, con
+    // un día de racha, le llegó «1 días seguidos». `todasLasPlantillas`
+    // ya pintaba con n=1 y nadie miraba el resultado.
+    for (const a of todasLasPlantillas()) {
+      const texto = `${a.titulo} ${a.cuerpo}`
+      expect(texto, texto).not.toMatch(/\b1 (días|misiones)\b/)
+    }
+  })
+
   it('singular y plural cuadran en las de validar', () => {
     for (const profileId of ['a', 'b', 'c', 'd', 'e']) {
       const una = componerAviso('sin_validar', { ...BASE, n: 1, profileId })

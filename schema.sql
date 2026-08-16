@@ -1331,3 +1331,38 @@ select a.profile_id,
   from actividad a;
 
 grant select on public.push_pendientes to authenticated;
+
+-- =====================================================================
+-- ÚLTIMO PASO, Y NO ES OPCIONAL (migración 021)
+--
+-- El rol `anon` no puede llamar a ninguna función `security definer`.
+--
+-- Cada `revoke ... from public` de este fichero parece dejar la función
+-- solo para quien tiene sesión, y NO lo hace: Supabase concede EXECUTE a
+-- `anon` y a `authenticated` por privilegios por defecto en cuanto la
+-- función se crea, y `revoke from public` retira el pseudo-rol PUBLIC, no
+-- los permisos que esos dos roles ya tienen por su nombre.
+--
+-- Con `purge_logs` eso era explotable de verdad: cualquiera con la clave
+-- anon —que es pública por diseño y va en el bundle— podía vaciar
+-- `app_logs` y, de paso, `rate_limits` y `user_limits`, o sea poner a
+-- cero todos los contadores de ritmo a voluntad. Comprobado con curl el
+-- 16-ago-2026.
+--
+-- Va al FINAL a propósito: tiene que ejecutarse después de la última
+-- función del fichero. Si añades una nueva, añádela antes de esto o
+-- vuelve a lanzar este bloque.
+-- =====================================================================
+
+do $$
+declare f record;
+begin
+  for f in
+    select p.oid::regprocedure as firma
+    from pg_proc p
+    join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public' and p.prosecdef
+  loop
+    execute format('revoke all on function %s from anon', f.firma);
+  end loop;
+end $$;

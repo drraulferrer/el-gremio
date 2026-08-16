@@ -326,6 +326,20 @@ button { font-family: inherit; }
 
 .suave { color: var(--tinta-suave); font-size: 0.87rem; }
 
+/* Enlace de texto suelto, para lo que acompaña sin competir con el botón
+   principal de la pantalla. Lleva su propio relleno para llegar a los
+   44 px de objetivo táctil sin verse como un botón más. */
+.enlace-suave {
+  color: var(--tinta-suave);
+  font-size: 0.9rem;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.18);
+  padding: 12px 4px;
+  transition: color 0.18s ease, border-color 0.18s ease;
+}
+.enlace-suave:hover,
+.enlace-suave:focus-visible { color: var(--tinta); border-bottom-color: var(--oro); }
+
 .titulo-seccion {
   font-family: var(--display);
   font-size: 0.8rem;
