@@ -1216,18 +1216,26 @@ reinstalados desde el dominio nuevo.
 los secretos de la Edge Function (comprobado por el digest: cambió de
 `95ba2615…` a `b3a06df1…`).
 
-### SMTP: relleno menos la contraseña
+### SMTP y plantillas: hecho
 
-Authentication → Emails → SMTP Settings queda con el remitente
+Authentication → Emails → SMTP Settings: remitente
 `noreply@elgremioapp.com`, nombre «El Gremio», `smtp.hostinger.com`,
-puerto 465 y usuario la dirección completa. **La contraseña la tiene que
-escribir una persona**: manejar contraseñas ajenas no entra en lo que
-hace el agente, ni siquiera para pegarlas en el panel de su dueño.
+puerto 465, usuario la dirección completa. **La contraseña la escribió una
+persona**: manejar contraseñas ajenas no entra en lo que hace el agente,
+ni siquiera para pegarlas en el panel de su dueño. Ese sigue siendo el
+reparto si algún día hay que rotarla.
 
-Y el orden importa, que lo avisa `docs/CORREOS.md`: **Supabase no deja
-editar las plantillas de correo hasta que el SMTP propio está guardado y
-funcionando**. Primero la contraseña y guardar; después se pegan las tres
-plantillas de ese fichero.
+Las **tres plantillas de `docs/CORREOS.md` están pegadas y guardadas** —
+«Confirma tu gremio», «Tu contraseña del gremio» y «Confirma tu correo
+nuevo»—, comprobado que el cuerpo es el nuestro y que conserva
+`{{ .ConfirmationURL }}`. Que se dejaran editar es, de paso, la prueba de
+que el SMTP propio quedó activo: sin él Supabase las bloquea.
+
+**Falta la prueba de humo del correo**, que pide un buzón y por tanto una
+persona: `docs/CORREOS.md` §«Cómo se prueban». La de contraseña es la que
+importa, y ojo al detalle que ya está escrito allí: si el enlace abre el
+tablero en vez de la pantalla de contraseña nueva, lo que falla es la
+Redirect URL, no la plantilla.
 
 ---
 
