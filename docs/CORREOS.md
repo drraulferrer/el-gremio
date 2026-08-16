@@ -158,45 +158,48 @@ dispara es trabajo que hay que mantener a cambio de nada.
 
 ## El SMTP: qué va en cada casilla
 
-Proveedor elegido: **Resend** (3.000 correos/mes gratis, 100 al día).
-Remitente: **noreply@raulferrer.org**, sobre un dominio que ya se controla.
+**Esto cambió el 16-ago y conviene saber por qué.** El plan era Resend
+sobre un subdominio `send.raulferrer.org`, y la razón era que
+`raulferrer.org` ya envía correo desde su WordPress: un dominio solo
+admite UN registro SPF, así que meter un segundo en la raíz habría roto
+el que había. Con la app en **su propio dominio** ese problema
+desaparece —`elgremioapp.com` no envía nada más—, así que el remitente va
+en la raíz y sin proveedor aparte.
 
-En Resend, al añadir el dominio, te da tres registros DNS con sus valores
-exactos —esos valores son de tu cuenta, no se pueden escribir de
-antemano—. Los tipos son estos, y todos cuelgan de un **subdominio
-`send.`** a propósito:
+Proveedor: el **correo de Hostinger** que ya se paga con el dominio
+(plan Starter Business Email). Remitente: **noreply@elgremioapp.com**,
+que es también el buzón real.
+
+Los registros los puso el propio alta del correo en Hostinger y ya
+responden:
 
 | Tipo | Nombre | Para qué |
 |---|---|---|
-| MX | `send.raulferrer.org` | Rebotes y quejas |
-| TXT | `send.raulferrer.org` | SPF |
-| TXT | `resend._domainkey.raulferrer.org` | DKIM (la firma) |
-| TXT | `_dmarc.raulferrer.org` | DMARC, opcional pero recomendable (`v=DMARC1; p=none;`) |
+| MX | `@` | `mx1` y `mx2.hostinger.com` (prioridad 5 y 10) |
+| TXT | `@` | SPF: `v=spf1 include:_spf.mail.hostinger.com ~all` |
+| CNAME | `hostingermail-{a,b,c}._domainkey` | DKIM (la firma), tres registros |
+| TXT | `_dmarc` | `v=DMARC1; p=none` |
 
-**Lo del subdominio no es cosmético**: `raulferrer.org` ya envía correo
-por su cuenta (el WordPress de Hostinger), y meter un segundo SPF en la
-raíz rompe el que hay. Un dominio solo admite un registro SPF. Con
-`send.` los dos conviven sin tocarse.
+Ninguno choca con los `A`/`AAAA` del sitio: son cosas distintas de la
+misma zona. **Lo que sí los borraría todos de golpe es «Reset DNS
+records»** en el panel de Hostinger. No se pulsa.
 
-Los registros se crean en el panel de DNS de Hostinger y tardan entre
-minutos y un par de horas en propagar. Hasta que Resend marque el dominio
-como *verified*, los envíos fallan.
-
-Con el dominio verificado, en Supabase → Authentication → Emails → SMTP
-Settings, activar «Enable custom SMTP» y rellenar:
+En Supabase → Authentication → Emails → SMTP Settings, activar
+«Enable custom SMTP» y rellenar:
 
 ```
-Sender email address     noreply@raulferrer.org
+Sender email address     noreply@elgremioapp.com
 Sender name              El Gremio
-Host                     smtp.resend.com
+Host                     smtp.hostinger.com
 Port number              465
 Minimum interval         60 segundos   (el que trae por defecto)
-Username                 resend        ← literalmente esa palabra
-Password                 la API key de Resend (re_...)
+Username                 noreply@elgremioapp.com   ← el buzón entero
+Password                 la del buzón noreply@
 ```
 
-La contraseña **es** la API key, y Supabase no la vuelve a enseñar una vez
-guardada. Guárdala en el llavero al crearla, no después.
+Dos avisos sobre esa contraseña: Hostinger exige que el remitente sea el
+buzón con el que te autenticas —no vale poner otro `From`—, y Supabase
+**no la vuelve a enseñar** una vez guardada. Al llavero antes de pegarla.
 
 Al activar SMTP propio, el tope de envío sube de un puñado de correos por
 hora a **30/hora**, ajustable en Authentication → Rate Limits.
