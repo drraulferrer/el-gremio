@@ -19,6 +19,13 @@ create table if not exists public.families (
   -- hora del aparato, la estrella diaria se puede pedir dos veces o
   -- ninguna y una racha viva se lee como rota.
   timezone text not null default 'Europe/Madrid',
+  -- Migración 022. Qué versión de los textos legales se aceptó al fundar
+  -- el gremio, y cuándo. Se guarda la VERSIÓN y no un `true` porque
+  -- «aceptó las condiciones» no dice nada si nadie sabe qué decían
+  -- entonces. Los gremios anteriores a la casilla lo tienen a null, que
+  -- es la verdad, y esa es la consulta que los encuentra.
+  legal_version text,
+  legal_at timestamptz,
   created_at timestamptz not null default now()
 );
 

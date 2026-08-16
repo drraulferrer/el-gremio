@@ -104,7 +104,19 @@ export default function Onboarding({ onDone }) {
       const base = { owner: userData.user.id, name: nombre.trim(), parent_pin_hash: pinHash }
       let { data: fam, error: e1 } = await supabase
         .from('families')
-        .insert({ ...base, timezone: zonaDelDispositivo() })
+        // La aceptación de los textos legales viaja aquí, no en `base`:
+        // `base` es el insert mínimo al que se cae si la base todavía no
+        // tiene las columnas, y tiene que seguir siendo válido siempre.
+        // Sale de los metadatos del alta, que es donde se guardó al
+        // registrarse; si la cuenta es anterior a la casilla va a null y
+        // así se queda, porque inventarle una fecha sería fabricar un
+        // consentimiento que nadie dio.
+        .insert({
+          ...base,
+          timezone: zonaDelDispositivo(),
+          legal_version: userData.user.user_metadata?.legal_version || null,
+          legal_at: userData.user.user_metadata?.legal_aceptado_en || null
+        })
         .select()
         .single()
 

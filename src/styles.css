@@ -733,6 +733,29 @@ input:focus, select:focus, button:focus-visible {
 
 .error-texto { color: var(--peligro); font-weight: 700; font-size: 0.9rem; }
 
+/* La casilla de aceptación del alta. La caja de toque es la etiqueta
+   entera, no el cuadradito de 16 px: en un móvil, acertarle a ese
+   cuadrado es justo la clase de fricción que hace abandonar el registro
+   a quien ya había decidido registrarse. */
+.acepta-legal {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin: 14px 0 4px;
+  font-size: .85rem;
+  line-height: 1.45;
+  color: var(--tinta-suave);
+  cursor: pointer;
+}
+.acepta-legal input {
+  width: 22px;
+  height: 22px;
+  margin: 0;
+  flex: 0 0 auto;
+  accent-color: var(--oro);
+}
+.acepta-legal a { color: var(--oro); }
+
 /* El camino bueno también tiene que hablar. «Te hemos mandado un correo»
    no es un error y no puede pintarse como tal, pero callarlo era peor:
    dejaba la pantalla idéntica a antes de pulsar. */

@@ -1,6 +1,9 @@
 import { useState } from 'react'
 import { supabase } from '../lib/supabase'
-import { urlDeLaNarrativa } from '../lib/dominio'
+import { urlDeLaNarrativa, urlDelGremio } from '../lib/dominio'
+import Captcha from '../components/Captcha'
+import { hayCaptcha } from '../lib/captcha'
+import { datosDeAceptacion, puedeAceptar, urlLegal } from '../lib/legal'
 import {
   resultadoDeAlta,
   resultadoDeRecuperacion,
@@ -17,6 +20,11 @@ export default function Login() {
   const [error, setError] = useState('')
   const [aviso, setAviso] = useState('') // el camino bueno también habla
   const [cargando, setCargando] = useState(false)
+  const [acepta, setAcepta] = useState(false)
+  const [token, setToken] = useState('')
+  // Cada intento fallido remonta el captcha: su token es de un solo uso y
+  // reintentar con el mismo lo rechaza Supabase.
+  const [intento, setIntento] = useState(0)
 
   const minimo = modo === 'crear' ? MIN_CLAVE_NUEVA : MIN_CLAVE_ENTRAR
 
@@ -26,6 +34,17 @@ export default function Login() {
     setAviso('')
   }
 
+  // El token viaja en `options` solo si existe: mandar `captchaToken:
+  // undefined` es lo mismo que no mandarlo, y así la app funciona igual
+  // antes y después de configurar Cloudflare.
+  const conCaptcha = (opciones = {}) => (token ? { ...opciones, captchaToken: token } : opciones)
+
+  function fallo(mensaje) {
+    setError(mensaje)
+    setToken('')
+    setIntento((n) => n + 1)
+  }
+
   async function enviar() {
     setError('')
     setAviso('')
@@ -33,12 +52,12 @@ export default function Login() {
 
     if (modo === 'olvidada') {
       const r = resultadoDeRecuperacion(
-        await supabase.auth.resetPasswordForEmail(email, {
+        await supabase.auth.resetPasswordForEmail(email, conCaptcha({
           redirectTo: urlDeVuelta(window.location.origin, import.meta.env.BASE_URL)
-        })
+        }))
       )
       setCargando(false)
-      if (r.estado === 'error') setError(r.mensaje)
+      if (r.estado === 'error') fallo(r.mensaje)
       else setAviso(r.mensaje)
       return
     }
@@ -48,23 +67,41 @@ export default function Login() {
         await supabase.auth.signUp({
           email,
           password: pass,
-          options: { emailRedirectTo: urlDeVuelta(window.location.origin, import.meta.env.BASE_URL) }
+          options: conCaptcha({
+            emailRedirectTo: urlDeVuelta(window.location.origin, import.meta.env.BASE_URL),
+            // Qué versión de los textos aceptó esta cuenta y cuándo. Va en
+            // los metadatos porque tiene que existir desde el primer
+            // instante, incluso antes de confirmar el correo; al fundar el
+            // gremio se copia a `families`, que es donde queda como
+            // registro estable.
+            data: datosDeAceptacion()
+          })
         })
       )
       setCargando(false)
-      if (r.estado === 'error') setError(r.mensaje)
+      if (r.estado === 'error') fallo(r.mensaje)
       else if (r.estado === 'confirma') setAviso(r.mensaje)
       // 'dentro' no necesita mensaje: la app ya ha cambiado de pantalla.
       return
     }
 
-    const { error: err } = await supabase.auth.signInWithPassword({ email, password: pass })
+    const { error: err } = await supabase.auth.signInWithPassword(
+      conCaptcha({ email, password: pass })
+    )
     setCargando(false)
-    if (err) setError(traducirAcceso(err.message))
+    if (err) fallo(traducirAcceso(err.message))
   }
 
   const puedeEnviar =
-    !cargando && email.includes('@') && (modo === 'olvidada' || pass.length >= minimo)
+    !cargando &&
+    email.includes('@') &&
+    (modo === 'olvidada' || pass.length >= minimo) &&
+    // Sin la casilla no hay alta. La regla vive en legal.js para poder
+    // probarla sin abrir el navegador.
+    (modo !== 'crear' || puedeAceptar(acepta)) &&
+    // Con captcha configurado, el botón espera al token. Sin él, ni se
+    // dibuja ni estorba.
+    (!hayCaptcha() || Boolean(token))
 
   return (
     <div className="pantalla-centrada">
@@ -106,6 +143,32 @@ export default function Login() {
             )}
           </div>
         )}
+
+        {/* La aceptación va ANTES del botón y con los enlaces dentro de la
+            frase: una casilla debajo del botón se marca sin leer, y un
+            enlace en el pie no lo abre nadie. Los dos documentos se ven
+            sin cuenta, que es justo cuando hacen falta. */}
+        {modo === 'crear' && (
+          <label className="acepta-legal">
+            <input
+              type="checkbox"
+              checked={acepta}
+              onChange={(e) => setAcepta(e.target.checked)}
+            />
+            <span>
+              Soy mayor de edad y acepto las{' '}
+              <a href={urlLegal('terminos', urlDelGremio())} target="_blank" rel="noopener noreferrer">
+                condiciones de uso
+              </a>{' '}
+              y la{' '}
+              <a href={urlLegal('privacidad', urlDelGremio())} target="_blank" rel="noopener noreferrer">
+                política de privacidad
+              </a>. Los perfiles de menores que cree son de personas a mi cargo.
+            </span>
+          </label>
+        )}
+
+        <Captcha key={modo + intento} accion={modo} onToken={setToken} />
 
         {error && <p className="error-texto">{error}</p>}
         {aviso && <p className="aviso-texto">{aviso}</p>}
