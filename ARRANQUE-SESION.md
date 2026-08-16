@@ -1156,6 +1156,31 @@ pulsar Deploy**, porque el editor pinta la basura tan tranquilo:
 python3 -c "import subprocess;s=open('supabase/functions/notificar/mensajes.ts',encoding='utf-8').read();subprocess.run(['pbcopy'],input=s.encode('mac_roman'))"
 ```
 
+**Y una ventana en la que un aviso no llega a nadie, descubierta al
+repetir el test.** Una consulta devolvió de pronto **dos aparatos de Raúl
+y ninguno de Irene**, y un minuto después uno por persona. No era un
+fallo: el teléfono de la junior tenía seleccionado el perfil de un adulto
+en ese momento, y `apuntarPerfil` **reasigna la suscripción al cambiar de
+perfil**, que es justo lo que se quiere en una tablet compartida. El envío
+cayó dentro de esa ventana, así que Irene se quedó sin aparato y su aviso
+se apuntó en `push_log` sin salir a ninguna parte.
+
+Consecuencia práctica, que no es teórica: **si el móvil de alguien se
+queda con otro perfil abierto, esa persona deja de recibir avisos y el
+otro los recibe por duplicado**, y el rastro no lo delata —`fallos` sigue
+a cero, porque no hubo ningún envío fallido—. Se diagnostica mirando de
+quién es cada fila de `push_subs` AHORA, no de quién la creó:
+
+```sql
+select p.name, to_char(s.created_at at time zone 'Europe/Madrid','HH24:MI') as alta,
+       s.ultimo_ok, s.fallos
+from public.push_subs s join public.profiles p on p.id = s.profile_id
+order by s.created_at;
+```
+
+Con cada aparato en su sitio, el test se repitió y salió limpio:
+`avisados: 1, enviados: 1`, con la adulta ya avisada saltada por el tope.
+
 ### Decisiones que conviene no deshacer
 
 - **Se apunta en `push_log` ANTES de enviar.** Al revés, un fallo a mitad
