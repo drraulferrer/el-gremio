@@ -1103,6 +1103,41 @@ correcto porque aún no hay ningún aparato suscrito. **Esas dos filas de
 de ese día. Si se vuelve a probar, hay que volver a limpiarlas:
 `delete from public.push_log where dia = current_date and enviados = 0;`
 
+### El primer envío real (16-ago, 10:58) · FUNCIONA
+
+Los dos iPhone de los adultos activaron los avisos y quedaron en
+`push_subs` (`web.push.apple.com`, `activa`, `fallos = 0`). Un `?forzar=1`
+devolvió `candidatos: 2, avisados: 2, enviados: 1` y **la notificación
+llegó al móvil**: la cadena base → Apple → teléfono está probada, que era
+lo único que quedaba por ver.
+
+Ese `enviados: 1` con dos avisados **no es un fallo**, y conviene saber
+leerlo o el día que pase de verdad se buscará donde no es: los dos
+candidatos eran la junior y una adulta; la adulta tiene aparato y lo
+recibió, la junior todavía no tiene el suyo activado, así que su aviso se
+apuntó y no salió a ninguna parte. Se distingue mirando `push_subs`: un
+envío fallido deja `fallos` a 1, y ahí los dos siguen a cero.
+
+**Lo que sí destapó el envío fue un fallo de contenido**: a la junior, con
+un día de racha, la frase compuesta era «**1 días seguidos**». Cuatro de
+las cinco plantillas de `racha_riesgo` interpolaban `${n} días` sin forma
+singular; el banco de `sin_validar` sí la cuidaba. Arreglado con `dias()`
+y `diasSeguidos()`, con un test que recorre `todasLasPlantillas()` y
+rechaza «1 días» y «1 misiones». **El test podría haberlo cazado desde el
+primer día**: `todasLasPlantillas()` ya pintaba cada frase con `n = 1` y
+nadie miraba el resultado.
+
+**PENDIENTE, y es lo único que queda de los avisos: volver a desplegar la
+función `notificar`** con el `mensajes.ts` corregido. Está en el repo pero
+no en producción, y las Edge Functions no se despliegan solas ni salen del
+`npm run deploy`: se pegan en el editor del panel (no hay CLI de Supabase
+en esta máquina). Mientras tanto, quien tenga un día de racha seguirá
+recibiendo «1 días seguidos».
+
+También quedó una fila de `push_log` de hoy con `enviados = 0` (la de la
+junior). Si activa su móvil esta tarde, esa fila le silencia el aviso de
+hoy; se limpia con la línea de arriba.
+
 ### Decisiones que conviene no deshacer
 
 - **Se apunta en `push_log` ANTES de enviar.** Al revés, un fallo a mitad
