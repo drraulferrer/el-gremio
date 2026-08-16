@@ -2360,3 +2360,55 @@ button.kid-avatar.latiendo { animation: latido-aviso 2.6s var(--ease-salida) inf
   background: linear-gradient(180deg, rgba(30, 33, 64, 0), var(--tablero) 38%);
 }
 .setup-pie .btn { min-height: 48px; }
+
+/* ==================================================================
+   Selector de emoji con grupos y buscador
+   Con doce emojis bastaba una fila. Con ochenta y seis hace falta poder
+   buscar, y hace falta que la caja tenga fondo: si no, el formulario de
+   un premio mide tres pantallas y el botón de guardar no se ve nunca.
+   ================================================================== */
+
+.selector-emoji-buscar {
+  width: 100%;
+  margin-bottom: 8px;
+}
+
+.selector-emoji-caja {
+  max-height: 260px;
+  overflow-y: auto;
+  padding: 10px;
+  border-radius: var(--radio-s);
+  border: 1px solid var(--linea);
+  background: var(--tablero-hondo);
+  /* Desplazamiento con inercia en iOS y sin rebote de la página entera. */
+  overscroll-behavior: contain;
+}
+
+.selector-emoji-grupo + .selector-emoji-grupo { margin-top: 14px; }
+
+.selector-emoji-titulo {
+  font-family: var(--display);
+  font-size: 0.82rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--oro);
+  margin-bottom: 6px;
+}
+.selector-emoji-titulo em {
+  display: block;
+  font-family: var(--cuerpo);
+  font-style: normal;
+  font-size: 0.78rem;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--tinta-suave);
+  margin-top: 2px;
+}
+
+/* El elegido, al lado de la etiqueta: con la caja desplazada hacia abajo
+   no se ve cuál está marcado, y era la pregunta más razonable del mundo. */
+.emoji-elegido {
+  font-size: 1.25rem;
+  margin-left: 6px;
+  vertical-align: -3px;
+}

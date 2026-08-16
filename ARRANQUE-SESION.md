@@ -995,6 +995,35 @@ de `App.jsx`, que se calculó en el primer render.
 
 ---
 
+## 7h. Emojis de premio (16 de agosto)
+
+Había **doce** escritos a mano dentro del formulario, y con doce todos los
+premios de una casa acaban pareciéndose. Importa más de lo que parece:
+en la tienda de la peque el emoji es **lo único que se ve** —ahí no hay
+texto ni cifras—, así que dos premios con el mismo dibujo son, para ella,
+el mismo premio.
+
+Ahora son **88 en ocho grupos** (`src/lib/emojis.js`), con nombre en
+castellano y sinónimos de andar por casa («peli» además de «película»).
+Tres decisiones:
+
+- **El nombre no es documentación, es el buscador.** Con ochenta y ocho,
+  agrupar no basta: quien crea un premio sabe cuál es, lo que no sabe es
+  en qué grupo lo hemos metido nosotros. Se busca por «piscina», «abuela»
+  o «peli», sin acentos y sin mayúsculas.
+- **El emoji se sugiere al escribir el título** y deja de sugerirse en
+  cuanto alguien elige uno a mano. Gana la palabra más larga que case:
+  «cuento» le gana a «leer» en «Leer un cuento».
+- **La caja tiene altura máxima y se desplaza dentro.** Sin eso el
+  formulario medía tres pantallas y el botón de guardar no se veía.
+
+Hay un test que compara el catálogo de emojis con `CATALOGO_PREMIOS`: si
+un premio usa un emoji que no está en la rejilla, editarlo desde el panel
+lo cambiaría sin querer, porque no habría ninguno marcado. Saltó a la
+primera con 🍽️ y 🌟.
+
+---
+
 ## 8. Pendientes
 
 ### Lo primero al retomar: probar el correo de recuperación de verdad

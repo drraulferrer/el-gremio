@@ -31,6 +31,8 @@ import {
   GRUPOS_ROL,
   agruparPorFrecuencia
 } from '../lib/misiones'
+import SelectorEmoji from '../components/SelectorEmoji'
+import { emojiSugerido } from '../lib/emojis'
 
 export default function ParentPanel({ family, data, refresh, refreshFamily, onVerTutorial, onExit }) {
   const [tab, setTab] = useState('pendientes')
@@ -1016,21 +1018,34 @@ function GestionPremios({ family, data, refresh }) {
 
 function FormPremio({ premio, onGuardar, onBorrar }) {
   const [r, setR] = useState({ ...premio })
+  // Deja de sugerir en cuanto alguien elige a mano: a partir de ahí manda
+  // la persona, aunque siga escribiendo el título.
+  const [aMano, setAMano] = useState(Boolean(premio.id))
   const set = (cambios) => setR({ ...r, ...cambios })
+
+  function escribirTitulo(title) {
+    set(aMano ? { title } : { title, emoji: emojiSugerido(title, PREMIO_VACIO.emoji) })
+  }
 
   return (
     <div>
       <div className="campo">
-        <label>Premio</label>
-        <input value={r.title} onChange={(e) => set({ title: e.target.value })} placeholder="Elegir peli del viernes" autoFocus />
+        <label htmlFor="premio-titulo">Premio</label>
+        <input
+          id="premio-titulo"
+          value={r.title}
+          onChange={(e) => escribirTitulo(e.target.value)}
+          placeholder="Elegir peli del viernes"
+          autoFocus
+        />
       </div>
       <div className="campo">
-        <label>Emoji</label>
-        <div className="grid-emojis">
-          {['🎁', '🍕', '🎬', '🎮', '🍦', '🏞️', '🎡', '📀', '🧁', '🎳', '🛼', '🌙'].map((e) => (
-            <button key={e} className={r.emoji === e ? 'sel' : ''} onClick={() => set({ emoji: e })}>{e}</button>
-          ))}
-        </div>
+        <label htmlFor="premio-emoji">Emoji <span className="emoji-elegido">{r.emoji}</span></label>
+        <SelectorEmoji
+          id="premio-emoji"
+          valor={r.emoji}
+          onElegir={(e) => { setAMano(true); set({ emoji: e }) }}
+        />
       </div>
       <div className="campo">
         <label>Precio en monedas 🪙</label>
