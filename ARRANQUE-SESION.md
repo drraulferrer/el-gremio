@@ -1446,6 +1446,59 @@ migración va SIEMPRE antes del `npm run deploy`**, nunca después. Merece
 una línea en el propio `deploy.mjs` que avise si hay un `migracion-0NN`
 más nuevo que la última etiqueta de despliegue.
 
+### Planificar por días de la semana (diseñado, sin construir)
+
+Lo pidió la familia el 16-ago: las misiones de la junior y de la peque
+son las mismas todos los días, y hace falta poder repartirlas —días
+alternos, lunes/miércoles/viernes, lo que sea—. Queda el diseño cerrado
+con las dos decisiones que lo sostienen; falta construirlo.
+
+**1. Se planifica por DÍA DE LA SEMANA, no por «semana que empieza hoy».**
+Esta es la respuesta a «una semana puede empezar cualquier día», y la
+respuesta es que entonces no hay que modelar semanas. Un patrón de siete
+casillas (L M X J V S D) **no tiene fecha de inicio**: se repite solo, y
+empezar a usarlo un jueves no produce ninguna semana parcial que haya que
+normalizar. Todo el problema desaparece por construcción.
+
+Esto pide una columna `days smallint[]` en `challenges` (1 = lunes …
+7 = domingo, `null` = todos los días, que es el comportamiento de hoy) y
+tocar el predicado de `src/lib/misiones.js`, que es el único sitio donde
+se decide qué misión sale hoy —para eso se centralizó en la 013—.
+
+El modo «cada N días» **se deja fuera a propósito**: ese sí necesita una
+fecha ancla por misión, y con ancla vuelve el problema que el patrón
+semanal no tiene. Si algún día se quiere, va con su `anchor_date`, no sin
+ella.
+
+**2. La racha cuenta DÍAS CUMPLIDOS, no días con actividad.** Sin esto,
+la funcionalidad se come el sistema de rachas: si a la junior le tocan
+lunes, miércoles y viernes, el martes no tiene nada que hacer y hoy eso
+le rompería la racha. Un día sin misiones asignadas tiene que ser
+**neutro**: ni la rompe ni la alarga.
+
+La buena noticia es que el mecanismo ya existe y no hay que inventarlo:
+`rachaActual`, `rachaMaxima` y `hoyHecho` (`src/lib/rachas.js`,
+`src/lib/meritos.js`) aceptan `diasSalvados`, que significa exactamente
+«este día no rompe». Los días sin misiones entran por ahí. **Ojo: hay que
+pasarlos también a `claim_streak` en Postgres**, que es quien certifica
+la racha y paga los hitos; si solo se arregla el cliente, la pantalla
+dirá 12 y la base pagará por 4.
+
+Y el número que se enseña sigue siendo real, que es la regla 4 del banco
+de mensajes: con días alternos, llegar al hito de 30 cuesta más semanas
+de calendario. Eso es correcto y no hay que maquillarlo.
+
+**3. En la interfaz, una tira de siete puntos por misión** (L M X J V S D,
+rellenos los que tocan), no una fila nueva por día. Con la letra Y el
+relleno se lee sin depender del color. Cabe en la fila que ya existe y no
+vuelve a llenar la pantalla, que era la condición de partida.
+
+Lo que hay que tocar, en orden: migración `challenges.days` + `schema.sql`
+→ `misiones.js` → el formulario de misión y la biblioteca → `KidHome` y el
+tablero → `rachas.js`/`meritos.js` con los días neutros → `claim_streak` →
+la vista `push_pendientes`, que decide a quién avisar y hoy da por hecho
+que todos los días son iguales.
+
 ### Los dos poderes que faltan por cablear
 
 Ninguno es urgente y los dos tocan sitios delicados:
