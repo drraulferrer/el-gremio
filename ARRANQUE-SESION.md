@@ -1037,6 +1037,64 @@ habría ninguno marcado. El de premios saltó a la primera con 🍽️ y 🌟.
 
 ---
 
+## 7d. Avisos push (16-ago) · CONSTRUIDO A MEDIAS
+
+Todo el código está escrito, probado y desplegado, y la migración 019 está
+ejecutada. **Lo que falta son tres pasos en el panel de Supabase**, y hasta
+que se den no llega ni un aviso.
+
+### Lo que ya está
+
+- `public/sw.js` — service worker. No cachea nada a propósito: una caché
+  mal puesta sirve una versión vieja durante días y se diagnostica fatal
+  desde el sofá. Busca la ventana por `registration.scope`, no por una
+  ruta fija, así que sobrevivió a la mudanza a dominio propio.
+- `src/lib/push.js` — permiso, suscripción y alta en la base.
+- `src/screens/Avisos.jsx` — Ajustes → 🔔 Avisos. Se enciende por aparato.
+- **Migración 019, ejecutada y comprobada**: `push_subs` (aparatos, no
+  personas: la clave es el endpoint), `push_log` (índice único
+  perfil+día = el tope de uno al día), la vista `push_pendientes` con
+  `security_invoker` y `streak_days`, que saca la cuenta de la racha de
+  dentro de `claim_streak` para que haya UNA sola definición.
+- `supabase/functions/notificar/` — la función de envío y su banco de
+  mensajes, con tests que rechazan cualquier frase que riña y cualquier
+  marca de género.
+- Claves VAPID generadas y guardadas en `.env` (fuera de git).
+
+### Los tres pasos que faltan
+
+1. **Desplegar la función.** Panel → Edge Functions → *Open Editor*, crear
+   `notificar` y pegar `supabase/functions/notificar/`. Hay que dejar
+   **«Verify JWT» en OFF**: la función se protege con un secreto propio en
+   la cabecera para que el cron no tenga que llevar encima la clave de
+   servicio.
+2. **Los secretos** (Edge Functions → Secrets), tal cual están en `.env`:
+   `VAPID_PUBLIC`, `VAPID_PRIVATE`, `VAPID_SUBJECT` y `GREMIO_CRON_SECRET`.
+3. **El cron**: ejecutar `supabase/cron-notificar.sql` sustituyendo
+   `<SECRETO>` por el valor de `GREMIO_CRON_SECRET`. Ese fichero NO lleva
+   el secreto porque el repositorio es público.
+
+Después, la prueba de humo: activar los avisos en un móvil desde Ajustes y
+llamar a la función con `?forzar=1` (salta la franja de la tarde, pero
+NO el tope de uno al día, que no se salta ni probando).
+
+### Decisiones que conviene no deshacer
+
+- **Se apunta en `push_log` ANTES de enviar.** Al revés, un fallo a mitad
+  dejaría el día sin apuntar y el cron de la hora siguiente escribiría
+  otra vez a quien ya recibió el aviso. Perder un aviso es molesto; mandar
+  dos es lo que hace que se silencie la app.
+- **El «a quién y por qué» vive en SQL** (`push_pendientes`), no en la
+  función: así se corrige desde el editor sin volver a desplegar.
+- **Los mensajes pican, no riñen.** Hay un test que rechaza «has fallado»,
+  «llevas X sin» y compañía. Otro prohíbe marcas de género, porque la
+  función no pasa por `flex` y llegarían como `{a|b|c}` al móvil.
+- **La peque no recibe avisos.** A los tres años el teléfono no es suyo.
+- La franja es de 17 a 20 en **hora de la familia** (`families.timezone`),
+  no del servidor.
+
+---
+
 ## 8. Pendientes
 
 ### Lo primero al retomar: probar el correo de recuperación de verdad
