@@ -1,15 +1,14 @@
 # El captcha del registro
 
-**Estado a 16-ago-2026: medio encendido.** El widget existe en Cloudflare
+**Estado a 16-ago-2026: encendido y verificado de punta a punta.** El widget existe en Cloudflare
 («El Gremio», hostnames `elgremioapp.com`, `www.elgremioapp.com` y
 `localhost`, modo Gestionado), la clave pública está en `.env` y
 desplegada, y el recuadro aparece y resuelve en la app.
 
-**Falta un paso, y es el único que no puede hacer un agente: pegar la
-clave SECRETA en Supabase** (Authentication → Attack Protection →
-proveedor Turnstile). Hasta que eso ocurra, el captcha se dibuja y
-entrega su token, pero **nadie lo verifica**: la protección real la aplica
-Supabase, no el navegador.
+La clave secreta está puesta en Supabase (Authentication → Attack
+Protection, proveedor Turnstile). Comprobado desde fuera con la clave
+anon: alta, entrada y recuperación **rechazadas con `captcha_failed`** si
+la petición no lleva token. Y desde la app real: las tres pasan.
 
 El código vive en `src/lib/captcha.js` y `src/components/Captcha.jsx`. Sin
 `VITE_TURNSTILE_SITE_KEY` no dibuja nada y no carga ningún script de
@@ -107,3 +106,38 @@ VITE_TURNSTILE_SITE_KEY=2x00000000000000000000AB
 ```
 
 Ninguna de las dos vale en producción: son para desarrollo.
+
+---
+
+## La trampa que costó un despliegue
+
+Con el captcha ya exigido en Supabase, **registrarse y recuperar la
+contraseña funcionaban y entrar no**. El síntoma era el peor posible: la
+única operación rota era la que usa la familia todos los días, y las dos
+que se acababan de tocar iban bien.
+
+La causa: `signInWithPassword` quiere el token **dentro de `options`**, y
+se estaba pasando al lado de `email` y `password`. Ahí **supabase-js lo
+ignora en silencio** —ni error, ni aviso— y manda
+`gotrue_meta_security: {}`.
+
+```js
+// MAL: el token se pierde sin decir nada
+signInWithPassword({ email, password, captchaToken })
+
+// BIEN
+signInWithPassword({ email, password, options: { captchaToken } })
+```
+
+Dos cosas que dejar aprendidas:
+
+- **No lo cazó ningún test ni el build.** Se vio interceptando el cuerpo
+  real de la petición en el navegador. Ahora la forma vive en
+  `argumentosDeEntrada()` (`src/lib/acceso.js`) con tests que fijan que el
+  token va en `options` y no en la raíz.
+- **Al tocar el registro hay que probar SIEMPRE las tres**, y empezar por
+  entrar. Una comprobación rápida, sin crear ninguna cuenta: intentar
+  entrar con un correo inventado y una contraseña cualquiera. Si sale
+  «Email o contraseña incorrectos», el captcha ha pasado y solo ha fallado
+  la credencial, que es lo que se quería comprobar. Si sale el mensaje del
+  robot, el token no está llegando.
