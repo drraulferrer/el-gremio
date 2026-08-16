@@ -1509,3 +1509,55 @@ npm run verify       # tests + build + revisión de credenciales
 npm run deploy
 npm run health
 ```
+
+---
+
+## 7j. Auditoría de producción masiva (16 de agosto)
+
+Repaso del correo en el dominio nuevo y de todo lo que se rompe al abrir
+esto a mucha gente. **El informe completo, con los comandos para repetir
+cada comprobación, está en `docs/PRODUCCION.md`.** Aquí solo lo que hay
+que saber para no repetir el trabajo.
+
+**Se encontró un agujero de verdad, y ya está cerrado (migración 021).**
+`revoke all on function ... from public` NO deja la función solo para
+quien tiene sesión: Supabase concede EXECUTE a `anon` y `authenticated`
+por privilegios por defecto al crearla, y ese `revoke` retira el pseudo-rol
+PUBLIC, no los permisos que esos dos roles ya tienen por su nombre. Con la
+clave anon del bundle y sin sesión, `purge_logs` respondía 200: borraba
+`app_logs` de todas las familias y —lo peor— vaciaba `rate_limits` y
+`user_limits`, o sea que **cualquiera podía poner a cero todos los topes de
+ritmo a voluntad**. Reprobado después del arreglo: 401.
+
+Regla nueva, y va en `schema.sql` al final: al crear una función
+`security definer` hay que retirar `anon` explícitamente. El bloque del
+final del esquema lo hace para todas de una vez; volver a lanzarlo tras
+añadir una función es la forma barata de no olvidarse.
+
+**La 020** arregló tres cosas de escala: siete claves ajenas sin índice
+(lo que más las nota es borrar una cuenta, que es justo lo que el RGPD
+obliga a ofrecer), las dos políticas de la 019 que se quedaron sin
+`to authenticated`, y `purge_logs`, que existía desde la 002 y **nunca se
+había ejecutado** porque no estaba programada. Ahora corre en `pg_cron` a
+las 4:10.
+
+**El correo en `elgremioapp.com` está bien montado**: SPF y DKIM
+verificados por DNS (el selector es `hostingermail-a`; los otros dos son
+marcadores vacíos, es lo normal en Hostinger), remitente y redirect URLs
+correctos, confirmación encendida, plantillas sin URLs fijas. Los dos
+peros: **DMARC en `p=none` y sin `rua=`**, o sea sin un solo informe; y el
+techo de **30 correos/hora** sobre un buzón de Hostinger, que no es un
+servicio transaccional. Cada alta consume uno: son 30 familias nuevas por
+hora en el mejor caso.
+
+**Lo que bloquea abrir el registro** no es técnico: no hay política de
+privacidad, ni términos, ni edad mínima, ni registro de consentimiento
+parental, y aquí se guardan nombres y actividad diaria de menores. El
+borrado y la exportación de datos sí funcionan (`delete_my_account`
+comprobada), que es la mitad difícil.
+
+**Y un dato que conviene mirar:** hay **cero suscripciones a los avisos
+push** con el sistema entero montado y el cron corriendo cada hora. O no
+los ha activado nadie, o la suscripción falla en silencio; desde dentro no
+hay forma de distinguirlo, y eso —la ceguera— es el problema de fondo, no
+el push.
