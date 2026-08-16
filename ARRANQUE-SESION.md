@@ -1610,3 +1610,51 @@ Al volver a contar apareció además que **hay dos avisos apuntados en
 `push_log` y un solo envío real**. Uno se dio por avisado sin llegar a
 ningún aparato. Es el comportamiento previsto —se apunta antes de enviar
 para no duplicar—, pero solo se ve si alguien escribe la consulta.
+
+---
+
+## 7k. Legal, captcha y correo autenticado (16 de agosto, tarde)
+
+**Los textos legales existen y se aceptan en el alta.** Privacidad y
+condiciones de uso en `public/legal/`, como páginas sueltas fuera del
+bundle: hay que poder leerlas SIN cuenta, porque se leen justo antes de
+decidir si se crea una. Responsable: Raúl Ferrer, persona física;
+contacto `info@elgremioapp.com`.
+
+Tres decisiones que conviene no deshacer:
+
+- **La casilla bloquea el botón**, y los dos enlaces van dentro de la
+  frase, no en el pie. Una casilla debajo del botón se marca sin leer y un
+  enlace en el pie no lo abre nadie.
+- **Se guarda la VERSIÓN aceptada, no un `true`.** Dentro de un año
+  «aceptó las condiciones» no dice nada si nadie sabe qué decían entonces.
+  Vive en `src/lib/legal.js` (`VERSION_LEGAL`) y encabeza los dos HTML;
+  hay un test que falla si cambian los textos y no la versión.
+- **Se apunta en dos sitios**: en los metadatos del alta (existen desde
+  antes de confirmar el correo, cuando todavía no hay gremio) y en
+  `families.legal_version` / `legal_at` al fundarlo (migración 022,
+  primer momento con sesión). Los gremios anteriores quedan a **null a
+  propósito**: `select id from families where legal_version is null` es
+  justo la consulta que encuentra a quién habrá que volver a preguntar.
+  Hoy da 1, que es el gremio de casa.
+
+**El captcha está escrito y apagado**, y así se queda hasta que alguien
+cree la cuenta de Cloudflare Turnstile: sin `VITE_TURNSTILE_SITE_KEY` no
+dibuja nada, no carga ningún script de terceros y el alta funciona igual
+que siempre. Receta completa, con el orden correcto de encendido y las
+claves de prueba, en `docs/CAPTCHA.md`. **El orden importa**: primero
+desplegar la clave pública, después exigirla en Supabase; al revés hay una
+ventana en la que nadie puede registrarse ni recuperar su contraseña.
+
+**El correo, ya autenticado del todo.** El DMARC pasó de `p=none` pelado a
+`v=DMARC1; p=none; rua=mailto:info@elgremioapp.com`, o sea que a partir de
+ahora llegan los informes agregados y se puede ver quién manda en nombre
+del dominio antes de subir a `quarantine`. Nota que costó despejar: el
+`rua` puede apuntar a `info@elgremioapp.com` aunque ese buzón reenvíe a
+otro sitio, porque lo que exige la norma es que la dirección esté **en el
+mismo dominio** que el registro; una de Gmail habría necesitado un
+registro de autorización en `gmail.com` que no se puede publicar.
+
+Y `https://www.elgremioapp.com/**` añadida a las Redirect URLs de
+Supabase, que faltaba: quien llegara por `www` y pidiera recuperar la
+contraseña habría visto rebotar el enlace.
