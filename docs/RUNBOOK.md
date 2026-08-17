@@ -85,22 +85,69 @@ personas, pero conviene correrlo cada pocos meses.
 rechazadas, los agrupa por huella (ignorando UUIDs y números, para que el
 mismo fallo con distintos ids cuente como uno) y lleva la frecuencia.
 
-El proveedor externo está **preparado y apagado**. Para activar Sentry:
+El proveedor externo está **preparado y apagado**.
+
+**¿Hace falta encenderlo? A la escala de hoy, no.** `salud_diaria`
+(migración 023) ya da el recuento diario de errores de TODAS las familias
+—corre como `security definer`, así que no la para el RLS— y `app_logs`
+guarda el detalle 30 días. Con eso se responde «¿hubo errores y cuáles?»
+sin ningún tercero. Sentry gana sentido cuando haya familias suficientes
+para necesitar **avisos en el momento** en vez de mirar una tabla una vez
+al día, y trazas des-minificadas. Antes de eso, añade superficie y una
+dependencia externa sin cerrar un hueco real.
+
+**Dos cosas hay que hacer ANTES de tocar código, y las dos faltaban en
+esta receta:**
+
+- **Ampliar la CSP, o Sentry no envía nada.** El `connect-src` de
+  `index.html` solo deja salir hacia Supabase, Google Fonts y Cloudflare.
+  El host de ingest de Sentry (`https://*.ingest.sentry.io`, o el
+  específico de tu región/self-hosted) **no está**, así que sin tocarlo
+  `Sentry.init` carga, no da error, y cada evento muere contra la CSP:
+  cero eventos creyendo que funciona. Añadir a `connect-src` el host
+  exacto que te dé Sentry al crear el proyecto.
+- **Decisión legal, que aquí no es un trámite.** Esto guarda nombres y
+  actividad diaria de menores. Enviar telemetría de error a un tercero es
+  tratamiento de datos: hace falta DPA con Sentry, mención en la política
+  de privacidad y **scrubbing de PII** (usar región EU y `beforeSend`
+  para tirar cualquier dato de la familia). Ver §8 del arranque.
+
+Cuando esté decidido:
 
 1. Crear cuenta y proyecto en sentry.io (gratis hasta 5.000 eventos/mes).
-2. `npm install @sentry/browser`
-3. Poner `VITE_SENTRY_DSN=...` en `.env`. El DSN es público, va en el bundle.
-4. En `src/main.jsx`, antes de renderizar:
+   Elegir **región EU** si se procesan datos de menores.
+2. `npm install @sentry/browser`.
+3. Añadir el host de ingest a `connect-src` en `index.html`.
+4. Poner `VITE_SENTRY_DSN=...` en `.env`. El DSN es público, va en el bundle.
+5. En `src/main.jsx`, antes de renderizar:
 
 ```js
 import * as Sentry from '@sentry/browser'
 import { setProveedor } from './lib/monitoring'
 
-Sentry.init({ dsn: import.meta.env.VITE_SENTRY_DSN, release: RELEASE })
+Sentry.init({
+  dsn: import.meta.env.VITE_SENTRY_DSN,
+  release: RELEASE,
+  sendDefaultPii: false,
+  // Sin esto, Sentry manda breadcrumbs, URLs y contexto que pueden
+  // llevar datos de la familia. Recortar a lo mínimo diagnosticable.
+  beforeSend: (evento) => {
+    delete evento.user
+    delete evento.request
+    return evento
+  }
+})
 setProveedor({ captureException: (e, ctx) => Sentry.captureException(e, { extra: ctx }) })
 ```
 
-Sin DSN no se carga la librería ni sale un byte hacia terceros.
+Para que las trazas no lleguen minificadas hay que subir los source maps
+(el build ya los emite): `@sentry/vite-plugin` con un auth token, o dar la
+monitorización por buena sabiendo que la línea será la del bundle.
+
+Sin DSN no se carga la librería ni sale un byte hacia terceros. El
+adaptador (`src/lib/monitoring.js`) está escrito para que enchufarlo sea
+solo el `setProveedor` de arriba: no hay que tocar la captura, que ya está
+instalada y probada.
 
 ---
 
