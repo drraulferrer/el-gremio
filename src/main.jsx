@@ -16,12 +16,23 @@ if (marco === 'atrapado') {
   // formulario de entrada, ni panel. Solo un enlace para llegar al sitio
   // de verdad, que es lo único útil que se le puede ofrecer a quien haya
   // llegado aquí de buena fe.
+  // Se construye con nodos y no con innerHTML. Hoy la cadena es literal y
+  // no habría diferencia; el problema es el de mañana, cuando alguien
+  // quiera meter aquí el origen del marco o un mensaje de error y lo
+  // concatene sin pensarlo. En este repo no hay ni un `innerHTML`, y esa
+  // propiedad vale más que las cuatro líneas que ahorra.
   const salida = document.createElement('p')
   salida.style.cssText = 'font:16px/1.5 system-ui,sans-serif;padding:24px;text-align:center'
-  salida.innerHTML =
-    'El Gremio no se abre dentro de otra página. ' +
-    '<a href="https://elgremioapp.com/" target="_blank" rel="noopener noreferrer">Ábrelo aquí</a>.'
-  document.getElementById('root').appendChild(salida)
+  salida.append('El Gremio no se abre dentro de otra página. ')
+
+  const enlace = document.createElement('a')
+  enlace.href = 'https://elgremioapp.com/'
+  enlace.target = '_blank'
+  enlace.rel = 'noopener noreferrer'
+  enlace.textContent = 'Ábrelo aquí'
+  salida.append(enlace, '.')
+
+  document.getElementById('root').append(salida)
 } else if (marco === 'suelto') {
   createRoot(document.getElementById('root')).render(
     <React.StrictMode>
