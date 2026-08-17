@@ -954,12 +954,18 @@ Arreglarlo pide una decisión, no solo código: una columna `timezone` en
 `families`, elegida en el alta, y pasarla por todos los sitios donde hoy
 hay una zona escrita a mano. Tanda propia.
 
-**7. Nadie puede ver los errores de nadie.** `app_logs` está bajo RLS por
-familia, que es lo correcto para la privacidad y deja al operador ciego:
-si mañana falla el alta de trescientas casas, no hay una sola consulta que
-lo diga sin la clave de servicio. Hace falta una vista agregada y anónima
-(cuenta por evento y por día, sin `family_id`) o encender Sentry, que está
-escrito y apagado en `monitoring.js`.
+**7. Ver los errores del conjunto: la parte agregada, RESUELTA.** `app_logs`
+sigue bajo RLS por familia —correcto para la privacidad—, así que el
+detalle de un fallo concreto solo se ve con la clave de servicio en el SQL
+Editor. Pero el hueco que de verdad dejaba ciego al operador —«¿cuántos
+errores hubo hoy en TODO el sistema?»— lo cierra `salud_diaria`
+(migración 023): una fila al día, `security definer`, con el recuento de
+errores de todas las familias sin `family_id` a la vista. Se mira con
+`select * from salud_diaria order by dia desc`. Lo que NO hay, y sería lo
+siguiente si hiciera falta, son **avisos en el momento**: hoy es una foto
+diaria, no un empujón cuando algo se rompe. Para eso está Sentry escrito y
+apagado en `monitoring.js` (ver §8 y «Escrito pero no activado»), pero a
+esta escala no compensa el coste legal.
 
 **8. Lo legal es un bloqueo real, no un trámite.** Esto guarda nombres y
 actividad diaria de menores de edad. Para una familia con su propia cuenta
@@ -1691,7 +1697,17 @@ monedas desde Panel → Premios.
   temporal, comprueba la atomicidad y limpia lo que creó.
 - **Sentry**: adaptador listo en `monitoring.js`, apagado. Sin
   `VITE_SENTRY_DSN` no se carga nada ni sale un byte hacia terceros.
-  Instrucciones en `docs/RUNBOOK.md` §3.
+  Repasado el 17-ago y el **veredicto es que a esta escala NO hace falta**:
+  `salud_diaria` (migración 023) ya da el recuento diario de errores de
+  todas las familias —`security definer`, se salta el RLS— y `app_logs`
+  guarda el detalle 30 días. Sentry solo añade avisos en el momento y
+  trazas des-minificadas, que importan con muchas familias, no ahora. Y si
+  algún día se enciende, la receta de `docs/RUNBOOK.md` §3 lleva ya las dos
+  trampas que le faltaban: **(1)** hay que meter el host de ingest de
+  Sentry en `connect-src` de la CSP o cada evento muere en silencio contra
+  la política, y **(2)** manda datos de menores a un tercero → región EU,
+  `sendDefaultPii:false`, `beforeSend` que tira `user`/`request`, DPA y
+  mención en privacidad. Es decisión legal, no interruptor.
 
 ### Nadie entrena la creatividad
 
