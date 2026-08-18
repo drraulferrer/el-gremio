@@ -40,7 +40,7 @@ export default function NuevaClave({ onHecho }) {
 
   return (
     <div className="pantalla-centrada">
-      <img src={import.meta.env.BASE_URL + 'icon.svg'} alt="" width="72" height="72" style={{ borderRadius: 18 }} />
+      <img src={import.meta.env.BASE_URL + 'assets/emblema-gremio.png'} alt="" width="80" height="80" />
       <h1 style={{ fontSize: '1.6rem' }}>Contraseña nueva</h1>
       <p className="suave" style={{ maxWidth: 320 }}>
         Elige la contraseña con la que entrará el gremio a partir de ahora.

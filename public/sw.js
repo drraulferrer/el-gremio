@@ -29,8 +29,8 @@ self.addEventListener('push', (evento) => {
   const titulo = datos.titulo || 'El Gremio'
   const opciones = {
     body: datos.cuerpo || '',
-    icon: './icon.svg',
-    badge: './icon.svg',
+    icon: './icon-192.png',
+    badge: './icon-192.png',
     lang: 'es',
     // Una etiqueta fija hace que un aviso nuevo SUSTITUYA al anterior en
     // vez de apilarse. Si algún día fallara el tope de uno al día, la

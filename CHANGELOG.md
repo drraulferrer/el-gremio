@@ -18,6 +18,47 @@ verdad duele en esta app: que el esquema y el cliente dejen de encajar.
 
 ---
 
+## 2.5.1 · 18 de agosto de 2026
+
+Dos cosas que solo se ven usando la app instalada en un móvil.
+
+**La pantalla de la peque se podía arrastrar y salirse del teléfono.** Su
+cabecera iba a sangre con `width:100vw` + `margin-left:50%` +
+`transform:translateX(-50%)`. El transform la devolvía a su sitio a la
+vista, pero **los transforms no cuentan para `scrollWidth`**: la caja de
+layout seguía empezando en el 50 % y midiendo 100vw, o sea 563 px dentro
+de un contenedor de 375. Y como `.kid` tiene `overflow-y:auto` —que por la
+regla de CSS de que `visible` no puede convivir con otro valor fuerza
+`overflow-x:auto`—, esos 188 px se convertían en scroll horizontal.
+
+Ahora va a sangre con márgenes negativos que anulan el padding del
+contenedor. Se ve exactamente igual y no desborda nada, ni a 375 px ni a
+1280. El margen lateral es **una sola variable** usada por el padding y
+por la cabecera, para que no puedan volver a desincronizarse; la media
+query de pantalla ancha mueve la variable, no el padding.
+
+Y las dos capas fijas que hacen scroll —el tablero de la peque y su
+tienda— llevan ya `overscroll-behavior: contain`, que es lo que impide
+que el rebote elástico de iOS se propague al documento. Es el mismo
+remedio que ya usaban los diálogos.
+
+**El icono de la app instalada no era el del gremio.** El
+`apple-touch-icon` apuntaba a un SVG, y **iOS no admite SVG ahí**: al no
+poder leerlo, ponía en el escritorio una miniatura de la web. Ahora hay
+PNG de verdad —180 para iOS, 192 y 512 para el manifiesto, y un
+**maskable** de 512 con el emblema más pequeño porque Android recorta
+hasta el 20 % exterior según la forma del lanzador—. El manifiesto declara
+tamaños y tipo, los avisos usan el PNG (un SVG tampoco se pinta de forma
+fiable en una notificación), y los colores pasan al índigo nuevo #141428.
+El `icon.svg` viejo ya no lo referencia nadie y se ha ido.
+
+Siete tests nuevos: cuatro vigilan que la cabecera no vuelva al truco de
+`100vw` y que las capas contengan el rebote; tres, que el
+`apple-touch-icon` siga siendo PNG y que el manifiesto no pierda el
+maskable.
+
+---
+
 ## 2.5.0 · 18 de agosto de 2026
 
 La estética entera, según la guía de assets y la propuesta «el taller

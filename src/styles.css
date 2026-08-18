@@ -1032,13 +1032,22 @@ input:focus, select:focus, button:focus-visible {
   --kid-borde: #2f2440;
   --kid-sombra: #d9c4a1;
 
+  /* El margen lateral es una variable porque la cabecera va a sangre y
+     necesita anularlo EXACTAMENTE. Escrito dos veces a mano, el día que
+     alguien cambie uno se abre otra vez el desbordamiento de abajo. */
+  --kid-margen-izq: max(14px, var(--sal));
+  --kid-margen-der: max(14px, var(--sar));
+
   position: fixed;
   inset: 0;
   overflow-y: auto;
+  /* Sin esto, el rebote elástico de iOS se propaga al documento y la
+     pantalla entera se puede arrastrar. Mismo remedio que en `.modal`. */
+  overscroll-behavior: contain;
   background: radial-gradient(900px 420px at 50% -60px, #ffe4b5 0%, var(--kid-papel) 60%), var(--kid-papel);
   color: var(--kid-tinta);
   /* Orden del atajo: arriba · derecha · abajo · izquierda. */
-  padding: 0 max(14px, var(--sar)) calc(100px + var(--sab)) max(14px, var(--sal));
+  padding: 0 var(--kid-margen-der) calc(100px + var(--sab)) var(--kid-margen-izq);
   /* Baloo 2, NO la serif del gremio. Al pasar --display a Fraunces esta
      pantalla se habría quedado con una serif grabada, que es lo contrario
      de lo que necesita alguien de tres años. */
@@ -1075,9 +1084,22 @@ input:focus, select:focus, button:focus-visible {
    en blanco, y sobre el papel crema no se leerían. Aquí sí. */
 .kid-cabecera {
   position: relative;
-  width: 100vw;
-  margin-left: 50%;
-  transform: translateX(-50%);
+  /* A sangre con márgenes negativos, NO con `width:100vw` + `margin-left:50%`
+     + `transform`.
+
+     Aquel truco dejaba la caja de LAYOUT empezando en el 50 % del ancho y
+     midiendo 100vw: 563 px dentro de un contenedor de 375. El `transform`
+     la devolvía a su sitio a la vista, pero los transforms no cuentan para
+     `scrollWidth`, así que quedaban 188 px de desbordamiento invisible. Y
+     como `.kid` tiene `overflow-y:auto` —lo que fuerza `overflow-x:auto`
+     por la regla de CSS de que `visible` no puede convivir con otro
+     valor—, ese desbordamiento se volvía scroll horizontal: la pantalla
+     de la peque se podía arrastrar y salirse del móvil.
+
+     Con márgenes negativos que anulan el padding del contenedor se ve
+     igual y no desborda nada. */
+  margin-left: calc(-1 * var(--kid-margen-izq));
+  margin-right: calc(-1 * var(--kid-margen-der));
   display: flex;
   align-items: center;
   gap: 12px;
@@ -1144,9 +1166,8 @@ input:focus, select:focus, button:focus-visible {
   /* El margen de seguridad entra en el max: en horizontal la muesca del
      iPhone se come 59 px por un lado y esta regla los ignoraba. */
   .kid {
-    padding-inline:
-      max(14px, var(--sal), calc((100vw - 900px) / 2))
-      max(14px, var(--sar), calc((100vw - 900px) / 2));
+    --kid-margen-izq: max(14px, var(--sal), calc((100vw - 900px) / 2));
+    --kid-margen-der: max(14px, var(--sar), calc((100vw - 900px) / 2));
   }
 }
 
@@ -1737,6 +1758,9 @@ code { background: var(--tablero-hondo); padding: 2px 6px; border-radius: 6px; f
 .kid-tienda {
   position: fixed;
   inset: 0;
+  /* Como en `.kid`: sin contención, el rebote de iOS se propaga al
+     documento y la capa entera se puede arrastrar fuera de la pantalla. */
+  overscroll-behavior: contain;
   z-index: 85;
   background: radial-gradient(900px 420px at 50% -60px, #ffe4b5 0%, var(--kid-papel) 60%), var(--kid-papel);
   color: var(--kid-tinta);

@@ -19,7 +19,7 @@ import KidHome from './screens/KidHome'
 import ParentPanel from './screens/ParentPanel'
 import Tutorial, { tutorialPendiente } from './screens/Tutorial'
 
-const iconoUrl = import.meta.env.BASE_URL + 'icon.svg'
+const iconoUrl = import.meta.env.BASE_URL + 'assets/emblema-gremio.png'
 
 export default function App() {
   const [session, setSession] = useState(undefined) // undefined = comprobando

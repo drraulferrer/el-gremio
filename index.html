@@ -51,14 +51,17 @@
     " />
     <!-- Que una dirección de recuperación no viaje entera al salir del sitio. -->
     <meta name="referrer" content="strict-origin-when-cross-origin" />
-    <meta name="theme-color" content="#1e2140" />
+    <meta name="theme-color" content="#141428" />
     <meta name="description" content="Misiones, XP, monedas y premios reales para toda la familia." />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="El Gremio" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <link rel="manifest" href="/manifest.webmanifest" />
-    <link rel="icon" href="/icon.svg" type="image/svg+xml" />
-    <link rel="apple-touch-icon" href="/icon.svg" />
+    <link rel="icon" href="/icon-192.png" type="image/png" />
+    <!-- PNG y no SVG: iOS NO admite SVG en apple-touch-icon y, al no poder
+         leerlo, ponía en el escritorio una miniatura de la web en vez del
+         emblema. Es la razón por la que el icono salía mal al instalarla. -->
+    <link rel="apple-touch-icon" sizes="180x180" href="/icon-180.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=Baloo+2:wght@500;600;700&display=swap" rel="stylesheet" />

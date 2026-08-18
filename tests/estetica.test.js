@@ -83,3 +83,88 @@ describe('las dos reglas visuales que no se negocian', () => {
     expect(foco[0]).not.toContain('var(--oro)')
   })
 })
+
+describe('el mundo de la peque no se puede arrastrar', () => {
+  // El fallo: `.kid-cabecera` iba a sangre con `width:100vw` +
+  // `margin-left:50%` + `transform:translateX(-50%)`. El transform la
+  // devolvía a su sitio A LA VISTA, pero los transforms no cuentan para
+  // `scrollWidth`, así que la caja de layout seguía midiendo 563 px dentro
+  // de un contenedor de 375. Y como `.kid` tiene `overflow-y:auto` —que
+  // por la regla de CSS de que `visible` no puede convivir con otro valor
+  // fuerza `overflow-x:auto`—, esos 188 px se volvían scroll horizontal:
+  // la pantalla de la peque se arrastraba y se salía del móvil.
+  // Sin comentarios: el bloque de `.kid-cabecera` EXPLICA el fallo citando
+  // `width:100vw`, y sin quitarlos el test se dispararía con su propia
+  // documentación.
+  const bloque = (sel) => {
+    const i = css.indexOf(`\n${sel} {`)
+    if (i < 0) return ''
+    return css.slice(i, css.indexOf('\n}', i)).replace(/\/\*[\s\S]*?\*\//g, '')
+  }
+
+  it('la cabecera va a sangre con márgenes negativos, no con 100vw', () => {
+    const cab = bloque('.kid-cabecera')
+    expect(cab).toBeTruthy()
+    expect(cab, 'vuelve el desbordamiento horizontal').not.toMatch(/width:\s*100vw/)
+    expect(cab, 'vuelve el desbordamiento horizontal').not.toMatch(/margin-left:\s*50%/)
+    expect(cab).toMatch(/margin-left:\s*calc\(-1 \* var\(--kid-margen-izq\)\)/)
+    expect(cab).toMatch(/margin-right:\s*calc\(-1 \* var\(--kid-margen-der\)\)/)
+  })
+
+  it('el margen lateral es UNA variable, no dos valores sueltos', () => {
+    // Si el padding del contenedor y el margen negativo de la cabecera se
+    // escriben por separado, vuelven a desincronizarse en cuanto alguien
+    // toque uno. Incluida la media query de pantalla ancha.
+    const kid = bloque('.kid')
+    expect(kid).toMatch(/--kid-margen-izq:/)
+    expect(kid).toMatch(/--kid-margen-der:/)
+    expect(kid).toMatch(/padding:[^;]*var\(--kid-margen-der\)[^;]*var\(--kid-margen-izq\)/)
+    expect(css, 'la media query ancha debe mover la variable, no el padding')
+      .not.toMatch(/\.kid \{\s*padding-inline:/)
+  })
+
+  it('las capas fijas del mundo peque contienen el rebote de iOS', () => {
+    // Sin `overscroll-behavior`, el rebote elástico se propaga al
+    // documento y la capa entera se arrastra fuera de la pantalla.
+    for (const sel of ['.kid', '.kid-tienda']) {
+      expect(bloque(sel), `${sel} sin contención`).toMatch(/overscroll-behavior:\s*contain/)
+    }
+  })
+})
+
+describe('el icono de la app instalada', () => {
+  const publico = readdirSync(new URL('public/', raiz))
+  const html = readFileSync(new URL('index.html', raiz), 'utf8')
+  const manifiesto = JSON.parse(readFileSync(new URL('public/manifest.webmanifest', raiz), 'utf8'))
+
+  it('apple-touch-icon es PNG: iOS no admite SVG ahí', () => {
+    // Con un SVG, iOS no puede leerlo y pone en el escritorio una
+    // miniatura de la web en vez del emblema. Era justo lo que pasaba.
+    const m = html.match(/<link rel="apple-touch-icon"[^>]*>/)
+    expect(m).toBeTruthy()
+    expect(m[0]).toMatch(/\.png/)
+    expect(m[0]).not.toMatch(/\.svg/)
+  })
+
+  it('el manifiesto declara tamaños y tiene un icono maskable', () => {
+    expect(manifiesto.icons.length).toBeGreaterThanOrEqual(2)
+    for (const i of manifiesto.icons) {
+      expect(i.type, i.src).toBe('image/png')
+      expect(i.sizes, i.src).toMatch(/^\d+x\d+$/)
+      expect(publico, i.src).toContain(i.src.replace('./', ''))
+    }
+    expect(manifiesto.icons.some((i) => i.purpose === 'maskable')).toBe(true)
+  })
+
+  it('el color del manifiesto es el índigo nuevo, no el viejo', () => {
+    expect(manifiesto.theme_color).toBe('#141428')
+    expect(manifiesto.background_color).toBe('#141428')
+    expect(html).toContain('content="#141428"')
+  })
+
+  it('no queda nadie apuntando al icono viejo', () => {
+    expect(publico).not.toContain('icon.svg')
+    const sw = readFileSync(new URL('public/sw.js', raiz), 'utf8')
+    expect(sw).not.toMatch(/icon\.svg/)
+  })
+})

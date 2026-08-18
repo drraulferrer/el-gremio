@@ -20,9 +20,8 @@ de mando con datos reales. Antes de añadir nada, lee §8.
 `npm run deploy`. Ahora es empujar y después `npm run vercel` (§7n).
 
 **Si abres sesión nueva, empieza por §8.** No hay nada a medias: no queda
-ninguna migración pendiente y los **676 tests están en verde**. **Producción sirve la 2.5.0** (`6c67354`), publicada el 18-ago a las
-19:45: la estética del taller nocturno (§7s). Comprobada en el sitio
-real —paleta, Fraunces, emblema y los assets sirviéndose con 200—. Lo que queda es de uso y de producto, no
+ninguna migración pendiente y los **683 tests están en verde**. Producción sirve la **2.5.0**; la **2.5.1** —el arrastre de la peque y el
+icono del escritorio, §7t— está verificada en local y **sin publicar**. Lo que queda es de uso y de producto, no
 código bloqueado.
 
 ---
@@ -2670,6 +2669,44 @@ gema, ocho iconos de habilidad, estrellas, fondo y pergamino.
 
 El contraste salió mejor que antes, no peor: el texto secundario sobre
 tarjeta pasa de 4,69:1 a 6,05:1.
+
+---
+
+## 7t. El arrastre de la peque y el icono del escritorio (18-ago) · 2.5.1
+
+Dos fallos que solo se ven con la app instalada en un móvil. Los dos son
+anteriores a la estética nueva.
+
+### La pantalla de la peque se arrastraba fuera del teléfono
+
+`.kid-cabecera` iba a sangre con `width:100vw` + `margin-left:50%` +
+`transform:translateX(-50%)`. **Los transforms no cuentan para
+`scrollWidth`**: la caja de layout seguía midiendo 563 px dentro de un
+contenedor de 375, y como `.kid` tiene `overflow-y:auto` —que fuerza
+`overflow-x:auto`, porque en CSS `visible` no puede convivir con otro
+valor— esos 188 px eran scroll horizontal real.
+
+Ahora va con márgenes negativos que anulan el padding. **El margen lateral
+es UNA variable** (`--kid-margen-izq` / `--kid-margen-der`) usada por el
+padding y por la cabecera: escrito dos veces, se desincroniza en cuanto
+alguien toque uno. La media query de ≥620 px mueve la variable, no el
+padding. Comprobado a 375, 900 y 1280 px: cero desbordamiento y la
+cabecera de borde a borde. Hay tests.
+
+Y `.kid` y `.kid-tienda` llevan ya `overscroll-behavior: contain`, como
+`.modal`: sin eso el rebote elástico de iOS se propaga al documento.
+
+### El icono del escritorio no era el del gremio
+
+El `apple-touch-icon` apuntaba a `icon.svg`, y **iOS no admite SVG ahí**.
+Al no poder leerlo ponía una miniatura de la web. Ahora hay PNG: 180 para
+iOS, 192 y 512 para el manifiesto y un **maskable de 512** con el emblema
+al 60 % —Android recorta hasta el 20 % exterior según la forma del
+lanzador y el laurel se quedaba sin puntas—. Los avisos del service worker
+también usan PNG. `icon.svg` ya no existe.
+
+**Al probarlo hay que reinstalar la PWA**: el icono viejo se queda cacheado
+en el escritorio hasta que se borra y se vuelve a añadir.
 
 ---
 
