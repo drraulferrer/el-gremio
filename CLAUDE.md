@@ -53,7 +53,11 @@ por depender de acordarse.
   SQL Editor se salta el RLS: un insert sin filtrar escribió una vez en
   familias que no eran la nuestra.
 - **Antes de dar algo por terminado**: `npm run verify`, luego
-  `npm run deploy`, luego `npm run health`.
+  `git push origin main`, luego `npm run vercel`, luego `npm run health`.
+  **El dominio lo sirve Vercel desde el 18-ago** (§7n del arranque), y
+  `npm run vercel` construye desde `origin/main`: sin empujar antes, se
+  publica lo que hubiera en el remoto. `npm run deploy` sigue existiendo,
+  pero publica en GitHub Pages, que ya solo es la red de seguridad.
 - **Los tests fijan decisiones, no implementaciones.** Si uno falla al
   cambiar un número, léelo: casi siempre está defendiendo algo que se
   razonó en su día (la peque esperando 18 días por un premio, las bandas

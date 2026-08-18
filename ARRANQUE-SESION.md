@@ -1737,26 +1737,46 @@ A  @  64.29.17.1     TTL 300
 El TTL se bajó de 14400 a 300 a propósito: si hay que volver atrás, con
 cuatro horas de caché el rollback sería insoportable.
 
-### La decisión que la mudanza deja abierta: el despliegue continuo
+### El despliegue sigue siendo a mano, y eso está resuelto
 
-**Con la integración de Git, CADA push a `main` despliega producción.** El
-18-ago producción acabó sirviendo el commit `80d0cc3`, que es un cambio de
-**solo documentación**. Eso es literalmente lo que §7l rechaza: «aquí se
-empuja documentación varias veces al día, y publicar en cada empujón
-convierte el despliegue en ruido, que es exactamente cómo se acaba
-publicando algo a medias un martes por la noche».
+Al conectar el repositorio, Vercel publicaba producción en **cada empujón
+a `main`**. El 18-ago produción acabó sirviendo un commit de solo
+documentación: de las cuatro publicaciones de la mañana, **tres fueron
+cambios de texto**. Justo lo que §7l había decidido evitar.
 
-No es grave por sí solo —cada despliegue es atómico y el rollback es
-instantáneo—, pero **choca de frente con una decisión que estaba tomada y
-razonada**, y hay que resolverlo en un sentido o en otro:
+**Apagado** con `git.deploymentEnabled.main = false` en `vercel.json`, y
+comprobado en los dos sentidos, que es lo que hace que esto sea un hecho y
+no una intención:
 
-- **Apagarlo** con `git.deploymentEnabled` en `vercel.json`, y desplegar a
-  mano desde el panel o por CLI. Recupera la filosofía de siempre.
-- **Dejarlo** y aceptar que el despliegue continuo es ahora el modelo,
-  actualizando §7l para que deje de decir lo contrario.
+- Un empujón a `main` **ya no publica nada** (verificado: push a las
+  10:57, y la última publicación seguía siendo la de las 10:47).
+- `npm run vercel` **sí publica** (verificado: producción pasó a servir
+  `7b0b11a` en menos de 30 segundos).
 
-Lo que NO vale es dejarlo así con §7l diciendo otra cosa: un documento que
-describe un modelo distinto del real es peor que no tenerlo.
+**Cómo se publica ahora:**
+
+```bash
+git push origin main     # primero, SIEMPRE
+npm run vercel           # y entonces se publica
+npm run health           # y se comprueba
+```
+
+**El orden no es un detalle.** El hook no compila nada aquí: le dice a
+Vercel que se traiga `main` de GitHub y construya allí. Publicar sin
+haber empujado publica lo que hubiera en el remoto, que es una forma
+silenciosa de desplegar algo que no es lo que tienes delante. El script
+avisa si la rama no es `main`, si el local y `origin/main` difieren, o si
+hay cambios sin confirmar, pero avisar no es impedir.
+
+**La URL del hook (`VERCEL_DEPLOY_HOOK` en el `.env`) es un secreto de
+verdad**, y conviene tener clara la diferencia: las `VITE_*` son públicas
+por diseño y viajan en el bundle; esta no viaja al navegador y quien la
+tenga puede publicar en producción cuando le apetezca. Va en el `.env`, y
+en `.env.example` solo como ejemplo.
+
+Quedan **dos caminos deliberados y ninguno automático**, que es la
+filosofía de siempre: `npm run deploy` publica en GitHub Pages (la red de
+seguridad) y `npm run vercel` en Vercel (lo que sirve el dominio).
 
 ### Lo que queda
 - **`www` sigue apuntando a `drraulferrer.github.io`** y no se tocó a
@@ -2334,6 +2354,11 @@ suposición. El primer despliegue desde Actions (`deploy-2026-08-16-1058`)
 publicó el mismo commit que la rama, mantuvo el CNAME, dejó su etiqueta de
 rollback y la app siguió funcionando: captcha resolviendo, sesión llegando
 a Supabase y service worker activo.
+
+> **Al día de hoy esto describe la RED DE SEGURIDAD, no el sitio real.**
+> Desde el 18-ago el dominio lo sirve Vercel y se publica con
+> `npm run vercel` (§7n). Los dos workflows de aquí siguen vivos y
+> publicando en `gh-pages`, que es adonde se vuelve si Vercel falla.
 
 **Los dos caminos conviven a propósito.** `npm run deploy` desde el
 portátil sigue siendo el de todos los días —es más rápido y se ve lo que
