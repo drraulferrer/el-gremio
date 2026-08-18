@@ -26,7 +26,11 @@ const TABLAS = [
   'bonuses',
   'power_uses',
   'push_log',
-  'plan_diario'
+  'plan_diario',
+  // Sin esta tabla el recordatorio de avisos del panel revienta en modo
+  // demo mientras en producción funciona: la peor combinación, porque la
+  // demo es justo donde se prueba.
+  'push_subs'
 ]
 
 const vacia = () => TABLAS.reduce((acc, t) => ({ ...acc, [t]: [] }), {})
@@ -47,7 +51,8 @@ const DEFECTOS_TABLA = {
   power_uses: { target_id: null, nota: null },
   families: { timezone: 'Europe/Madrid' },
   push_log: { franja: 'tarde', enviados: 0 },
-  plan_diario: { origen: 'patron' }
+  plan_diario: { origen: 'patron' },
+  push_subs: { activa: true, fallos: 0, ultimo_ok: null }
 }
 
 /** Columnas de fecha que la base rellena sola, por tabla. */

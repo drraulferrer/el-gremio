@@ -27,6 +27,7 @@ import { flex, generoDe } from '../lib/genero'
 import { Modal, Celebracion, Pestana } from '../components/ui'
 import Icono from '../components/Icono'
 import Ajustes from './Ajustes'
+import AvisoPush from './AvisoPush'
 import Cuadro from './Cuadro'
 import {
   misionesDe,
@@ -49,6 +50,9 @@ import { emojiSugerido, GRUPOS_EMOJI_MISION, EMOJIS_MISION } from '../lib/emojis
 
 export default function ParentPanel({ family, data, refresh, refreshFamily, onVerTutorial, onExit }) {
   const [tab, setTab] = useState('pendientes')
+  // Con qué pestaña de Ajustes abrir. Solo lo usa el recordatorio de
+  // avisos; el resto de entradas a Ajustes siguen cayendo en Miembros.
+  const [seccionAjustes, setSeccionAjustes] = useState(null)
   const [programar, setProgramar] = useState(false)
   const [celeb, setCeleb] = useState(null)
   const [aviso, setAviso] = useState('')
@@ -114,7 +118,10 @@ export default function ParentPanel({ family, data, refresh, refreshFamily, onVe
             className={'btn-icono' + (tab === 'ajustes' ? ' activo' : '')}
             aria-label="Miembros y ajustes"
             title="Miembros y ajustes"
-            onClick={() => setTab(tab === 'ajustes' ? 'pendientes' : 'ajustes')}
+            onClick={() => {
+              setSeccionAjustes(null)
+              setTab(tab === 'ajustes' ? 'pendientes' : 'ajustes')
+            }}
           >
             <Icono nombre="ajustes" />
           </button>
@@ -125,6 +132,15 @@ export default function ParentPanel({ family, data, refresh, refreshFamily, onVe
       </div>
 
       {aviso && <p className="error-texto" role="alert" style={{ margin: '0 4px 10px' }}>{aviso}</p>}
+
+      <AvisoPush
+        family={family}
+        data={data}
+        onIrAAvisos={() => {
+          setSeccionAjustes('avisos')
+          setTab('ajustes')
+        }}
+      />
 
       {tab === 'pendientes' && (
         <div>
@@ -238,11 +254,13 @@ export default function ParentPanel({ family, data, refresh, refreshFamily, onVe
       {tab === 'meta' && <GestionMeta family={family} data={data} refresh={refresh} />}
       {tab === 'ajustes' && (
         <Ajustes
+          key={seccionAjustes || 'miembros'}
           family={family}
           data={data}
           refresh={refresh}
           refreshFamily={refreshFamily}
           onVerTutorial={onVerTutorial}
+          seccionInicial={seccionAjustes}
         />
       )}
 

@@ -145,3 +145,26 @@ export async function apuntarPerfil({ family, profile }) {
     .update({ profile_id: profile.id, family_id: family.id })
     .eq('endpoint', endpoint)
 }
+
+/**
+ * Qué perfiles del gremio tienen ALGÚN aparato con avisos.
+ *
+ * Lo usa el recordatorio del panel para poder decir a cuánta gente no le
+ * llegaría nada (`avisosPendientes.js`). Devuelve ids únicos: una persona
+ * con el móvil y la tablet son dos filas y una sola persona cubierta.
+ *
+ * **Devuelve `null` si algo falla, y eso es deliberado**: el recordatorio
+ * distingue «no le llega a cinco» de «no he podido averiguarlo», y en el
+ * segundo caso habla solo de este aparato en vez de inventarse una cifra.
+ * Un panel no se rompe porque un recuento accesorio no se pueda leer.
+ */
+export async function perfilesConAvisos(familyId) {
+  if (!familyId) return null
+  const { data, error } = await supabase
+    .from('push_subs')
+    .select('profile_id')
+    .eq('family_id', familyId)
+    .eq('activa', true)
+  if (error) return null
+  return [...new Set((data || []).map((s) => s.profile_id))]
+}

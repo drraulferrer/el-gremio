@@ -29,7 +29,7 @@ import { marcarTutorialVisto } from './Tutorial'
 
 const MIEMBRO_NUEVO = () => ({ name: '', role: 'junior', emoji: '🦊', color: COLORS[0], gender: 'neutro' })
 
-const PASOS = ['nombre', 'miembros', ...PREGUNTAS.map((p) => p.id), 'pin', 'resumen']
+const PASOS = ['nombre', 'miembros', ...PREGUNTAS.map((p) => p.id), 'pin', 'avisos', 'resumen']
 
 export default function Onboarding({ onDone }) {
   const [indice, setIndice] = useState(0)
@@ -305,6 +305,25 @@ export default function Onboarding({ onDone }) {
             <label htmlFor="pin2">Repite el PIN</label>
             <input id="pin2" type="password" inputMode="numeric" value={pin2}
               onChange={(e) => { setPin2(e.target.value); setError('') }} />
+          </div>
+        </PasoSimple>
+      )}
+
+      {paso === 'avisos' && (
+        <PasoSimple
+          titulo="Los avisos"
+          ayuda="Un aviso al día como mucho, entre las cinco y las nueve de la tarde, y otro a la noche para dejar programado mañana. Solo cuando hay algo que hacer: una racha a punto de romperse, misiones esperando validación o alguien que lleva días sin aparecer."
+          porque="Se activan APARATO POR APARATO, no de una vez para todo el gremio: el permiso lo concede el navegador de cada móvil y nadie puede darlo por otro. Por eso no se puede hacer aquí todavía —el gremio aún no existe— y por eso hay que repetirlo en cada teléfono."
+        >
+          <div className="carta">
+            <p style={{ margin: 0 }}>
+              <strong>Dónde se activan:</strong> Panel parental → ⚙️ Ajustes → 🔔 Avisos.
+            </p>
+            <p className="suave" style={{ margin: '8px 0 0' }}>
+              En cuanto entres al panel te lo recordaremos ahí arriba, y seguirá saliendo
+              hasta que los actives o le digas que deje de mostrarlo. La peque nunca recibe
+              avisos, aunque el aparato sea el suyo.
+            </p>
           </div>
         </PasoSimple>
       )}

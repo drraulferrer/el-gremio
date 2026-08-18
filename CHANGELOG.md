@@ -18,6 +18,32 @@ verdad duele en esta app: que el esquema y el cliente dejen de encajar.
 
 ---
 
+## 2.2.0 · 18 de agosto de 2026
+
+**Recordatorio de que los avisos están sin activar.**
+
+Sale de una medición, no de una intuición: ese día, de ocho perfiles
+activos, **cinco no tenían ningún aparato registrado**. El sistema les
+escribía avisos en `push_log` que no salían a ninguna parte, y no se
+notaba porque la app funciona igual y el registro dice que el aviso «se
+apuntó». Los tres que esa tarde tenían motivo `vuelve` —«hace días que no
+apareces»— eran de los que no podían recibirlo.
+
+- **En el Setup**, un paso nuevo explica qué son, cuándo llegan y dónde se
+  activan. No los activa: durante el alta el gremio todavía no existe y el
+  permiso se concede aparato por aparato.
+- **En el panel parental**, un aviso arriba del todo mientras este
+  dispositivo no los tenga, con el número de miembros del gremio que no
+  recibirían nada. Lleva a 🔔 Avisos con la sección ya abierta.
+- **Se puede callar** con «Dejar de mostrar», y entonces explica la ruta
+  para activarlos más tarde. El olvido se guarda **en el aparato**, no en
+  la base: una suscripción pertenece a la instalación, así que guardarlo
+  por perfil lo escondería en el móvil de al lado, donde sigue haciendo
+  falta.
+- **No insiste cuando no serviría de nada**: si el navegador ya los
+  bloqueó, si el aparato no puede o si falta la clave del despliegue, se
+  calla. El botón al que llevaría tampoco funcionaría.
+
 ## 2.1.0 · 18 de agosto de 2026
 
 Dos cosas que pidió la familia después de los primeros días de uso real.

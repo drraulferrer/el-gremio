@@ -20,8 +20,11 @@ const SECCIONES = [
   { id: 'estado', etiqueta: '🩺 Estado' }
 ]
 
-export default function Ajustes({ family, data, refresh, refreshFamily, onVerTutorial }) {
-  const [seccion, setSeccion] = useState('miembros')
+export default function Ajustes({ family, data, refresh, refreshFamily, onVerTutorial, seccionInicial }) {
+  // `seccionInicial` existe para que el recordatorio del panel pueda
+  // abrir directamente en 🔔 Avisos. Un enlace que te deja en Miembros y
+  // te obliga a buscar la pestaña no es un enlace, es una pista.
+  const [seccion, setSeccion] = useState(seccionInicial || 'miembros')
 
   return (
     <div>

@@ -2634,3 +2634,24 @@ button.kid-avatar.latiendo { animation: latido-aviso 2.6s var(--ease-salida) inf
   border-top: 1.5px solid var(--linea);
 }
 .pausadas-bloque[open] > summary { margin-bottom: 6px; }
+
+
+/* ---------------- recordatorio de avisos sin activar ----------------
+   Arriba del panel parental. Llama la atención sin gritar: no es un
+   error, es algo que falta por hacer. Por eso la franja es de oro —el
+   color con el que esta app llama la atención— y no de peligro, que aquí
+   ya significa «esto se ha roto» y saldría alarmista. */
+
+.aviso-panel {
+  background: var(--carta);
+  border: 1px solid var(--linea);
+  border-left: 4px solid var(--oro);
+  border-radius: var(--radio);
+  padding: 14px 16px;
+  margin: 0 4px 14px;
+}
+
+/* Ya está resuelto: deja de reclamar y pasa a ser una nota. */
+.aviso-panel-calmado {
+  border-left-color: var(--linea);
+}
