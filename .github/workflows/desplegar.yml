@@ -51,7 +51,7 @@ jobs:
           node-version: '24'
           cache: 'npm'
 
-      # Las tres son PÚBLICAS por diseño y viajan dentro del bundle, así
+      # Las cuatro son PÚBLICAS por diseño y viajan dentro del bundle, así
       # que van como «Variables» del repositorio y no como «Secrets»:
       # guardarlas como secreto daría una falsa sensación de que hay algo
       # que proteger, y de paso complica leerlas.
@@ -60,6 +60,7 @@ jobs:
       #   VITE_SUPABASE_URL
       #   VITE_SUPABASE_ANON_KEY
       #   VITE_TURNSTILE_SITE_KEY
+      #   VITE_VAPID_PUBLIC
       #
       # Si falta alguna, se PARA AQUÍ. Sin ellas el build compila igual y
       # publica una app que no conecta con nada o que no dibuja el
@@ -70,17 +71,19 @@ jobs:
           URL: ${{ vars.VITE_SUPABASE_URL }}
           ANON: ${{ vars.VITE_SUPABASE_ANON_KEY }}
           TURNSTILE: ${{ vars.VITE_TURNSTILE_SITE_KEY }}
+          VAPID: ${{ vars.VITE_VAPID_PUBLIC }}
         run: |
           faltan=""
           [ -z "$URL" ] && faltan="$faltan VITE_SUPABASE_URL"
           [ -z "$ANON" ] && faltan="$faltan VITE_SUPABASE_ANON_KEY"
           [ -z "$TURNSTILE" ] && faltan="$faltan VITE_TURNSTILE_SITE_KEY"
+          [ -z "$VAPID" ] && faltan="$faltan VITE_VAPID_PUBLIC"
           if [ -n "$faltan" ]; then
             echo "::error::Faltan variables del repositorio:$faltan"
             echo "Ajustes → Secrets and variables → Actions → Variables."
             exit 1
           fi
-          echo "🟢 Las tres variables están puestas"
+          echo "🟢 Las cuatro variables están puestas"
 
       - name: Instalar dependencias
         run: npm ci
@@ -101,6 +104,7 @@ jobs:
           VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
           VITE_TURNSTILE_SITE_KEY: ${{ vars.VITE_TURNSTILE_SITE_KEY }}
+          VITE_VAPID_PUBLIC: ${{ vars.VITE_VAPID_PUBLIC }}
         run: npm run deploy
 
       # GitHub Pages tarda un poco en servir lo nuevo. Se espera y se
