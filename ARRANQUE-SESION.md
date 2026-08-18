@@ -20,8 +20,9 @@ de mando con datos reales. Antes de añadir nada, lee §8.
 `npm run deploy`. Ahora es empujar y después `npm run vercel` (§7n).
 
 **Si abres sesión nueva, empieza por §8.** No hay nada a medias: no queda
-ninguna migración pendiente y los **676 tests están en verde**. Producción sirve la **2.4.1**; la **2.5.0** (la estética nueva, §7s)
-está construida y verificada en local, **sin publicar**. Lo que queda es de uso y de producto, no
+ninguna migración pendiente y los **676 tests están en verde**. **Producción sirve la 2.5.0** (`6c67354`), publicada el 18-ago a las
+19:45: la estética del taller nocturno (§7s). Comprobada en el sitio
+real —paleta, Fraunces, emblema y los assets sirviéndose con 200—. Lo que queda es de uso y de producto, no
 código bloqueado.
 
 ---
