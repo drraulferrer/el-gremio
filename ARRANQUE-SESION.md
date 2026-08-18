@@ -504,6 +504,12 @@ Las dos salidas reales, las dos son una decisión, no código:
    fichero `_headers`. El sitio es estático: la mudanza es el CNAME y poco
    más.
 
+> **Se eligió la segunda, con Vercel (18-ago). Ver §7n.** El `vercel.json`
+> del repositorio ya sirve las cinco cabeceras y la CSP como cabecera de
+> verdad. Mientras el DNS siga apuntando a GitHub Pages, **todo lo que
+> dice esta sección sigue siendo cierto en producción**: las cabeceras no
+> llegan hasta que se corte el dominio.
+
 Mientras tanto, el único hueco que de verdad muerde —el clickjacking del
 formulario de entrada y del panel— lo tapa `src/lib/marco.js` desde
 JavaScript. Es peor que una cabecera y hay que saberlo: si alguien
@@ -1602,6 +1608,117 @@ la temporada los tocan. Dos tests viejos se actualizaron: usaban premios
 de 40 monedas como si fueran de nivel 1, que con el suelo del modelo ya no
 lo son. Lo que defendían —solo cuentan los activos, el andamio no sube de
 precio— sigue comprobándose.
+
+---
+
+## 7n. La mudanza a Vercel (18 de agosto) · A MEDIAS
+
+**Estado: el repositorio está listo y empujado; falta crear el proyecto en
+Vercel y cortar el DNS.** Lo que sigue explica por qué se hace y dónde se
+quedó, para que quien retome no tenga que reconstruir el razonamiento.
+
+### Por qué Vercel y no seguir en GitHub Pages
+
+No es por velocidad. Es porque **§6b dejó escrito un problema sin salida
+dentro de Pages**: elgremioapp.com no envía ninguna cabecera de seguridad
+y no se pueden añadir, porque Pages no sirve cabeceras propias. Aquella
+sección daba dos salidas —Cloudflare delante, o mudarse a un alojamiento
+que lea un fichero de cabeceras—. **Vercel es la segunda salida.**
+
+Lo que gana la app, en concreto:
+
+1. **Cabeceras de verdad** (`vercel.json`): HSTS, `X-Frame-Options`,
+   `X-Content-Type-Options`, `Permissions-Policy` y la CSP **como
+   cabecera**, que es lo que activa `frame-ancestors`. Con eso,
+   `src/lib/marco.js` pasa a ser un refuerzo en vez de la única defensa
+   contra clickjacking — hoy, si alguien desactiva JS, no hay ninguna.
+2. **Reescritura SPA de verdad.** El truco de copiar `index.html` a
+   `404.html` funciona pero responde **HTTP 404** en toda ruta profunda.
+3. **Rollback instantáneo**: promover un despliegue anterior ya
+   construido, en segundos, en vez de recompilar y esperar a que Pages
+   propague (el workflow llega a dormir 90 s por eso).
+4. **Se acaba el pie del CNAME.** El guardarraíl de `prepararDist` que
+   aborta si el CNAME no llegó a `dist/` existe porque cada publicación
+   VACÍA la rama `gh-pages`. Esa clase de fallo desaparece.
+
+### Lo que NO arregla, y es lo más importante de esta sección
+
+**Vercel no toca el fallo más probable de esta app.** Según §7, ese fallo
+es que **Supabase se pausa a los 7 días sin actividad** — y con él se
+paran también los avisos, porque el `pg_cron` vive DENTRO del proyecto
+pausado. Con Vercel sirviendo perfectamente, la app seguiría sin
+funcionar.
+
+Por eso la mudanza trae `api/latido.js` y un **cron diario** declarado en
+`vercel.json`, que llama a `rpc/health` —la misma función que usa
+`npm run health`, para que el latido no sea una ruta que solo se ejercita
+a sí misma— y mantiene el contador de inactividad lejos de los siete
+días. **Esa es la mayor ganancia de estabilidad de todo el movimiento**, y
+llega de rebote.
+
+### Lo que ya está hecho y empujado a `main`
+
+- `vercel.json`: rewrites SPA, las cinco cabeceras, caché inmutable para
+  `/assets/*` y **sin caché** para `sw.js` y `version.json` (un
+  `version.json` cacheado hace mentir a `npm run health`), y el cron.
+- `vite.config.js`: `version.json` **se emite en el build** (plugin
+  `selloDeVersion`). Hasta ahora lo escribía `prepararDist` al publicar,
+  porque construir y publicar eran el mismo acto; Vercel construye por su
+  cuenta y nunca pasa por ese script. Los dos caminos conviven sin
+  ambigüedad: el plugin sella siempre, y `prepararDist` lo sobrescribe en
+  la ruta de `gh-pages`, donde se sabe más (deploy o rollback, y a qué
+  referencia). El último que escribe es el que publica.
+- `api/latido.js`: el endpoint del cron, protegido con `CRON_SECRET`.
+- `desplegar.yml`: **arreglado un bug que estaba vivo**. Pasaba TRES
+  variables al build y la app usa CUATRO: sin `VITE_VAPID_PUBLIC`, la
+  pantalla de Avisos responde «Falta la clave pública de avisos». O sea
+  que la vía de emergencia publicaba, además del arreglo, una app sin
+  notificaciones. No se veía porque el camino local sí tiene la variable
+  en su `.env`. **Hay que añadirla como Variable del repositorio.**
+
+### Lo que falta, en orden
+
+1. **Instalar la GitHub App de Vercel** en `drraulferrer/el-gremio`
+   (github.com/apps/vercel/installations/new, «Only select repositories»).
+   El *login connection* con GitHub ya está hecho; son cosas distintas y
+   las dos hacen falta. Sin la App, el botón Deploy del importador falla
+   con «you need to install the GitHub integration first».
+2. **Crear el proyecto** importando el repo. Preset Vite, raíz `./`. Las
+   seis variables de entorno (las cinco `VITE_*` y `CRON_SECRET`).
+3. **Comprobarlo en `*.vercel.app` ANTES de tocar el DNS**: cabeceras con
+   `curl -I`, una ruta profunda devolviendo 200 y no 404, entrar con el
+   captcha, y `/api/latido` respondiendo.
+4. **Añadir la URL de Vercel en Supabase** → Authentication → URL
+   Configuration → Redirect URLs. Sin esto, los correos de confirmación y
+   recuperación devuelven a un sitio que Supabase no acepta.
+5. **Añadir el dominio de Vercel a Turnstile** (hostnames permitidos), o
+   el captcha no dibuja fuera de elgremioapp.com.
+6. **El corte de DNS en Hostinger**: sustituir los cuatro registros A de
+   GitHub Pages por lo que diga Vercel al añadir el dominio, y el CNAME de
+   `www`. Añadir el dominio en Vercel PRIMERO: emite el certificado antes
+   del cambio y así no hay ventana sin HTTPS.
+
+**GitHub Pages se queda como red de seguridad**, no se retira. Sigue
+sirviendo en `drraulferrer.github.io/el-gremio` y `npm run deploy` sigue
+funcionando igual.
+
+### Dos trampas del trayecto, ya pagadas
+
+- **Rellenar el formulario de Vercel por DOM no vale.** Poner los valores
+  con `element.value` los deja en el DOM pero NO en el estado de React: el
+  formulario se ve relleno, el botón Deploy se ve activo, y al pulsarlo no
+  pasa absolutamente nada. Hay que teclear de verdad. Y el importador de
+  `.env` rechaza el fichero salvo que se llame exactamente `.env`.
+- **El error de verdad estaba ARRIBA del formulario, fuera de la
+  pantalla.** Se perdieron varios intentos mirando el botón. Cuando algo
+  no responde en un formulario largo, subir del todo antes que insistir.
+
+### Una obsoleta que se puede borrar
+
+**El token de `gh` de esta máquina YA tiene el scope `workflow`.** El
+arreglo de `desplegar.yml` se empujó sin problema el 18-ago. La trampa
+que decía que empujar ficheros de `.github/workflows/` falla y que hacía
+falta `gh auth refresh -s workflow` **ya no aplica**.
 
 ---
 
