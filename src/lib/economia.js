@@ -1,7 +1,7 @@
 // ------------------------------------------------------------------
 // Equilibrio de la economía.
 //
-// El problema clásico de cualquier sistema con moneda: si se gana más
+// El problema clásico de cualquier sistema con moneda (aquí, Talis): si se gana más
 // deprisa de lo que cuestan las cosas, los premios pierden valor y la
 // familia acaba debiendo salidas que no puede sostener. Si se gana
 // demasiado despacio, nadie llega a nada y el sistema se abandona.
@@ -50,7 +50,7 @@ export const SUPUESTOS = {
   cadenciaMeta: 60
 }
 
-/** Monedas por día que gana un rol si cumple la adherencia supuesta. */
+/** Talis por día que gana un rol si cumple la adherencia supuesta. */
 export function monedasPorDia(rol, s = SUPUESTOS) {
   const d = DEFAULTS_ROL[rol]
   if (!d) return 0
@@ -131,7 +131,7 @@ export function diagnosticoEconomia(data, s = SUPUESTOS) {
   // El andamio se cuenta aparte y NO entra en las medias por nivel: los
   // premios de la peque (15-55) y los de arranque (80-240) están por
   // debajo del suelo del modelo, y promediarlos con los de verdad daba un
-  // nivel 1 de 190 monedas y un aviso de «se consigue demasiado rápido»
+  // nivel 1 de 190 Talis y un aviso de «se consigue demasiado rápido»
   // sobre premios que cuestan 325. No se esconden —salen en su propia
   // cifra—, pero no se miden contra una cadencia que no es la suya.
   const suelo = bandaDePrecio(1, s)[0]

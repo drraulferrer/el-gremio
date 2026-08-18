@@ -1,5 +1,5 @@
 // ------------------------------------------------------------------
-// Premio a mano: monedas extra por algo excepcional.
+// Premio a mano: Talis extra por algo excepcional.
 //
 // Existe porque la vida no cabe en el catálogo. Un día se porta de una
 // manera que nadie había previsto, ayuda en algo que no era su tarea, o
@@ -7,12 +7,12 @@
 //
 // Tres reglas, y las tres tienen su porqué:
 //
-//  1. NO da XP, solo monedas. La XP marca el nivel y alimenta la meta del
+//  1. NO da XP, solo Talis. La XP marca el nivel y alimenta la meta del
 //     gremio, y las dos están calculadas contra un ritmo. Un extra a mano
 //     que subiera de nivel convertiría el premio excepcional en la vía
 //     rápida, y en dos semanas nadie haría misiones.
 //  2. El motivo es OBLIGATORIO. Sin él, dentro de un mes nadie recuerda
-//     por qué esa persona tiene cincuenta monedas de más, y el sistema
+//     por qué esa persona tiene cincuenta Talis de más, y el sistema
 //     pasa de tener reglas a depender del humor del adulto de turno.
 //  3. Lo concede un adulto, y queda registrado CUÁL. No es desconfianza:
 //     es que si mañana hay que explicar el saldo, la respuesta tiene que
@@ -46,7 +46,7 @@ export function cantidadValida(monedas) {
  */
 export function revisarPremioManual({ monedas, motivo, otorgadoPor, perfiles = [] }) {
   if (!cantidadValida(monedas)) {
-    return `Las monedas tienen que ser un número entero entre 1 y ${MAXIMO_MANUAL}.`
+    return `Los Talis tienen que ser un número entero entre 1 y ${MAXIMO_MANUAL}.`
   }
   if (!motivoValido(motivo)) {
     return 'Escribe el motivo: sin él, dentro de un mes nadie sabrá por qué.'
@@ -62,5 +62,5 @@ export function revisarPremioManual({ monedas, motivo, otorgadoPor, perfiles = [
 export function avisoDeCantidad(monedas) {
   const n = Number(monedas)
   if (!Number.isFinite(n) || n <= AVISO_MANUAL) return null
-  return `${n} monedas es bastante: en la tienda eso se acerca a un premio entero. ¿Seguro?`
+  return `${n} Talis son bastantes: en la tienda eso se acerca a una recompensa entera. ¿Seguro?`
 }

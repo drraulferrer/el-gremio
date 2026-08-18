@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { levelProgress, hashPin } from '../lib/supabase'
 import Icono from './Icono'
+import { BOLSA, talis } from '../lib/talis'
 
 /**
  * Pestaña de la barra inferior. Icono + rótulo siempre: una barra de solo
@@ -51,8 +52,10 @@ export function XPBar({ xp, tone }) {
   )
 }
 
-export function Moneda({ n }) {
-  return <span className="moneda">🪙 {n}</span>
+// La Bolsa de Talis. El emoji hace de ficha gremial; la etiqueta dice el
+// nombre completo porque un lector de pantalla no sabe leer una moneda.
+export function Bolsa({ n }) {
+  return <span className="bolsa" aria-label={`${BOLSA}: ${talis(n)}`}>🪙 {n}</span>
 }
 
 export function Modal({ titulo, onClose, children }) {

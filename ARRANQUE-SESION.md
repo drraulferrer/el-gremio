@@ -6,7 +6,8 @@ trampas tiene. Última actualización: **18 de agosto de 2026**, al cierre
 de una sesión larga en la que el sitio **dejó de servirse desde GitHub
 Pages y pasó a Vercel** (§7n), se ejecutaron las tres migraciones que
 faltaban y se construyeron dos funcionalidades enteras: el recordatorio de
-avisos (§7o) y los **perfiles de mascota** (§7p).
+avisos (§7o) y los **perfiles de mascota** (§7p). Y en una sesión corta
+posterior, **las monedas pasaron a llamarse Talis** (§7q).
 
 Si solo vas a leer un párrafo: la app está **en producción y estable**, en
 elgremioapp.com, servida por **Vercel**, con las cabeceras de seguridad
@@ -19,7 +20,10 @@ de mando con datos reales. Antes de añadir nada, lee §8.
 `npm run deploy`. Ahora es empujar y después `npm run vercel` (§7n).
 
 **Si abres sesión nueva, empieza por §8.** No hay nada a medias: no queda
-ninguna migración pendiente, los 633 tests están en verde y producción
+ninguna migración pendiente y los **669 tests están en verde**. La 2.4.1
+(Talis §7q, y los tres fallos del alta de mascotas §7r) está construida y
+verificada en local pero **todavía no publicada**: falta `git push origin
+main && npm run vercel`. Producción
 sirve la 2.3.1. Lo que queda es de uso y de producto, no código bloqueado.
 
 ---
@@ -2038,6 +2042,12 @@ cepilla al perro no se lleva puntos propios.
 bloqueado: son cosas de uso, o decisiones que piden datos antes que
 teclado.
 
+0. **Publicar la 2.4.1** (los Talis §7q y los tres fallos del alta de
+   mascotas §7r): construida, verificada y en verde, pero solo en local.
+   `npm run verify && git push origin main && npm run vercel && npm run
+   health`. No lleva migración. **Corre algo de prisa**: hasta que se
+   publique, quien funde un gremio nuevo y elija «Mascota» en el alta no
+   puede terminar de crearlo.
 1. **Activar los avisos en los teléfonos que faltan.** Medido el 18-ago:
    **cinco de los ocho perfiles activos no tienen ningún aparato**. Hay
    que reinstalar la PWA desde elgremioapp.com y activar Ajustes → 🔔
@@ -2049,9 +2059,9 @@ teclado.
 3. Lo demás —poderes por cablear, huecos de producto, backlog— está más
    abajo y no corre prisa.
 
-**Y una cosa que solo puede decir el uso:** las mascotas están construidas
-pero **nadie las ha usado todavía**. Antes de tocarlas, dar de alta la
-vuestra y vivir con ella una semana. Sobre todo para ver si el reparto de
+**Y una cosa que solo puede decir el uso:** dar de alta un perro por
+primera vez sacó **tres fallos en el primer minuto** (§7r). Vivir con la
+mascota una semana antes de tocar nada más. Sobre todo para ver si el reparto de
 trucos en días alternos se entiende sin explicarlo, que es donde esto se
 juega su credibilidad.
 
@@ -2504,6 +2514,109 @@ supabase functions deploy notificar --project-ref chfbrawsoulfiywiqhpe --no-veri
 
 La bandera del final no es opcional: sin ella se rompen los avisos. El
 porqué está en §8.
+
+---
+
+## 7q. Las monedas ahora son Talis (18 de agosto) · 2.4.0 · SIN PUBLICAR
+
+Cambio de nombre de la divisa, y no es cosmético. **El canon completo está
+en `docs/TALIS.md`**; aquí solo lo que hay que saber para no deshacerlo.
+
+### Por qué
+
+El tutorial abría advirtiendo que un sistema de «tarea hecha, moneda
+cobrada» se apaga en la semana tres, y a la vez la interfaz decía
+«monedas» en catorce sitios. El nombre trabajaba contra el diseño: una
+moneda dice «te pago por esto» sin necesidad de añadir nada. Un **Talis**
+es una ficha de reconocimiento: no mide lo que vale la misión, marca que
+alguien ha contribuido al Gremio. La mecánica es idéntica.
+
+### Lo que se hizo
+
+- `src/lib/talis.js` + `src/components/Cronica.jsx`: el vocabulario —`TALIS`, `BOLSA`,
+  `CASA`, `LEMA`, el formateador `talis(n)` y los `FRAGMENTOS` de lore—.
+- Texto visible renombrado en toda la app, la narrativa pública, los docs
+  y las dos páginas legales.
+- Sección de lore nueva en `public/narrativa/index.html` (acto «Qué es»,
+  la tercera) y la leyenda del origen dentro del tutorial.
+- `docs/TALIS.md` con el canon y la separación entre ficción e historia.
+- 27 tests nuevos (`tests/talis.test.js`). Total: **660, en verde**.
+
+### Las tres cosas que NO se tocaron, y por qué
+
+1. **La columna sigue siendo `coins`.** No hay migración y no debe
+   haberla. El lore separa el «concepto funcional» del «nombre
+   narrativo», y esa separación es justo lo que permitió cambiar el
+   relato entero sin tocar una sola función que abona dentro de una
+   transacción. **Hay un test que falla si alguien renombra el esquema.**
+2. **`redeem_reward` sigue devolviendo `'sin_monedas'`.** Renombrarlo
+   obligaría a migrar por un motivo cosmético y a coordinar cliente y
+   base en el mismo despliegue. Otro test lo vigila.
+3. **La pantalla de la peque no dice «Talis».** A los tres años sus Talis
+   se siguen dibujando como estrellas, sin cifras. La ficha gremial es
+   una abstracción que no le sirve todavía.
+
+También se quedan como estaban los identificadores internos
+(`monedasPorDia`, `MONEDAS_POR_ESTRELLA`, `monedas_x`, el campo `monedas`
+de `HITOS`). Es la misma frontera del punto 1: funcional dentro, narrativo
+fuera. Si algún día molesta, es un renombrado mecánico y sin riesgo, pero
+no aporta nada a quien usa la app.
+
+### Regla para escribir texto nuevo
+
+Talis **no pluraliza**: `1 Talis`, `20 Talis`. Nunca «Talises». No hay que
+acordarse: usar `talis(n)` de `src/lib/talis.js`. Y en las líneas de datos
+apretadas —cuadro, historial, camino de rachas— va el glifo 🪙 solo, sin
+la palabra, igual que se escribe `XP` y no «experiencia».
+
+### Lo que falta
+
+Solo **publicar**: `npm run verify && git push origin main && npm run
+vercel`. La Crónica ya está cableada (Progreso, debajo de las insignias) y
+comprobada en el navegador en sus tres estados: todo cerrado, dos abiertos
+con su pastilla de «Nuevo», y la historia completa. El detalle de las
+decisiones está en `docs/TALIS.md` §5.
+
+---
+
+## 7r. Los tres fallos del alta de mascotas (18 de agosto) · 2.4.1
+
+Encontrados dando de alta un perro por primera vez, que es lo que §8
+llevaba días diciendo que hacía falta. Los tres son de la 2.3.0.
+
+1. **El onboarding ofrecía el rol «Mascota» y rompía el alta entera.** El
+   desplegable salía de `ROLE_LABEL` —que incluye mascota— pero el insert
+   no manda `species`. Postgres rechaza esa fila por
+   `profiles_especie_coherente`, y como todos los miembros van en un solo
+   insert, **se caía el alta de la familia completa**. Ahora usa `ROLES`.
+2. **Elegir perro o gato no se veía.** Las pastillas usaban `.activa`,
+   que no existe para `.pastilla-habilidad`; el CSS solo define `.sel`.
+   El estado cambiaba y la pantalla no. Parecía que la app no dejaba
+   elegir especie, que es exactamente como se reportó.
+3. **No había avatar de perro ni de gato.** Van al final de `EMOJIS`, no
+   al principio: el onboarding enseña `EMOJIS.slice(0, 8)` y ahí se dan
+   de alta personas. Al elegir especie se propone la cara
+   (`EMOJI_DE_ESPECIE`, en `lib/mascotas.js`).
+
+### La grieta por la que pasaron, que es lo importante
+
+**El backend simulado no comprobaba la coherencia de especie y Postgres
+sí.** En demo la mascota sin especie se creaba tan tranquila. Un demo más
+permisivo que la base **da luz verde a lo que va a romperse en casa de
+alguien**, y es la razón por la que el fallo 1 llegó a producción sin que
+nadie lo viera.
+
+Ya la comprueba, con el mismo mensaje de error que la base. Si se añade
+otro `check` a `profiles`, conviene añadirlo también ahí.
+
+### Lo que dejan como norma
+
+- Una pastilla se marca con **`.sel`**. Hay un test que lee las pantallas
+  y el CSS y falla si alguien usa una clase que no está definida.
+- Y la lección de §8, ahora con nombre: **construir una funcionalidad
+  entera antes de usarla una vez** es cómo se llega a tener tres fallos
+  en el primer minuto de uso. Las mascotas llevaban desde el 18-ago
+  «construidas y en producción» sin que nadie diera de alta un animal.
 
 ---
 

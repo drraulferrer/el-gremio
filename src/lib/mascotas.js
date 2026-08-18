@@ -26,6 +26,17 @@
 
 export const ESPECIES = ['perro', 'gato']
 
+/**
+ * La cara que se propone al elegir especie.
+ *
+ * Hasta la 2.4.1 el formulario dejaba a la mascota con el avatar que
+ * traía por defecto —un zorro—, y una lista de miembros donde el perro
+ * es un zorro deja de leerse de un vistazo, que es justo para lo que
+ * sirve el avatar. Solo se propone: quien quiera otra cara la elige y la
+ * app deja de opinar, igual que con el emoji de las misiones.
+ */
+export const EMOJI_DE_ESPECIE = { perro: '🐕', gato: '🐈' }
+
 /** Días alternos: lunes, miércoles y viernes. Ver punto 2 de arriba. */
 export const DIAS_TRUCO = [1, 3, 5]
 

@@ -70,7 +70,7 @@ export function premiosDe(perfil, redemptions = [], rewards = []) {
   }
 }
 
-/** Monedas que NO vienen de una misión: juego de la peque y premios a mano. */
+/** Talis que NO vienen de una misión: juego de la peque y premios a mano. */
 export function extrasDe(perfil, bonuses = []) {
   const mios = bonuses.filter((b) => b.profile_id === perfil.id)
   return {

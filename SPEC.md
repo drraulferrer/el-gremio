@@ -12,7 +12,7 @@ Especificación de la webapp de gamificación familiar. Este documento es la fue
 - Sin ranking entre miembros. La única estructura comparativa es cooperativa: la meta del gremio.
 - **El sistema es de habilidades, no de tareas** (revisión de agosto de 2026). Cada misión entrena una de ocho competencias: hogar, salud, aprendizaje, amabilidad, responsabilidad, cooperación, creatividad y autonomía. El objetivo declarado deja de ser "hacer la cama" y pasa a ser "volverse más autónoma". Fundamento y referencias en `docs/FUNDAMENTO-CIENTIFICO.md`.
 - **El elogio específico es el componente central**, no un adorno: al validar, cada sugerencia de elogio ES el botón de validar, de forma que el camino de menor esfuerzo pasa a ser el que dice algo concreto. Diseñado así porque añadir un paso extra habría hecho que se dejara de validar.
-- Recompensas dobles: progresión virtual (XP, niveles, insignias, rangos por habilidad) más catálogo de premios reales canjeables con monedas. Los premios se ordenan en tres niveles y el catálogo prioriza el nivel 1 (decidir algo), que es el que mejor sostiene el hábito. Las monedas son un andamio que se retira cuando el hábito se consolida.
+- Recompensas dobles: progresión virtual (XP, niveles, insignias, rangos por habilidad) más catálogo de premios reales canjeables con Talis. Los premios se ordenan en tres niveles y el catálogo prioriza el nivel 1 (decidir algo), que es el que mejor sostiene el hábito. Los Talis son un andamio que se retira cuando el hábito se consolida.
 - Se gamifica la fricción (hábitos y tareas que cuestan), no las actividades ya placenteras, para no minar la motivación intrínseca.
 - Una única cuenta de autenticación familiar; perfiles internos estilo consola; panel parental protegido por PIN.
 - **Cada perfil declara con qué género le habla la app** (femenino, masculino o sin especificar). Las cadenas que concuerdan llevan tres formas escritas a mano, `{masculino|femenino|neutra}`, y la neutra está **reescrita** para no necesitar marca: nada de arrobas ni de barras, que no se leen en voz alta y hay una criatura de tres años a la que le leen la pantalla. Sin especificar es el valor por defecto y, por tanto, el que más se lee.
@@ -22,11 +22,11 @@ Especificación de la webapp de gamificación familiar. Este documento es la fue
 
 - La XP nunca se gasta; solo sube. Determina el nivel.
 - Curva de nivel: `xpAcumulada(nivel) = 50 · nivel · (nivel − 1)`. Nivel 2: 100 XP; nivel 3: 300; nivel 4: 600; nivel 5: 1000.
-- Las monedas se ganan junto a la XP y se gastan en la tienda. Separar ambas evita que canjear se sienta como perder progreso.
-- La proporcionalidad entre edades se regula en los valores de XP y monedas de cada misión, no en curvas distintas por persona.
+- Los Talis se ganan junto a la XP y se gastan en la tienda. Separar ambos evita que canjear se sienta como perder progreso. **Talis es el nombre narrativo; en el esquema la columna es `coins` y no hay migración que los renombre** (ver `src/lib/talis.js` y `docs/TALIS.md`).
+- La proporcionalidad entre edades se regula en los valores de XP y Talis de cada misión, no en curvas distintas por persona.
 - Frecuencias de misión: `diario` (una vez por día natural), `semanal` (una vez por semana ISO), `mensual` (una vez por mes natural), `unico` (una sola vez). Limitación conocida: las tareas trimestrales o anuales se modelan como `unico` y se reactivan a mano.
 - Un rechazo no consume la frecuencia: la misión vuelve a estar disponible.
-- **Toda misión conseguida se puede deshacer** (`undo_completion`): borra la petición y devuelve XP y monedas. En la pantalla de la peque, manteniendo pulsada la baldosa 1,5 s; en el panel, desde la sección "Hecho hoy" del día en curso; y quien pide una misión por error puede cancelarla desde su propia lista. Límite conocido: si las monedas ya se gastaron, el saldo se queda en cero en lugar de irse a negativo y el canje sigue en pie.
+- **Toda misión conseguida se puede deshacer** (`undo_completion`): borra la petición y devuelve XP y Talis. En la pantalla de la peque, manteniendo pulsada la baldosa 1,5 s; en el panel, desde la sección "Hecho hoy" del día en curso; y quien pide una misión por error puede cancelarla desde su propia lista. Límite conocido: si los Talis ya se gastaron, el saldo se queda en cero en lugar de irse a negativo y el canje sigue en pie.
 
 ## 2b. Equilibrio de la economía
 
@@ -61,9 +61,9 @@ Hay tests que fallan si alguien cambia los puntos de las misiones y descuadra la
 
 RLS en todas las tablas: `family_id ∈ familias del auth.uid()`. Funciones `security invoker`:
 
-- `resolve_completion(c_id, 'aprobado'|'rechazado')`: cierra la pendiente y, si aprueba, abona XP y monedas de forma atómica.
-- `redeem_reward(rw_id, p_id) → 'ok'|'sin_monedas'|'no_disponible'`: descuenta monedas y crea el canje.
-- `resolve_redemption(r_id, 'entregado'|'cancelado')`: al cancelar devuelve las monedas.
+- `resolve_completion(c_id, 'aprobado'|'rechazado')`: cierra la pendiente y, si aprueba, abona XP y Talis de forma atómica.
+- `redeem_reward(rw_id, p_id) → 'ok'|'sin_monedas'|'no_disponible'`: descuenta Talis y crea el canje. El código de retorno `sin_monedas` **no se renombra**: viene de Postgres y cambiarlo obligaría a una migración por un motivo puramente cosmético.
+- `resolve_redemption(r_id, 'entregado'|'cancelado')`: al cancelar devuelve los Talis.
 
 ## 4b. Biblioteca de tareas de la casa
 
@@ -73,7 +73,7 @@ Principios del catálogo:
 
 - Sin puntos: el catálogo solo declara título, emoji, roles aptos y frecuencia sugerida. Está desacoplado de la economía.
 - Una tarea existe una sola vez y puede ser apta para varios roles (`roles: ['junior','adulto']`); no se duplica en el catálogo.
-- La instanciación sí es por perfil: al activar una tarea desde la Biblioteca del panel parental se crea un `challenge` asignado a esa persona con valores propios de XP y monedas. Ahí vive la proporcionalidad por edades, así que dos perfiles pueden tener la misma tarea con recompensas distintas.
+- La instanciación sí es por perfil: al activar una tarea desde la Biblioteca del panel parental se crea un `challenge` asignado a esa persona con valores propios de XP y Talis. Ahí vive la proporcionalidad por edades, así que dos perfiles pueden tener la misma tarea con recompensas distintas.
 - Defaults al activar (`DEFAULTS_ROL`, editables misión a misión): peque 10/5, junior 15/8, adulto 10/5. A quien más le cuesta, más XP; los adultos puntúan bajo en tareas triviales para no inflar la meta cooperativa.
 - La Biblioteca marca como "ya activa" cualquier tarea cuyo título coincida con una misión activa del perfil, para evitar duplicados reales.
 - Los matices de seguridad del texto original (con supervisión, productos seguros, sin objetos peligrosos, acompañada) se conservan en los títulos; en el rol peque la supervisión queda además garantizada por diseño, porque sus misiones las opera un adulto.
@@ -119,8 +119,8 @@ Automáticas (se evalúan en cliente tras cada carga y se insertan con upsert id
 1. **Login**: cuenta familiar única, alta y entrada.
 2. **Onboarding**: es el setup del punto 0. Nombre del gremio → miembros con rol, género, emoji y color → las cuatro preguntas → PIN parental (de 4 a 8 dígitos, hash SHA-256 en cliente) → resumen y fundación. La zona horaria no se pregunta: se detecta y se cambia después en ⚙️ → Datos.
 3. **ProfilePicker**: rejilla de perfiles, recuerda la elección por dispositivo (localStorage).
-4. **Home** (por miembro): carnet con gema de nivel, barra de XP y monedas; estandarte de la meta del gremio; pestañas Misiones, Tienda, Insignias. Celebración animada al recibir validación (vía realtime) y al subir de nivel.
-5. **KidHome** (rol peque): además de la rejilla de misiones, **el tarro de estrellas**. El contador de la cabecera se vacía cada noche; el tarro no, y esa es la diferencia que hace que esperar tenga sentido a los tres años. Al tocarlo se abre su tienda: los premios de **nivel 1** (los de decidir algo), cada uno con una fila de estrellas —encendidas las que ya tiene, apagadas las que faltan—. Sin cifras en ninguna parte: sus monedas se dibujan como estrellas a razón de una por misión suya. Los premios que aún no alcanza **no se esconden**, se ven apagados: ver lo que viene es parte de lo que sostiene la espera.
+4. **Home** (por miembro): carnet con gema de nivel, barra de XP y Bolsa de Talis; estandarte de la meta del gremio; pestañas Misiones, Tienda, Insignias. Celebración animada al recibir validación (vía realtime) y al subir de nivel.
+5. **KidHome** (rol peque): además de la rejilla de misiones, **el tarro de estrellas**. El contador de la cabecera se vacía cada noche; el tarro no, y esa es la diferencia que hace que esperar tenga sentido a los tres años. Al tocarlo se abre su tienda: los premios de **nivel 1** (los de decidir algo), cada uno con una fila de estrellas —encendidas las que ya tiene, apagadas las que faltan—. Sin cifras en ninguna parte: sus Talis se dibujan como estrellas a razón de una por misión suya. Los premios que aún no alcanza **no se esconden**, se ven apagados: ver lo que viene es parte de lo que sostiene la espera.
 
    El resto de la pantalla: cabecera con su avatar y las estrellas de hoy, rejilla de misiones a dos columnas con botones de 165 px de alto, botón de silencio y salida por pulsación mantenida. Paleta propia (papel crema, colores saturados, bordes gruesos) deliberadamente distinta del tablero nocturno: no busca combinar, busca que reconozca su sitio.
 6. **ParentPanel** (tras PIN): Validar (misiones y canjes en un toque), Peque (estrella inmediata), Misiones (CRUD + plantillas + pausar), Premios (CRUD + pausar), Meta (crear, editar, cerrar con insignia para todos).
@@ -175,7 +175,7 @@ trazo 1,75 sobre rejilla de 24 (`src/components/Icono.jsx`). Un emoji como
 icono de sistema cambia de forma en cada plataforma y no hereda el color
 del tema.
 
-Tema "tablero nocturno": fondo índigo `#1e2140`, cartas `#292d55`, oro `#f5b841`/`#ffd166` para monedas y acciones, colores de gema por miembro (coral, turquesa, violeta, sol). Tipografías: Fredoka (display) + Nunito (cuerpo). Firma visual: gema facetada con el nivel dentro (clip-path) y barra de XP con pips de rombo. Una sola pieza de movimiento orquestada: la celebración de estrellas. `prefers-reduced-motion` respetado. Objetivos táctiles de 48 px o más.
+Tema "tablero nocturno": fondo índigo `#1e2140`, cartas `#292d55`, oro `#f5b841`/`#ffd166` para los Talis y las acciones, colores de gema por miembro (coral, turquesa, violeta, sol). Tipografías: Fredoka (display) + Nunito (cuerpo). Firma visual: gema facetada con el nivel dentro (clip-path) y barra de XP con pips de rombo. Una sola pieza de movimiento orquestada: la celebración de estrellas. `prefers-reduced-motion` respetado. Objetivos táctiles de 48 px o más.
 
 ## 8. Riesgo principal y contramedidas
 
@@ -218,7 +218,7 @@ tests que lo comprueban).
 
 - Una familia nueva pasa de cero a operativa en menos de 15 minutos siguiendo el README.
 - Una misión pedida en el dispositivo de la junior aparece en el panel parental y, al validarla, la celebración llega a su dispositivo sin recargar.
-- Un canje descuenta monedas, queda pendiente de entrega y una cancelación las devuelve.
+- Un canje descuenta Talis, queda pendiente de entrega y una cancelación los devuelve.
 - La estrella del modo peque abona puntos al momento y respeta la frecuencia diaria.
 - Cerrar una meta otorga la insignia 🏰 a los cuatro perfiles.
 - La peque abre su perfil, toca un dibujo y ve la estrella sin ayuda; no consigue salir de su pantalla con un toque suelto.

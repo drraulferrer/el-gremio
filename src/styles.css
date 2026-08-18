@@ -1,6 +1,6 @@
 /* ==================================================================
    EL GREMIO · tablero nocturno
-   Fondo índigo de mesa de juego, oro de linterna para las monedas y
+   Fondo índigo de mesa de juego, oro de linterna para los Talis y
    una gema facetada por miembro como firma visual.
    ================================================================== */
 
@@ -500,7 +500,7 @@ button { font-family: inherit; }
 .xpbar-pips { position: absolute; inset: 0; display: flex; justify-content: space-evenly; align-items: center; pointer-events: none; }
 .xpbar-pips span { width: 5px; height: 5px; background: rgba(23, 26, 51, 0.55); transform: rotate(45deg); border-radius: 1px; }
 
-.moneda {
+.bolsa {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -2654,4 +2654,70 @@ button.kid-avatar.latiendo { animation: latido-aviso 2.6s var(--ease-salida) inf
 /* Ya está resuelto: deja de reclamar y pasa a ser una nota. */
 .aviso-panel-calmado {
   border-left-color: var(--linea);
+}
+
+/* ------------------------------------------------------------------
+   La Crónica de los Talis.
+   Una lista de fragmentos, no una rejilla: esto se lee en orden, como
+   una historia, y una rejilla invita a picotear. Los cerrados se ven
+   apagados en vez de esconderse, por la misma razón que los premios que
+   la peque todavía no alcanza: un hueco vacío no se busca.
+   ------------------------------------------------------------------ */
+.cronica { list-style: none; margin: 0 0 12px; padding: 0; }
+
+.fragmento {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 12px 14px;
+  margin-bottom: 8px;
+  background: var(--cristal-fondo);
+  border: 1px solid var(--cristal-filo);
+  border-radius: var(--radio-s);
+}
+
+.frag-romano {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--tablero-hondo);
+  border: 1px solid var(--oro);
+  color: var(--oro-claro);
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+/* Cerrado: apagado, pero legible. Bajar más el contraste dejaría el
+   «te faltan 450 Talis» ilegible, y ese texto es justo el que hace que
+   la pieza se busque. */
+.fragmento.cerrado { opacity: 0.55; }
+.fragmento.cerrado .frag-romano {
+  border-color: var(--linea);
+  color: var(--tinta-suave);
+  font-size: 0.85rem;
+}
+
+.frag-texto {
+  margin: 4px 0 0;
+  font-size: 0.88rem;
+  line-height: 1.55;
+  color: var(--tinta-suave);
+  font-style: italic;
+}
+
+.frag-nuevo {
+  flex: none;
+  background: var(--oro);
+  color: #2a1f05;
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 0.66rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 2px 8px;
+  border-radius: 999px;
 }

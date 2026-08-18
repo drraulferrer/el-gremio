@@ -19,7 +19,7 @@
 //
 // LOS SUPERPODERES. Cuatro, y cada uno con un coste de diseño distinto:
 //
-//  · monedas_x    toca la economía → lleva tope y caduca.
+//  · monedas_x    toca la economía (Talis) → lleva tope y caduca.
 //  · salva_racha  no toca la economía → es el más seguro de los cuatro.
 //  · asigna_tarea toca la convivencia → limitado a una vez y con aviso,
 //                 porque entre hermanas esto puede acabar en pelea.
@@ -33,7 +33,7 @@
 export const PODERES = {
   monedas_x: {
     nombre: 'Vena de oro',
-    describe: (p) => `×${p.factor} monedas durante ${p.dias} días`,
+    describe: (p) => `×${p.factor} Talis durante ${p.dias} días`,
     // El tope existe porque esto sí mueve la economía: sin él, dos
     // insignias apiladas doblarían el ritmo de toda una temporada.
     maxFactor: 1.5
@@ -68,7 +68,7 @@ export const PODERES = {
  *
  * El modelo se queda escrito y probado —cambiar eso costaría más que
  * mantenerlo—, pero anunciar en pantalla un ×1,25 que no llega a las
- * monedas sería mentirle a quien se lo ha ganado. Se enseñan cuando
+ * Talis sería mentirle a quien se lo ha ganado. Se enseñan cuando
  * existan, no antes.
  */
 export const PODERES_LISTOS = new Set(['salva_racha', 'asigna_tarea'])
@@ -161,7 +161,7 @@ export function poderActivo(ganada, ahora = new Date()) {
 }
 
 /**
- * El multiplicador de monedas que le toca ahora mismo a una persona.
+ * El multiplicador de Talis que le toca ahora mismo a una persona.
  *
  * NO se acumulan: se coge el mayor. Dos insignias apiladas doblarían el
  * ritmo de una temporada entera, y la economía está calculada contra un

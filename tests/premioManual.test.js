@@ -65,7 +65,7 @@ describe('quién lo concede', () => {
 
 describe('el orden de los avisos', () => {
   it('la cantidad se revisa antes que el motivo', () => {
-    expect(revisarPremioManual({ ...base, monedas: 0, motivo: '' })).toMatch(/monedas/i)
+    expect(revisarPremioManual({ ...base, monedas: 0, motivo: '' })).toMatch(/Talis/i)
   })
 
   it('cantidades altas avisan pero no bloquean', () => {

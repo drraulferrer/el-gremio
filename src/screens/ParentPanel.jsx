@@ -555,7 +555,7 @@ function ModoPeque({ family, data, refresh, onCeleb }) {
 
   // Una misión creada desde aquí nace asignada a ESTA peque, no a «Todos»:
   // se está creando dentro de su sección, y una misión global saldría
-  // también en el tablero de los adultos. Cinco monedas es una estrella
+  // también en el tablero de los adultos. Cinco Talis son una estrella
   // exacta, que es la unidad en la que ella cuenta: mezclar cantidades que
   // no son múltiplos deja el tarro en «dos estrellas y pico».
   const misionNueva = (p) => ({
@@ -984,7 +984,7 @@ function FormMision({ mision, perfiles, onGuardar, onBorrar, onClose }) {
           <input type="number" min="0" value={m.xp} onChange={(e) => set({ xp: e.target.value })} />
         </div>
         <div className="campo crece">
-          <label>Monedas 🪙</label>
+          <label>Talis 🪙</label>
           <input type="number" min="0" value={m.coins} onChange={(e) => set({ coins: e.target.value })} />
         </div>
       </div>
@@ -1530,7 +1530,7 @@ function GestionPremios({ family, data, refresh }) {
             no cabía en el catálogo. Una pestaña más para algo que se usa
             una vez al mes sería una pestaña que nadie abre. */}
         <button className="btn btn-fantasma btn-mini crece" onClick={() => setAMano(!aMano)}>
-          🪙 Monedas a mano
+          🪙 Talis a mano
         </button>
       </div>
 
@@ -1760,7 +1760,7 @@ function FormPremio({ premio, onGuardar, onBorrar }) {
         />
       </div>
       <div className="campo">
-        <label>Precio en monedas 🪙</label>
+        <label>Precio en Talis 🪙</label>
         <input type="number" min="1" value={r.cost} onChange={(e) => set({ cost: e.target.value })} />
       </div>
       <button className="btn btn-bloque" disabled={!r.title.trim()} onClick={() => onGuardar(r)}>Guardar</button>
@@ -1875,7 +1875,7 @@ function GestionMeta({ family, data, refresh }) {
       `Nueva temporada del gremio.\n\n` +
       `¿Subir un ${subida} % el precio de los ${suben.length} premios de la tienda? ` +
       `Es lo que mantiene la dificultad ahora que el gremio produce más.\n\n` +
-      `Por ejemplo, "${barato.title}" pasaría de ${barato.cost} a ${precioSiguienteTemporada(barato.cost)} monedas.\n\n` +
+      `Por ejemplo, "${barato.title}" pasaría de ${barato.cost} a ${precioSiguienteTemporada(barato.cost)} Talis.\n\n` +
       `Los premios de la peque y los de arranque no se tocan.`
     if (!window.confirm(aviso)) return
 
@@ -1952,7 +1952,7 @@ function GestionMeta({ family, data, refresh }) {
 }
 
 /**
- * Premio a mano: monedas extra por algo que no cabía en el catálogo.
+ * Premio a mano: Talis extra por algo que no cabía en el catálogo.
  *
  * No da XP a propósito. La XP marca el nivel y alimenta la meta del
  * gremio, las dos calculadas contra un ritmo; un extra a mano que subiera
@@ -1994,11 +1994,11 @@ function PremioAMano({ data, onHecho, onCerrar }) {
   return (
     <div className="bloque-manual">
       <div className="fila-separada" style={{ marginBottom: 8 }}>
-        <strong style={{ fontSize: '0.95rem' }}>Monedas por algo excepcional</strong>
+        <strong style={{ fontSize: '0.95rem' }}>Talis por algo excepcional</strong>
         <button className="btn-icono" onClick={onCerrar} aria-label="Cerrar"><Icono nombre="cerrar" tamano={18} /></button>
       </div>
       <p className="suave" style={{ margin: '0 0 10px' }}>
-        Suma monedas sin dar XP, así que no adelanta niveles ni la meta del gremio.
+        Suma Talis sin dar XP, así que no adelanta niveles ni la meta del gremio.
       </p>
 
       {fallo && <p className="error-texto" role="alert">{fallo}</p>}
@@ -2011,7 +2011,7 @@ function PremioAMano({ data, onHecho, onCerrar }) {
           </select>
         </div>
         <div className="campo crece">
-          <label>Monedas 🪙</label>
+          <label>Talis 🪙</label>
           <input
             type="number"
             min="1"
@@ -2043,7 +2043,7 @@ function PremioAMano({ data, onHecho, onCerrar }) {
       </div>
 
       <button className="btn btn-bloque" disabled={Boolean(problema) || ocupado} onClick={conceder}>
-        Conceder {Number(monedas) || 0} 🪙
+        Conceder {Number(monedas) || 0} Talis
       </button>
       {problema && <p className="suave" style={{ marginTop: 6 }}>{problema}</p>}
     </div>

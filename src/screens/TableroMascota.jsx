@@ -6,7 +6,7 @@
 // misiones las apunta una persona, y el sitio donde una persona apunta
 // cosas de la casa es el panel.
 //
-// Lo que se ve: su nivel y sus monedas, las misiones que le tocan HOY, y
+// Lo que se ve: su nivel y sus Talis, las misiones que le tocan HOY, y
 // sus premios. El XP va a ella; quien la cuida no se lleva nada
 // (§2.1 de docs/MASCOTAS.md).
 //

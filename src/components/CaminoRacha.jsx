@@ -73,7 +73,7 @@ export default function CaminoRacha({ data, profile, refresh }) {
           <span className="hito-emoji-grande">{cobrando.emoji}</span>
           <div>
             <strong>¡{cobrando.nombre}!</strong>
-            <div className="suave">+{cobrando.monedas} 🪙 por {cobrando.dias} días seguidos</div>
+            <div className="suave">+{cobrando.monedas} Talis por {cobrando.dias} días seguidos</div>
           </div>
         </div>
       )}

@@ -38,6 +38,19 @@ const vacia = () => TABLAS.reduce((acc, t) => ({ ...acc, [t]: [] }), {})
 // Valores por defecto de cada tabla, copiados de schema.sql. Sin esto una
 // fila recién insertada sale sin `status` y la función que la aprueba no
 // la encuentra nunca: el fallo silencioso perfecto.
+// Coherencia de especie, copiada de `profiles_especie_coherente` (027).
+//
+// Está aquí porque su ausencia dejó pasar un fallo hasta producción: el
+// onboarding ofrecía el rol «mascota» sin pedir especie, en demo se creaba
+// tan campante y en Postgres la fila entera se caía. Un demo más
+// permisivo que la base es peor que no tener demo: da luz verde a lo que
+// va a romperse en casa de alguien.
+function especieCoherente(fila) {
+  return fila.role === 'mascota'
+    ? fila.species === 'perro' || fila.species === 'gato'
+    : fila.species === null || fila.species === undefined
+}
+
 const DEFECTOS_TABLA = {
   profiles: { emoji: '🙂', color: '#a78bfa', xp: 0, coins: 0, active: true, gender: 'neutro' },
   challenges: { emoji: '⭐', xp: 10, coins: 5, frequency: 'diario', active: true, profile_id: null, target_roles: null, skill: null, days: null },
@@ -215,12 +228,25 @@ class Consulta {
         }
         const ahora = new Date().toISOString()
         const sellos = (SELLOS_TABLA[this.tabla] || []).reduce((acc, c) => ({ ...acc, [c]: ahora }), {})
-        nuevas.push({
+        const nueva = {
           ...(DEFECTOS_TABLA[this.tabla] || {}),
           ...sellos,
           ...fila,
           id: fila.id || uuid()
-        })
+        }
+        // Igual que Postgres: la fila entera se cae, no se guarda a
+        // medias. El mensaje imita al de la base para que quien lo lea en
+        // demo reconozca el de producción.
+        if (this.tabla === 'profiles' && !especieCoherente(nueva)) {
+          return {
+            data: null,
+            error: {
+              message:
+                'new row for relation "profiles" violates check constraint "profiles_especie_coherente"'
+            }
+          }
+        }
+        nuevas.push(nueva)
       }
       escribir({ ...db, [this.tabla]: [...tabla, ...nuevas] })
       notificar()

@@ -41,7 +41,7 @@
 //    esta comprobación.
 //
 // LAS CIFRAS. Con los supuestos de economia.js una persona junior gana
-// unas 38 monedas al día y un adulto 24. El camino entero paga 445 en
+// unos 38 Talis al día y un adulto 24. El camino entero paga 445 en
 // cien días: alrededor del 11 % de lo que gana la junior en ese tiempo, y
 // solo si no falla NI UN DÍA. Es un extra por algo excepcional, no una
 // segunda fuente de ingresos, y por eso los primeros hitos pagan poco:

@@ -45,7 +45,7 @@ export const NOMBRES_TABLA = {
   redemptions: ['canje', 'canjes'],
   family_goals: ['meta', 'metas'],
   profile_badges: ['insignia', 'insignias'],
-  bonuses: ['moneda de regalo', 'monedas de regalo'],
+  bonuses: ['Talis de regalo', 'Talis de regalo'],
   power_uses: ['poder gastado', 'poderes gastados']
 }
 

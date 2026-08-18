@@ -64,7 +64,7 @@ export function precioEnTemporada(base, temporada) {
  * Se aplica sobre el precio ACTUAL y no sobre un precio base guardado en
  * ninguna parte, y por eso compone solo: cada temporada aplica su subida
  * una vez, encima de lo que ya valía. Redondeado a cinco porque un premio
- * de 1.053 monedas no lo lee nadie.
+ * de 1.053 Talis no lo lee nadie.
  */
 export function precioSiguienteTemporada(actual) {
   return Math.round((Number(actual) * (1 + SUBIDA_POR_TEMPORADA)) / 5) * 5

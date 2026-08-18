@@ -4,8 +4,10 @@ import { INSIGNIAS, PODERES, PODERES_LISTOS } from '../lib/insignias'
 import { estadoDeTemporada } from '../lib/temporadas'
 import Poderes from '../components/Poderes'
 import CaminoRacha from '../components/CaminoRacha'
+import Cronica from '../components/Cronica'
 import { pedirMision as pedirMisionRemota, canjearPremio, deshacerMision } from '../lib/acciones'
-import { Gema, XPBar, Moneda, Celebracion, Pestana } from '../components/ui'
+import { Gema, XPBar, Bolsa, Celebracion, Pestana } from '../components/ui'
+import { talis, progresoDeTalis } from '../lib/talis'
 import { HABILIDADES, habilidad, xpPorHabilidad, rangoDeHabilidad, habilidadDominante } from '../lib/habilidades'
 import { flex, generoDe } from '../lib/genero'
 import { planDelDia, agruparPorFrecuencia } from '../lib/misiones'
@@ -33,9 +35,16 @@ export default function Home({ family, data, profile, refresh, onSwitchProfile, 
         setCeleb({ emoji: '💎', texto: `¡Nivel ${lvl}!` })
       } else if (nuevas.length) {
         const xp = nuevas.reduce((s, c) => s + c.xp, 0)
-        // El elogio es lo que de verdad tiene efecto; la XP acompaña.
+        const monedas = nuevas.reduce((s, c) => s + (c.coins || 0), 0)
+        // El elogio es lo que de verdad tiene efecto; la XP y los Talis
+        // acompañan. El orden importa: primero lo que se ha ganado, y el
+        // elogio debajo con más peso visual, no al revés.
         const conElogio = nuevas.find((c) => c.praise)
-        setCeleb({ emoji: '🌟', texto: `+${xp} XP`, elogio: conElogio?.praise || '' })
+        setCeleb({
+          emoji: '🌟',
+          texto: monedas > 0 ? `+${xp} XP · +${talis(monedas)}` : `+${xp} XP`,
+          elogio: conElogio?.praise || ''
+        })
       }
     }
     prev.current = { ids, lvl, profileId: profile.id }
@@ -88,7 +97,7 @@ export default function Home({ family, data, profile, refresh, onSwitchProfile, 
           <div className="crece">
             <div className="fila-separada">
               <h2 style={{ fontSize: '1.2rem' }}>{profile.emoji} {profile.name}</h2>
-              <Moneda n={profile.coins} />
+              <Bolsa n={profile.coins} />
             </div>
             <div style={{ marginTop: 8 }}>
               <XPBar xp={profile.xp} />
@@ -327,7 +336,7 @@ function Misiones({ data, profile, ocupado, onPedir, misPendientes, misAprobadas
 
 function Tienda({ data, profile, ocupado, onCanjear }) {
   // Los premios por debajo del techo de la peque son SUYOS y no salen
-  // aquí: cuestan quince o veinte monedas porque ella gana cinco al día,
+  // aquí: cuestan quince o veinte Talis porque ella gana cinco al día,
   // y en esta tienda serían gratis.
   const premios = premiosParaMayores(data.rewards)
   const misCanjes = data.redemptions.filter((r) => r.profile_id === profile.id && r.status === 'pendiente')
@@ -386,6 +395,7 @@ function Progreso({ data, profile, genero, refresh }) {
   const tope = semanasConDatos(data.completions, profile.id)
 
   const mias = new Set(data.badges.filter((b) => b.profile_id === profile.id).map((b) => b.code))
+  const progresoTalis = progresoDeTalis(profile, data)
   const porHabilidad = xpPorHabilidad(profile.id, data.completions, data.challenges)
   const dominante = habilidadDominante(porHabilidad)
 
@@ -498,6 +508,11 @@ function Progreso({ data, profile, genero, refresh }) {
           </div>
         ))}
       </div>
+
+      {/* Va detrás de las insignias a propósito: el último fragmento
+          explica por qué esas no se compran, y esa frase solo significa
+          algo cuando ya tienes la rejilla de arriba delante. */}
+      <Cronica profile={profile} progreso={progresoTalis} />
     </div>
   )
 }

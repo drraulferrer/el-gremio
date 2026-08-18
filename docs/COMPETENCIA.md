@@ -33,7 +33,7 @@ que **ya están construidas** y que hoy no se anuncian como el eje:
 
 | Reclamo | Por qué es defendible | Quién más lo tiene |
 |---|---|---|
-| **El objetivo declarado es volverse innecesaria** | Habilidades en vez de tareas, elogio específico como control primario y un andamio de monedas diseñado para retirarse. Está en el tutorial, en `docs/FUNDAMENTO-CIENTIFICO.md` y en la economía. | Nadie. El modelo de negocio de los demás exige lo contrario: Greenlight cobra por la tarjeta, BusyKid por la paga, Habitica por la suscripción de grupo. Ninguno puede prometer que sobras. |
+| **El objetivo declarado es volverse innecesaria** | Habilidades en vez de tareas, elogio específico como control primario y un andamio de Talis diseñado para retirarse. Está en el tutorial, en `docs/FUNDAMENTO-CIENTIFICO.md` y en la economía. | Nadie. El modelo de negocio de los demás exige lo contrario: Greenlight cobra por la tarjeta, BusyKid por la paga, Habitica por la suscripción de grupo. Ninguno puede prometer que sobras. |
 | **De 3 años a adulto, en la misma casa, con una interfaz por edad** | `KidHome` sin una sola cifra, `FichaPeque`, tarro de estrellas, salida por pulsación mantenida — y a la vez tablero de adultos con temporadas y rachas. | Habitica pide entender un RPG. BusyKid y Greenlight empiezan a los 6-8 y son productos financieros. Sweepy es de adultos. El rango 3–adulto está vacío. |
 | **Es tuya y es portátil** | Repo público, tu propia base de datos, sin dinero real, sin datos de menores en un servidor de un tercero que puede cerrar. | Habitica es abierto pero es un servicio central. Los demás son SaaS puro. Y el sector tiene un cadáver reciente que hace este argumento vendible (§3). |
 
@@ -316,7 +316,7 @@ Dos correcciones concretas en `public/narrativa/index.html`:
    despliegue, no el producto. Cambio propuesto:
 
    > Es la única que declara como objetivo volverse innecesaria: el andamio
-   > de monedas está diseñado para retirarse, y el control primario es el
+   > de Talis está diseñado para retirarse, y el control primario es el
    > elogio específico, no el pago. Va de los 3 años al adulto con una
    > interfaz por edad. Y vive en tu propia base de datos: si el proyecto
    > se para, tu gremio no.

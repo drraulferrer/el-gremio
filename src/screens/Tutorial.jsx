@@ -46,8 +46,12 @@ const PASOS_PORQUE = [
         </p>
         <p className="suave">
           La diferencia no es de palabras. Un sistema de "tarea hecha, moneda cobrada" funciona unas semanas y
-          después se apaga, porque el motivo de hacerlo se ha vuelto la moneda. Uno de habilidades aguanta más,
+          después se apaga, porque el motivo de hacerlo se ha vuelto el pago. Uno de habilidades aguanta más,
           porque lo que crece es la persona y eso se ve.
+        </p>
+        <p className="suave">
+          Por eso aquí no se cobran monedas: se ganan <strong>Talis</strong>, que son otra cosa. Un Talis no es
+          lo que vale la misión: es la marca de que alguien ha contribuido al Gremio.
         </p>
         <p>
           El objetivo deja de ser <em>hacer la cama</em> y pasa a ser <em>volverse más autónoma</em>.
@@ -136,10 +140,17 @@ const PASOS_PORQUE = [
   },
   {
     id: 'andamio',
-    emoji: '🪜',
-    titulo: 'Las monedas son un andamio',
+    emoji: '🪙',
+    titulo: 'Los Talis son un andamio',
     cuerpo: (
       <>
+        <div className="carta">
+          <div className="suave" style={{ fontStyle: 'italic' }}>
+            Cuenta la tradición del Gremio que, cuando los encargos se hicieron demasiados, los maestros
+            empezaron a entregar pequeñas piezas marcadas con el sello de la comunidad. No pagaban el trabajo:
+            decían <em>este miembro ha cumplido</em>. Las llamaron <strong>Talis</strong>.
+          </div>
+        </div>
         <p>
           Están para <strong>arrancar</strong> una costumbre que todavía no existe. Cuando una misión ya se hace
           sola, sin recordatorios y sin mirar el premio, ese es el momento de quitarla del tablón.
@@ -149,8 +160,16 @@ const PASOS_PORQUE = [
           siempre es el reconocimiento, que no se gasta.
         </p>
         <p>
-          Y hay una parte que no se compra con monedas: <strong>la meta del gremio</strong>. La XP de todos suma
+          Por eso los Talis se ganan y las <strong>insignias se merecen</strong>. Los Talis se gastan en la Casa
+          de Recompensas; una insignia no se compra con ninguna cantidad. Si se pudiera, todo esto se
+          convertiría en una tienda de puntos.
+        </p>
+        <p>
+          Y hay una parte que no se compra con Talis: <strong>la meta del gremio</strong>. La XP de todos suma
           hacia un plan compartido. No hay ranking entre miembros a propósito.
+        </p>
+        <p className="suave">
+          Un Talis no vale por lo que puedes comprar con él. Vale por lo que hiciste para ganarlo.
         </p>
       </>
     )
@@ -169,7 +188,7 @@ const PASOS_PORQUE = [
           <strong>🔥 Tu racha, con camino</strong>
           <div className="suave">
             Días seguidos con algo validado. En Progreso ves los hitos —3, 7, 14, 21, 30, 50 y 100 días— y
-            cuánto falta para el siguiente. Cada uno paga monedas <strong>una sola vez en la vida</strong>: si
+            cuánto falta para el siguiente. Cada uno paga Talis <strong>una sola vez en la vida</strong>: si
             se rompe y se vuelve a empezar, no se cobra otra vez. Si no, romperla a propósito cada semana
             saldría a cuenta.
           </div>
@@ -260,7 +279,7 @@ const PASOS_MAPA = [
         </div>
         <div className="carta">
           <strong>Tienda</strong>
-          <div className="suave">Los premios, con su precio en monedas.</div>
+          <div className="suave">La Casa de Recompensas, con el precio de cada una en Talis.</div>
         </div>
         <div className="carta">
           <strong>Progreso</strong>
@@ -308,8 +327,8 @@ const PASOS_MAPA = [
         <div className="carta">
           <strong>🎁 Premios · 🏰 Meta</strong>
           <div className="suave">
-            La tienda y el objetivo común. En Premios está también «🪙 Monedas a mano», para algo excepcional
-            que no cabía en el catálogo: suma monedas sin dar XP, pide motivo y guarda qué adulto lo concedió.
+            La tienda y el objetivo común. En Premios está también «🪙 Talis a mano», para algo excepcional
+            que no cabía en el catálogo: suma Talis sin dar XP, pide motivo y guarda qué adulto lo concedió.
             Y al cerrar una meta, el panel ofrece subir los precios un 30 % para la temporada nueva.
           </div>
         </div>
@@ -338,7 +357,7 @@ const PASOS_MAPA = [
             tarjeta de «Todavía no» lleva un botón para volver a enviarla en cuanto la termines.
           </div>
         </div>
-        <p className="suave">Deshacer devuelve la XP y las monedas.</p>
+        <p className="suave">Deshacer devuelve la XP y los Talis.</p>
       </>
     )
   },

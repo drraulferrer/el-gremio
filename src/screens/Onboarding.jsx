@@ -8,7 +8,7 @@ import {
 } from '../lib/setup'
 import { habilidad } from '../lib/habilidades'
 import { log } from '../lib/log'
-import { MAX_PERFILES } from '../lib/miembros'
+import { MAX_PERFILES, ROLES } from '../lib/miembros'
 import { GENEROS, flex } from '../lib/genero'
 import { marcarTutorialVisto } from './Tutorial'
 
@@ -216,7 +216,7 @@ export default function Onboarding({ onDone }) {
       {paso === 'miembros' && (
         <PasoSimple
           titulo="¿Quiénes sois?"
-          ayuda="Deja el nombre vacío para saltarte una fila."
+          ayuda="Deja el nombre vacío para saltarte una fila. Los animales de la casa se dan de alta después, en el panel: necesitan especie y se les crea su propio catálogo de misiones."
           porque="El rol no es una etiqueta: cambia la app entera. La peque tiene pantalla propia de botones enormes con estrella al momento; la junior pide y espera el visto bueno; quien es adulto además valida."
         >
           {miembros.map((m, i) => (
@@ -234,8 +234,15 @@ export default function Onboarding({ onDone }) {
                   value={m.role}
                   onChange={(e) => setMiembro(i, { role: e.target.value })}
                 >
-                  {Object.entries(ROLE_LABEL).map(([v, l]) => (
-                    <option key={v} value={v}>{flex(l, m.gender)}</option>
+                  {/* ROLES, no ROLE_LABEL entero: este último incluye
+                      «mascota», y aquí eso era una trampa. El insert de
+                      abajo no manda `species`, así que Postgres rechazaba
+                      la fila por `profiles_especie_coherente` y se caía el
+                      alta del gremio entera. Y aunque no se cayera, la
+                      mascota nacería sin sus misiones: el catálogo se crea
+                      en el panel de Miembros, no aquí. */}
+                  {ROLES.map((v) => (
+                    <option key={v} value={v}>{flex(ROLE_LABEL[v], m.gender)}</option>
                   ))}
                 </select>
               </div>
@@ -489,7 +496,7 @@ function Resumen({ plan, nombre, enBlanco, onEnBlanco }) {
 
           {resumen.techoPeque && (
             <p className="suave">
-              La peque tiene además sus propios premios, por debajo de {resumen.techoPeque} monedas: a su ritmo,
+              La peque tiene además sus propias recompensas, por debajo de {resumen.techoPeque} Talis: a su ritmo,
               uno de los de arriba estaría a más de dos semanas y eso no es un premio, es una decoración.
             </p>
           )}

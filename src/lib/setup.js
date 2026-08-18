@@ -280,7 +280,7 @@ export function premiosDelPlan(respuestas) {
  * Los premios de la peque, que son OTROS.
  *
  * Su tienda filtra por precio (`TECHO_PEQUE`), no por nivel, porque a su
- * ritmo un premio de 325 monedas está a dieciocho días y a los tres años
+ * ritmo un premio de 325 Talis está a dieciocho días y a los tres años
  * eso no es un premio, es una decoración. Sin esto, su tarro se llena de
  * estrellas y su tienda sale vacía: el fallo estaba en el producto desde
  * que se subieron los precios.

@@ -298,7 +298,7 @@ Migraciones hasta hoy:
 | `migracion-003-miembros.sql` | `profiles.active` e índice | Sí |
 | `migracion-004-habilidades.sql` | `challenges.skill`, `rewards.tier`, `completions.praise`, `resolve_completion` con elogio | Sí |
 | `migracion-005-funcion-duplicada.sql` | Retira la sobrecarga que dejó la 004 en bases ya existentes | No aplica (base nueva solo crea una) |
-| `migracion-006-deshacer.sql` | `undo_completion`: deshace una misión y devuelve XP y monedas | Sí |
+| `migracion-006-deshacer.sql` | `undo_completion`: deshace una misión y devuelve XP y Talis | Sí |
 | `migracion-007-genero.sql` | `profiles.gender` y reescritura de los títulos que concuerdan | Sí |
 
 **Trampa de las funciones**: `create or replace function` no sustituye una

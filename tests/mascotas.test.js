@@ -1,6 +1,11 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, beforeEach } from 'vitest'
+import { readFileSync } from 'node:fs'
+import { EMOJIS } from '../src/lib/supabase'
+import { ROLES, ROLES_CON_MASCOTA } from '../src/lib/miembros'
+import { crearClienteDemo } from '../src/lib/fakeBackend'
 import {
   ESPECIES,
+  EMOJI_DE_ESPECIE,
   DIAS_TRUCO,
   esMascota,
   especieValida,
@@ -159,5 +164,107 @@ describe('reglas sueltas', () => {
     for (const m of comida) {
       expect(m.adulto, `«${m.title}» debería necesitar adulto`).toBe(true)
     }
+  })
+})
+
+describe('dar de alta una mascota, desde la interfaz', () => {
+  // Los dos fallos que trajo la 2.3.0 y que nadie vio porque la
+  // funcionalidad se construyó entera antes de usarla ni una vez.
+
+  it('hay un avatar de perro y otro de gato', () => {
+    // Sin ellos, a la mascota de la casa había que ponerle cara de zorro
+    // y la lista de miembros dejaba de leerse de un vistazo.
+    expect(EMOJIS).toContain('🐕')
+    expect(EMOJIS).toContain('🐈')
+  })
+
+  it('cada especie tiene su avatar propuesto, y está en la lista', () => {
+    for (const e of ESPECIES) {
+      const cara = EMOJI_DE_ESPECIE[e]
+      expect(cara, e).toBeTruthy()
+      expect(EMOJIS, e).toContain(cara)
+    }
+  })
+
+  it('no hay avatares repetidos', () => {
+    expect(new Set(EMOJIS).size).toBe(EMOJIS.length)
+  })
+
+  it('las pastillas de especie se marcan con la MISMA clase que las demás', () => {
+    // Este test existe por un fallo real: las pastillas de «¿Perro o
+    // gato?» se marcaban con `.activa`, que no está definida para
+    // `.pastilla-habilidad` —el CSS solo tiene `.sel`—. El clic
+    // funcionaba y el estado cambiaba, pero en pantalla no pasaba nada,
+    // así que parecía que la app no dejaba elegir especie.
+    const pantalla = readFileSync(new URL('../src/screens/Miembros.jsx', import.meta.url), 'utf8')
+    const estilos = readFileSync(new URL('../src/styles.css', import.meta.url), 'utf8')
+    const marcas = [...pantalla.matchAll(/'pastilla-habilidad' \+ \([^)]*\? ' (\w+)'/g)].map((x) => x[1])
+
+    expect(marcas.length).toBeGreaterThan(0)
+    for (const marca of marcas) {
+      expect(estilos, `.pastilla-habilidad.${marca} no existe en el CSS`)
+        .toContain(`.pastilla-habilidad.${marca}`)
+    }
+  })
+})
+
+describe('la especie es obligatoria, y eso se comprueba en los dos sitios', () => {
+  // El backend simulado persiste en localStorage, que en Node no existe.
+  // Un doble en memoria basta: lo que se prueba aquí es qué acepta y qué
+  // rechaza, no dónde lo guarda.
+  beforeEach(() => {
+    const memoria = new Map()
+    globalThis.localStorage = {
+      getItem: (k) => (memoria.has(k) ? memoria.get(k) : null),
+      setItem: (k, v) => memoria.set(k, String(v)),
+      removeItem: (k) => memoria.delete(k)
+    }
+  })
+
+  // El fallo que esto vigila llegó a producción por una grieta concreta:
+  // el onboarding ofrecía el rol «mascota» sin pedir especie, el backend
+  // simulado lo aceptaba tan tranquilo y Postgres rechazaba la fila
+  // entera por `profiles_especie_coherente`. Un demo más permisivo que la
+  // base da luz verde a lo que va a romperse en casa de alguien.
+
+  it('el alta inicial del gremio NO ofrece el rol mascota', () => {
+    // Ahí no se puede: el insert va sin `species` y, aunque colara, la
+    // mascota nacería sin sus misiones —el catálogo se crea en Miembros—.
+    const onboarding = readFileSync(new URL('../src/screens/Onboarding.jsx', import.meta.url), 'utf8')
+    expect(onboarding).not.toMatch(/Object\.entries\(ROLE_LABEL\)/)
+    expect(onboarding).toMatch(/ROLES\.map/)
+  })
+
+  it('el rol mascota sí existe donde sí se puede elegir especie', () => {
+    expect(ROLES).not.toContain('mascota')
+    expect(ROLES_CON_MASCOTA).toContain('mascota')
+  })
+
+  it('el demo rechaza una mascota sin especie, igual que Postgres', async () => {
+    const demo = crearClienteDemo()
+    const { error } = await demo
+      .from('profiles')
+      .insert([{ family_id: 'f1', name: 'Chispa', role: 'mascota', species: null }])
+      .select()
+    expect(error?.message).toMatch(/profiles_especie_coherente/)
+  })
+
+  it('y rechaza una persona CON especie, que es el otro lado del mismo error', async () => {
+    const demo = crearClienteDemo()
+    const { error } = await demo
+      .from('profiles')
+      .insert([{ family_id: 'f1', name: 'Ana', role: 'adulto', species: 'perro' }])
+      .select()
+    expect(error?.message).toMatch(/profiles_especie_coherente/)
+  })
+
+  it('una mascota con especie válida entra sin problema', async () => {
+    const demo = crearClienteDemo()
+    const { data, error } = await demo
+      .from('profiles')
+      .insert([{ family_id: 'f1', name: 'Chispa', role: 'mascota', species: 'perro' }])
+      .select()
+    expect(error).toBe(null)
+    expect(data[0].species).toBe('perro')
   })
 })

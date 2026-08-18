@@ -146,7 +146,7 @@ export async function resolverMision(id, estado, elogio = '') {
 }
 
 /**
- * Deshace una misión: la borra y devuelve XP y monedas si estaban dadas.
+ * Deshace una misión: la borra y devuelve XP y Talis si estaban dados.
  * Existe porque el toque equivocado es inevitable, sobre todo cuando quien
  * toca tiene tres años.
  */
@@ -299,14 +299,14 @@ export async function canjearPremio({ premio, profile }) {
   )
 
   if (error) return { ok: false, mensaje }
-  if (data === 'sin_monedas') return { ok: false, mensaje: 'Aún te faltan monedas para ese premio.' }
+  if (data === 'sin_monedas') return { ok: false, mensaje: 'Todavía no tienes suficientes Talis. Completa nuevas misiones para conseguirlos.' }
   if (data === 'no_disponible') return { ok: false, mensaje: 'Ese premio ya no está disponible.' }
 
   log.info('premio.canjeado', { request_id: requestId, reward_id: premio.id, coste: premio.cost })
   return { ok: true, mensaje: '' }
 }
 
-/** Entrega o cancela un canje. Cancelar devuelve las monedas. */
+/** Entrega o cancela un canje. Cancelar devuelve los Talis. */
 export async function resolverCanje(id, estado) {
   const requestId = nuevoRequestId()
   const { error, mensaje } = await operacion(
@@ -319,7 +319,7 @@ export async function resolverCanje(id, estado) {
 }
 
 /**
- * Premio a mano: monedas extra por algo excepcional, sin XP.
+ * Premio a mano: Talis extra por algo excepcional, sin XP.
  *
  * Las reglas (cantidad, motivo, que quien lo concede sea adulto) se
  * comprueban en `revisarPremioManual` antes de llamar, y OTRA VEZ en
@@ -382,7 +382,7 @@ export async function premioAMano({ profileId, monedas, motivo, otorgadoPor }) {
  *   cada día, que es justo lo que un adulto querrá mirar el día que
  *   sospeche que el trabajo lo hace siempre el mismo.
  *
- * El XP y las monedas van a la mascota, no a quien la cuida: decisión
+ * El XP y los Talis van a la mascota, no a quien la cuida: decisión
  * tomada a conciencia en §2.1 de docs/MASCOTAS.md.
  */
 export async function apuntarMisionDeMascota({ family, mascota, reto, quien }) {

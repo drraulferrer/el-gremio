@@ -73,7 +73,7 @@ export const REFERENCIAS = [
     aporta:
       'Las recompensas por sí solas producen un efecto pequeño. Funcionan mejor como iniciadores del hábito y combinadas con otras estrategias.',
     enElGremio:
-      'Las monedas son un andamio, no el motor. La tienda prioriza premios de autonomía y el sistema invita a retirar la recompensa cuando el hábito se sostiene.'
+      'Los Talis son un andamio, no el motor: reconocen la contribución en lugar de pagarla. La Casa de Recompensas prioriza premios de autonomía y el sistema invita a retirar la recompensa cuando el hábito se sostiene.'
   },
   {
     id: 'leijten2018',

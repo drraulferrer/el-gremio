@@ -4,7 +4,7 @@
 > **[ARRANQUE-SESION.md](ARRANQUE-SESION.md)**: estado actual, decisiones
 > tomadas, trampas conocidas y pendientes.
 
-Webapp de misiones familiares con XP, niveles, monedas, premios reales,
+Webapp de misiones familiares con XP, niveles, Talis, premios reales,
 insignias y una meta cooperativa. Cuatro perfiles, tres roles y una sola
 cuenta para toda la casa. Sin ranking entre miembros: la única comparación
 es la meta compartida del gremio.
@@ -65,6 +65,11 @@ La diferencia no es de redacción. Un sistema de "tarea hecha, moneda
 cobrada" funciona unas semanas y después se apaga. El objetivo deja de ser
 *hacer la cama* y pasa a ser *volverse más autónoma*.
 
+Por eso la divisa no se llama «monedas» sino **Talis**: no son un pago por
+la tarea, son la ficha con la que el Gremio reconoce una contribución. La
+mecánica es la misma; lo que cambia es lo que se dice al ganarla. El lore
+completo está en [`docs/TALIS.md`](docs/TALIS.md).
+
 **El elogio específico es la pieza central.** Al validar, la app propone
 frases que nombran la acción concreta —"Has conseguido hacer la cama sin
 que nadie te lo recordara"— y **tocar la frase valida la misión**: cuesta
@@ -75,9 +80,9 @@ por repetición; el que nombra lo que hizo, no.
 base de datos: en la pantalla de la peque se mantiene pulsada la baldosa
 1,5 s, en el panel hay una sección "Hecho hoy" con un botón por cada
 misión, y quien pide una misión por error puede cancelarla. Deshacer
-devuelve la XP y las monedas.
+devuelve la XP y los Talis.
 
-**Las monedas son un andamio**, no el motor: están para arrancar una
+**Los Talis son un andamio**, no el motor: están para arrancar una
 costumbre que aún no existe y se retiran cuando el hábito se sostiene solo.
 Por eso el catálogo de premios prioriza los que son decisiones (elegir la
 peli, la música del coche, el menú del viernes) sobre los que son cosas, y
@@ -92,8 +97,10 @@ pasos lo explica.
 
 - **XP**: nunca se gasta, marca el nivel. Nivel 2 a los 100 XP, nivel 3 a
   los 300, nivel 5 a los 1000. Subir de nivel dispara celebración.
-- **Monedas**: se ganan junto a la XP y se gastan en la tienda de premios
-  reales. Separarlas evita que canjear se sienta como perder progreso.
+- **Talis**: se ganan junto a la XP y se gastan en la tienda de premios
+  reales. Separarlos evita que canjear se sienta como perder progreso. En
+  Postgres la columna se sigue llamando `coins`: Talis es el nombre
+  narrativo, no el del esquema.
 - **Meta del gremio**: la XP aprobada de todos suma hacia un objetivo común.
 - **Equilibrio**: los precios no están puestos a ojo. `src/lib/economia.js`
   declara cuánto se gana al día y cada cuánto debería caer cada nivel de

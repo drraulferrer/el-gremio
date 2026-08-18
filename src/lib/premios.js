@@ -109,7 +109,7 @@ export const EVITAR = [
 // La tienda de la peque.
 //
 // A los tres años no se leen números ni se entiende un saldo, pero sí se
-// entiende un tarro que se llena. Sus monedas se dibujan como estrellas:
+// entiende un tarro que se llena. Sus Talis se dibujan como estrellas:
 // una estrella = una misión suya, que es la unidad con la que ella cuenta
 // de verdad. Si un adulto cambia lo que valen sus misiones, la conversión
 // deja de cuadrar exactamente; se prefiere eso a enseñarle cifras.
@@ -126,9 +126,9 @@ export function estrellasQueCuesta(coste) {
 }
 
 /**
- * El techo de lo que se le puede enseñar a la peque, en monedas.
+ * El techo de lo que se le puede enseñar a la peque, en Talis.
  *
- * Ella no va por niveles: va por DISTANCIA. Gana unas 15 monedas al día,
+ * Ella no va por niveles: va por DISTANCIA. Gana unos 15 Talis al día,
  * así que este techo son unos tres días de espera, que es lo máximo que
  * sostiene una niña de tres años sin que el premio deje de existir para
  * ella. Cuando las cadencias de la familia se espaciaron a 15/30/45 días
@@ -150,7 +150,7 @@ export function premiosParaPeque(rewards = []) {
  * Y los de todos los demás: los que están POR ENCIMA de su techo.
  *
  * El mismo número parte la tienda en dos, y hace falta que la parta: los
- * premios de la peque cuestan quince o veinte monedas porque ella gana
+ * premios de la peque cuestan quince o veinte Talis porque ella gana
  * cinco al día, y en la tienda de la junior serían gratis. Mientras
  * `rewards` no tenga columna de dueño —la misma que hace falta para el
  * poder `abre_premio`—, el ámbito lo marca el precio.
@@ -163,7 +163,7 @@ export function premiosParaMayores(rewards = []) {
 // El andamio de los primeros días.
 //
 // El problema que resuelve, que es de producto y no de código: el premio
-// más barato del catálogo cuesta 325 monedas, o sea ocho o nueve días de
+// más barato del catálogo cuesta 325 Talis, o sea ocho o nueve días de
 // la junior. Los primeros días de una app así son justo los que deciden
 // si se sigue usando, y en esos días la tienda no le da nada: ve una
 // estantería entera de cosas que no puede tocar. La contramedida a la
@@ -212,7 +212,7 @@ export const PREMIOS_DE_ARRANQUE = [
  * andamio y no economía, y a los dos hay que tratarlos igual: no entran en
  * el diagnóstico de cadencias ni en la subida de temporada. Antes solo se
  * excluían los de la peque, y por eso en una casa con peque el nivel 1
- * salía con un precio medio de 190 monedas y el panel avisaba de que «se
+ * salía con un precio medio de 190 Talis y el panel avisaba de que «se
  * consigue demasiado rápido» un premio que costaba 325.
  *
  * La regla va por precio y no por una columna porque `rewards` no tiene

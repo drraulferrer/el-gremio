@@ -18,6 +18,96 @@ verdad duele en esta app: que el esquema y el cliente dejen de encajar.
 
 ---
 
+## 2.4.1 · 18 de agosto de 2026
+
+Tres fallos del alta de mascotas, encontrados usándola por primera vez.
+Los tres venían de la 2.3.0: la funcionalidad se construyó entera antes de
+darle de alta a un animal ni una sola vez.
+
+- **En el alta inicial del gremio se podía elegir el rol «Mascota», y eso
+  rompía el alta entera.** El desplegable salía de `ROLE_LABEL`, que
+  incluye «mascota», pero el insert no manda `species`; Postgres rechaza
+  esa fila por `profiles_especie_coherente` y con ella **las de toda la
+  familia**, porque van en un solo insert. Quien lo intentara no podía
+  terminar de fundar su gremio. El paso ahora ofrece solo los tres roles
+  de persona y dice dónde se dan de alta los animales.
+- **Elegir perro o gato no se veía.** Las pastillas se marcaban con la
+  clase `.activa`, que no existe para `.pastilla-habilidad` —el CSS solo
+  tiene `.sel`, que es la que usan las otras tres pastillas de la app—.
+  El clic funcionaba y el estado cambiaba, pero en pantalla no pasaba
+  nada, así que parecía que la app no dejaba elegir especie.
+- **No había avatar de perro ni de gato**, así que a la mascota de la casa
+  había que ponerle cara de zorro y la lista de miembros dejaba de leerse
+  de un vistazo. Ahora están, al final de la lista para no quitarle sitio
+  a nadie en el alta inicial —que enseña solo los ocho primeros y ahí no
+  se crean animales—, y al elegir especie la app ya propone la cara que
+  toca.
+
+**Y la razón de fondo, que es lo que hay que arreglar de verdad:** el
+backend simulado **no comprobaba la coherencia de especie** y Postgres sí.
+Un demo más permisivo que la base es peor que no tener demo: da luz verde
+a lo que va a romperse en casa de alguien. Ahora la comprueba, con el
+mismo mensaje de error, y hay cinco tests nuevos —incluido uno que falla
+si alguien vuelve a marcar una pastilla con una clase que el CSS no
+define—.
+
+---
+
+## 2.4.0 · 18 de agosto de 2026
+
+Las monedas pasan a llamarse **Talis**, y el cambio no es de vocabulario.
+
+Una moneda dice, sin necesidad de añadir nada, «te pago por hacer esto».
+Es exactamente el marco que el resto de la app lleva desde el primer día
+intentando no instalar: el tutorial abre advirtiendo que un sistema de
+«tarea hecha, moneda cobrada» se apaga en la semana tres, y a la vez la
+interfaz decía «monedas» en catorce sitios. El nombre trabajaba en contra
+del diseño.
+
+Un **Talis** no es un pago: es una ficha de reconocimiento. La mecánica es
+idéntica —se gana validando misiones, se gasta en la tienda—, pero lo que
+el sistema dice al entregarla cambia: no mide lo que vale la misión, marca
+que alguien ha contribuido al Gremio.
+
+Qué trae:
+
+- **Vocabulario en un solo sitio**, `src/lib/talis.js`: el nombre, la
+  Bolsa de Talis, la Casa de Recompensas, el lema y el formateador
+  `talis(n)`, que existe porque Talis no pluraliza y eso se olvida en la
+  pantalla número catorce.
+- **El lore, en la narrativa**: sección nueva en la exposición pública
+  —qué es un Talis, la leyenda del origen, las cuatro cosas que
+  representa, Talis frente a insignias— y la leyenda también dentro de la
+  app, en el paso del tutorial que antes se llamaba «Las monedas son un
+  andamio».
+- **La regla que sostiene el resto**, ahora escrita y con test: *los Talis
+  se ganan, las insignias se merecen*. Ninguna cantidad compra una
+  insignia.
+- **La Crónica de los Talis**, en Progreso y debajo de las insignias: la
+  historia se abre en cuatro fragmentos, por Talis **ganados** en total y
+  no por saldo —si fuera por saldo, gastar en la tienda borraría el
+  relato—. Los cerrados se ven apagados y dicen qué falta para abrirlos,
+  porque un hueco vacío no se busca. El cuarto pide además una insignia:
+  es el que explica por qué esas no se compran.
+- **Rigor histórico separado de la ficción** en `docs/TALIS.md`. Los Talis
+  son inventados; los gremios europeos, el aprendizaje por oficio y los
+  sellos corporativos de los que toma prestado, no. En ninguna pantalla se
+  dice lo contrario.
+- La celebración de una misión validada dice ahora también los Talis
+  ganados, detrás de la XP y por delante del elogio, que sigue siendo lo
+  que más pesa.
+
+**No hay migración, y es deliberado.** En Postgres la columna se sigue
+llamando `coins` y `redeem_reward` sigue devolviendo `'sin_monedas'`. El
+lore separa el concepto funcional del nombre narrativo, y esa separación
+es justo lo que permite cambiar el relato sin tocar funciones que abonan
+dentro de una transacción. Dos tests vigilan la frontera.
+
+Sin cambios para la peque: a los tres años sus Talis se siguen dibujando
+como estrellas, sin cifras.
+
+---
+
 ## 2.3.1 · 18 de agosto de 2026
 
 La narrativa cuenta ya los perfiles de mascota, y cuenta lo importante:

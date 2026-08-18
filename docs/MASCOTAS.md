@@ -105,7 +105,7 @@ no prometer de más y aquí toca sostenerla.
 
 ### 2.1 El XP va SOLO al perfil de la mascota
 
-La mascota tiene su propio perfil, su nivel y sus monedas. Quien cepilla al
+La mascota tiene su propio perfil, su nivel y sus Talis. Quien cepilla al
 perro **no se lleva XP por hacerlo**.
 
 Es lo decidido y conviene entender qué se está comprando y qué se está
@@ -121,7 +121,7 @@ tener que volver a razonarlo desde cero.
 
 ### 2.2 La mascota no es un jugador, y el esquema tiene que saberlo
 
-Un perro no pulsa «¡Hecho!», no elige perfil, no gasta monedas y no recibe
+Un perro no pulsa «¡Hecho!», no elige perfil, no gasta Talis y no recibe
 avisos. El perfil de mascota es un **sujeto con marcador**, no un usuario.
 En concreto:
 
@@ -131,7 +131,7 @@ En concreto:
 - **Sus misiones las registra un adulto desde el panel**, y quedan
   aprobadas en el acto: no hay a quién validarle nada, el adulto que lo
   registra es el validador.
-- **Sus monedas las gasta un humano en su nombre**, en premios para ella.
+- **Sus Talis los gasta un humano en su nombre**, en premios para ella.
 
 ### 2.3 Truco y hábito son cosas distintas
 

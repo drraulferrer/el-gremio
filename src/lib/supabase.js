@@ -99,7 +99,7 @@ export function crearSinkDeLogs() {
 }
 
 // ------------------------------------------------------------------
-// Economía: la XP nunca se gasta (marca el nivel); las monedas sí
+// Economía: la XP nunca se gasta (marca el nivel); los Talis sí
 // (se canjean en la tienda). Curva de nivel triangular y suave.
 // ------------------------------------------------------------------
 
@@ -273,7 +273,22 @@ export function goalProgress(goal, completions) {
 // 'Junior' y 'Peque' son epicenos; 'Adulto' no.
 export const ROLE_LABEL = { adulto: '{Adulto|Adulta|Persona adulta}', junior: 'Junior', peque: 'Peque', mascota: 'Mascota' }
 
-export const EMOJIS = ['🦊', '🐣', '🦄', '🐨', '🐙', '🦖', '🐼', '🐬', '🦁', '🌟', '🌈', '🚀', '🧙', '🧝', '🐲', '🦉']
+// Avatares.
+//
+// Perro y gato van AL FINAL, y esa posición es una decisión: desde que
+// hay perfiles de mascota (2.3.0) son los únicos que dejan reconocer a
+// un miembro no humano en la lista —hasta la 2.4.1 no estaban y a la
+// mascota de la casa había que ponerle cara de zorro—, pero el
+// onboarding enseña solo los ocho primeros y ahí se dan de alta
+// personas. Puestos delante, le quitarían el sitio a dos avatares en la
+// única pantalla donde nadie está creando un animal.
+//
+// Que estén al final no obliga a buscarlos: al elegir «perro» o «gato»
+// en el alta de miembros, la app ya propone su cara (EMOJI_DE_ESPECIE).
+export const EMOJIS = [
+  '🦊', '🐣', '🦄', '🐨', '🐙', '🦖', '🐼', '🐬',
+  '🦁', '🌟', '🌈', '🚀', '🧙', '🧝', '🐲', '🦉', '🐕', '🐈'
+]
 
 export const COLORS = ['#ff6b6b', '#4ecdc4', '#a78bfa', '#ffd166', '#6ee7a0', '#7fb3ff']
 

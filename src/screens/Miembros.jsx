@@ -11,7 +11,7 @@ import {
   ROLES_CON_MASCOTA
 } from '../lib/miembros'
 import { log } from '../lib/log'
-import { ESPECIES, catalogoDe, premiosDe, filaDeMision, filaDePremio } from '../lib/mascotas'
+import { ESPECIES, EMOJI_DE_ESPECIE, catalogoDe, premiosDe, filaDeMision, filaDePremio } from '../lib/mascotas'
 import { GENEROS, flex, generoDe } from '../lib/genero'
 import { Modal, Gema } from '../components/ui'
 import Icono from '../components/Icono'
@@ -251,7 +251,15 @@ export default function Miembros({ family, data, refresh }) {
 
 function FormMiembro({ miembro, ocupado, onGuardar, onClose }) {
   const [m, setM] = useState({ ...miembro })
+  // Igual que en las misiones del panel: la app propone emoji hasta que
+  // alguien elige uno, y a partir de ahí se calla. Editar a un miembro
+  // que ya existe nunca le cambia la cara.
+  const [emojiAMano, setEmojiAMano] = useState(Boolean(miembro.id))
   const set = (cambios) => setM({ ...m, ...cambios })
+
+  function elegirEspecie(especie) {
+    set(emojiAMano ? { species: especie } : { species: especie, emoji: EMOJI_DE_ESPECIE[especie] })
+  }
 
   return (
     <Modal titulo={m.id ? `Editar a ${miembro.name}` : 'Nuevo miembro'} onClose={onClose}>
@@ -286,8 +294,8 @@ function FormMiembro({ miembro, ocupado, onGuardar, onClose }) {
               <button
                 key={e}
                 type="button"
-                className={'pastilla-habilidad' + (m.species === e ? ' activa' : '')}
-                onClick={() => set({ species: e })}
+                className={'pastilla-habilidad' + (m.species === e ? ' sel' : '')}
+                onClick={() => elegirEspecie(e)}
               >
                 {ESPECIE_LABEL[e]}
               </button>
@@ -325,7 +333,11 @@ function FormMiembro({ miembro, ocupado, onGuardar, onClose }) {
         <label>Emoji</label>
         <div className="grid-emojis">
           {EMOJIS.map((e) => (
-            <button key={e} className={m.emoji === e ? 'sel' : ''} onClick={() => set({ emoji: e })}>{e}</button>
+            <button
+              key={e}
+              className={m.emoji === e ? 'sel' : ''}
+              onClick={() => { setEmojiAMano(true); set({ emoji: e }) }}
+            >{e}</button>
           ))}
         </div>
       </div>
