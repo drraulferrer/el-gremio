@@ -73,14 +73,25 @@ si falla `supabase`, casi seguro que el proyecto está pausado (ver §7).
 ✅ 020  escala · 021 anon no ejecuta · 022 aceptación legal (16-ago)
 ✅ 023  salud diaria (16-ago)
 ✅ 024  días de la semana en las misiones (16-ago, tarde)
-⏳ 025  plan_diario: programar las diarias del día siguiente (17-ago) · ESCRITA, SIN EJECUTAR
-⏳ 026  franja de noche + aviso sin_programar (17-ago) · ESCRITA, SIN EJECUTAR
+✅ 025  plan_diario: programar las diarias del día siguiente (18-ago)
+✅ 026  franja de noche + aviso sin_programar (18-ago)
 ```
 
-**Quedan DOS migraciones sin ejecutar: la 025 y la 026** (programación
-diaria; ver §8). Van antes del próximo `npm run deploy`, en orden, y cada
-una con su comprobación al final. La 024 sí se ejecutó y se
-comprobó: los cinco contadores del final del fichero a 1, el array vacío
+**Ya no queda ninguna migración pendiente.** La 025 y la 026 se
+ejecutaron el 18-ago con el método del repo —traer el fichero con la
+consola del SQL Editor y cotejar el SHA-256 antes de pulsar Run: las dos
+coincidieron byte a byte (8.543 y 5.630) y los acentos salieron intactos—.
+Comprobadas: la 025 con sus cinco contadores a 1 y el guardarraíl
+rechazando de verdad una fecha a 30 días (P0001 · `fuera_de_rango`); la
+026 con los tres a 1 y el índice viejo `idx_push_log_uno_al_dia` ya a 0. Y
+desde fuera: `plan_diario` responde 400 a una columna inventada —o sea que
+existe— y `[]` a la lectura anónima, así que el RLS aguanta.
+
+**Pero la Edge Function `notificar` se quedó atrás y hay que
+redesplegarla** (§8). El esquema ya tiene lo de la 026 y su código en el
+repo también, pero lo que corre en Supabase es de hace dos días.
+
+La 024 sí se ejecutó y se comprobó: los cinco contadores del final del fichero a 1, el array vacío
 rechazado de verdad, 51 misiones con **cero patrones puestos** —o sea,
 nadie notó nada, que es lo que tenía que pasar— y la vista de avisos
 respondiendo con `dia_libre` en false para los cuatro perfiles.
@@ -1827,25 +1838,43 @@ el sitio donde mirar es **Authentication → Auth Logs** —un fallo de SMTP
 sale ahí en vez de un «request completed»— y después el tope de 30/hora
 en Rate Limits.
 
-### Lo primero al retomar: ejecutar 025 y 026, luego desplegar
+### Lo primero al retomar: redesplegar la Edge Function `notificar`
 
-Hay DOS migraciones escritas y sin ejecutar (programación diaria, más abajo en §8).
-Van ANTES del `npm run deploy`, en orden, cada una con su comprobación al
-final del fichero. La forma buena de pegarlas (repo público, sin el truco
-de MacRoman) está más arriba en §2.
+**Las migraciones 025 y 026 ya están ejecutadas y comprobadas** (§2). Lo
+que quedó a medias es la otra pieza: `supabase/functions/notificar/` se
+cambió en el mismo commit que la 025 (`d516a64`, 18-ago 11:27) y ya usa
+`franja`, `sin_programar` y `sin_plan_manana` — pero **lo que corre en
+Supabase es de hace dos días**, porque las Edge Functions se despliegan
+aparte y no viajan con el repositorio.
 
-1. `migracion-025-plan-diario.sql` → los cinco contadores a 1, y el
-   guardarraíl de fecha rechaza una fecha a 30 días (P0001).
-2. `migracion-026-avisos-noche.sql` → los tres a 1, y el índice viejo
-   `idx_push_log_uno_al_dia` ya NO está (0).
-
-Y solo entonces:
+**No está roto, y por eso es fácil que se olvide:** `push_log.franja`
+tiene `'tarde'` por defecto, así que los avisos de siempre siguen
+saliendo. Lo que NO va a ocurrir es el recordatorio de noche —«registra lo
+tuyo y deja programado mañana»—, que es justamente aquello para lo que se
+escribió la 026. Se envía todo menos lo nuevo, en silencio.
 
 ```bash
-cd ~/el-gremio && npm run verify && npm run deploy && npm run health
+brew install supabase/tap/supabase
+supabase login                       # interactivo: lo tiene que hacer la persona
+supabase link --project-ref chfbrawsoulfiywiqhpe
+supabase functions deploy notificar
 ```
 
-La 024 sí está ya ejecutada en producción (§2).
+Y después comprobar que el aviso de noche sale de verdad, que es lo único
+que prueba que esto quedó cerrado:
+
+```sql
+select l.dia, l.franja, l.motivo, l.enviados
+  from public.push_log l order by l.created_at desc limit 10;
+```
+
+**La lección, que es la del §7e otra vez y del revés.** Aquella decía que
+la migración va antes del despliegue del bundle, porque el cliente no
+puede pedirle a la base algo que todavía no existe. Esto es el otro lado:
+el esquema puede adelantarse a la Edge Function igual de silenciosamente.
+La regla completa es que **una funcionalidad de este proyecto tiene TRES
+piezas —esquema, bundle y Edge Function— y no está entregada hasta que las
+tres van a la vez.**
 
 ### Y después: los avisos en los móviles
 
