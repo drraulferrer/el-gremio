@@ -246,11 +246,13 @@ Están en `migracion-027-mascotas.sql`, **escrita y sin ejecutar**:
 
 ## 7. Preguntas abiertas
 
-1. **¿El XP de la mascota cuenta para la meta cooperativa del gremio?**
-   Argumento a favor: el trabajo lo hace la familia y es real. En contra:
-   infla la meta con esfuerzo que no es de nadie en concreto. **Sin
-   decidir**; hoy la migración no lo toca, así que contaría, y eso es una
-   decisión por omisión que conviene tomar a conciencia.
+1. ~~¿El XP de la mascota cuenta para la meta cooperativa?~~ **DECIDIDO
+   (18-ago): SÍ CUENTA.** Y ya funcionaba así, porque `goalProgress()`
+   suma todas las misiones aprobadas sin mirar el perfil: la diferencia es
+   que ahora es una decisión y no una omisión. El razonamiento: el trabajo
+   es de la casa y la meta es de todos, así que cuidar al animal no puede
+   ser un juego paralelo que no cuente para nada. Está contado en la
+   narrativa.
 2. **¿Racha para la mascota?** Para hábitos tiene sentido. Para trucos
    contradice §1.2 y no debería existir.
 3. **¿Más de una mascota?** El esquema lo admite sin cambios. La interfaz

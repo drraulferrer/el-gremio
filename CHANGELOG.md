@@ -18,6 +18,18 @@ verdad duele en esta app: que el esquema y el cliente dejen de encajar.
 
 ---
 
+## 2.3.1 · 18 de agosto de 2026
+
+La narrativa cuenta ya los perfiles de mascota, y cuenta lo importante:
+**por qué los trucos no son diarios** cuando toda la app premia la
+constancia diaria. Es lo más contraintuitivo del sistema y ahora está
+explicado con su evidencia, en vez de parecer un descuido.
+
+Y queda decidido, en vez de ocurrir por omisión: **el XP de la mascota
+suma a la meta compartida del gremio**. El trabajo es de la casa y la meta
+es de todos, así que cuidar al animal no es un juego paralelo. Lo que no
+cambia: ese XP es de la mascota, no de quien la cuida.
+
 ## 2.3.0 · 18 de agosto de 2026
 
 **Perfiles de mascota: perro o gato, con misiones y premios propios.**

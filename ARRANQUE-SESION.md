@@ -2,9 +2,11 @@
 
 Documento de continuidad. Si abres una sesión nueva sobre este proyecto,
 lee esto primero: dice dónde está todo, qué está hecho, qué falta y qué
-trampas tiene. Última actualización: **18 de agosto de 2026**, el día en
-que el sitio **dejó de servirse desde GitHub Pages y pasó a Vercel** (§7n)
-y en que se ejecutaron las dos migraciones que faltaban.
+trampas tiene. Última actualización: **18 de agosto de 2026**, al cierre
+de una sesión larga en la que el sitio **dejó de servirse desde GitHub
+Pages y pasó a Vercel** (§7n), se ejecutaron las tres migraciones que
+faltaban y se construyeron dos funcionalidades enteras: el recordatorio de
+avisos (§7o) y los **perfiles de mascota** (§7p).
 
 Si solo vas a leer un párrafo: la app está **en producción y estable**, en
 elgremioapp.com, servida por **Vercel**, con las cabeceras de seguridad
@@ -15,6 +17,10 @@ de mando con datos reales. Antes de añadir nada, lee §8.
 
 **Y lo primero que hay que saber, porque cambió hoy:** publicar ya no es
 `npm run deploy`. Ahora es empujar y después `npm run vercel` (§7n).
+
+**Si abres sesión nueva, empieza por §8.** No hay nada a medias: no queda
+ninguna migración pendiente, los 633 tests están en verde y producción
+sirve la 2.3.1. Lo que queda es de uso y de producto, no código bloqueado.
 
 ---
 
@@ -1973,6 +1979,59 @@ y `perfilesConAvisos()` en `lib/push.js` para el recuento —que devuelve
 
 ---
 
+## 7p. Perfiles de mascota (18 de agosto) · EN PRODUCCIÓN
+
+Perro o gato con perfil propio, misiones y premios. **La justificación con
+la literatura está en `docs/MASCOTAS.md`**; aquí solo lo que hay que saber
+para no deshacerlo sin querer.
+
+### Lo que se construyó
+
+Alta en Miembros con rol «Mascota» y especie; al guardar **se le crean sus
+nueve misiones y cinco premios**, porque un perfil vacío no lo rellena
+nadie. Pestaña propia en el panel para apuntar sus misiones, que quedan
+aprobadas en el acto —no hay a quién validárselas— y guardan quién las
+apuntó. Migración 027 ejecutada, versión 2.3.0, y la narrativa contada en
+2.3.1.
+
+### Las tres decisiones que no hay que deshacer
+
+1. **Los trucos NO son diarios.** Es lo más contraintuitivo de toda la app
+   y lo único que contradice su mecánica central. Demant et al. (2011):
+   los perros entrenados 1–2 veces por semana adquieren MEJOR que los
+   diarios. Si alguien "simplifica" poniéndolo todo diario, la app estaría
+   empujando a la familia hacia lo menos eficaz mientras le da palmadas.
+   **Hay un test que falla si pasa.**
+2. **Ninguna misión puede ser correctiva** (AVSAB 2021). Hay otro test que
+   revisa el catálogo entero buscando lenguaje de castigo.
+3. **El aviso vive solo en el panel y la mascota no es un jugador**: fuera
+   del selector de perfiles, fuera de los avisos, y **no hereda las
+   misiones genéricas de la casa**.
+
+### Decidido el 18-ago: el XP de la mascota SUMA a la meta
+
+Ya funcionaba así —`goalProgress()` suma todas las misiones aprobadas sin
+mirar el perfil—, pero era una omisión y ahora es una decisión: el trabajo
+es de la casa y la meta es de todos, así que cuidar al animal no puede ser
+un juego paralelo que no cuente para nada. Está contado en la narrativa.
+
+Lo que NO cambia: **el XP va a la mascota, no a quien la cuida.** Quien
+cepilla al perro no se lleva puntos propios.
+
+### Dos cosas que salieron al construirlo, y que valen para todo el proyecto
+
+- **`esParaPerfil` tenía un agujero.** Una misión sin destinatario valía
+  para cualquier perfil, lo cual era correcto mientras todos eran
+  personas. Al añadir un rol nuevo, **el perro heredaba «Beber agua»**. La
+  lección general: cada vez que se añada un rol, hay que revisar los sitios
+  donde el código dice «para todos» dando por hecho que todos son iguales.
+- **No cabía el perro.** `MAX_PERFILES` es 8 y el gremio ya tenía 8
+  perfiles activos: con un cupo compartido la funcionalidad habría sido
+  inusable desde el minuto cero. Las mascotas cuentan en `MAX_MASCOTAS`
+  aparte.
+
+---
+
 ## 8. Pendientes
 
 **Lo que de verdad queda abierto, por orden.** Nada de esto es código
@@ -1987,10 +2046,14 @@ teclado.
    pero el gesto sigue teniendo que hacerlo una persona en cada móvil.
 2. **Un par de semanas de uso antes de añadir nada**, y entonces mirar el
    cuadro de mando y el diagnóstico de economía con datos reales.
-3. **Perfiles de mascota**: spec escrita y migración lista, sin construir.
-   Ver más abajo y `docs/MASCOTAS.md`.
-4. Lo demás —poderes por cablear, huecos de producto, backlog— está más
+3. Lo demás —poderes por cablear, huecos de producto, backlog— está más
    abajo y no corre prisa.
+
+**Y una cosa que solo puede decir el uso:** las mascotas están construidas
+pero **nadie las ha usado todavía**. Antes de tocarlas, dar de alta la
+vuestra y vivir con ella una semana. Sobre todo para ver si el reparto de
+trucos en días alternos se entiende sin explicarlo, que es donde esto se
+juega su credibilidad.
 
 **Cerrado el 18-ago y aquí solo como registro:** las migraciones 025 y
 026, la Edge Function `notificar`, la mudanza a Vercel (§7n), `www`, y la
@@ -2079,67 +2142,6 @@ el esquema puede adelantarse a la Edge Function igual de silenciosamente.
 La regla completa es que **una funcionalidad de este proyecto tiene TRES
 piezas —esquema, bundle y Edge Function— y no está entregada hasta que las
 tres van a la vez.**
-
-### Perfiles de mascota · ESPECIFICADO, sin construir (18-ago)
-
-Perro o gato, con misiones y premios propios. **La spec completa, con la
-literatura que justifica cada decisión, está en `docs/MASCOTAS.md`**, y la
-migración `migracion-027-mascotas.sql` está escrita y sin ejecutar.
-
-Lo que hay que leer antes de tocarlo, porque **la evidencia contradice el
-diseño de esta app en tres puntos**:
-
-1. **Solo refuerzo positivo, sin excepciones** (AVSAB 2021). Ninguna misión
-   puede ser «corregir» ni «regañar», ni siquiera como opción editable. Si
-   la app sugiere una sola misión aversiva, está enseñando a la familia a
-   hacerle daño al animal con la coartada de un sistema de puntos.
-2. **Entrenar a diario es PEOR que espaciarlo, y eso choca con las
-   rachas** (Demant et al. 2011: 1–2 sesiones semanales adquieren mejor
-   que las diarias; una al día mejor que tres seguidas). Por eso los
-   TRUCOS se crean con patrón por días de la semana y no como diarios, y
-   los HÁBITOS sí son diarios porque ahí la constancia no es una técnica
-   de aprendizaje sino una necesidad del animal. **Esa distinción sostiene
-   todo el catálogo.**
-3. **Para un gato el premio por defecto no es comida** (Vitale Shreve et
-   al. 2017: el 50 % prefiere interacción social humana; el 37 %, comida).
-   Los premios felinos son juego y atención.
-
-Los hábitos de gato salen de las cinco columnas AAFP/ISFM, no de una lista
-inventada.
-
-**Y lo que la narrativa NO puede prometer:** el beneficio para los niños es
-real pero moderado y correlacional, y depende más de la calidad del vínculo
-y de la implicación en el cuidado que de tener animal. Se puede decir eso;
-no se puede decir que tener perro haga a un niño más empático.
-
-**Decisión tomada:** el XP va **solo al perfil de la mascota**. Quien
-cepilla al perro no se lleva nada. Se compra que la economía de las
-personas no se toque; se paga que el trabajo real no puntúe a quien lo
-hace. La alternativa queda apuntada en la spec por si algún día se revisa.
-
-**CONSTRUIDO Y EN PRODUCCIÓN (2.3.0).** La 027 está ejecutada y la
-interfaz también: alta en Miembros con rol «Mascota» y especie, pestaña
-propia en el panel para apuntar sus misiones, y sus premios aparte. Al dar
-de alta se le crean sus nueve misiones y cinco premios: sin eso habría que
-escribirlos a mano y nadie lo haría.
-
-**Dos cosas que salieron al construirlo y no estaban en la spec:**
-
-- **Un agujero real en `esParaPerfil`**: una misión sin destinatario valía
-  para cualquiera, lo cual estaba bien mientras todos los perfiles eran
-  personas. **El perro habría heredado «Beber agua» y «Cocina».** Ahora al
-  animal solo le llega lo explícitamente suyo, nunca por omisión.
-- **Las mascotas cuentan en un cupo aparte** (`MAX_MASCOTAS`). El gremio
-  de casa ya tenía los ocho sitios ocupados, así que un tope compartido
-  significaba, literalmente, que no cabía el perro.
-
-**Lo que falta**: la narrativa. Y ahí lo importante es contar **por qué
-los trucos no son diarios**, que es lo más contraintuitivo de toda la app.
-
-**Y sigue abierta la pregunta del §7 de la spec**: si el XP de la mascota
-cuenta para la meta cooperativa. Hoy cuenta, por omisión. Y hay tres preguntas abiertas al final de la spec,
-una de ellas —si el XP de la mascota cuenta para la meta cooperativa— **es
-hoy una decisión por omisión**: contaría, y conviene tomarla a conciencia.
 
 ### Y después: los avisos en los móviles
 
