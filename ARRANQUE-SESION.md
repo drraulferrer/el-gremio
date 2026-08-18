@@ -1611,13 +1611,17 @@ precio— sigue comprobándose.
 
 ---
 
-## 7n. La mudanza a Vercel (18 de agosto) · HECHA, PROPAGANDO
+## 7n. La mudanza a Vercel (18 de agosto) · HECHA Y VERIFICADA
 
-**Estado: hecho de punta a punta. El DNS ya apunta a Vercel y solo falta
-que expiren las cachés** (el TTL viejo era de 14400 s, o sea 4 horas).
-Mientras tanto NO hay corte: quien tenga el DNS cacheado sigue yendo a
-GitHub Pages, que sirve la app exactamente igual. Lo que sigue explica por
-qué se hizo y con qué se tropezó.
+**Estado: terminada y comprobada en el dominio real el 18-ago a las
+10:46.** `elgremioapp.com` responde con `server: Vercel`, las cinco
+cabeceras puestas, `npm run health` en verde por partida doble (web
+190 ms · supabase 394 ms), la reescritura SPA devolviendo 200 donde antes
+salía 404, las páginas estáticas intactas y **la app funcionando con
+sesión abierta y datos cargando**, que es la prueba que de verdad cuenta.
+`www` responde 301 al ápice. La propagación tardó unos 35 minutos, no las
+4 horas del TTL viejo. Lo que sigue explica por qué se hizo y con qué se
+tropezó.
 
 ### Por qué Vercel y no seguir en GitHub Pages
 
@@ -1733,13 +1737,28 @@ A  @  64.29.17.1     TTL 300
 El TTL se bajó de 14400 a 300 a propósito: si hay que volver atrás, con
 cuatro horas de caché el rollback sería insoportable.
 
-### Lo que queda
+### La decisión que la mudanza deja abierta: el despliegue continuo
 
-- **Esperar la propagación** (hasta 4 h por el TTL viejo). Vercel emite el
-  certificado cuando SU resolutor vea los A nuevos, y de momento también
-  arrastra la caché. Comprobar con:
-  `curl -sI https://elgremioapp.com/ | grep -i strict-transport`
-  Si aparece la cabecera, el corte está completo.
+**Con la integración de Git, CADA push a `main` despliega producción.** El
+18-ago producción acabó sirviendo el commit `80d0cc3`, que es un cambio de
+**solo documentación**. Eso es literalmente lo que §7l rechaza: «aquí se
+empuja documentación varias veces al día, y publicar en cada empujón
+convierte el despliegue en ruido, que es exactamente cómo se acaba
+publicando algo a medias un martes por la noche».
+
+No es grave por sí solo —cada despliegue es atómico y el rollback es
+instantáneo—, pero **choca de frente con una decisión que estaba tomada y
+razonada**, y hay que resolverlo en un sentido o en otro:
+
+- **Apagarlo** con `git.deploymentEnabled` en `vercel.json`, y desplegar a
+  mano desde el panel o por CLI. Recupera la filosofía de siempre.
+- **Dejarlo** y aceptar que el despliegue continuo es ahora el modelo,
+  actualizando §7l para que deje de decir lo contrario.
+
+Lo que NO vale es dejarlo así con §7l diciendo otra cosa: un documento que
+describe un modelo distinto del real es peor que no tenerlo.
+
+### Lo que queda
 - **`www` sigue apuntando a `drraulferrer.github.io`** y no se tocó a
   propósito: GitHub Pages lo redirige al ápice, que ya es Vercel, así que
   funciona durante toda la transición. Moverlo a Vercel cuando el ápice
