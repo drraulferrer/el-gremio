@@ -38,7 +38,7 @@ modo peque, la capa de producción y la gestión de miembros.
 | Código local | `~/el-gremio` |
 | Supabase | proyecto `chfbrawsoulfiywiqhpe`, Postgres 17.6, región EU |
 | Versión publicada | ver `npm run health`; cada despliegue deja etiqueta `deploy-AAAA-MM-DD-HHMM` |
-| Tests | 416, en 24 ficheros, todos en verde |
+| Tests | 599, en 35 ficheros, todos en verde |
 
 Comprobar que sigue vivo:
 
@@ -1502,6 +1502,109 @@ dominio), en ⚙️ → Dispositivos con su botón de copiar enlace, y en
 
 ---
 
+## 7m. Encender misiones en un toque y premios de arranque (18 de agosto)
+
+Dos peticiones de la familia tras los primeros días de uso real. Las dos
+verificadas **en el navegador** con `npm run dev:demo`, no solo
+compilando. Versión **2.1.0**; falta desplegar.
+
+### Encender una misión dejó de ser un formulario
+
+El camino viejo para reactivar una misión pausada de la peque era: lápiz →
+bajar al par Activa/Pausada del final del formulario → pulsarlo →
+Guardar. Cuatro pasos y un modal para cambiar un booleano, en la pantalla
+donde cada mañana se decide qué le toca.
+
+- **Panel → Peque**: cada misión lleva su ▶/⏸ junto al lápiz —el mismo
+  botón que ya tenían los premios, así que no es un idioma nuevo—. Las
+  activas se ordenan arriba y la cabecera de cada peque dice cuántas
+  están en pausa.
+- **Panel → Misiones**: las pausadas se despliegan en un `<details>` al
+  final, con destino y puntos, y se reencienden con «▶ Activar». **Siguen
+  fuera de las listas por persona a propósito**: esa decisión (§7 de esta
+  misma sección, cuando se quitaron) era buena —eran treinta tarjetas al
+  50 % de opacidad de cosas que no están pasando— y lo que estaba mal no
+  era esconderlas, era que el único camino de vuelta fuera la biblioteca,
+  que es un catálogo para crear misiones nuevas, no para revivir las que
+  ya existen.
+
+Verificado en el navegador: pausar desde Peque escribe `active=false`, la
+misión baja al final de la lista, el chip dice «1 en pausa», el
+`aria-label` pasa de «Pausar X» a «Activar X» y el `aria-pressed` de
+`true` a `false`; volver a tocarlo la revive y el chip desaparece. Lo
+mismo desde Misiones, donde además se comprobó que pausar allí la manda al
+bloque plegado y «▶ Activar» la devuelve a la lista de su persona (la
+cuenta de Bruno pasó de 2 a 3). Todos los objetivos táctiles nuevos miden
+44 px y a 375 px no hay scroll horizontal.
+
+Dos ajustes de maqueta que solo se vieron mirando la pantalla: el botón
+«▶ Activar» llevaba `crece` y se comía la fila, con «Estudiar violín»
+partido en dos líneas; y esas tarjetas no llevan el avatar grande de las
+listas de arriba, porque avatar + botón con texto + lápiz no caben en
+375 px. El emoji va en línea con el título.
+
+### Premios de arranque: el hueco de los primeros días
+
+El premio más barato del catálogo cuesta **325 monedas ≈ 8-9 días** de la
+junior. Los primeros días son los que deciden si esto se sigue usando, y
+en esos días la tienda no le daba nada: una estantería de cosas que no
+puede tocar. La SPEC ya nombraba el decaimiento de la novedad como el
+riesgo real del producto; el arranque no tenía contramedida.
+
+**La respuesta NO fue bajar los precios del catálogo.** Eso convierte la
+tienda en una máquina expendedora, que es justo lo que se decidió evitar
+al espaciar las cadencias a 15/30/45 días. Se añadió una banda aparte,
+`PREMIOS_DE_ARRANQUE` en `src/lib/premios.js`: seis premios de 80 a 240
+monedas, o sea de dos a seis días, encadenando con las 325 del catálogo
+sin dejar salto. Son **decisiones, no cosas**, la misma regla que gobierna
+el nivel 1.
+
+La banda **(72, 324)** no es estética y conviene no moverla:
+
+- por debajo de **72** (`TECHO_PEQUE`) caerían en la tienda de la peque,
+  que filtra por precio;
+- a partir de **324** (suelo del nivel 1) competirían con los premios de
+  verdad en vez de dar el primer empujón.
+
+Y son andamio de verdad, no un nivel nuevo, así que:
+
+- **No entran en el diagnóstico de la economía** (`fueraDelModelo`). Esto
+  destapó un fallo que ya existía: **los premios de la peque sí entraban**,
+  y en una casa con peque el nivel 1 salía con un precio medio de ~190
+  monedas mientras el panel avisaba de que «se consigue demasiado rápido»
+  un premio que cuesta 325. Arreglado de paso.
+- **No suben con la temporada.** `premiosQueSuben` recibía el techo de la
+  peque (72) y ahora recibe el suelo del modelo (324): el arranque estaba
+  justo en el hueco y se encarecía hasta dejar de llegar en tres días, que
+  es lo único que lo justifica. **Ojo, el parámetro cambió de sentido**:
+  era un techo excluyente y ahora es un suelo incluyente.
+- **Se retiran** cuando el hábito aguante solo. La pantalla lo dice, y
+  pausarlos es un toque.
+- `Estado` los cuenta en su propia tarjeta. Sin eso, una tienda de diez
+  premios de arranque salía como «Sin premios activos» en los tres
+  niveles y parecía vacía.
+
+Se añaden desde **Panel → Premios**. El aviso solo sale si de verdad hace
+falta y lleva la cifra delante —cuántos días cuesta lo más barato que
+hay—, y **una tienda vacía cuenta como el caso peor, no como el caso sin
+problema**: si el aviso pidiera un precio para salir, el gremio que más lo
+necesita sería justo el que no lo vería. La misma pantalla ofrece los
+premios de la peque cuando faltan, que cierra el pendiente de §8.
+
+**Uno para mirar con ojo de familia**: «🎟️ Comodín: hoy te libras de una
+misión» (240, el más caro de la banda). Motiva mucho y es una decisión,
+pero es el único que juega en contra del hábito. Si no encaja, se pausa
+desde la lista y ya está.
+
+20 tests nuevos en `tests/arranque.test.js`, que fijan la banda, la rampa
+sin salto, que ninguno tarda más de una semana y que ni el diagnóstico ni
+la temporada los tocan. Dos tests viejos se actualizaron: usaban premios
+de 40 monedas como si fueran de nivel 1, que con el suelo del modelo ya no
+lo son. Lo que defendían —solo cuentan los activos, el andamio no sube de
+precio— sigue comprobándose.
+
+---
+
 ## 8. Pendientes
 
 ### El correo ya no está pendiente
@@ -1776,8 +1879,9 @@ Resuelto en el setup (§7g): si hay peque, se le crean premios a su alcance
 y la tienda de los demás filtra por encima de ese techo.
 
 **En el gremio que ya está en producción esto NO se arregla solo**, porque
-su tienda se creó antes. Hay que crearle tres o cuatro premios de 15 a 55
-monedas desde Panel → Premios.
+su tienda se creó antes. Ya no hay que teclearlos a mano: Panel → Premios
+→ «✨ Premios de arranque» los ofrece con una casilla cada uno y los crea
+de una vez (§7m).
 
 ### Escrito pero no activado
 

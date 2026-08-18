@@ -128,8 +128,18 @@ export function diagnosticoEconomia(data, s = SUPUESTOS) {
   const xpFamiliaDia = porPersona.reduce((t, x) => t + x.xpDia, 0)
   const activas = (data.rewards || []).filter((r) => r.active)
 
+  // El andamio se cuenta aparte y NO entra en las medias por nivel: los
+  // premios de la peque (15-55) y los de arranque (80-240) están por
+  // debajo del suelo del modelo, y promediarlos con los de verdad daba un
+  // nivel 1 de 190 monedas y un aviso de «se consigue demasiado rápido»
+  // sobre premios que cuestan 325. No se esconden —salen en su propia
+  // cifra—, pero no se miden contra una cadencia que no es la suya.
+  const suelo = bandaDePrecio(1, s)[0]
+  const delModelo = activas.filter((r) => r.cost >= suelo)
+  const fueraDelModelo = activas.length - delModelo.length
+
   const niveles = [1, 2, 3].map((nivel) => {
-    const precios = activas.filter((r) => (r.tier || 2) === nivel).map((r) => r.cost)
+    const precios = delModelo.filter((r) => (r.tier || 2) === nivel).map((r) => r.cost)
     const medio = precios.length ? precios.reduce((a, b) => a + b, 0) / precios.length : null
     const dias = porPersona
       .filter((x) => x.monedasDia > 0)
@@ -149,7 +159,7 @@ export function diagnosticoEconomia(data, s = SUPUESTOS) {
     ? { objetivoXp: data.goal.target_xp, dias: xpFamiliaDia ? data.goal.target_xp / xpFamiliaDia : Infinity }
     : null
 
-  return { porPersona, xpFamiliaDia, niveles, meta, cadenciaMeta: s.cadenciaMeta }
+  return { porPersona, xpFamiliaDia, niveles, meta, fueraDelModelo, cadenciaMeta: s.cadenciaMeta }
 }
 
 /**

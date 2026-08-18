@@ -73,14 +73,21 @@ export function precioSiguienteTemporada(actual) {
 /**
  * Qué premios entran en la subida de precios de la temporada nueva.
  *
- * Los que están dentro del alcance de la peque quedan fuera, y no es una
- * excepción por ser pequeña: es que ella no va por temporadas ni por
- * niveles, va por distancia. Gana lo mismo cada día pase lo que pase, así
- * que subirle el precio no le añade dificultad, le quita el premio.
- * Un premio que no llega nunca no motiva, decora.
+ * Solo los que están DENTRO del modelo, o sea a partir del suelo del
+ * nivel 1. Lo que queda por debajo es andamio —los premios de la peque y
+ * los de arranque de la junior— y no es una excepción por ser barato: es
+ * que ni ella ni el arranque van por temporadas, van por distancia. Se
+ * gana lo mismo cada día pase lo que pase, así que subirles el precio no
+ * les añade dificultad, les quita el premio. Un premio que no llega nunca
+ * no motiva, decora.
+ *
+ * El parámetro se llamaba `techoPeque` y era el techo de la peque (72).
+ * Pasó a ser el suelo del modelo (324) cuando entraron los premios de
+ * arranque, que estaban justo en el hueco entre los dos y se encarecían
+ * hasta dejar de ser alcanzables.
  */
-export function premiosQueSuben(rewards = [], techoPeque = 0) {
-  return rewards.filter((r) => r.active && r.cost > techoPeque)
+export function premiosQueSuben(rewards = [], suelo = 0) {
+  return rewards.filter((r) => r.active && r.cost >= suelo)
 }
 
 /**

@@ -159,6 +159,81 @@ export function premiosParaMayores(rewards = []) {
   return rewards.filter((r) => r.active && r.cost > TECHO_PEQUE)
 }
 
+// ------------------------------------------------------------------
+// El andamio de los primeros días.
+//
+// El problema que resuelve, que es de producto y no de código: el premio
+// más barato del catálogo cuesta 325 monedas, o sea ocho o nueve días de
+// la junior. Los primeros días de una app así son justo los que deciden
+// si se sigue usando, y en esos días la tienda no le da nada: ve una
+// estantería entera de cosas que no puede tocar. La contramedida a la
+// caída de novedad estaba escrita en la SPEC, pero el arranque no la
+// tenía.
+//
+// La respuesta NO es bajar los precios del catálogo —eso convierte la
+// tienda en una máquina expendedora, que es exactamente lo que se decidió
+// evitar al espaciar las cadencias a 15/30/45 días—. Es poner unos pocos
+// premios pequeños que se cobran en dos o tres días y sirven para arrancar
+// la conducta, con la misma regla que gobierna el nivel 1: son DECISIONES,
+// no cosas. Elegir la música, elegir la cena, quedarse un rato más.
+//
+// Y son andamio de verdad, no un nivel nuevo:
+//
+//  · Se quedan FUERA del modelo de economía (`fueraDelModelo`), así que no
+//    ensucian el diagnóstico del panel ni el precio medio del nivel 1.
+//  · No suben de precio al cambiar de temporada. Encarecerlos no les
+//    añade dificultad, les quita el sentido: a la tercera temporada uno de
+//    130 costaría 220 y ya no llegaría en tres días.
+//  · Se retiran cuando el hábito se sostiene solo, que es lo que dice la
+//    evidencia sobre las recompensas (Brown et al., 2018). El panel avisa
+//    de ello al añadirlos.
+//
+// La banda es (TECHO_PEQUE, suelo del nivel 1) = (72, 324). No es una
+// elección estética: por debajo de 72 caerían en la tienda de la peque,
+// que filtra por precio, y por encima de 324 competirían con los premios
+// de verdad en vez de dar el primer empujón. Los precios de aquí van de
+// 80 a 240, o sea de dos a seis días de la junior, encadenando con las
+// 325 del primer premio del catálogo sin dejar hueco.
+// ------------------------------------------------------------------
+
+export const PREMIOS_DE_ARRANQUE = [
+  { title: 'Elegir la música de la cena', emoji: '🎵', cost: 80, tier: 1 },
+  { title: 'Diez minutos de charla a solas', emoji: '💬', cost: 105, tier: 1 },
+  { title: 'Quince minutos más antes de dormir', emoji: '🌙', cost: 130, tier: 1 },
+  { title: 'Elegir qué se cena hoy', emoji: '🍽️', cost: 165, tier: 1 },
+  { title: 'Elegir el plan del sábado por la tarde', emoji: '🕓', cost: 205, tier: 1 },
+  { title: 'Comodín: hoy te libras de una misión', emoji: '🎟️', cost: 240, tier: 1 }
+]
+
+/**
+ * Si un premio queda por debajo del suelo del modelo.
+ *
+ * Los dos conjuntos que caen aquí —los de la peque y los de arranque— son
+ * andamio y no economía, y a los dos hay que tratarlos igual: no entran en
+ * el diagnóstico de cadencias ni en la subida de temporada. Antes solo se
+ * excluían los de la peque, y por eso en una casa con peque el nivel 1
+ * salía con un precio medio de 190 monedas y el panel avisaba de que «se
+ * consigue demasiado rápido» un premio que costaba 325.
+ *
+ * La regla va por precio y no por una columna porque `rewards` no tiene
+ * dueño ni marca; el día que la tenga, esto se sustituye por lo evidente.
+ */
+export function fueraDelModelo(premio) {
+  return (premio?.cost ?? 0) < NIVELES[1].coste[0]
+}
+
+/**
+ * Los premios de arranque que esta tienda todavía no tiene.
+ *
+ * Compara por título e ignora si están activos: uno pausado ya está
+ * puesto, y volver a añadirlo dejaría dos filas iguales, una encendida y
+ * otra apagada.
+ */
+export function premiosDeArranqueQueFaltan(rewards = []) {
+  const puestos = new Set(rewards.map((r) => r.title))
+  return PREMIOS_DE_ARRANQUE.filter((p) => !puestos.has(p.title))
+}
+
 export function nivelDePremio(coste) {
   if (coste <= NIVELES[1].coste[1]) return 1
   if (coste <= NIVELES[2].coste[1]) return 2

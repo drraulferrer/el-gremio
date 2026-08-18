@@ -144,6 +144,24 @@ export default function Estado({ family, data }) {
         )
       })}
 
+      {/* Sin esta línea, una tienda de diez premios de arranque salía como
+          «Sin premios activos» en los tres niveles y parecía vacía. No
+          entran en las medias —no tienen cadencia que cumplir— pero sí se
+          cuentan: esconderlos era peor que promediarlos mal. */}
+      {eco.fueraDelModelo > 0 && (
+        <div className="carta">
+          <div className="fila-separada">
+            <strong>✨ Andamio</strong>
+            <span className="chip">Fuera del modelo</span>
+          </div>
+          <div className="suave" style={{ marginTop: 4 }}>
+            {eco.fueraDelModelo} {eco.fueraDelModelo === 1 ? 'premio cuesta' : 'premios cuestan'} menos que el suelo
+            del nivel 1. Son los de la peque y los de arranque: se compran por distancia, no por cadencia, así
+            que no se miden aquí ni suben de precio al cambiar de temporada.
+          </div>
+        </div>
+      )}
+
       {eco.meta && (
         <div className="carta">
           <div className="fila-separada">

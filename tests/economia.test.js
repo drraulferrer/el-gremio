@@ -138,9 +138,11 @@ describe('diagnóstico en vivo', () => {
       { id: 'c5', profile_id: 'p1', active: true, xp: 50, coins: 50, frequency: 'unico' }
     ],
     rewards: [
-      { id: 'r1', tier: 1, cost: 40, active: true },
+      { id: 'r1', tier: 1, cost: 400, active: true },
       { id: 'r2', tier: 3, cost: 600, active: true },
-      { id: 'r3', tier: 1, cost: 999, active: false }
+      { id: 'r3', tier: 1, cost: 999, active: false },
+      // Andamio: por debajo del suelo del modelo, no es un premio de nivel 1.
+      { id: 'r4', tier: 1, cost: 40, active: true }
     ],
     goal: { target_xp: 1600 }
   }
@@ -160,7 +162,16 @@ describe('diagnóstico en vivo', () => {
   it('solo mira los premios activos', () => {
     const d = diagnosticoEconomia(data)
     expect(d.niveles.find((n) => n.nivel === 1).premios).toBe(1)
-    expect(d.niveles.find((n) => n.nivel === 1).precioMedio).toBe(40)
+    expect(d.niveles.find((n) => n.nivel === 1).precioMedio).toBe(400)
+  })
+
+  it('y solo los que están dentro del modelo', () => {
+    // El de 40 monedas es andamio —de la peque o de arranque— y no se
+    // promedia con los de verdad: mezclarlos daba un nivel 1 de 220
+    // monedas y un aviso de «se consigue demasiado rápido» sobre un
+    // premio que cuesta 400.
+    const d = diagnosticoEconomia(data)
+    expect(d.fueraDelModelo).toBe(1)
   })
 
   it('un nivel sin premios no rompe nada', () => {

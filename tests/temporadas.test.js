@@ -124,17 +124,26 @@ describe('la subida de precios de la temporada nueva', () => {
     expect(Math.abs(dosPasos - precioEnTemporada(1000, 3))).toBeLessThanOrEqual(5)
   })
 
-  it('los premios al alcance de la peque no suben', () => {
+  it('el andamio no sube: ni el de la peque ni el de arranque', () => {
+    // El parámetro dejó de ser el techo de la peque (72, excluyente) y
+    // pasó a ser el SUELO del modelo (324, incluyente) cuando entraron los
+    // premios de arranque: estaban en el hueco entre los dos y subían de
+    // precio hasta dejar de llegar en tres días, que es lo único que los
+    // justifica. Lo que defiende sigue siendo lo mismo: encarecer un
+    // premio que se compra por distancia y no por temporada no añade
+    // dificultad, quita el premio.
     const tienda = [
       { title: 'cuento', cost: 28, active: true },
       { title: 'peli', cost: 72, active: true },
-      { title: 'cocinar', cost: 100, active: true },
+      { title: 'arranque', cost: 130, active: true },
+      { title: 'en la banda', cost: 324, active: true },
+      { title: 'cocinar', cost: 690, active: true },
       { title: 'retirado', cost: 500, active: false }
     ]
-    expect(premiosQueSuben(tienda, 72).map((r) => r.title)).toEqual(['cocinar'])
+    expect(premiosQueSuben(tienda, 324).map((r) => r.title)).toEqual(['en la banda', 'cocinar'])
   })
 
-  it('sin techo, suben todos los activos', () => {
+  it('sin suelo, suben todos los activos', () => {
     const tienda = [{ cost: 10, active: true }, { cost: 20, active: false }]
     expect(premiosQueSuben(tienda, 0)).toHaveLength(1)
   })

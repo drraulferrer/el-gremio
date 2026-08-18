@@ -18,6 +18,49 @@ verdad duele en esta app: que el esquema y el cliente dejen de encajar.
 
 ---
 
+## 2.1.0 · 18 de agosto de 2026
+
+Dos cosas que pidió la familia después de los primeros días de uso real.
+
+**Encender una misión es un toque.** Antes había que abrir el lápiz,
+bajar al par Activa/Pausada del final del formulario, pulsarlo y guardar:
+cuatro pasos y un modal para cambiar un booleano. Ahora:
+
+- En **Panel → Peque**, cada misión lleva su botón ▶/⏸ al lado del lápiz,
+  el mismo que ya tenían los premios. Las activas suben arriba y la
+  cabecera dice cuántas están en pausa.
+- En **Panel → Misiones**, las pausadas dejan de estar solo detrás de la
+  biblioteca: se despliegan al final de la lista, con su destino y sus
+  puntos, y se reencienden con un «▶ Activar». Siguen fuera de las listas
+  de cada persona a propósito —eran treinta tarjetas al 50 % de opacidad
+  de cosas que no están pasando—, pero ya no hay que ir a buscarlas a un
+  catálogo para volver a encender algo que ya existe.
+
+**Premios de arranque, por debajo de 250 monedas.** El premio más barato
+del catálogo cuesta 325, o sea ocho o nueve días de la junior, así que los
+primeros días abría la tienda y no podía tocar nada. Seis premios nuevos
+de 80 a 240 monedas —de dos a seis días— cubren ese hueco y encadenan con
+las 325 del catálogo sin dejar salto.
+
+No son un nivel nuevo, son andamio, y el código los trata como tal:
+
+- Son **decisiones, no cosas**, igual que el nivel 1: elegir la música,
+  elegir la cena, quedarse un rato más.
+- **No entran en el diagnóstico de la economía.** De paso se arregló que
+  los premios de la peque sí entraban: en una casa con peque, el nivel 1
+  salía con un precio medio de 190 monedas y el panel avisaba de que «se
+  consigue demasiado rápido» un premio de 325.
+- **No suben de precio al cambiar de temporada.** Encarecerlos no les
+  añade dificultad, les quita el sentido.
+- **Están pensados para retirarse** cuando el hábito se sostenga solo, y
+  la pantalla que los añade lo dice.
+
+Se añaden desde **Panel → Premios**, con un aviso que solo sale si de
+verdad hace falta y que lleva la cifra delante: cuántos días de la junior
+cuesta lo más barato que hay. Esa misma pantalla ofrece los premios de la
+peque cuando faltan, que era un pendiente conocido de los gremios creados
+antes del setup de agosto.
+
 ## 2.0.0 · 17 de agosto de 2026
 
 Todo lo que salió entre el 15 y el 17 de agosto. Fueron **55 despliegues y

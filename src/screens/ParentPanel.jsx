@@ -818,20 +818,30 @@ function GestionMisiones({ family, data, refresh }) {
         <details className="pausadas-bloque">
           <summary>
             {pausadas.length === 1 ? '1 misión en pausa' : `${pausadas.length} misiones en pausa`}
-            <span className="suave"> · tócalas para volver a encenderlas</span>
+            <span className="suave">
+              {pausadas.length === 1 ? ' · tócala para volver a encenderla' : ' · tócalas para volver a encenderlas'}
+            </span>
           </summary>
           {pausadas.map((ch) => (
             <div className="carta" key={ch.id} style={{ opacity: 0.72 }}>
               <div className="fila">
-                <div className="avatar">{ch.emoji}</div>
+                {/* Sin el avatar grande de las listas de arriba: en 375 px,
+                    avatar + botón con texto + lápiz dejaban al título
+                    cuarenta píxeles y «Estudiar violín» salía partido en
+                    dos líneas. El emoji va en línea con el título, que es
+                    donde se lee igual de bien y ocupa la mitad. */}
                 <div className="crece">
-                  <strong>{flex(ch.title, generoDe(data.profiles.find((p) => p.id === ch.profile_id)))}</strong>
+                  <strong>{ch.emoji} {flex(ch.title, generoDe(data.profiles.find((p) => p.id === ch.profile_id)))}</strong>
                   <div className="suave">
                     {destinoTexto(ch)} · +{ch.xp} XP · {ch.coins} 🪙
                   </div>
                 </div>
+                {/* Sin `crece`: el que tiene que ensanchar es el título.
+                    Con la clase puesta, el botón se comía la fila y
+                    «Estudiar violín» salía partido en dos líneas. */}
                 <button
-                  className="btn btn-mini crece"
+                  className="btn btn-mini"
+                  style={{ flex: 'none' }}
                   onClick={() => alternar(ch)}
                   aria-label={`Activar "${ch.title}"`}
                 >
