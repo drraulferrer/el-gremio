@@ -25,9 +25,13 @@ export function Pestana({ icono, etiqueta, activa = false, onClick, aviso }) {
 
 export function Gema({ xp, color, mini = false }) {
   const { level } = levelProgress(xp)
+  // El color del miembro va al halo, no a la piedra: la gema es la misma
+  // pieza para todos —cristal teal con aro dorado— y lo que distingue a
+  // cada cual es la luz que proyecta por detrás.
+  const halo = { '--gema-halo': color, ...(mini ? { width: 44, height: 44 } : {}) }
   return (
-    <div className="gema-wrap" style={mini ? { width: 44, height: 44 } : undefined}>
-      <div className={'gema' + (mini ? ' gema-mini' : '')} style={{ background: color }}>
+    <div className="gema-wrap" style={halo}>
+      <div className={'gema' + (mini ? ' gema-mini' : '')}>
         {level}
       </div>
     </div>
@@ -52,10 +56,16 @@ export function XPBar({ xp, tone }) {
   )
 }
 
-// La Bolsa de Talis. El emoji hace de ficha gremial; la etiqueta dice el
-// nombre completo porque un lector de pantalla no sabe leer una moneda.
+// La Bolsa de Talis. Desde la 2.5.0 la ficha es la pieza grabada de la
+// guía en vez del emoji 🪙: un Talis no es una moneda cualquiera, y con
+// el emoji del sistema cada plataforma dibujaba una distinta.
 export function Bolsa({ n }) {
-  return <span className="bolsa" aria-label={`${BOLSA}: ${talis(n)}`}>🪙 {n}</span>
+  return (
+    <span className="bolsa" aria-label={`${BOLSA}: ${talis(n)}`}>
+      <img src="/assets/talis.png" alt="" className="ficha-talis" />
+      {n}
+    </span>
+  )
 }
 
 export function Modal({ titulo, onClose, children }) {

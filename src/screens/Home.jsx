@@ -134,7 +134,9 @@ export default function Home({ family, data, profile, refresh, onSwitchProfile, 
                 <span className="suave">{Math.min(progresoMeta, goal.target_xp)} / {goal.target_xp} XP</span>
               </div>
               <div className="xpbar" style={{ marginTop: 8 }}>
-                <div className="xpbar-fill" style={{ width: Math.min(100, Math.round((100 * progresoMeta) / goal.target_xp)) + '%', background: 'linear-gradient(90deg,#7fb3ff,#a78bfa)' }} />
+                {/* Sin color en línea: la meta es reconocimiento y su oro
+                    lo pone `.estandarte .xpbar-fill` en la hoja. */}
+                <div className="xpbar-fill" style={{ width: Math.min(100, Math.round((100 * progresoMeta) / goal.target_xp)) + '%' }} />
                 <div className="xpbar-pips"><span /><span /><span /><span /><span /></div>
               </div>
               {progresoMeta >= goal.target_xp && (
@@ -422,7 +424,7 @@ function Progreso({ data, profile, genero, refresh }) {
           const rango = rangoDeHabilidad(xp)
           return (
             <div key={h.id} className="fila-habilidad">
-              <span className="hab-emoji">{h.emoji}</span>
+              <img src={h.icono} alt="" className="hab-icono" />
               <div className="crece">
                 <div className="fila-separada">
                   <strong style={{ fontSize: '0.95rem' }}>{h.nombre}</strong>
@@ -430,8 +432,12 @@ function Progreso({ data, profile, genero, refresh }) {
                     {flex(rango.nombre, genero)} · {xp} XP
                   </span>
                 </div>
+                {/* Todas las barras degradan teal→oro, sin color por
+                    habilidad: el teal dice «progreso» y el oro asoma
+                    según se acerca la maestría. Que las ocho compartan
+                    escala es lo que deja compararlas de un vistazo. */}
                 <div className="barra-habilidad">
-                  <div className="barra-habilidad-fill" style={{ width: rango.pct + '%', background: h.color }} />
+                  <div className="barra-habilidad-fill" style={{ width: rango.pct + '%' }} />
                 </div>
               </div>
             </div>

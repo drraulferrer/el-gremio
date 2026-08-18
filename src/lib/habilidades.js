@@ -18,6 +18,7 @@ export const HABILIDADES = [
     id: 'hogar',
     nombre: 'Hogar',
     emoji: '🏡',
+    icono: '/assets/icono-hogar.png',
     color: '#7fb3ff',
     lema: 'Cuidar el sitio donde vivimos'
   },
@@ -25,6 +26,7 @@ export const HABILIDADES = [
     id: 'salud',
     nombre: 'Salud',
     emoji: '💪',
+    icono: '/assets/icono-salud.png',
     color: '#6ee7a0',
     lema: 'Cuidar el cuerpo y el descanso'
   },
@@ -32,6 +34,7 @@ export const HABILIDADES = [
     id: 'aprendizaje',
     nombre: 'Aprendizaje',
     emoji: '📚',
+    icono: '/assets/icono-aprendizaje.png',
     color: '#ffd166',
     lema: 'Saber algo que ayer no sabías'
   },
@@ -39,6 +42,7 @@ export const HABILIDADES = [
     id: 'amabilidad',
     nombre: 'Amabilidad',
     emoji: '❤️',
+    icono: '/assets/icono-amabilidad.png',
     color: '#ff6b6b',
     lema: 'Tratar bien a quien tienes cerca'
   },
@@ -46,6 +50,7 @@ export const HABILIDADES = [
     id: 'responsabilidad',
     nombre: 'Responsabilidad',
     emoji: '🌱',
+    icono: '/assets/icono-responsabilidad.png',
     color: '#8fd694',
     lema: 'Hacerse cargo de lo propio'
   },
@@ -53,6 +58,7 @@ export const HABILIDADES = [
     id: 'cooperacion',
     nombre: 'Cooperación',
     emoji: '🤝',
+    icono: '/assets/icono-cooperacion.png',
     color: '#4ecdc4',
     lema: 'Sacar las cosas adelante en equipo'
   },
@@ -60,6 +66,7 @@ export const HABILIDADES = [
     id: 'creatividad',
     nombre: 'Creatividad',
     emoji: '🎨',
+    icono: '/assets/icono-creatividad.png',
     color: '#c9a0ff',
     lema: 'Hacer aparecer algo que no estaba'
   },
@@ -67,6 +74,7 @@ export const HABILIDADES = [
     id: 'autonomia',
     nombre: 'Autonomía',
     emoji: '🧠',
+    icono: '/assets/icono-autonomia.png',
     color: '#ffa96b',
     lema: 'Poder solo, sin que nadie lo recuerde'
   }

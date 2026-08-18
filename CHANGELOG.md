@@ -18,6 +18,57 @@ verdad duele en esta app: que el esquema y el cliente dejen de encajar.
 
 ---
 
+## 2.5.0 · 18 de agosto de 2026
+
+La estética entera, según la guía de assets y la propuesta «el taller
+nocturno». La app deja de dibujarse con emojis del sistema y pasa a tener
+piezas propias.
+
+- **Paleta**: índigo #141428 y superficies #1D1D36, oro Talis
+  #F2B33D→#FFD77A, teal #4FC4B5 para el progreso, y el mundo de la peque
+  con su pergamino, su estrella y su coral.
+- **Tres voces**: Fraunces en títulos, niveles y rangos —suena a sello
+  grabado sin caer en lo medievaloide—, Inter en todo lo que hay que leer
+  a las diez de la noche, y Baloo 2 **solo** en la pantalla de la peque.
+- **Piezas propias**: emblema del gremio en el acceso, la ficha de Talis
+  en la Bolsa, la gema de nivel, los ocho iconos de habilidad grabados,
+  las estrellas de la peque, el fondo del taller y el grano de pergamino
+  en las tarjetas.
+- **El dorado deja de decorar.** Siete usos que eran cromo —el anillo de
+  foco, las pastillas elegidas, los puntos del carrusel, los toggles—
+  pasan al teal. El oro se queda donde reconoce: XP, Talis, insignias,
+  meta, rachas y celebración. Ahora, si algo brilla en dorado, alguien ha
+  cumplido.
+- **Las barras de habilidad** degradan teal→oro sobre el carril entero,
+  no sobre lo recorrido: con lo segundo, una habilidad al 4 % salía
+  dorada de punta a punta y el color decía «maestría» donde había cuatro
+  por ciento.
+
+**Los assets traían marca de agua.** Las dieciséis piezas llevaban un
+«AI生成» en la esquina inferior izquierda, invisible sobre blanco y
+perfectamente visible sobre el índigo de la app, que es donde se usan.
+Están limpias: alfa a cero en las transparentes y un parche clonado en
+las dos opacas. Hay una comprobación que las repasa todas.
+
+**Y pesan 424 KB en vez de 11 MB**: cada pieza redimensionada a 2-3× su
+tamaño real en pantalla, y las dos opacas —fondo y pergamino— a JPEG,
+que para eso no tienen transparencia que conservar.
+
+Dos cosas que la guía pedía y se hicieron de otra forma, las dos por el
+mismo motivo —lo que ya sabe este proyecto pesa más que la especificación—:
+
+1. **El fondo NO va en el body con `background-attachment: fixed`**, que
+   es lo que dice la guía. Va en la capa `.ambiente`, que ya es
+   `position: fixed` y da el mismo resultado. El atajo de la guía
+   reabriría el bug del fondo que parpadeaba en Safari de iOS, uno de los
+   tres más caros de esta app.
+2. **Del estandarte de la meta se usa solo su cresta dorada.** A tamaño
+   real pedía 70 px de alto en una tarjeta que solo tiene rango y barra,
+   y de membrete tenue por detrás ensuciaba el texto justo donde hay que
+   leer.
+
+---
+
 ## 2.4.1 · 18 de agosto de 2026
 
 Tres fallos del alta de mascotas, encontrados usándola por primera vez.

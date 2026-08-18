@@ -20,10 +20,8 @@ de mando con datos reales. Antes de añadir nada, lee §8.
 `npm run deploy`. Ahora es empujar y después `npm run vercel` (§7n).
 
 **Si abres sesión nueva, empieza por §8.** No hay nada a medias: no queda
-ninguna migración pendiente y los **669 tests están en verde**. **Producción
-sirve la 2.4.1** (`a50f389`), publicada el 18-ago a las 18:20: los Talis
-(§7q) y los tres fallos del alta de mascotas (§7r). Comprobado con `npm
-run health` y en el sitio real. Lo que queda es de uso y de producto, no
+ninguna migración pendiente y los **676 tests están en verde**. Producción sirve la **2.4.1**; la **2.5.0** (la estética nueva, §7s)
+está construida y verificada en local, **sin publicar**. Lo que queda es de uso y de producto, no
 código bloqueado.
 
 ---
@@ -2616,6 +2614,61 @@ otro `check` a `profiles`, conviene añadirlo también ahí.
   entera antes de usarla una vez** es cómo se llega a tener tres fallos
   en el primer minuto de uso. Las mascotas llevaban desde el 18-ago
   «construidas y en producción» sin que nadie diera de alta un animal.
+
+---
+
+## 7s. La estética nueva (18 de agosto) · 2.5.0
+
+Aplicada la guía de assets y la propuesta «el taller nocturno». La guía
+está copiada en `docs/GUIA-ASSETS.md`; aquí solo lo que hay que saber
+para no deshacerlo.
+
+### Lo que cambió
+
+Paleta (#141428 / #1D1D36, oro #F2B33D→#FFD77A, teal #4FC4B5), tres
+tipografías —Fraunces títulos, Inter cuerpo, **Baloo 2 solo en la peque**—
+y dieciséis piezas propias en `public/assets/`: emblema, ficha de Talis,
+gema, ocho iconos de habilidad, estrellas, fondo y pergamino.
+
+### Las cuatro trampas, por orden de lo caro que salen
+
+1. **Los assets del zip traen marca de agua «AI生成»** en la esquina
+   inferior izquierda. No se ve sobre blanco y se lee perfectamente sobre
+   el índigo del tablero, que es donde se usan. Las de `public/assets/`
+   están limpias. **Si alguien reimporta una pieza del zip, vuelve.** Hay
+   un test que falla si aparece un PNG sin redimensionar, que es la única
+   forma de que eso pase.
+2. **`--display` se redefine dentro del mundo de la peque.** Al pasar
+   `--display` a Fraunces, su pantalla se quedó **entera en serif**: la
+   regla global `h1,h2,h3` gana por especificidad y hay una docena de
+   reglas suyas que piden `var(--display)` a mano. Se arregla redefiniendo
+   la VARIABLE en las seis raíces del mundo peque —`.kid` y las cinco
+   capas fijas hermanas—, no listando selectores. Hay test.
+3. **El fondo NO va en el body con `background-attachment: fixed`**,
+   aunque es lo que pide la guía. Va en `.ambiente`, que ya es
+   `position: fixed`. El atajo de la guía reabre el bug del fondo que
+   parpadeaba en Safari de iOS.
+4. **La estrella vacía de la peque se oscureció a #9C895D.** El contorno
+   #E8DCC2 que pide la guía da 1,1:1 sobre el papel crema: la peque no
+   podía contar las que le faltan, que es exactamente para lo que están.
+
+### Lo que se decidió al aplicarla
+
+- **El dorado dejó de decorar.** Siete usos de cromo —foco, pastillas
+  elegidas, puntos de carrusel, toggles— pasaron al teal. El oro se queda
+  en XP, Talis, insignias, meta, rachas y celebración.
+- **Del estandarte de la meta se usa solo su cresta**, recortada a
+  `cresta-gremio.png`. Entero pedía 70 px de alto en una tarjeta que solo
+  tiene rango y barra.
+- **La gema es la misma pieza para todos** y el color del miembro pasó al
+  halo de detrás. Si fuera solo la imagen, los cuatro perfiles serían
+  idénticos justo donde más falta hace distinguirlos.
+- **Los assets pesan 424 KB, no 11 MB.** Cada pieza a 2-3× su tamaño real
+  en pantalla; fondo y pergamino a JPEG por ser opacos. Hay un test con
+  tope por fichero y tope del conjunto.
+
+El contraste salió mejor que antes, no peor: el texto secundario sobre
+tarjeta pasa de 4,69:1 a 6,05:1.
 
 ---
 

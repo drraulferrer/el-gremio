@@ -116,7 +116,7 @@ export default function Login() {
 
   return (
     <div className="pantalla-centrada">
-      <img src={import.meta.env.BASE_URL + 'icon.svg'} alt="" width="84" height="84" style={{ borderRadius: 20 }} />
+      <img src={import.meta.env.BASE_URL + 'assets/emblema-gremio.png'} alt="" width="96" height="96" />
       <h1 style={{ fontSize: '2rem' }}>El Gremio</h1>
       <p className="suave" style={{ maxWidth: 320 }}>
         {modo === 'olvidada'
