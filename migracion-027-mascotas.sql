@@ -61,21 +61,29 @@ alter table public.profiles
 alter table public.profiles
   add column if not exists species text;
 
-do $$
-begin
-  if not exists (
-    select 1 from pg_constraint
-     where conname = 'profiles_especie_coherente'
-       and conrelid = 'public.profiles'::regclass
-  ) then
-    alter table public.profiles
-      add constraint profiles_especie_coherente
-      check (
-        (role = 'mascota' and species in ('perro','gato'))
-        or (role <> 'mascota' and species is null)
-      );
-  end if;
-end $$;
+-- Se tira y se rehace SIEMPRE, en vez de crearla solo si falta: la
+-- primera versión de esta restricción era incorrecta y se llegó a
+-- ejecutar. Con un `if not exists` volver a pasar la migración no la
+-- habría arreglado, que es justo lo que uno espera de una migración
+-- idempotente.
+alter table public.profiles drop constraint if exists profiles_especie_coherente;
+
+-- La forma `case` no es estilo: es lo único que funciona. La versión
+-- obvia —`(role='mascota' and species in (...)) or (role<>'mascota' and
+-- species is null)`— **acepta una mascota sin especie**, y costó
+-- descubrirlo el mismo día que se ejecutó la 027. Con `species` nulo esa
+-- expresión da `TRUE and NULL` = NULL en la primera rama y FALSE en la
+-- segunda, o sea `NULL or FALSE` = NULL. Y **un CHECK que da NULL PASA**:
+-- solo rechaza cuando da FALSE. La lógica de tres valores de SQL vuelve a
+-- morder justo donde uno cree que ha cubierto los dos casos.
+alter table public.profiles
+  add constraint profiles_especie_coherente
+  check (
+    case
+      when role = 'mascota' then species is not null and species in ('perro','gato')
+      else species is null
+    end
+  );
 
 comment on column public.profiles.species is
   'perro|gato cuando role = mascota; null en las personas. Ver docs/MASCOTAS.md';

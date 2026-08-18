@@ -86,7 +86,21 @@ create table if not exists public.profiles (
   -- Retirar en lugar de borrar: un perfil inactivo sale del selector pero
   -- conserva su historial y la XP que aportó a las metas ya cerradas.
   active boolean not null default true,
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  La forma `case` no es estilo: es lo único que funciona. La versión
+  obvia —`(role='mascota' and species in (...)) or (role<>'mascota' and
+  species is null)`— **acepta una mascota sin especie**, y costó
+  descubrirlo el mismo día que se ejecutó la 027. Con `species` nulo esa
+  expresión da `TRUE and NULL` = NULL en la primera rama y FALSE en la
+  segunda, o sea `NULL or FALSE` = NULL. Y **un CHECK que da NULL PASA**:
+  solo rechaza cuando da FALSE. La lógica de tres valores de SQL vuelve a
+  morder justo donde uno cree que ha cubierto los dos casos.
+  constraint profiles_especie_coherente check (
+    case
+      when role = 'mascota' then species is not null and species in ('perro','gato')
+      else species is null
+    end
+  )
 );
 
 create table if not exists public.challenges (
