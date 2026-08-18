@@ -1745,8 +1745,10 @@ cuatro horas de caché el rollback sería insoportable.
   funciona durante toda la transición. Moverlo a Vercel cuando el ápice
   esté confirmado, y añadiendo antes `www.elgremioapp.com` al proyecto
   como redirección, o dará un 404 de Vercel.
-- **Añadir `VITE_VAPID_PUBLIC` como Variable del repositorio** en GitHub,
-  o `desplegar.yml` parará en seco (ahora la exige, y hace bien).
+- ~~Añadir `VITE_VAPID_PUBLIC` como Variable del repositorio.~~ **HECHO**
+  (18-ago). Se comprobó que en el repositorio solo estaban tres, lo que
+  confirma el bug: la vía de emergencia llevaba desde el 16-ago publicando
+  una app sin avisos. Las cuatro están ahora y coinciden con el `.env`.
 
 **GitHub Pages se queda como red de seguridad**, no se retira. Sigue
 sirviendo en `drraulferrer.github.io/el-gremio` y `npm run deploy` sigue
