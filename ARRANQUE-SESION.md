@@ -1881,18 +1881,29 @@ supabase functions deploy notificar --project-ref chfbrawsoulfiywiqhpe --no-veri
 Comprobado después: sin secreto sigue dando el 401 de la función, y con él
 responde 200 con su resumen, saltando los perfiles por franja horaria.
 
-**Lo que queda por ver, y solo lo puede ver la familia:** que el aviso de
-noche llegue de verdad a los teléfonos. Se puede forzar con
-`?forzar=noche`, pero eso **envía notificaciones reales**, así que se hace
-cuando alguien quiera comprobarlo, no de pasada. Lo natural es esperar a
-las 21:00 y mirar:
+**Y comprobado de punta a punta el mismo día**, forzando la franja con
+`?forzar=noche` (envía notificaciones reales; se hizo a propósito y con
+permiso). `push_log` quedó así:
 
-```sql
-select l.dia, l.franja, l.motivo, l.enviados
-  from public.push_log l order by l.created_at desc limit 10;
+```
+dia         franja  motivo          enviados
+2026-08-18  noche   sin_programar   1
+2026-08-18  noche   sin_programar   1
+2026-08-18  noche   sin_programar   0
+2026-08-18  noche   sin_programar   0
+2026-08-17  tarde   vuelve          1     ← histórico
+2026-08-16  tarde   racha_riesgo    1     ← histórico
 ```
 
-Debe aparecer una fila con `franja = 'noche'`.
+Las dos cosas que prueba de golpe: **`franja` y `sin_programar` existen y
+se escriben** —o sea, la 026 y la función nueva están vivas— y **el
+backfill dejó en `'tarde'` todo lo anterior**, que era su trabajo.
+
+**Los dos `enviados = 0` no son un fallo**: son perfiles sin aparato
+registrado. Es el pendiente de más abajo —reinstalar la PWA desde
+elgremioapp.com y activar Ajustes → 🔔 Avisos en cada teléfono—, y aquí se
+ve medido: de seis perfiles, cuatro tenían algo que decir de noche y solo
+dos tienen dónde recibirlo.
 
 **La lección, que es la del §7e otra vez y del revés.** Aquella decía que
 la migración va antes del despliegue del bundle, porque el cliente no
