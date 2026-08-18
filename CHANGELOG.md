@@ -18,6 +18,30 @@ verdad duele en esta app: que el esquema y el cliente dejen de encajar.
 
 ---
 
+## 2.5.3 · 18 de agosto de 2026
+
+**El ornamento del estandarte deja de ser un recorte.** Se probaron tres
+encuadres de `banner-meta.png` y los tres se veían cortados, que es lo que
+pasa siempre al recortar un cortinaje con caídas y borlas: no hay línea
+por donde partirlo que no parezca rota.
+
+Y entero no cabe. Su dibujo mide 1361×716, o sea **183 px de alto al ancho
+de esa tarjeta**: más que todo su contenido junto.
+
+Así que el ornamento se dibuja en vez de recortarse. Un filete dorado que
+se desvanece por los lados y un rombo en el centro —el mismo motivo que
+remata la filigrana del estandarte—. Pesa cero, funciona a cualquier ancho
+y **no puede salir cortado, porque no hay nada que recortar**.
+
+Además ahora hace un trabajo: separa el rango del gremio de la meta, en
+lugar de colgar de un borde sin nada encima. La tarjeta recupera los 20 px
+de relleno que se le habían reservado al adorno.
+
+Fuera `cresta-gremio.png` y `banner-meta.png`. Los assets bajan de 424 a
+356 KB.
+
+---
+
 ## 2.5.2 · 18 de agosto de 2026
 
 **El icono del escritorio seguía saliendo como una letra «E».** La 2.5.1

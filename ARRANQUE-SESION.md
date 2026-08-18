@@ -20,7 +20,8 @@ de mando con datos reales. Antes de añadir nada, lee §8.
 `npm run deploy`. Ahora es empujar y después `npm run vercel` (§7n).
 
 **Si abres sesión nueva, empieza por §8.** No hay nada a medias: no queda
-ninguna migración pendiente y los **685 tests están en verde**. **Producción sirve la 2.5.2** (`bdaf0c4`). Comprobado que
+ninguna migración pendiente y los **685 tests están en verde**. Producción sirve la **2.5.2**; la **2.5.3** —la filigrana dibujada— está
+verificada en local y sin publicar. De la 2.5.2 quedó comprobado que
 `/apple-touch-icon.png`, `/apple-touch-icon-precomposed.png` y
 `/favicon.ico` responden ya con imagen de verdad —antes daban 200 con
 HTML— y que el fichero servido es idéntico al local por SHA-256. Lo que queda es de uso y de producto, no
@@ -2659,9 +2660,14 @@ gema, ocho iconos de habilidad, estrellas, fondo y pergamino.
 - **El dorado dejó de decorar.** Siete usos de cromo —foco, pastillas
   elegidas, puntos de carrusel, toggles— pasaron al teal. El oro se queda
   en XP, Talis, insignias, meta, rachas y celebración.
-- **Del estandarte de la meta se usa solo su cresta**, recortada a
-  `cresta-gremio.png`. Entero pedía 70 px de alto en una tarjeta que solo
-  tiene rango y barra.
+- **El estandarte `banner-meta.png` NO se usa, y no conviene reintentarlo.**
+  Su dibujo mide 1361×716: al ancho de la tarjeta de la meta son 183 px de
+  alto, más que todo su contenido. Y recortado se ve recortado —se
+  probaron tres encuadres—, porque un cortinaje con caídas y borlas no
+  tiene por dónde partirse. El ornamento de esa tarjeta es ahora
+  `.filigrana`: un filete dorado dibujado en CSS con un rombo en el
+  centro, que además separa el rango de la meta. No puede salir cortado
+  porque no hay imagen.
 - **La gema es la misma pieza para todos** y el color del miembro pasó al
   halo de detrás. Si fuera solo la imagen, los cuatro perfiles serían
   idénticos justo donde más falta hace distinguirlos.

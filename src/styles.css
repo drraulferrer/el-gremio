@@ -605,43 +605,41 @@ button { font-family: inherit; }
   background: linear-gradient(180deg, var(--cristal-fondo-alto), var(--cristal-fondo));
   border: 1px solid var(--cristal-filo);
   border-radius: var(--radio);
-  padding: 32px 14px 12px;
+  padding: 12px 14px;
   margin-bottom: 12px;
   box-shadow: var(--sombra-1), inset 0 1px 0 var(--cristal-brillo);
-  overflow: hidden;
 }
 
-/* Del estandarte de la guía se usa SOLO su cresta dorada, recortada a
-   `cresta-gremio.png`.
+/* La filigrana que separa el rango de la meta.
 
-   Se probaron los otros dos usos y fallaban por lo mismo. Colgado a
-   tamaño real pide 70 px de alto en una tarjeta que solo tiene rango y
-   barra: el adorno pesaba más que el dato. De membrete tenue por detrás,
-   ensuciaba «Gremio novato» y la meta justo donde hay que leer.
+   Aquí NO va el estandarte de la guía, y no por falta de ganas: su dibujo
+   mide 1361x716, o sea 183 px de alto al ancho de esta tarjeta —más que
+   todo su contenido junto—. Y recortado se ve recortado: da igual por
+   dónde se corte un cortinaje con caídas y borlas, siempre parece roto.
 
-   Y se recorta en el fichero, no con `background-size`: encuadrar por
-   CSS obligaba a escalar la pieza para esconder los hombros de tela
-   azul, y al escalarla la filigrana se iba de tamaño. Recortada una vez,
-   la regla es de dos líneas y pesa 66 KB en vez de 196.
+   Así que el ornamento se dibuja. Un filete dorado que se desvanece por
+   los lados y un rombo en el centro: es el mismo motivo que remata la
+   filigrana del estandarte, pesa cero y **no puede salir cortado**,
+   porque no hay nada que recortar. El degradado a `transparent` hace
+   además que funcione a cualquier ancho sin tocar nada. */
+.filigrana {
+  position: relative;
+  height: 1px;
+  margin: 12px 2px;
+  background: linear-gradient(90deg, transparent, rgba(242, 179, 61, 0.55), transparent);
+}
 
-   Decorativo puro: va en ::before y no en el DOM para que ningún lector
-   de pantalla tenga que anunciarlo. */
-.estandarte::before {
+.filigrana::after {
   content: '';
   position: absolute;
-  top: 6px;
+  top: 50%;
   left: 50%;
-  transform: translateX(-50%);
-  width: min(300px, 84%);
-  height: 22px;
-  z-index: 0;
-  pointer-events: none;
-  background: url('/assets/cresta-gremio.png') top center / contain no-repeat;
-  opacity: 0.95;
+  width: 7px;
+  height: 7px;
+  transform: translate(-50%, -50%) rotate(45deg);
+  background: var(--oro);
+  box-shadow: 0 0 0 3px var(--carta);
 }
-
-/* Y el contenido, por delante del ornamento. */
-.estandarte > * { position: relative; z-index: 1; }
 
 /* La meta es reconocimiento, así que va en oro. Y es UNA sola barra:
    nunca barras enfrentadas por miembro (regla 2 de la guía). */

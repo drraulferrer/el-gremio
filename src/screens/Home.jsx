@@ -127,6 +127,10 @@ export default function Home({ family, data, profile, refresh, onSwitchProfile, 
             </div>
           </div>
 
+          {/* Decorativa: separa el rango de la meta. aria-hidden porque no
+              hay nada que anunciar. */}
+          <div className="filigrana" aria-hidden="true" />
+
           {goal ? (
             <>
               <div className="fila-separada">
