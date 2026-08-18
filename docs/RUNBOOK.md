@@ -192,11 +192,32 @@ Tres niveles, de menos a más independiente:
 Desplegar la Edge Function (requiere la CLI de Supabase):
 
 ```bash
-brew install supabase/tap/supabase
 supabase login
-supabase link --project-ref TU-REF
+supabase link --project-ref chfbrawsoulfiywiqhpe
 supabase functions deploy health --no-verify-jwt
 ```
+
+**La CLI ya está instalada en este Mac** (v2.115.0, en
+`~/.local/bin/supabase`, que va primero en el PATH). **No se instaló con
+Homebrew porque aquí no hay Homebrew**: se bajó el binario oficial del
+release de `supabase/cli` y se comprobó su SHA-256 contra el
+`checksums.txt` del propio release antes de instalarlo. Para actualizarla,
+el mismo camino:
+
+```bash
+V=$(curl -s https://api.github.com/repos/supabase/cli/releases/latest | grep -o '"tag_name": *"v[^"]*"' | cut -d'"' -f4 | tr -d v)
+curl -sL "https://github.com/supabase/cli/releases/download/v$V/supabase_${V}_darwin_arm64.tar.gz" -o /tmp/sb.tar.gz
+curl -sL "https://github.com/supabase/cli/releases/download/v$V/checksums.txt" -o /tmp/sb-sums.txt
+grep "supabase_${V}_darwin_arm64.tar.gz" /tmp/sb-sums.txt | awk '{print $1"  /tmp/sb.tar.gz"}' | shasum -a 256 -c -
+tar -xzf /tmp/sb.tar.gz -C /tmp && install -m 755 /tmp/supabase ~/.local/bin/supabase
+```
+
+**`supabase login` hay que ejecutarlo en una terminal de verdad.** El
+flujo automático se niega en entornos sin TTY —que es donde corre el
+agente— y contesta `LegacyLoginMissingTokenError`. La alternativa es
+`--token`, pero eso obliga a pasear un token de acceso por el
+portapapeles y por el historial del shell: mejor hacer el login una vez a
+mano y que la credencial se quede donde tiene que estar.
 
 Queda en `https://TU-REF.functions.supabase.co/health`, devuelve 200 si la
 base responde y 503 si no. Eso es lo que hay que apuntar en un monitor
