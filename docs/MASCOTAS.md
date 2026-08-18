@@ -1,8 +1,8 @@
 # Perfiles de mascota · spec
 
-Estado: **escrita el 18-ago-2026, sin implementar.** La migración
-`migracion-027-mascotas.sql` está redactada y **sin ejecutar**. No hay
-código de interfaz todavía.
+Estado: **escrita el 18-ago-2026. La migración 027 YA ESTÁ EJECUTADA**;
+no hay código de interfaz todavía. El esquema va por delante del cliente
+a propósito, que es el orden bueno (§7e del arranque).
 
 Esto añade un tipo de perfil nuevo —perro o gato— con sus propias misiones
 y premios. No es un adorno temático: el catálogo sale de literatura

@@ -84,13 +84,14 @@ diario que lo mantiene despierto (§7n)—.
 ✅ 024  días de la semana en las misiones (16-ago, tarde)
 ✅ 025  plan_diario: programar las diarias del día siguiente (18-ago)
 ✅ 026  franja de noche + aviso sin_programar (18-ago)
-⏳ 027  perfiles de mascota (18-ago) · ESCRITA, SIN EJECUTAR
+✅ 027  perfiles de mascota (18-ago)
 ```
 
-**Queda UNA migración sin ejecutar: la 027** (perfiles de mascota). Está
-escrita y **no se ha ejecutado**, a propósito: no hay todavía interfaz que
-la use, y ejecutarla suelta no rompe nada pero tampoco sirve de nada. Va
-cuando se construya el cliente, y ANTES que él (§7e). La 025 y la 026 se
+**Ya no queda ninguna migración pendiente.** La 027 (mascotas) se ejecutó
+el 18-ago; el esquema está listo aunque todavía no haya interfaz que lo
+use, que es el orden bueno (§7e). Comprobado desde fuera: `species` y
+`target_role` responden 200, una columna inventada responde 400 y la
+lectura anónima sigue dando `[]`. La 025 y la 026 se
 ejecutaron el 18-ago con el método del repo —traer el fichero con la
 consola del SQL Editor y cotejar el SHA-256 antes de pulsar Run: las dos
 coincidieron byte a byte (8.543 y 5.630) y los acentos salieron intactos—.
@@ -116,11 +117,18 @@ toque. Se acabó el viaje de codificaciones y la comprobación de acentos a
 posteriori:
 
 ```js
-// En la consola del SQL Editor, con el fichero ya empujado a main:
-const r = await fetch('https://raw.githubusercontent.com/drraulferrer/el-gremio/main/migracion-0NN-loquesea.sql')
+// En la consola del SQL Editor. Se pone el HASH DEL COMMIT, no `main`:
+const r = await fetch('https://raw.githubusercontent.com/drraulferrer/el-gremio/8fdb487/migracion-0NN-loquesea.sql')
 const sql = await r.text()
 monaco.editor.getModels()[0].setValue(sql)
 ```
+
+**Con el hash del commit, no con `main`.** El 18-ago, al corregir una
+migración y volver a traerla, `main` devolvió durante minutos la versión
+ANTIGUA: la CDN de raw.githubusercontent la tenía cacheada y `cache:
+'no-store'` no la salta. Con el hash en la ruta el contenido es inmutable,
+llega siempre fresco, y además queda dicho exactamente qué versión se
+ejecutó.
 
 Conviene comparar el SHA-256 de lo traído con el del fichero local
 (`shasum -a 256`) antes de pulsar Run: confirma que se ejecuta EXACTAMENTE
@@ -582,6 +590,16 @@ desactiva JS, no hay defensa. Pero cubre el caso real.
 
 ## 7. Trampas conocidas
 
+- **Un `CHECK` que evalúa a NULL NO rechaza nada.** Solo rechaza cuando da
+  FALSE. La 027 llevaba `(role='mascota' and species in (...)) or
+  (role<>'mascota' and species is null)`, que con `species` nulo da
+  `TRUE and NULL` = NULL en la primera rama y FALSE en la segunda: `NULL
+  or FALSE` = NULL, y **pasa**. Aceptaba una mascota sin especie. Se
+  arregla con `case ... then ... else ... end`, que sí es NULL-seguro. La
+  cazó la comprobación adversarial de la propia migración —la que intenta
+  meter los estados absurdos y espera que reboten—, y por eso esas
+  comprobaciones no son adorno: el fallo estaba en la mitad que uno cree
+  cubierta.
 - **El plan gratuito de Supabase pausa el proyecto tras 7 días sin
   actividad.** Es el fallo más probable de todos. Se reactiva a mano desde
   el panel, tarda un par de minutos, y no hay forma de automatizarlo.
@@ -2099,8 +2117,12 @@ cepilla al perro no se lleva nada. Se compra que la economía de las
 personas no se toque; se paga que el trabajo real no puntúe a quien lo
 hace. La alternativa queda apuntada en la spec por si algún día se revisa.
 
-**Lo que falta**: ejecutar la 027, la interfaz, el catálogo semilla, los
-tests y la narrativa. Y hay tres preguntas abiertas al final de la spec,
+**La 027 ya está ejecutada** (18-ago), con un susto por el camino que
+quedó como trampa en §7: la restricción de coherencia de especie aceptaba
+una mascota sin especie, porque un `CHECK` que da NULL pasa.
+
+**Lo que falta**: la interfaz, el catálogo semilla, los tests y la
+narrativa. Y hay tres preguntas abiertas al final de la spec,
 una de ellas —si el XP de la mascota cuenta para la meta cooperativa— **es
 hoy una decisión por omisión**: contaría, y conviene tomarla a conciencia.
 
