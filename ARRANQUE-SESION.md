@@ -20,8 +20,10 @@ de mando con datos reales. Antes de añadir nada, lee §8.
 `npm run deploy`. Ahora es empujar y después `npm run vercel` (§7n).
 
 **Si abres sesión nueva, empieza por §8.** No hay nada a medias: no queda
-ninguna migración pendiente y los **683 tests están en verde**. Producción sirve la **2.5.0**; la **2.5.1** —el arrastre de la peque y el
-icono del escritorio, §7t— está verificada en local y **sin publicar**. Lo que queda es de uso y de producto, no
+ninguna migración pendiente y los **683 tests están en verde**. **Producción sirve la 2.5.1** (`ba00891`), publicada el 18-ago a las
+19:58: la estética (§7s) más el arrastre de la peque y el icono del
+escritorio (§7t). Los cuatro PNG del icono responden 200 y el
+`apple-touch-icon` del HTML servido apunta ya a `/icon-180.png`. Lo que queda es de uso y de producto, no
 código bloqueado.
 
 ---
