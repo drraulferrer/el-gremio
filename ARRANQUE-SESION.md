@@ -1611,11 +1611,13 @@ precio— sigue comprobándose.
 
 ---
 
-## 7n. La mudanza a Vercel (18 de agosto) · A MEDIAS
+## 7n. La mudanza a Vercel (18 de agosto) · HECHA, PROPAGANDO
 
-**Estado: el repositorio está listo y empujado; falta crear el proyecto en
-Vercel y cortar el DNS.** Lo que sigue explica por qué se hace y dónde se
-quedó, para que quien retome no tenga que reconstruir el razonamiento.
+**Estado: hecho de punta a punta. El DNS ya apunta a Vercel y solo falta
+que expiren las cachés** (el TTL viejo era de 14400 s, o sea 4 horas).
+Mientras tanto NO hay corte: quien tenga el DNS cacheado sigue yendo a
+GitHub Pages, que sirve la app exactamente igual. Lo que sigue explica por
+qué se hizo y con qué se tropezó.
 
 ### Por qué Vercel y no seguir en GitHub Pages
 
@@ -1676,39 +1678,90 @@ llega de rebote.
   notificaciones. No se veía porque el camino local sí tiene la variable
   en su `.env`. **Hay que añadirla como Variable del repositorio.**
 
-### Lo que falta, en orden
+### Lo verificado en Vercel, medido y no supuesto
 
-1. **Instalar la GitHub App de Vercel** en `drraulferrer/el-gremio`
-   (github.com/apps/vercel/installations/new, «Only select repositories»).
-   El *login connection* con GitHub ya está hecho; son cosas distintas y
-   las dos hacen falta. Sin la App, el botón Deploy del importador falla
-   con «you need to install the GitHub integration first».
-2. **Crear el proyecto** importando el repo. Preset Vite, raíz `./`. Las
-   seis variables de entorno (las cinco `VITE_*` y `CRON_SECRET`).
-3. **Comprobarlo en `*.vercel.app` ANTES de tocar el DNS**: cabeceras con
-   `curl -I`, una ruta profunda devolviendo 200 y no 404, entrar con el
-   captcha, y `/api/latido` respondiendo.
-4. **Añadir la URL de Vercel en Supabase** → Authentication → URL
-   Configuration → Redirect URLs. Sin esto, los correos de confirmación y
-   recuperación devuelven a un sitio que Supabase no acepta.
-5. **Añadir el dominio de Vercel a Turnstile** (hostnames permitidos), o
-   el captcha no dibuja fuera de elgremioapp.com.
-6. **El corte de DNS en Hostinger**: sustituir los cuatro registros A de
-   GitHub Pages por lo que diga Vercel al añadir el dominio, y el CNAME de
-   `www`. Añadir el dominio en Vercel PRIMERO: emite el certificado antes
-   del cambio y así no hay ventana sin HTTPS.
+Contra `el-gremio-theta.vercel.app`, antes de tocar el DNS:
+
+- Las **cinco cabeceras** servidas de verdad, CSP incluida con
+  `frame-ancestors 'none'`.
+- **Ruta profunda `/panel/lo-que-sea` → HTTP 200**, donde GitHub Pages
+  daba 404.
+- `/legal/*.html`, `/narrativa/`, `/manifest.webmanifest` y `/sw.js`
+  siguen sirviéndose tal cual: el rewrite comodín NO se los come, porque
+  Vercel mira el sistema de ficheros antes de aplicar los rewrites.
+- `version.json` con `"origen": "vercel"` — el plugin nuevo funciona.
+- Las cinco `VITE_*` presentes en el bundle y **`CRON_SECRET` ausente**
+  de él, que es justo el reparto que tiene que haber.
+- `/api/latido`: **401 sin secreto**, y con él `{"ok":true,"postgres":"17.6"}`.
+  O sea que el antídoto contra la pausa de Supabase está probado entero.
+- La app dibujada en el navegador, correcta.
+
+Lo único que fallaba allí era el captcha, y era lo esperado: Turnstile
+tiene autorizado `elgremioapp.com`, no `*.vercel.app`.
+
+### Una simplificación que ahorró dos pasos
+
+**El dominio no cambia, así que Supabase y Turnstile no se tocan.** Las
+Redirect URLs de Supabase y los hostnames de Turnstile están puestos
+contra `elgremioapp.com`, y ese sigue siendo el dominio. Estaban
+apuntados como pendientes y no hacían falta.
+
+### El corte de DNS, y los dos detalles que importaban
+
+Copia de la zona anterior en `docs/dns/zona-elgremioapp-antes-de-vercel-2026-08-18.txt`.
+
+1. **Había CUATRO registros AAAA apuntando también a GitHub Pages**
+   (`2606:50c0:800x::153`), no solo los cuatro A. Vercel no publica IPv6
+   para el ápice, así que **hay que borrarlos**: dejarlos habría mandado a
+   Vercel solo a los clientes IPv4 y a GitHub Pages a todo el que tuviera
+   IPv6, que en redes móviles es casi todo el mundo. Es el error que
+   habría hecho la mudanza «funcionar» en el portátil y no en los
+   teléfonos.
+2. **Vercel propone marcar «Redirect apex domains to www»**, y aquí eso
+   rompe el captcha: Turnstile autoriza `elgremioapp.com`, y `www` es otro
+   hostname. Se dejó SIN marcar.
+
+La zona quedó así, con el correo intacto (DKIM ×3, SPF, DMARC,
+autodiscover, autoconfig y los dos MX, sin tocar):
+
+```
+A  @  216.198.79.1   TTL 300
+A  @  64.29.17.1     TTL 300
+(sin AAAA)
+```
+
+El TTL se bajó de 14400 a 300 a propósito: si hay que volver atrás, con
+cuatro horas de caché el rollback sería insoportable.
+
+### Lo que queda
+
+- **Esperar la propagación** (hasta 4 h por el TTL viejo). Vercel emite el
+  certificado cuando SU resolutor vea los A nuevos, y de momento también
+  arrastra la caché. Comprobar con:
+  `curl -sI https://elgremioapp.com/ | grep -i strict-transport`
+  Si aparece la cabecera, el corte está completo.
+- **`www` sigue apuntando a `drraulferrer.github.io`** y no se tocó a
+  propósito: GitHub Pages lo redirige al ápice, que ya es Vercel, así que
+  funciona durante toda la transición. Moverlo a Vercel cuando el ápice
+  esté confirmado, y añadiendo antes `www.elgremioapp.com` al proyecto
+  como redirección, o dará un 404 de Vercel.
+- **Añadir `VITE_VAPID_PUBLIC` como Variable del repositorio** en GitHub,
+  o `desplegar.yml` parará en seco (ahora la exige, y hace bien).
 
 **GitHub Pages se queda como red de seguridad**, no se retira. Sigue
 sirviendo en `drraulferrer.github.io/el-gremio` y `npm run deploy` sigue
-funcionando igual.
+funcionando igual. Para volver atrás del todo: restaurar los A y AAAA del
+fichero de `docs/dns/`.
 
 ### Dos trampas del trayecto, ya pagadas
 
 - **Rellenar el formulario de Vercel por DOM no vale.** Poner los valores
-  con `element.value` los deja en el DOM pero NO en el estado de React: el
-  formulario se ve relleno, el botón Deploy se ve activo, y al pulsarlo no
-  pasa absolutamente nada. Hay que teclear de verdad. Y el importador de
-  `.env` rechaza el fichero salvo que se llame exactamente `.env`.
+  con `element.value` los deja en el DOM pero NO en el estado de React.
+  Hay que teclear de verdad. Y el importador de `.env` rechaza el fichero
+  salvo que se llame exactamente `.env`.
+- **`"trailingSlash": null` tumba el despliegue entero** con «Invalid
+  request: trailingSlash should be boolean». «No lo toques» se dice
+  omitiendo la clave, no poniéndola a null.
 - **El error de verdad estaba ARRIBA del formulario, fuera de la
   pantalla.** Se perdieron varios intentos mirando el botón. Cuando algo
   no responde en un formulario largo, subir del todo antes que insistir.
