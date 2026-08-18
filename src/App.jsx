@@ -137,7 +137,14 @@ export default function App() {
       // Degradar con una cosa de menos, no con la pantalla en blanco.
       supabase.from('bonuses').select('*').eq('family_id', fid),
       supabase.from('power_uses').select('*').eq('family_id', fid),
-      supabase.from('push_log').select('*').eq('family_id', fid).order('dia', { ascending: false }).limit(30)
+      supabase.from('push_log').select('*').eq('family_id', fid).order('dia', { ascending: false }).limit(30),
+      // El plan de los últimos días. Solo lo reciente: la purga lo mantiene
+      // corto, y este `gte` es una red por si no ha corrido. Va al final del
+      // bloque degradable como las dos de arriba: sin la migración 025 la
+      // tabla no existe y la app sigue entera menos esta pieza.
+      supabase.from('plan_diario').select('*')
+        .eq('family_id', fid)
+        .gte('dia', new Date(Date.now() - 2 * 86400000).toISOString().slice(0, 10))
     ])
 
     const fallo = respuestas.slice(0, 7).find((r) => r.error)
@@ -148,7 +155,7 @@ export default function App() {
     }
     setErrorCarga('')
 
-    const [pr, ch, co, rw, rd, gl, bg, bo, pu, pl] = respuestas
+    const [pr, ch, co, rw, rd, gl, bg, bo, pu, pl, pd] = respuestas
     const metas = gl.data || []
     const next = {
       profiles: pr.data || [],
@@ -163,7 +170,8 @@ export default function App() {
       badges: bg.data || [],
       bonuses: bo.error ? [] : bo.data || [],
       powerUses: pu.error ? [] : pu.data || [],
-      pushLog: pl.error ? [] : pl.data || []
+      pushLog: pl.error ? [] : pl.data || [],
+      planDiario: pd.error ? [] : pd.data || []
     }
     log.debug('datos.cargados', {
       request_id: requestId,

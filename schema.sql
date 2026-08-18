@@ -189,6 +189,30 @@ create table if not exists public.profile_badges (
   unique (profile_id, code)
 );
 
+-- Plan diario: qué diarias se han programado para un día concreto.
+--
+-- Una CAPA por fecha encima del patrón semanal (migración 024). «Hay plan
+-- para (familia, dia)» = existe al menos una fila con ese `dia`; si no hay
+-- ninguna, manda el patrón. Solo aplica a las DIARIAS: semanales,
+-- mensuales y únicas se resuelven por su vía de siempre. Detalle y porqué
+-- en migracion-025-plan-diario.sql y en el predicado de src/lib/misiones.js.
+create table if not exists public.plan_diario (
+  id uuid primary key default gen_random_uuid(),
+  family_id uuid not null references public.families(id) on delete cascade,
+  dia date not null,
+  challenge_id uuid not null references public.challenges(id) on delete cascade,
+  -- Desnormalizado: a quién le sale ese día. Es la columna por la que lee
+  -- el tablero, y una misión de rol no tiene un solo perfil.
+  profile_id uuid not null references public.profiles(id) on delete cascade,
+  -- 'patron' = venía preseleccionada; 'sustituta' = la metió un adulto.
+  origen text not null default 'patron' check (origen in ('patron','sustituta')),
+  created_at timestamptz not null default now(),
+  created_by uuid references public.profiles(id) on delete set null,
+  unique (family_id, dia, challenge_id)
+);
+
+create index if not exists idx_plan_diario_dia on public.plan_diario (family_id, dia);
+
 create index if not exists idx_completions_family_status on public.completions (family_id, status);
 create index if not exists idx_completions_profile on public.completions (profile_id, requested_at desc);
 create index if not exists idx_redemptions_family_status on public.redemptions (family_id, status);
@@ -241,6 +265,7 @@ alter table public.rewards enable row level security;
 alter table public.redemptions enable row level security;
 alter table public.family_goals enable row level security;
 alter table public.profile_badges enable row level security;
+alter table public.plan_diario enable row level security;
 
 -- Todas van declaradas `to authenticated`. Sin eso Postgres evalúa la
 -- política —y con ella la subconsulta a `families`— también para el rol
@@ -256,7 +281,7 @@ create policy familia_owner on public.families
 do $$
 declare t text;
 begin
-  foreach t in array array['profiles','challenges','completions','rewards','redemptions','family_goals','profile_badges']
+  foreach t in array array['profiles','challenges','completions','rewards','redemptions','family_goals','profile_badges','plan_diario']
   loop
     execute format('drop policy if exists familia_miembro on public.%I', t);
     execute format($f$
@@ -312,6 +337,23 @@ create trigger tope_goals before insert on public.family_goals
 drop trigger if exists tope_challenges on public.challenges;
 create trigger tope_challenges before insert on public.challenges
   for each row execute function public.tg_tope_filas('600');
+
+-- El plan solo se programa cerca: hoy o mañana. El `unique` limita las
+-- filas por día, pero `dia` es un eje libre y una cuenta podría insertar
+-- para diez mil fechas. Esto lo ataja y ES la regla de producto.
+create or replace function public.tg_plan_dia_cercano()
+returns trigger language plpgsql security invoker as $$
+begin
+  if new.dia < current_date - 1 or new.dia > current_date + 2 then
+    raise exception 'plan_dia_fuera_de_rango: % no está entre ayer y pasado mañana', new.dia
+      using errcode = 'P0001';
+  end if;
+  return new;
+end $$;
+
+drop trigger if exists plan_dia_cercano on public.plan_diario;
+create trigger plan_dia_cercano before insert on public.plan_diario
+  for each row execute function public.tg_plan_dia_cercano();
 
 -- ---------------------------------------------------------------------
 -- Funciones atómicas (evitan puntos duplicados o saldos negativos)
@@ -421,6 +463,7 @@ do $$ begin alter publication supabase_realtime add table public.rewards; except
 do $$ begin alter publication supabase_realtime add table public.redemptions; exception when duplicate_object then null; end $$;
 do $$ begin alter publication supabase_realtime add table public.family_goals; exception when duplicate_object then null; end $$;
 do $$ begin alter publication supabase_realtime add table public.profile_badges; exception when duplicate_object then null; end $$;
+do $$ begin alter publication supabase_realtime add table public.plan_diario; exception when duplicate_object then null; end $$;
 
 -- =====================================================================
 -- CAPA DE PRODUCCIÓN
@@ -501,6 +544,26 @@ end $$;
 
 revoke all on function public.purge_logs(integer) from public;
 revoke all on function public.purge_logs(integer) from authenticated;
+
+-- El plan de ayer no sirve para nada. Se barre lo anterior a hace 7 días
+-- en el cron de las 4:12 (ver más abajo). `security definer` para correr
+-- sin sesión y `revoke` a todos: no la llama el cliente.
+create or replace function public.purge_planes(dias integer default 7)
+returns integer
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare borradas integer;
+begin
+  delete from public.plan_diario where dia < current_date - dias;
+  get diagnostics borradas = row_count;
+  return borradas;
+end $$;
+
+revoke all on function public.purge_planes(integer) from public;
+revoke all on function public.purge_planes(integer) from anon;
+revoke all on function public.purge_planes(integer) from authenticated;
 
 -- ---------------------------------------------------------------------
 -- 2. Límite de ritmo (rate limiting)
@@ -1136,6 +1199,9 @@ create table if not exists public.push_log (
   family_id uuid not null references public.families(id) on delete cascade,
   profile_id uuid not null references public.profiles(id) on delete cascade,
   dia date not null,
+  -- Dos franjas al día como mucho: tarde (hacer misiones) y noche
+  -- (programar). El tope es por franja, no por día (migración 026).
+  franja text not null default 'tarde' check (franja in ('tarde','noche')),
   motivo text not null,
   titulo text not null,
   cuerpo text not null,
@@ -1143,9 +1209,10 @@ create table if not exists public.push_log (
   created_at timestamptz not null default now()
 );
 
--- ESTA línea es el tope. Una persona, un día, un aviso.
-create unique index if not exists idx_push_log_uno_al_dia
-  on public.push_log (profile_id, dia);
+-- ESTA línea es el tope: una persona, un día, una FRANJA, un aviso. Dos
+-- como mucho al día (tarde y noche), que son dos trabajos distintos.
+create unique index if not exists idx_push_log_uno_por_franja
+  on public.push_log (profile_id, dia, franja);
 create index if not exists idx_push_log_family on public.push_log (family_id, dia desc);
 
 alter table public.push_log enable row level security;
@@ -1391,7 +1458,14 @@ actividad as (
            where c.family_id = p.family_id and c.status = 'pendiente') as por_validar,
          public.streak_days(p.id, f.timezone) as racha,
          -- ¿Hoy no le tocaba nada? Entonces no hay de qué avisarle.
-         public.sin_mision_ese_dia(p.id, h.dia) as dia_libre
+         public.sin_mision_ese_dia(p.id, h.dia) as dia_libre,
+         -- ¿El gremio ya ha programado mañana? Si no hay ninguna fila para
+         -- el día siguiente, el adulto recibe el recordatorio de noche. La
+         -- franja la decide la función de envío, no la vista.
+         not exists (
+           select 1 from public.plan_diario pl
+            where pl.family_id = p.family_id and pl.dia = h.dia + 1
+         ) as sin_plan_manana
     from public.profiles p
     join public.families f on f.id = p.family_id
     join hoy h on h.family_id = p.family_id
@@ -1423,7 +1497,8 @@ select a.profile_id,
          when a.dia_libre then null
          else 'vuelve'
        end as motivo,
-       a.por_validar
+       a.por_validar,
+       a.sin_plan_manana
   from actividad a;
 
 grant select on public.push_pendientes to authenticated;
@@ -1563,6 +1638,11 @@ exception when others then
 end $$;
 
 select cron.schedule('salud-diaria', '20 4 * * *', $c$ select public.registrar_salud((now() at time zone 'Europe/Madrid')::date - 1) $c$);
+
+-- El plan de más de 7 días atrás, a la basura. 4:12, entre la purga de
+-- logs (4:10) y la de salud (4:20).
+do $$ begin perform cron.unschedule('purga-planes'); exception when others then null; end $$;
+select cron.schedule('purga-planes', '12 4 * * *', $c$ select public.purge_planes(7) $c$);
 
 -- Y la de hoy, para no empezar con la tabla vacía.
 select public.registrar_salud();

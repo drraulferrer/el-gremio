@@ -8,7 +8,7 @@ import { pedirMision as pedirMisionRemota, canjearPremio, deshacerMision } from 
 import { Gema, XPBar, Moneda, Celebracion, Pestana } from '../components/ui'
 import { HABILIDADES, habilidad, xpPorHabilidad, rangoDeHabilidad, habilidadDominante } from '../lib/habilidades'
 import { flex, generoDe } from '../lib/genero'
-import { misionesDe, agruparPorFrecuencia } from '../lib/misiones'
+import { planDelDia, agruparPorFrecuencia } from '../lib/misiones'
 import { premiosParaMayores } from '../lib/premios'
 import { semana, etiquetaDeSemana, validadasDe, resumenDeSemana, semanasConDatos } from '../lib/historial'
 
@@ -189,7 +189,7 @@ function Misiones({ data, profile, ocupado, onPedir, misPendientes, misAprobadas
   const hoy = dayKey(new Date())
   // `dia` deja fuera las que hoy no tocan por su patrón semanal. El
   // tablero responde «¿qué me toca HOY?»; el panel sigue viéndolas todas.
-  const disponibles = misionesDe(profile, data.challenges, { dia: new Date() }).filter((ch) =>
+  const disponibles = planDelDia(profile, data.challenges, data.planDiario, new Date()).filter((ch) =>
     canDo(ch, data.completions, profile.id)
   )
   const porFrecuencia = agruparPorFrecuencia(disponibles)

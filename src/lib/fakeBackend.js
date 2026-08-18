@@ -24,7 +24,9 @@ const TABLAS = [
   'profile_badges',
   'app_logs',
   'bonuses',
-  'power_uses'
+  'power_uses',
+  'push_log',
+  'plan_diario'
 ]
 
 const vacia = () => TABLAS.reduce((acc, t) => ({ ...acc, [t]: [] }), {})
@@ -43,7 +45,9 @@ const DEFECTOS_TABLA = {
   app_logs: { datos: {} },
   bonuses: { tipo: 'globos', coins: 5 },
   power_uses: { target_id: null, nota: null },
-  families: { timezone: 'Europe/Madrid' }
+  families: { timezone: 'Europe/Madrid' },
+  push_log: { franja: 'tarde', enviados: 0 },
+  plan_diario: { origen: 'patron' }
 }
 
 /** Columnas de fecha que la base rellena sola, por tabla. */
@@ -94,6 +98,7 @@ class Consulta {
     this.tabla = tabla
     this.op = null
     this.filtros = []
+    this.rangos = []
     this.orden = null
     this.tope = null
     this.filas = null
@@ -140,6 +145,14 @@ class Consulta {
     return this
   }
 
+  // Solo lo básico que usa la app (la carga del plan filtra por fecha
+  // mínima). Comparar cadenas ISO 'YYYY-MM-DD' con >= funciona porque el
+  // orden lexicográfico coincide con el cronológico.
+  gte(columna, valor) {
+    this.rangos = [...this.rangos, { columna, valor }]
+    return this
+  }
+
   order(columna, opciones = {}) {
     this.orden = { columna, ascendente: opciones.ascending !== false }
     return this
@@ -165,7 +178,8 @@ class Consulta {
   }
 
   coincide(fila) {
-    return this.filtros.every((f) => fila[f.columna] === f.valor)
+    return this.filtros.every((f) => fila[f.columna] === f.valor) &&
+      this.rangos.every((r) => (fila[r.columna] ?? '') >= r.valor)
   }
 
   ejecutar() {

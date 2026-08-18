@@ -88,3 +88,20 @@ describe('qué frase toca', () => {
     expect(() => componerAviso('lo_que_sea', BASE)).toThrow()
   })
 })
+
+describe('el recordatorio de programar (sin_programar)', () => {
+  it('se compone sin reventar y no habla de números', () => {
+    const a = componerAviso('sin_programar', { nombre: 'Ana', n: 0, dia: '2026-08-17', profileId: 'a1' })
+    expect(a.titulo.length).toBeGreaterThan(0)
+    expect(a.cuerpo.length).toBeGreaterThan(0)
+    // Programar no es una cuenta: la frase no debe colar un número.
+    expect(`${a.titulo} ${a.cuerpo}`).not.toMatch(/\d/)
+  })
+
+  it('entra en el banco general y por tanto pasa los filtros de tono y género', () => {
+    // todasLasPlantillas() ya recorre todos los bancos; esto solo fija que
+    // el motivo nuevo está enganchado y no se quedó suelto.
+    const frases = componerAviso('sin_programar', { nombre: 'X', n: 0, dia: '2026-08-17', profileId: 'z' })
+    expect(frases).toHaveProperty('titulo')
+  })
+})

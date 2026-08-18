@@ -184,6 +184,70 @@ export function diasNeutros(perfil, challenges = [], { hoy = new Date(), ventana
 }
 
 // ------------------------------------------------------------------
+// El plan del día: una capa por fecha encima del patrón
+//
+// Lo pidió la familia (17-ago): decidir cada noche qué harán al día
+// siguiente la junior y la peque. Es una CAPA, no un requisito: si no hay
+// plan para esa fecha, manda el patrón y el día sale exactamente como
+// hoy. Olvidar programar no cambia nada.
+//
+// Solo toca las DIARIAS. Con plan, las diarias salen SOLO las que están en
+// el plan (por `challenge_id`, incluidas las pausadas que un adulto metió
+// como sustituta —se resuelven por id aunque `active` sea false, y ese es
+// justo el caso de «sustituir por hoy sin activarla»). Semanales,
+// mensuales y únicas se resuelven por su vía de siempre, plan o no.
+//
+// «Hay plan» se mira POR PERFIL, no por familia: si el adulto programó a
+// la junior y no a la peque, la peque sigue con su patrón en vez de
+// quedarse con el tablero vacío. Un plan vacío (deseleccionar todo) no se
+// representa —no se escribe ninguna fila—, así que equivale a «no hay
+// plan» y vuelve el patrón; deshacer un día entero no es el caso de uso.
+// ------------------------------------------------------------------
+
+// La fecha del plan (`dia`, un 'YYYY-MM-DD' de Postgres) se compara SIN
+// pasar por `new Date(...)`: parsear una fecha suelta la clava a medianoche
+// UTC, y en una zona con desfase negativo eso retrocede un día. Se
+// normaliza a la misma forma sin ceros que da `dayKey` y se comparan como
+// texto. Es la lección de la 018 y la 024.
+function claveISO(iso) {
+  const [a, m, d] = String(iso).slice(0, 10).split('-').map(Number)
+  return `${a}-${m}-${d}`
+}
+
+/** Las filas de plan de un perfil para una fecha. */
+export function planDeperfil(planFilas = [], perfil, fecha = new Date()) {
+  if (!perfil) return []
+  const clave = dayKey(fecha)
+  return planFilas.filter((f) => f.profile_id === perfil.id && claveISO(f.dia) === clave)
+}
+
+/** ¿Hay plan confirmado para este perfil ese día? */
+export function hayPlan(planFilas = [], perfil, fecha = new Date()) {
+  return planDeperfil(planFilas, perfil, fecha).length > 0
+}
+
+/**
+ * Lo que le sale a un perfil ese día, resolviendo el plan si lo hay.
+ *
+ * Sin plan es EXACTAMENTE `misionesDe(perfil, challenges, { dia })`: la
+ * capa envuelve, no reemplaza. Un test lo fija.
+ */
+export function planDelDia(perfil, challenges = [], planFilas = [], fecha = new Date()) {
+  const mias = planDeperfil(planFilas, perfil, fecha)
+  const porPatron = misionesDe(perfil, challenges, { dia: fecha })
+  if (!mias.length) return porPatron
+
+  // Con plan: las diarias salen del plan (por id, pausadas incluidas); el
+  // resto de frecuencias, por su vía normal.
+  const porId = new Map(challenges.map((ch) => [ch.id, ch]))
+  const diariasDelPlan = mias
+    .map((f) => porId.get(f.challenge_id))
+    .filter((ch) => ch && ch.frequency === 'diario')
+  const noDiarias = porPatron.filter((ch) => ch.frequency !== 'diario')
+  return [...diariasDelPlan, ...noDiarias]
+}
+
+// ------------------------------------------------------------------
 // El destino, como un solo valor para el formulario
 //
 // En la base son dos columnas, pero en pantalla es UNA pregunta: «¿para

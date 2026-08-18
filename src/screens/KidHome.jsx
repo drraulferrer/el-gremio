@@ -8,7 +8,7 @@ import { useMantenerPulsado } from '../lib/mantenerPulsado'
 import { flex, generoDe } from '../lib/genero'
 import { premiosParaPeque, estrellasDe, estrellasQueCuesta } from '../lib/premios'
 import { sugerenciasDeElogio, rachaDeMision } from '../lib/elogio'
-import { misionesDe } from '../lib/misiones'
+import { planDelDia } from '../lib/misiones'
 import { estadoDelJuego, siguientePremio, esDeHoy, juegoDelDia, diaCompleto, claveFiesta } from '../lib/juego'
 import Juego from './JuegosPeque'
 import FichaPeque from './FichaPeque'
@@ -58,7 +58,10 @@ export default function KidHome({ family, data, profile, refresh, onSalir }) {
   // explicar («hoy esa no») y se toca igual. Que no esté es la única forma
   // de que la pantalla siga diciendo la verdad completa, que es lo que
   // hace que la fiesta de «ya están todas» signifique algo.
-  const misiones = misionesDe(profile, data.challenges, { dia: new Date() })
+  // Si hay plan para hoy, manda el plan; si no, el patrón, igual que
+  // antes. `planDiario` puede no estar cargado (base sin migración 025):
+  // planDelDia lo trata como «sin plan».
+  const misiones = planDelDia(profile, data.challenges, data.planDiario, new Date())
 
   const hoy = dayKey(new Date())
   const estrellasHoy = data.completions.filter(

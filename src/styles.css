@@ -1239,7 +1239,7 @@ code { background: var(--tablero-hondo); padding: 2px 6px; border-radius: 6px; f
 
 .dia-casilla.sel {
   background: var(--carta-alta);
-  border-color: var(--acento);
+  border-color: var(--oro);
   color: var(--tinta);
 }
 
@@ -1263,10 +1263,65 @@ code { background: var(--tablero-hondo); padding: 2px 6px; border-radius: 6px; f
 
 .dia-punto.sel {
   background: var(--carta-alta);
-  border-color: var(--acento);
+  border-color: var(--oro);
   color: var(--tinta);
   opacity: 1;
 }
+
+/* Programar mañana: cada diaria como una fila que se marca. La caja de
+   toque es la fila entera (48 px de alto), no un cuadradito. El estado
+   marcado se lee por el fondo Y el ✓, no solo por color. */
+.plan-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 48px;
+  padding: 8px 12px;
+  margin-bottom: 6px;
+  border-radius: var(--radio-s);
+  border: 1.5px solid var(--linea);
+  background: var(--tablero-hondo);
+  color: var(--tinta-suave);
+  font-family: var(--cuerpo);
+  font-size: 0.95rem;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color var(--t-rapido) var(--ease-salida);
+}
+
+.plan-toggle.sel {
+  background: var(--carta-alta);
+  border-color: var(--oro);
+  color: var(--tinta);
+}
+
+.plan-toggle.pausada { opacity: 0.75; }
+.plan-toggle .avatar { width: 30px; height: 30px; font-size: 1rem; }
+
+.plan-check {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  line-height: 24px;
+  text-align: center;
+  border-radius: 999px;
+  font-weight: 800;
+  background: var(--linea);
+  color: var(--tinta-suave);
+}
+
+.plan-toggle.sel .plan-check { background: var(--oro); color: #2a2410; }
+
+.plan-pausadas { margin: 4px 0 8px; }
+.plan-pausadas summary {
+  cursor: pointer;
+  color: var(--tinta-suave);
+  font-size: 0.85rem;
+  padding: 4px 0;
+}
+
+.ok-texto { color: var(--exito); font-weight: 700; font-size: 0.95rem; }
 
 .chip-habilidad {
   flex: none;
@@ -2562,3 +2617,20 @@ button.kid-avatar.latiendo { animation: latido-aviso 2.6s var(--ease-salida) inf
   font-size: 0.86rem;
   line-height: 1.5;
 }
+
+/* Las misiones en pausa, plegadas al final de la lista. El resumen es el
+   objetivo táctil, así que va a 44 px como todo lo demás. */
+.pausadas-bloque { margin: 18px 0 4px; }
+.pausadas-bloque > summary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  min-height: 44px;
+  padding: 0 4px;
+  cursor: pointer;
+  color: var(--tinta-suave);
+  font-size: 0.88rem;
+  border-top: 1.5px solid var(--linea);
+}
+.pausadas-bloque[open] > summary { margin-bottom: 6px; }

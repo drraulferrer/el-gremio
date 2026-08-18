@@ -28,7 +28,7 @@
 //    la credibilidad de todo lo demás.
 // ------------------------------------------------------------------
 
-export type Motivo = 'racha_riesgo' | 'sin_validar' | 'vuelve'
+export type Motivo = 'racha_riesgo' | 'sin_validar' | 'vuelve' | 'sin_programar'
 
 export interface Aviso {
   titulo: string
@@ -80,10 +80,23 @@ const SIN_VALIDAR: Plantilla[] = [
   })
 ]
 
+// El recordatorio de las ~21:00 para un adulto: registrar lo de hoy y
+// dejar programado lo de mañana. Sin culpa y sin marca de género, como el
+// resto: lo pueden leer los dos adultos, uno de los cuales puede no haber
+// dicho su género. No usa `n` a propósito —programar no es una cuenta—.
+const SIN_PROGRAMAR: Plantilla[] = [
+  ({ nombre }) => ({ titulo: 'Antes de dormir', cuerpo: `${nombre}, ¿dejamos preparado lo de mañana?` }),
+  () => ({ titulo: 'Dos minutos y a la cama', cuerpo: '¿Registraste lo de hoy y programaste mañana?' }),
+  () => ({ titulo: 'Mañana empieza esta noche', cuerpo: 'Deja elegidas las misiones del gremio para mañana.' }),
+  ({ nombre }) => ({ titulo: `${nombre}, un último paso`, cuerpo: 'Programa el día de mañana y a descansar.' }),
+  () => ({ titulo: 'El plan de mañana', cuerpo: 'Aún no está. ¿Lo dejamos hecho en un momento?' })
+]
+
 const BANCOS: Record<Motivo, Plantilla[]> = {
   racha_riesgo: RACHA_RIESGO,
   vuelve: VUELVE,
-  sin_validar: SIN_VALIDAR
+  sin_validar: SIN_VALIDAR,
+  sin_programar: SIN_PROGRAMAR
 }
 
 /**

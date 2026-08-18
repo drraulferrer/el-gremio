@@ -73,9 +73,13 @@ si falla `supabase`, casi seguro que el proyecto está pausado (ver §7).
 ✅ 020  escala · 021 anon no ejecuta · 022 aceptación legal (16-ago)
 ✅ 023  salud diaria (16-ago)
 ✅ 024  días de la semana en las misiones (16-ago, tarde)
+⏳ 025  plan_diario: programar las diarias del día siguiente (17-ago) · ESCRITA, SIN EJECUTAR
+⏳ 026  franja de noche + aviso sin_programar (17-ago) · ESCRITA, SIN EJECUTAR
 ```
 
-**Ya no queda nada pendiente en la base.** La 024 se ejecutó y se
+**Quedan DOS migraciones sin ejecutar: la 025 y la 026** (programación
+diaria; ver §8). Van antes del próximo `npm run deploy`, en orden, y cada
+una con su comprobación al final. La 024 sí se ejecutó y se
 comprobó: los cinco contadores del final del fichero a 1, el array vacío
 rechazado de verdad, 51 misiones con **cero patrones puestos** —o sea,
 nadie notó nada, que es lo que tenía que pasar— y la vista de avisos
@@ -1509,16 +1513,25 @@ el sitio donde mirar es **Authentication → Auth Logs** —un fallo de SMTP
 sale ahí en vez de un «request completed»— y después el tope de 30/hora
 en Rate Limits.
 
-### Lo primero al retomar: desplegar
+### Lo primero al retomar: ejecutar 025 y 026, luego desplegar
 
-La migración 024 ya está ejecutada (§2), o sea que la base va POR DELANTE
-del bundle publicado: la columna existe y nadie puede usarla todavía. Es
-el orden bueno —el revés fue el que dejó fuera a una familia entera, §7e—
-pero deja la funcionalidad a medio encender hasta que se despliegue.
+Hay DOS migraciones escritas y sin ejecutar (programación diaria, más abajo en §8).
+Van ANTES del `npm run deploy`, en orden, cada una con su comprobación al
+final del fichero. La forma buena de pegarlas (repo público, sin el truco
+de MacRoman) está más arriba en §2.
+
+1. `migracion-025-plan-diario.sql` → los cinco contadores a 1, y el
+   guardarraíl de fecha rechaza una fecha a 30 días (P0001).
+2. `migracion-026-avisos-noche.sql` → los tres a 1, y el índice viejo
+   `idx_push_log_uno_al_dia` ya NO está (0).
+
+Y solo entonces:
 
 ```bash
 cd ~/el-gremio && npm run verify && npm run deploy && npm run health
 ```
+
+La 024 sí está ya ejecutada en producción (§2).
 
 ### Y después: los avisos en los móviles
 
@@ -1647,6 +1660,84 @@ desde la 019, así que arreglar la cuenta en un sitio la arregló en los
 dos. Si llevara su propia copia, hoy habría dos que mantener y el aviso
 diría 12 mientras el cobro pagaba por 4.
 
+### Programación diaria de tareas · CONSTRUIDO (17-ago)
+
+Lo pidió la familia: que un adulto decida cada noche qué harán al día
+siguiente la junior y la peque. Está hecho de punta a punta y verificado
+en el navegador; **falta ejecutar las migraciones 025 y 026 y desplegar**
+(§8, «Lo primero al retomar»).
+
+**LA DECISIÓN QUE LO SOSTIENE, y que hay que respetar si se toca: el plan
+es una CAPA por fecha ENCIMA del patrón semanal, no un requisito.** Si
+nadie programa, manda el patrón y el día sale como siempre —olvidarlo no
+rompe nada y la racha no sufre—. Solo aplica a las DIARIAS; semanales,
+mensuales y únicas van por su vía. Tres decisiones más, cerradas con la
+familia:
+
+- **Sustituir es solo para ese día.** El plan es por fecha: la sustituta
+  sale mañana y pasado vuelve el patrón. Una pausada metida en el plan
+  sale por su id **sin activarse** —ese es el caso de «sustituir por hoy
+  sin tocar el patrón»—; la biblioteca, en cambio, activa permanente, y la
+  UI lo dice.
+- **«Hay plan» se mira por PERFIL, no por familia.** Si el adulto programó
+  a la junior y no a la peque, la peque sigue con su patrón, no con el
+  tablero vacío. Un plan vacío (deseleccionar todo) no se escribe: equivale
+  a «sin plan» y vuelve el patrón.
+- **Dos franjas de aviso, no una.** El tope de `push_log` pasó de «uno al
+  día» a «uno por franja»: tarde (17-19, hacer misiones) y noche (20-22,
+  el recordatorio de programar). Máximo dos al día, y no se pisan.
+
+**El motor: la capa `planDelDia`** en `src/lib/misiones.js`. Sin plan
+para esa fecha devuelve EXACTAMENTE `misionesDe({dia})` —un test lo fija
+elemento a elemento—, así que los tableros no cambian de comportamiento
+mientras nadie programe. La fecha del plan se compara sin `new Date(cadena)`,
+que es la trampa de zona de la 018/024.
+
+**Dónde está cada cosa:**
+
+- `plan_diario` (migración 025): una fila por (familia, dia, misión
+  diaria). RLS por familia, guardarraíl que solo deja programar hoy o
+  mañana, purga a 7 días en el cron de las 4:12, realtime.
+- Pantalla **«Programar mañana»**: un modal desde la pestaña Validar (NO
+  una séptima pestaña —seis ya entran justas a 360 px—). Preselecciona lo
+  que el patrón dice que toca mañana, se confirma o se sustituye. En
+  `ProgramarManana`/`ToggleMision` de `ParentPanel.jsx`.
+- Tableros `KidHome`/`Home`: pasan de `misionesDe({dia})` a
+  `planDelDia(..., data.planDiario, ...)`. Un solo punto de cambio en cada.
+- Avisos: `push_pendientes` expone `sin_plan_manana` (la vista NO decide la
+  franja, para que `?forzar` siga sirviendo); `notificar/index.ts` decide
+  la franja por la hora y, de noche, manda `sin_programar` al adulto sin
+  plan de mañana; `mensajes.ts` tiene el banco nuevo (sin culpa, sin
+  género, determinista). `?forzar=tarde|noche` fuerza una franja para
+  probar.
+
+**Verificado en el navegador** (demo): la preselección sale correcta para
+mañana (miércoles: «Sacar la basura» de L/X/V incluida), la sustitución de
+una activa por una pausada se guarda como `sustituta`, confirmar escribe
+las 4 filas del día, el tablero de la junior con plan de hoy muestra SOLO
+lo planificado —una pausada incluida— y NO el patrón, y sin plan vuelve el
+patrón sin diferencia. 578 tests en verde (22 nuevos en
+`tests/plan-diario.test.js` y el de `mensajes`).
+
+**Lo que NO se pudo probar en el navegador**: el reparto de avisos por
+franja (`sin_programar`, no pisar la tarde) vive en la Edge Function y la
+vista, y solo se prueba de verdad contra la base con las migraciones
+puestas. La lógica está en tests (mensajes) y el espejo SQL, pero el envío
+real hay que verificarlo al desplegar: forzar `notificar?forzar=noche` y
+comprobar dos filas en `push_log` con franjas distintas el mismo día.
+
+**Dos gotchas que salieron y conviene recordar:**
+
+- **El backend simulado no tenía `.gte` ni `plan_diario`.** La carga filtra
+  el plan por fecha con `.gte('dia', ...)`, y el backend demo solo entendía
+  `eq`: habría reventado en pantalla (la trampa clásica del §7). Añadidos
+  los dos a `fakeBackend.js`. Si se usa otro operador nuevo, lo mismo: o se
+  añade, o revienta solo en demo.
+- **`--acento` no existía como variable CSS.** La tira de días de la 024
+  usaba `border-color: var(--acento)`, que se ignoraba en silencio (el
+  borde se quedaba gris en vez de oro). Corregido a `var(--oro)` —el acento
+  real de la app— en la tira y en los toggles nuevos.
+
 ### Los dos poderes que faltan por cablear
 
 Ninguno es urgente y los dos tocan sitios delicados:
@@ -1672,7 +1763,8 @@ condicionan todo lo demás:
    pena tocar: si llevan dos semanas usándolo, lo siguiente es mirar el
    diagnóstico de economía con datos reales, no añadir funciones.
 
-Ya no hay nada pendiente en la base: las veinticuatro migraciones están
+En la base quedan pendientes la **025 y la 026** (programación diaria).
+Lo anterior, las veinticuatro primeras migraciones, están
 ejecutadas y comprobadas, la 024 incluida.
 
 ### Un detalle que mordía, ya arreglado

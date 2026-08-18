@@ -22,12 +22,29 @@ import { createClient } from 'npm:@supabase/supabase-js@2'
 import webpush from 'npm:web-push@3.6.7'
 import { componerAviso, type Motivo } from './mensajes.ts'
 
-// Franja en la que se avisa, en hora LOCAL DE LA FAMILIA (la vista ya la
-// devuelve convertida). De 17 a 20: por la mañana nadie va a ponerse a
-// hacer misiones camino del colegio, y más tarde de las nueve el aviso
-// solo sirve para acostarse con una tarea pendiente en la cabeza.
-const DESDE = 17
-const HASTA = 20
+// DOS franjas, las dos en hora LOCAL DE LA FAMILIA (la vista ya la
+// convierte). Cada franja es un trabajo distinto, y por eso el tope pasó
+// de «uno al día» a «uno por franja» (push_log, migración 026):
+//
+//   · TARDE (17-19): hacer las misiones de hoy. Por la mañana nadie se
+//     pone camino del colegio; es el hueco de después de comer y deberes.
+//   · NOCHE (20-22): el recordatorio para el adulto de registrar lo suyo
+//     y dejar programado mañana. Más tarde ya no sirve: se acuesta con la
+//     tarea en la cabeza en vez de hacerla.
+//
+// No se solapan: si lo hicieran, a las 20:00 llegarían las dos.
+const TARDE_DESDE = 17
+const TARDE_HASTA = 19
+const NOCHE_DESDE = 20
+const NOCHE_HASTA = 22
+
+type Franja = 'tarde' | 'noche'
+
+function franjaDe(hora: number): Franja | null {
+  if (hora >= TARDE_DESDE && hora <= TARDE_HASTA) return 'tarde'
+  if (hora >= NOCHE_DESDE && hora <= NOCHE_HASTA) return 'noche'
+  return null
+}
 
 const url = Deno.env.get('SUPABASE_URL')!
 const servicio = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
@@ -49,45 +66,63 @@ interface Pendiente {
   racha: number
   motivo: Motivo | null
   por_validar: number
+  sin_plan_manana: boolean
 }
 
-async function repartir(forzar: boolean) {
+async function repartir(forzarFranja: Franja | null) {
   const db = createClient(url, servicio, { auth: { persistSession: false } })
   const resumen = { candidatos: 0, avisados: 0, enviados: 0, caducadas: 0, saltados: [] as string[] }
 
-  const { data, error } = await db.from('push_pendientes').select('*').not('motivo', 'is', null)
+  // Sin filtro por motivo: un candidato de NOCHE (adulto sin plan de
+  // mañana) puede tener el motivo de tarde en null y aun así necesitar
+  // aviso. La franja y el motivo los decide el bucle, no el filtro.
+  const { data, error } = await db.from('push_pendientes').select('*')
   if (error) throw error
 
   const pendientes = (data || []) as Pendiente[]
   resumen.candidatos = pendientes.length
 
   for (const p of pendientes) {
-    if (!forzar && (p.hora < DESDE || p.hora > HASTA)) {
+    // La franja: forzada para probar, o la que toca por la hora local.
+    const franja = forzarFranja ?? franjaDe(p.hora)
+    if (!franja) {
       resumen.saltados.push(`${p.name}: fuera de horario (${p.hora}h)`)
       continue
     }
 
-    const n = p.motivo === 'sin_validar' ? p.por_validar : p.racha
-    const aviso = componerAviso(p.motivo!, {
+    // Cada franja tiene su motivo. La noche es SOLO el recordatorio de
+    // programar, y solo para el adulto que no ha dejado plan de mañana; la
+    // tarde, lo de siempre (racha, validar, vuelve).
+    const motivo: Motivo | null = franja === 'noche'
+      ? (p.role === 'adulto' && p.sin_plan_manana ? 'sin_programar' : null)
+      : p.motivo
+    if (!motivo) {
+      resumen.saltados.push(`${p.name}: nada que decir de ${franja}`)
+      continue
+    }
+
+    const n = motivo === 'sin_validar' ? p.por_validar : p.racha
+    const aviso = componerAviso(motivo, {
       nombre: p.name,
       n,
       dia: p.dia,
       profileId: p.profile_id
     })
 
-    // Apuntar ANTES de enviar. El índice único de `push_log` es el que
-    // garantiza «una al día»: si ya hay fila, este insert falla y aquí se
-    // acaba el trabajo para esta persona.
+    // Apuntar ANTES de enviar. El único de `push_log` (perfil, dia,
+    // franja) es el tope: si ya hay fila de ESTA franja, el insert falla y
+    // aquí se acaba el trabajo. La tarde y la noche no se pisan.
     const apunte = await db.from('push_log').insert({
       family_id: p.family_id,
       profile_id: p.profile_id,
       dia: p.dia,
-      motivo: p.motivo,
+      franja,
+      motivo,
       titulo: aviso.titulo,
       cuerpo: aviso.cuerpo
     })
     if (apunte.error) {
-      resumen.saltados.push(`${p.name}: ya avisado hoy`)
+      resumen.saltados.push(`${p.name}: ya avisado (${franja})`)
       continue
     }
     resumen.avisados++
@@ -103,7 +138,7 @@ async function repartir(forzar: boolean) {
       try {
         await webpush.sendNotification(
           { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
-          JSON.stringify({ titulo: aviso.titulo, cuerpo: aviso.cuerpo, motivo: p.motivo })
+          JSON.stringify({ titulo: aviso.titulo, cuerpo: aviso.cuerpo, motivo })
         )
         ok++
         await db.from('push_subs').update({ ultimo_ok: new Date().toISOString(), fallos: 0 }).eq('id', sub.id)
@@ -123,7 +158,8 @@ async function repartir(forzar: boolean) {
     }
 
     resumen.enviados += ok
-    await db.from('push_log').update({ enviados: ok }).eq('profile_id', p.profile_id).eq('dia', p.dia)
+    await db.from('push_log').update({ enviados: ok })
+      .eq('profile_id', p.profile_id).eq('dia', p.dia).eq('franja', franja)
   }
 
   return resumen
@@ -137,14 +173,15 @@ Deno.serve(async (req: Request) => {
     })
   }
 
-  // `?forzar=1` salta la franja horaria para poder probar a cualquier
-  // hora. No salta el tope de una al día: ese no se salta ni probando,
-  // porque probar mandando tres avisos a la familia sería el peor ensayo
-  // posible.
-  const forzar = new URL(req.url).searchParams.get('forzar') === '1'
+  // `?forzar=tarde|noche` fuerza una franja para poder probar a cualquier
+  // hora; `?forzar=1` es la tarde (compatibilidad). No salta el tope por
+  // franja: ese no se salta ni probando, porque probar mandando avisos de
+  // más a la familia sería el peor ensayo posible.
+  const q = new URL(req.url).searchParams.get('forzar')
+  const forzarFranja: Franja | null = q === 'noche' ? 'noche' : (q === 'tarde' || q === '1') ? 'tarde' : null
 
   try {
-    const resumen = await repartir(forzar)
+    const resumen = await repartir(forzarFranja)
     return new Response(JSON.stringify(resumen), { headers: { 'content-type': 'application/json' } })
   } catch (err) {
     return new Response(JSON.stringify({ error: String(err) }), {

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { supabase, canDo, dayKey, goalProgress, ROLE_LABEL, FREQ_LABEL, mensajeDeError, esColumnaQueNoExiste } from '../lib/supabase'
+import { supabase, canDo, dayKey, goalProgress, ROLE_LABEL, FREQ_LABEL, mensajeDeError, esColumnaQueNoExiste, zonaActual } from '../lib/supabase'
 import { CATALOGO, DEFAULTS_ROL, RECOMENDADAS } from '../lib/tareas'
 import {
   resolverMision as resolverMisionRemota,
@@ -8,10 +8,17 @@ import {
   deshacerMision
 } from '../lib/acciones'
 import { perfilesActivos } from '../lib/miembros'
-import { avisoDeCarga } from '../lib/economia'
+import { avisoDeCarga, monedasPorDia } from '../lib/economia'
 import { premioAMano } from '../lib/acciones'
 import { revisarPremioManual, avisoDeCantidad, MAXIMO_MANUAL } from '../lib/premioManual'
-import { MONEDAS_POR_ESTRELLA, TECHO_PEQUE } from '../lib/premios'
+import {
+  MONEDAS_POR_ESTRELLA,
+  TECHO_PEQUE,
+  NIVELES,
+  PREMIOS_DE_ARRANQUE,
+  premiosDeArranqueQueFaltan
+} from '../lib/premios'
+import { PREMIOS_DE_LA_PEQUE } from '../lib/setup'
 import { SUBIDA_POR_TEMPORADA, precioSiguienteTemporada, premiosQueSuben } from '../lib/temporadas'
 import { quienMasAporta } from '../lib/meritos'
 import { habilidad, HABILIDADES } from '../lib/habilidades'
@@ -23,6 +30,7 @@ import Ajustes from './Ajustes'
 import Cuadro from './Cuadro'
 import {
   misionesDe,
+  tocaEl,
   destinoDe,
   destinoA,
   rolesDe,
@@ -41,6 +49,7 @@ import { emojiSugerido, GRUPOS_EMOJI_MISION, EMOJIS_MISION } from '../lib/emojis
 
 export default function ParentPanel({ family, data, refresh, refreshFamily, onVerTutorial, onExit }) {
   const [tab, setTab] = useState('pendientes')
+  const [programar, setProgramar] = useState(false)
   const [celeb, setCeleb] = useState(null)
   const [aviso, setAviso] = useState('')
 
@@ -119,6 +128,12 @@ export default function ParentPanel({ family, data, refresh, refreshFamily, onVe
 
       {tab === 'pendientes' && (
         <div>
+          {/* El ritual de fin de día: registrar lo de hoy y dejar
+              programado lo de mañana. Vive aquí y no en pestaña propia
+              porque es lo que se hace al cerrar el día. */}
+          <button className="btn btn-bloque" style={{ marginBottom: 14 }} onClick={() => setProgramar(true)}>
+            🌙 Programar mañana
+          </button>
           <div className="titulo-seccion">Misiones por validar</div>
           {pendientes.length === 0 && <div className="vacio">Nada por validar. Todo al día.</div>}
           {pendientes.map((c) => (
@@ -228,6 +243,15 @@ export default function ParentPanel({ family, data, refresh, refreshFamily, onVe
           refresh={refresh}
           refreshFamily={refreshFamily}
           onVerTutorial={onVerTutorial}
+        />
+      )}
+
+      {programar && (
+        <ProgramarManana
+          family={family}
+          data={data}
+          refresh={refresh}
+          onClose={() => setProgramar(false)}
         />
       )}
 
@@ -434,6 +458,21 @@ function ModoPeque({ family, data, refresh, onCeleb }) {
     await refresh()
   }
 
+  // Encender y apagar una misión es UN TOQUE, no un formulario.
+  //
+  // Antes solo se podía desde el lápiz: abrir la misión, buscar el par
+  // Activa/Pausada al final del formulario, pulsarlo y guardar. Cuatro
+  // pasos y un modal para cambiar un booleano, en la pantalla donde se
+  // decide cada mañana qué le toca hoy a la peque —que es justo donde eso
+  // se hace a diario—. El mismo botón que ya tienen los premios.
+  async function alternar(m) {
+    setOcupado(m.id)
+    const { error } = await supabase.from('challenges').update({ active: !m.active }).eq('id', m.id)
+    if (error) setFallo(mensajeDeError(error))
+    else await refresh()
+    setOcupado(null)
+  }
+
   async function darEstrella(reto, perfil) {
     setOcupado(reto.id)
     setFallo('')
@@ -467,18 +506,31 @@ function ModoPeque({ family, data, refresh, onCeleb }) {
     <div>
       <p className="suave" style={{ margin: '0 4px 10px' }}>
         Mismo efecto que su pantalla: la estrella y los puntos caen al momento. Útil cuando la tablet no está a
-        mano. El lápiz de al lado edita la misión —título, dibujo, puntos y frecuencia— y el botón del final de
-        cada lista crea una nueva, ya asignada a quien corresponde.
+        mano. El botón ▶/⏸ enciende y apaga la misión en un toque, el lápiz la edita —título, dibujo, puntos y
+        frecuencia— y el botón del final de cada lista crea una nueva, ya asignada a quien corresponde.
       </p>
       {fallo && <p className="error-texto" role="alert">{fallo}</p>}
       {peques.map((p) => {
         // Con las pausadas incluidas: si se ocultaran, pausar una desde
         // aquí la haría desaparecer de la única pantalla desde la que se
         // puede volver a activar.
-        const retos = misionesDe(p, data.challenges, { incluirPausadas: true })
+        // Las activas primero: una pausada en medio de la lista parte de
+        // un vistazo lo que hoy se puede tocar, y esta pantalla se lee de
+        // arriba abajo dando estrellas.
+        const retos = [...misionesDe(p, data.challenges, { incluirPausadas: true })].sort(
+          (a, b) => Number(b.active) - Number(a.active)
+        )
+        const enPausa = retos.filter((c) => !c.active).length
         return (
           <div key={p.id}>
-            <div className="titulo-seccion">{p.emoji} {p.name}</div>
+            <div className="titulo-seccion">
+              {p.emoji} {p.name}
+              {enPausa > 0 && (
+                <span className="chip" style={{ marginLeft: 8 }}>
+                  {enPausa} en pausa
+                </span>
+              )}
+            </div>
             {retos.length === 0 && <div className="vacio">Sin misiones todavía. Créale la primera aquí abajo.</div>}
             {retos.map((ch) => {
               const disponible = canDo(ch, data.completions, p.id)
@@ -493,6 +545,18 @@ function ModoPeque({ family, data, refresh, onCeleb }) {
                     <span className="peque-emoji">{ch.emoji}</span>
                     <span className="crece" style={{ textAlign: 'left' }}>{flex(ch.title, generoDe(p))}</span>
                     <span>{!ch.active ? '⏸' : disponible ? '⭐' : '✓'}</span>
+                  </button>
+                  <button
+                    className="btn-icono"
+                    onClick={() => alternar(ch)}
+                    disabled={ocupado === ch.id}
+                    aria-pressed={ch.active}
+                    aria-label={ch.active
+                      ? `Pausar ${flex(ch.title, generoDe(p))}`
+                      : `Activar ${flex(ch.title, generoDe(p))}`}
+                    title={ch.active ? 'Pausar: deja de salirle en su pantalla' : 'Activar: vuelve a salirle en su pantalla'}
+                  >
+                    <Icono nombre={ch.active ? 'pausar' : 'reanudar'} />
                   </button>
                   <button
                     className="btn-icono"
@@ -742,18 +806,50 @@ function GestionMisiones({ family, data, refresh }) {
         />
       )}
 
-      {/* Una misión pausada no desaparece: vuelve a la biblioteca y desde
-          allí se reactiva con su historial intacto. Decirlo aquí es lo que
-          separa «lo he guardado» de «lo he perdido». */}
+      {/* Una misión pausada no desaparece, y ahora tampoco hay que ir a
+          buscarla: se despliega aquí y se reenciende en un toque.
+          Sigue fuera de las listas de arriba a propósito —eran treinta
+          tarjetas al 50 % de opacidad de cosas que no están pasando—, pero
+          esconderlas detrás de la biblioteca convertía «volver a
+          encenderla» en abrir un modal, elegir persona y buscarla en el
+          catálogo. Plegada por defecto: se ve la cuenta, se abre quien la
+          necesita. */}
       {pausadas.length > 0 && (
-        <p className="pie-pausadas">
-          {pausadas.length === 1
-            ? '1 misión pausada está de vuelta en la biblioteca.'
-            : `${pausadas.length} misiones pausadas están de vuelta en la biblioteca.`}
-          <button className="btn btn-fantasma btn-mini" onClick={() => setPlantillas(true)}>
-            📚 Abrirla
-          </button>
-        </p>
+        <details className="pausadas-bloque">
+          <summary>
+            {pausadas.length === 1 ? '1 misión en pausa' : `${pausadas.length} misiones en pausa`}
+            <span className="suave"> · tócalas para volver a encenderlas</span>
+          </summary>
+          {pausadas.map((ch) => (
+            <div className="carta" key={ch.id} style={{ opacity: 0.72 }}>
+              <div className="fila">
+                <div className="avatar">{ch.emoji}</div>
+                <div className="crece">
+                  <strong>{flex(ch.title, generoDe(data.profiles.find((p) => p.id === ch.profile_id)))}</strong>
+                  <div className="suave">
+                    {destinoTexto(ch)} · +{ch.xp} XP · {ch.coins} 🪙
+                  </div>
+                </div>
+                <button
+                  className="btn btn-mini crece"
+                  onClick={() => alternar(ch)}
+                  aria-label={`Activar "${ch.title}"`}
+                >
+                  ▶ Activar
+                </button>
+                <button className="btn-icono" onClick={() => setEditando(ch)} aria-label={`Editar ${ch.title}`}>
+                  <Icono nombre="editar" />
+                </button>
+              </div>
+            </div>
+          ))}
+          <p className="suave" style={{ margin: '4px 4px 0' }}>
+            Conservan su historial. Si buscas una que nunca has creado, está en la{' '}
+            <button className="btn btn-fantasma btn-mini" onClick={() => setPlantillas(true)}>
+              📚 biblioteca
+            </button>
+          </p>
+        </details>
       )}
 
       {plantillas && (
@@ -942,6 +1038,214 @@ function FormMision({ mision, perfiles, onGuardar, onBorrar, onClose }) {
 // para un perfil concreto (defaults por rol, editables después).
 // --------------------------------------------------------------
 
+// --------------------------------------------------------------
+// Programar mañana: qué diarias harán la junior y la peque el día
+// siguiente. Es el ritual de fin de día, por eso vive en la pestaña
+// Validar y no como pestaña propia (seis ya entran justas a 360 px).
+//
+// El plan es una CAPA sobre el patrón: se preselecciona lo que el patrón
+// dice que toca mañana, se confirma —o se sustituye alguna por una
+// pausada, solo por ese día—. Si no se confirma, no pasa nada: manda el
+// patrón. Ver src/lib/misiones.js (planDelDia) y migración 025.
+// --------------------------------------------------------------
+
+// La fecha de mañana en la zona de la familia, como 'YYYY-MM-DD'. Se
+// calcula desde `dayKey` (que ya respeta la zona) y se avanza un día por
+// aritmética UTC, sin `new Date(cadena)`, que es la trampa de zona.
+function fechaDeManana(tz) {
+  const [a, m, d] = dayKey(new Date(), tz).split('-').map(Number)
+  const dt = new Date(Date.UTC(a, m - 1, d))
+  dt.setUTCDate(dt.getUTCDate() + 1)
+  return dt.toISOString().slice(0, 10)
+}
+
+const NOMBRE_DIA = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado']
+
+function ProgramarManana({ family, data, refresh, onClose }) {
+  const tz = zonaActual()
+  const manana = fechaDeManana(tz)
+  // Mediodía UTC: seguro para sacar el día de la semana en cualquier zona.
+  const fechaManana = new Date(manana + 'T12:00:00Z')
+  const nombreManana = NOMBRE_DIA[fechaManana.getUTCDay()]
+
+  // Solo junior y peque: los adultos programan, no se programan.
+  const ninos = perfilesActivos(data.profiles).filter((p) => p.role === 'junior' || p.role === 'peque')
+
+  const diariasDe = (perfil, incluirPausadas = false) =>
+    misionesDe(perfil, data.challenges, { incluirPausadas }).filter((c) => c.frequency === 'diario')
+
+  // Selección inicial por perfil: las diarias activas que el patrón dice
+  // que tocan mañana. El adulto quita, o añade una pausada.
+  const [sel, setSel] = useState(() => {
+    const inicial = {}
+    for (const n of ninos) {
+      inicial[n.id] = new Set(diariasDe(n).filter((c) => tocaEl(c, fechaManana)).map((c) => c.id))
+    }
+    return inicial
+  })
+  const [abrirBiblioteca, setAbrirBiblioteca] = useState(false)
+  const [guardando, setGuardando] = useState(false)
+  const [fallo, setFallo] = useState('')
+  const [hecho, setHecho] = useState(false)
+
+  function alternar(perfilId, challengeId) {
+    setSel((s) => {
+      const suyo = new Set(s[perfilId])
+      if (suyo.has(challengeId)) suyo.delete(challengeId)
+      else suyo.add(challengeId)
+      return { ...s, [perfilId]: suyo }
+    })
+  }
+
+  const retoDe = (id) => data.challenges.find((c) => c.id === id)
+  const totalSel = ninos.reduce((t, n) => t + (sel[n.id]?.size || 0), 0)
+
+  async function confirmar() {
+    setGuardando(true)
+    setFallo('')
+    const filas = []
+    for (const n of ninos) {
+      for (const id of sel[n.id] || []) {
+        const reto = retoDe(id)
+        if (!reto) continue
+        // Deriva el origen: si es una activa que hoy tocaba por patrón, es
+        // 'patron'; cualquier otra (pausada, o activa que el patrón no
+        // ponía mañana) es una sustitución de ese día.
+        const origen = reto.active && tocaEl(reto, fechaManana) ? 'patron' : 'sustituta'
+        filas.push({ family_id: family.id, dia: manana, challenge_id: id, profile_id: n.id, origen })
+      }
+    }
+
+    // Reconfirmar limpia lo anterior de ese día: el plan es idempotente,
+    // no se acumula. Borra solo el de mañana, no toca otros días.
+    const { error: eBorrar } = await supabase
+      .from('plan_diario').delete().eq('family_id', family.id).eq('dia', manana)
+    if (eBorrar) return acabarConFallo(eBorrar)
+
+    if (filas.length) {
+      const { error: eIns } = await supabase.from('plan_diario').insert(filas)
+      if (eIns) return acabarConFallo(eIns)
+    }
+
+    setGuardando(false)
+    setHecho(true)
+    await refresh()
+  }
+
+  function acabarConFallo(error) {
+    setGuardando(false)
+    // La tabla puede no existir si falta la migración 025. Se dice claro
+    // en vez de un error críptico; la app no depende de esto para lo demás.
+    const falta = error.code === '42P01' || error.code === 'PGRST205'
+    setFallo(falta
+      ? 'La programación diaria necesita la migración 025, que aún no está en la base.'
+      : mensajeDeError(error))
+  }
+
+  if (abrirBiblioteca) {
+    return (
+      <Biblioteca
+        family={family}
+        data={data}
+        refresh={refresh}
+        onClose={() => setAbrirBiblioteca(false)}
+      />
+    )
+  }
+
+  return (
+    <Modal titulo={`Programar el ${nombreManana}`} onClose={onClose}>
+      {hecho ? (
+        <div>
+          <p className="ok-texto" role="status">
+            Listo. Mañana {nombreManana} saldrá lo que has elegido; el resto de días sigue el patrón.
+          </p>
+          <button className="btn btn-bloque" onClick={onClose}>Cerrar</button>
+        </div>
+      ) : (
+        <div>
+          {fallo && <p className="error-texto" role="alert">{fallo}</p>}
+          <p className="suave" style={{ marginTop: 0 }}>
+            Marcado sale ✓ va mañana. Puedes quitar alguna, o añadir una pausada solo por ese día.
+          </p>
+
+          {ninos.length === 0 && <div className="vacio">No hay junior ni peque en el gremio.</div>}
+
+          {ninos.map((n) => {
+            const activas = diariasDe(n)
+            const pausadas = diariasDe(n, true).filter((c) => !c.active)
+            const suyo = sel[n.id] || new Set()
+            return (
+              <section key={n.id} style={{ marginBottom: 16 }}>
+                <div className="fila" style={{ marginBottom: 8 }}>
+                  <div className="avatar" style={{ borderColor: n.color }}>{n.emoji}</div>
+                  <strong className="crece">{n.name}</strong>
+                  <span className="suave">{suyo.size} para mañana</span>
+                </div>
+
+                {activas.length === 0 && pausadas.length === 0 && (
+                  <div className="vacio">Sin misiones diarias. Se activan en Misiones.</div>
+                )}
+
+                {activas.map((c) => (
+                  <ToggleMision
+                    key={c.id}
+                    reto={c}
+                    marcado={suyo.has(c.id)}
+                    onToggle={() => alternar(n.id, c.id)}
+                  />
+                ))}
+
+                {pausadas.length > 0 && (
+                  <details className="plan-pausadas">
+                    <summary>Sustituir por una pausada ({pausadas.length})</summary>
+                    {pausadas.map((c) => (
+                      <ToggleMision
+                        key={c.id}
+                        reto={c}
+                        pausada
+                        marcado={suyo.has(c.id)}
+                        onToggle={() => alternar(n.id, c.id)}
+                      />
+                    ))}
+                  </details>
+                )}
+              </section>
+            )
+          })}
+
+          <div className="fila" style={{ marginTop: 4 }}>
+            <button className="btn crece" disabled={guardando} onClick={confirmar}>
+              {guardando ? 'Guardando…' : `Confirmar ${totalSel} para mañana`}
+            </button>
+            <button className="btn btn-fantasma btn-mini" onClick={() => setAbrirBiblioteca(true)}>
+              📚 Biblioteca
+            </button>
+          </div>
+          <p className="suave" style={{ fontSize: '0.8rem' }}>
+            La biblioteca activa la misión de forma permanente; una pausada vuelve solo por mañana.
+          </p>
+        </div>
+      )}
+    </Modal>
+  )
+}
+
+function ToggleMision({ reto, marcado, pausada, onToggle }) {
+  return (
+    <button
+      type="button"
+      className={'plan-toggle' + (marcado ? ' sel' : '') + (pausada ? ' pausada' : '')}
+      aria-pressed={marcado}
+      onClick={onToggle}
+    >
+      <span className="plan-check" aria-hidden="true">{marcado ? '✓' : '+'}</span>
+      <span className="avatar">{reto.emoji}</span>
+      <span className="crece">{reto.title}</span>
+    </button>
+  )
+}
+
 function Biblioteca({ family, data, refresh, onClose }) {
   const candidatos = perfilesActivos(data.profiles)
   const [perfilId, setPerfilId] = useState(candidatos[0]?.id || '')
@@ -1085,6 +1389,20 @@ function GestionPremios({ family, data, refresh }) {
   const [editando, setEditando] = useState(null)
   const [fallo, setFallo] = useState('')
   const [aMano, setAMano] = useState(false)
+  const [arranque, setArranque] = useState(false)
+
+  // El agujero de los primeros días, medido con la tienda que hay: si lo
+  // más barato está a más de una semana, la junior abre la tienda, no
+  // puede tocar nada y deja de abrirla. Se avisa con la cifra delante,
+  // no con una recomendación genérica.
+  const faltanDeArranque = premiosDeArranqueQueFaltan(data.rewards)
+  const alcanzables = data.rewards.filter((r) => r.active && r.cost > TECHO_PEQUE)
+  const masBarato = alcanzables.length ? Math.min(...alcanzables.map((r) => r.cost)) : null
+  const diasDelPrimero = masBarato === null ? null : Math.ceil(masBarato / monedasPorDia('junior'))
+  // Una tienda vacía es el caso PEOR, no el caso sin problema: si el aviso
+  // pidiera un precio para salir, el gremio que más lo necesita —el que
+  // todavía no tiene premios— sería justo el que no lo vería.
+  const arranqueLejos = masBarato === null || diasDelPrimero > 7
 
   async function guardar(r) {
     const fila = {
@@ -1139,6 +1457,20 @@ function GestionPremios({ family, data, refresh }) {
         </button>
       </div>
 
+      {/* El aviso solo sale si de verdad falta algo. Un cartel permanente
+          deja de leerse a la semana, y esto es una tarea de una sola vez. */}
+      {faltanDeArranque.length > 0 && arranqueLejos && (
+        <p className="aviso-carga" role="status">
+          ✨ {masBarato === null
+            ? 'No hay ningún premio que la junior pueda alcanzar.'
+            : `El premio más barato cuesta ${masBarato} 🪙: ${diasDelPrimero} días de la junior.`}{' '}
+          Los primeros días no llega a nada, y son los que deciden si esto se sigue usando.
+          <button className="btn btn-mini" style={{ marginLeft: 8 }} onClick={() => setArranque(true)}>
+            Ver premios de arranque
+          </button>
+        </p>
+      )}
+
       {aMano && (
         <PremioAMano
           data={data}
@@ -1177,7 +1509,145 @@ function GestionPremios({ family, data, refresh }) {
           <FormPremio premio={editando} onGuardar={guardar} onBorrar={editando.id ? borrar : null} />
         </Modal>
       )}
+
+      {arranque && (
+        <PremiosDeArranque
+          family={family}
+          data={data}
+          refresh={refresh}
+          onClose={() => setArranque(false)}
+        />
+      )}
     </div>
+  )
+}
+
+/**
+ * Los premios pequeños de los primeros días.
+ *
+ * Por qué existe esta pantalla y no se metieron sin más en el catálogo:
+ * el catálogo lo arma el alta una sola vez, y el gremio que ya está en
+ * producción se creó antes de que esto existiera. Además hay que poder
+ * QUITARLOS cuando el hábito se sostenga —son andamio—, y eso pide un
+ * sitio donde se vea qué son y por qué.
+ *
+ * Los de la peque van en la misma pantalla cuando hay peque: su tienda
+ * también nace vacía en un gremio creado antes del setup de agosto, y es
+ * exactamente el mismo gesto.
+ */
+function PremiosDeArranque({ family, data, refresh, onClose }) {
+  const hayPeque = perfilesActivos(data.profiles).some((p) => p.role === 'peque')
+  const puestos = new Set(data.rewards.map((r) => r.title))
+  const dePeque = hayPeque ? PREMIOS_DE_LA_PEQUE.filter((p) => !puestos.has(p.title)) : []
+
+  const [sel, setSel] = useState(
+    () => new Set([...premiosDeArranqueQueFaltan(data.rewards), ...dePeque].map((p) => p.title))
+  )
+  const [guardando, setGuardando] = useState(false)
+  const [fallo, setFallo] = useState('')
+
+  const bloques = [
+    {
+      clave: 'junior',
+      titulo: 'Para la junior y los adultos',
+      pie: `De ${Math.ceil(PREMIOS_DE_ARRANQUE[0].cost / monedasPorDia('junior'))} a ` +
+        `${Math.ceil(PREMIOS_DE_ARRANQUE[PREMIOS_DE_ARRANQUE.length - 1].cost / monedasPorDia('junior'))} ` +
+        `días de la junior. El primero del catálogo está a ${Math.ceil(NIVELES[1].coste[0] / monedasPorDia('junior'))}.`,
+      premios: PREMIOS_DE_ARRANQUE
+    },
+    ...(hayPeque
+      ? [{
+          clave: 'peque',
+          titulo: 'Para la peque',
+          pie: `Por debajo de ${TECHO_PEQUE} 🪙, que es lo único que le sale a ella en su tienda.`,
+          premios: PREMIOS_DE_LA_PEQUE
+        }]
+      : [])
+  ]
+
+  function alternarSel(titulo) {
+    const s = new Set(sel)
+    if (s.has(titulo)) s.delete(titulo)
+    else s.add(titulo)
+    setSel(s)
+  }
+
+  async function anadir() {
+    const elegidos = bloques
+      .flatMap((b) => b.premios)
+      .filter((p) => sel.has(p.title) && !puestos.has(p.title))
+    if (!elegidos.length) return
+    setGuardando(true)
+    // `family_id` explícito en todo insert derivado de perfiles: el SQL
+    // Editor se salta el RLS y una vez escribió en familias ajenas.
+    const { error } = await supabase.from('rewards').insert(
+      elegidos.map((p) => ({
+        family_id: family.id,
+        title: p.title,
+        emoji: p.emoji,
+        cost: p.cost,
+        tier: p.tier,
+        active: true
+      }))
+    )
+    setGuardando(false)
+    if (error) {
+      setFallo(mensajeDeError(error))
+      return
+    }
+    onClose()
+    await refresh()
+  }
+
+  const porPoner = bloques
+    .flatMap((b) => b.premios)
+    .filter((p) => sel.has(p.title) && !puestos.has(p.title)).length
+
+  return (
+    <Modal titulo="✨ Premios de arranque" onClose={onClose}>
+      <p className="suave" style={{ marginTop: 0 }}>
+        Premios pequeños para las primeras semanas, mientras el hábito todavía no se sostiene solo. Son
+        decisiones, no cosas: elegir la música, elegir la cena, quedarse un rato más.
+      </p>
+      <p className="suave">
+        <strong>Están pensados para retirarse.</strong> Cuando la rutina aguante sin ellos, pausálos desde la
+        lista y la tienda vuelve a ser la de siempre. No suben de precio al cambiar de temporada ni entran en el
+        diagnóstico de la economía.
+      </p>
+
+      {bloques.map((b) => (
+        <div key={b.clave}>
+          <div className="titulo-seccion">{b.titulo}</div>
+          <p className="suave" style={{ margin: '0 4px 6px', fontSize: '0.78rem' }}>{b.pie}</p>
+          {b.premios.map((p) => {
+            const ya = puestos.has(p.title)
+            return (
+              <label
+                key={p.title}
+                className="fila"
+                style={{ padding: '9px 4px', opacity: ya ? 0.45 : 1, cursor: ya ? 'default' : 'pointer' }}
+              >
+                <input
+                  type="checkbox"
+                  style={{ width: 22, height: 22, flex: 'none' }}
+                  disabled={ya}
+                  checked={ya || sel.has(p.title)}
+                  onChange={() => alternarSel(p.title)}
+                />
+                <span style={{ fontSize: '1.2rem' }}>{p.emoji}</span>
+                <span className="crece">{p.title}</span>
+                <span className="chip">{ya ? 'ya está' : `${p.cost} 🪙`}</span>
+              </label>
+            )
+          })}
+        </div>
+      ))}
+
+      {fallo && <p className="error-texto" role="alert">{fallo}</p>}
+      <button className="btn btn-bloque" style={{ marginTop: 12 }} disabled={porPoner === 0 || guardando} onClick={anadir}>
+        {guardando ? 'Añadiendo…' : `Añadir ${porPoner} ${porPoner === 1 ? 'premio' : 'premios'}`}
+      </button>
+    </Modal>
   )
 }
 
@@ -1316,7 +1786,10 @@ function GestionMeta({ family, data, refresh }) {
    * le añade dificultad, le quita el premio.
    */
   async function subirPrecios() {
-    const suben = premiosQueSuben(data.rewards, TECHO_PEQUE)
+    // El suelo del modelo, no el techo de la peque: entre los dos está el
+    // andamio de arranque, que tampoco sube. Encarecerlo no le añade
+    // dificultad, le quita el sentido —ver `premiosQueSuben`—.
+    const suben = premiosQueSuben(data.rewards, NIVELES[1].coste[0])
     if (!suben.length) return
 
     const barato = suben.reduce((a, b) => (a.cost < b.cost ? a : b))
@@ -1326,7 +1799,7 @@ function GestionMeta({ family, data, refresh }) {
       `¿Subir un ${subida} % el precio de los ${suben.length} premios de la tienda? ` +
       `Es lo que mantiene la dificultad ahora que el gremio produce más.\n\n` +
       `Por ejemplo, "${barato.title}" pasaría de ${barato.cost} a ${precioSiguienteTemporada(barato.cost)} monedas.\n\n` +
-      `Los premios de la peque no se tocan.`
+      `Los premios de la peque y los de arranque no se tocan.`
     if (!window.confirm(aviso)) return
 
     for (const r of suben) {
