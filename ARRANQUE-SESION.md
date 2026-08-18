@@ -2117,12 +2117,27 @@ cepilla al perro no se lleva nada. Se compra que la economía de las
 personas no se toque; se paga que el trabajo real no puntúe a quien lo
 hace. La alternativa queda apuntada en la spec por si algún día se revisa.
 
-**La 027 ya está ejecutada** (18-ago), con un susto por el camino que
-quedó como trampa en §7: la restricción de coherencia de especie aceptaba
-una mascota sin especie, porque un `CHECK` que da NULL pasa.
+**CONSTRUIDO Y EN PRODUCCIÓN (2.3.0).** La 027 está ejecutada y la
+interfaz también: alta en Miembros con rol «Mascota» y especie, pestaña
+propia en el panel para apuntar sus misiones, y sus premios aparte. Al dar
+de alta se le crean sus nueve misiones y cinco premios: sin eso habría que
+escribirlos a mano y nadie lo haría.
 
-**Lo que falta**: la interfaz, el catálogo semilla, los tests y la
-narrativa. Y hay tres preguntas abiertas al final de la spec,
+**Dos cosas que salieron al construirlo y no estaban en la spec:**
+
+- **Un agujero real en `esParaPerfil`**: una misión sin destinatario valía
+  para cualquiera, lo cual estaba bien mientras todos los perfiles eran
+  personas. **El perro habría heredado «Beber agua» y «Cocina».** Ahora al
+  animal solo le llega lo explícitamente suyo, nunca por omisión.
+- **Las mascotas cuentan en un cupo aparte** (`MAX_MASCOTAS`). El gremio
+  de casa ya tenía los ocho sitios ocupados, así que un tope compartido
+  significaba, literalmente, que no cabía el perro.
+
+**Lo que falta**: la narrativa. Y ahí lo importante es contar **por qué
+los trucos no son diarios**, que es lo más contraintuitivo de toda la app.
+
+**Y sigue abierta la pregunta del §7 de la spec**: si el XP de la mascota
+cuenta para la meta cooperativa. Hoy cuenta, por omisión. Y hay tres preguntas abiertas al final de la spec,
 una de ellas —si el XP de la mascota cuenta para la meta cooperativa— **es
 hoy una decisión por omisión**: contaría, y conviene tomarla a conciencia.
 
