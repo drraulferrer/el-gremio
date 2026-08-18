@@ -20,8 +20,10 @@ de mando con datos reales. Antes de añadir nada, lee §8.
 `npm run deploy`. Ahora es empujar y después `npm run vercel` (§7n).
 
 **Si abres sesión nueva, empieza por §8.** No hay nada a medias: no queda
-ninguna migración pendiente y los **685 tests están en verde**. Producción sirve la **2.5.1**; la **2.5.2** —la segunda mitad del icono
-del escritorio, §7t— está verificada en local y **sin publicar**. Lo que queda es de uso y de producto, no
+ninguna migración pendiente y los **685 tests están en verde**. **Producción sirve la 2.5.2** (`bdaf0c4`). Comprobado que
+`/apple-touch-icon.png`, `/apple-touch-icon-precomposed.png` y
+`/favicon.ico` responden ya con imagen de verdad —antes daban 200 con
+HTML— y que el fichero servido es idéntico al local por SHA-256. Lo que queda es de uso y de producto, no
 código bloqueado.
 
 ---
