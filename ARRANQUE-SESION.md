@@ -84,9 +84,13 @@ diario que lo mantiene despierto (§7n)—.
 ✅ 024  días de la semana en las misiones (16-ago, tarde)
 ✅ 025  plan_diario: programar las diarias del día siguiente (18-ago)
 ✅ 026  franja de noche + aviso sin_programar (18-ago)
+⏳ 027  perfiles de mascota (18-ago) · ESCRITA, SIN EJECUTAR
 ```
 
-**Ya no queda ninguna migración pendiente.** La 025 y la 026 se
+**Queda UNA migración sin ejecutar: la 027** (perfiles de mascota). Está
+escrita y **no se ha ejecutado**, a propósito: no hay todavía interfaz que
+la use, y ejecutarla suelta no rompe nada pero tampoco sirve de nada. Va
+cuando se construya el cliente, y ANTES que él (§7e). La 025 y la 026 se
 ejecutaron el 18-ago con el método del repo —traer el fichero con la
 consola del SQL Editor y cotejar el SHA-256 antes de pulsar Run: las dos
 coincidieron byte a byte (8.543 y 5.630) y los acentos salieron intactos—.
@@ -1965,7 +1969,9 @@ teclado.
    pero el gesto sigue teniendo que hacerlo una persona en cada móvil.
 2. **Un par de semanas de uso antes de añadir nada**, y entonces mirar el
    cuadro de mando y el diagnóstico de economía con datos reales.
-3. Lo demás —poderes por cablear, huecos de producto, backlog— está más
+3. **Perfiles de mascota**: spec escrita y migración lista, sin construir.
+   Ver más abajo y `docs/MASCOTAS.md`.
+4. Lo demás —poderes por cablear, huecos de producto, backlog— está más
    abajo y no corre prisa.
 
 **Cerrado el 18-ago y aquí solo como registro:** las migraciones 025 y
@@ -2055,6 +2061,48 @@ el esquema puede adelantarse a la Edge Function igual de silenciosamente.
 La regla completa es que **una funcionalidad de este proyecto tiene TRES
 piezas —esquema, bundle y Edge Function— y no está entregada hasta que las
 tres van a la vez.**
+
+### Perfiles de mascota · ESPECIFICADO, sin construir (18-ago)
+
+Perro o gato, con misiones y premios propios. **La spec completa, con la
+literatura que justifica cada decisión, está en `docs/MASCOTAS.md`**, y la
+migración `migracion-027-mascotas.sql` está escrita y sin ejecutar.
+
+Lo que hay que leer antes de tocarlo, porque **la evidencia contradice el
+diseño de esta app en tres puntos**:
+
+1. **Solo refuerzo positivo, sin excepciones** (AVSAB 2021). Ninguna misión
+   puede ser «corregir» ni «regañar», ni siquiera como opción editable. Si
+   la app sugiere una sola misión aversiva, está enseñando a la familia a
+   hacerle daño al animal con la coartada de un sistema de puntos.
+2. **Entrenar a diario es PEOR que espaciarlo, y eso choca con las
+   rachas** (Demant et al. 2011: 1–2 sesiones semanales adquieren mejor
+   que las diarias; una al día mejor que tres seguidas). Por eso los
+   TRUCOS se crean con patrón por días de la semana y no como diarios, y
+   los HÁBITOS sí son diarios porque ahí la constancia no es una técnica
+   de aprendizaje sino una necesidad del animal. **Esa distinción sostiene
+   todo el catálogo.**
+3. **Para un gato el premio por defecto no es comida** (Vitale Shreve et
+   al. 2017: el 50 % prefiere interacción social humana; el 37 %, comida).
+   Los premios felinos son juego y atención.
+
+Los hábitos de gato salen de las cinco columnas AAFP/ISFM, no de una lista
+inventada.
+
+**Y lo que la narrativa NO puede prometer:** el beneficio para los niños es
+real pero moderado y correlacional, y depende más de la calidad del vínculo
+y de la implicación en el cuidado que de tener animal. Se puede decir eso;
+no se puede decir que tener perro haga a un niño más empático.
+
+**Decisión tomada:** el XP va **solo al perfil de la mascota**. Quien
+cepilla al perro no se lleva nada. Se compra que la economía de las
+personas no se toque; se paga que el trabajo real no puntúe a quien lo
+hace. La alternativa queda apuntada en la spec por si algún día se revisa.
+
+**Lo que falta**: ejecutar la 027, la interfaz, el catálogo semilla, los
+tests y la narrativa. Y hay tres preguntas abiertas al final de la spec,
+una de ellas —si el XP de la mascota cuenta para la meta cooperativa— **es
+hoy una decisión por omisión**: contaría, y conviene tomarla a conciencia.
 
 ### Y después: los avisos en los móviles
 

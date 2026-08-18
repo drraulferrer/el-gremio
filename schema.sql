@@ -69,7 +69,12 @@ create table if not exists public.profiles (
   id uuid primary key default gen_random_uuid(),
   family_id uuid not null references public.families(id) on delete cascade,
   name text not null check (length(name) <= 40),
-  role text not null check (role in ('adulto','junior','peque')),
+  role text not null check (role in ('adulto','junior','peque','mascota')),
+  -- Perro o gato cuando el perfil es una mascota; null en las personas.
+  -- Solo esas dos especies: son para las que hay catálogo con fundamento,
+  -- y ofrecer «otro» sería prometer misiones que nadie ha justificado.
+  -- Ver docs/MASCOTAS.md.
+  species text,
   emoji text not null default '🙂',
   color text not null default '#a78bfa',
   xp integer not null default 0,
@@ -96,7 +101,7 @@ create table if not exists public.challenges (
   -- años en su pantalla. El predicado vive en src/lib/misiones.js.
   target_roles text[] check (
     target_roles is null
-    or (cardinality(target_roles) > 0 and target_roles <@ array['adulto','junior','peque']::text[])
+    or (cardinality(target_roles) > 0 and target_roles <@ array['adulto','junior','peque','mascota']::text[])
   ),
   title text not null check (length(title) <= 120),
   emoji text not null default '⭐',
@@ -141,6 +146,10 @@ create table if not exists public.completions (
   -- Elogio concreto de quien valida. Es el componente con más respaldo
   -- del sistema; el "muy bien" genérico pierde efecto por repetición.
   praise text check (praise is null or length(praise) <= 400),
+  -- Quién apuntó la misión cuando no la apunta su propio perfil: una
+  -- mascota no pulsa «¡Hecho!», lo hace un adulto en su nombre. Null en
+  -- todo lo anterior, que eran personas apuntándose lo suyo.
+  registrado_por uuid references public.profiles(id) on delete set null,
   requested_at timestamptz not null default now(),
   resolved_at timestamptz
 );
@@ -154,6 +163,9 @@ create table if not exists public.rewards (
   -- 1 decidir · 2 vivir · 3 celebrar. Los de nivel 1 son los que mejor
   -- sostienen el hábito porque premian con autonomía, no con cosas.
   tier integer not null default 2 check (tier between 1 and 3),
+  -- null = premio de la familia; 'mascota' = premio para el animal. Sin
+  -- esto, «paseo largo de olfateo» sale en la tienda de la junior.
+  target_role text check (target_role is null or target_role = 'mascota'),
   active boolean not null default true,
   created_at timestamptz not null default now()
 );
@@ -1472,8 +1484,9 @@ actividad as (
    where p.active
      -- La peque no recibe notificaciones: a los tres años el teléfono no
      -- es suyo, y avisar al aparato compartido por ella sería avisar a un
-     -- adulto de algo que no puede hacer.
-     and p.role <> 'peque'
+     -- adulto de algo que no puede hacer. Y una mascota, por razones que
+     -- no hace falta explicar.
+     and p.role not in ('peque','mascota')
 )
 select a.profile_id,
        a.family_id,
