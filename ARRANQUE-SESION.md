@@ -20,10 +20,8 @@ de mando con datos reales. Antes de añadir nada, lee §8.
 `npm run deploy`. Ahora es empujar y después `npm run vercel` (§7n).
 
 **Si abres sesión nueva, empieza por §8.** No hay nada a medias: no queda
-ninguna migración pendiente y los **683 tests están en verde**. **Producción sirve la 2.5.1** (`ba00891`), publicada el 18-ago a las
-19:58: la estética (§7s) más el arrastre de la peque y el icono del
-escritorio (§7t). Los cuatro PNG del icono responden 200 y el
-`apple-touch-icon` del HTML servido apunta ya a `/icon-180.png`. Lo que queda es de uso y de producto, no
+ninguna migración pendiente y los **685 tests están en verde**. Producción sirve la **2.5.1**; la **2.5.2** —la segunda mitad del icono
+del escritorio, §7t— está verificada en local y **sin publicar**. Lo que queda es de uso y de producto, no
 código bloqueado.
 
 ---
@@ -2706,6 +2704,15 @@ iOS, 192 y 512 para el manifiesto y un **maskable de 512** con el emblema
 al 60 % —Android recorta hasta el 20 % exterior según la forma del
 lanzador y el laurel se quedaba sin puntas—. Los avisos del service worker
 también usan PNG. `icon.svg` ya no existe.
+
+**Y faltaba la mitad, que se vio al probarlo (2.5.2).** Seguía saliendo
+una letra «E». iOS pide `/apple-touch-icon.png` y
+`/apple-touch-icon-precomposed.png` **por su cuenta**, sin leer el HTML, y
+el `rewrites` catch-all de `vercel.json` le devolvía `index.html` con un
+200: iOS daba el 200 por bueno, no podía decodificarlo y pintaba la
+inicial. Ahora esos dos ficheros existen de verdad, más `favicon.ico`. En
+Vercel el estático gana al rewrite. **Si algún día parecen duplicados de
+`icon-192.png`, NO se borran**: hay un test que lo explica.
 
 **Al probarlo hay que reinstalar la PWA**: el icono viejo se queda cacheado
 en el escritorio hasta que se borra y se vuelve a añadir.

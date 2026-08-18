@@ -18,6 +18,35 @@ verdad duele en esta app: que el esquema y el cliente dejen de encajar.
 
 ---
 
+## 2.5.2 · 18 de agosto de 2026
+
+**El icono del escritorio seguía saliendo como una letra «E».** La 2.5.1
+puso PNG de verdad y arregló media causa; faltaba la otra, que es propia
+de cómo está montado este sitio.
+
+iOS no se fía solo de las etiquetas del HTML: pide
+`/apple-touch-icon.png` y `/apple-touch-icon-precomposed.png` **por su
+cuenta**, en la raíz. Y `vercel.json` reescribe todo lo que no existe a
+`index.html`, así que esas dos rutas devolvían **200 con HTML**. iOS daba
+el 200 por bueno, intentaba decodificarlo como imagen, fallaba, y pintaba
+la inicial del nombre. La etiqueta `<link>` correcta no servía de nada
+porque el sondeo se resuelve antes.
+
+Ahora existen esos dos ficheros, más `favicon.ico`, que los navegadores
+sondean igual. En Vercel el estático gana al rewrite, así que el sondeo
+acierta. `icon-180.png` desaparece: lo sustituye `apple-touch-icon.png`,
+que es el mismo fichero en la ruta que de verdad se consulta.
+
+Dos tests nuevos: uno comprueba que los tres ficheros están, y el otro que
+el rewrite catch-all sigue ahí —que es justamente lo que los hace
+necesarios—, para que quien los vea algún día y le parezcan duplicados
+encuentre el porqué antes de borrarlos.
+
+**Hay que reinstalar la PWA para verlo**: el icono viejo se queda en el
+escritorio hasta que se borra el acceso y se vuelve a añadir.
+
+---
+
 ## 2.5.1 · 18 de agosto de 2026
 
 Dos cosas que solo se ven usando la app instalada en un móvil.

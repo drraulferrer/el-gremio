@@ -139,11 +139,33 @@ describe('el icono de la app instalada', () => {
 
   it('apple-touch-icon es PNG: iOS no admite SVG ahí', () => {
     // Con un SVG, iOS no puede leerlo y pone en el escritorio una
-    // miniatura de la web en vez del emblema. Era justo lo que pasaba.
+    // miniatura de la web en vez del emblema.
     const m = html.match(/<link rel="apple-touch-icon"[^>]*>/)
     expect(m).toBeTruthy()
     expect(m[0]).toMatch(/\.png/)
     expect(m[0]).not.toMatch(/\.svg/)
+  })
+
+  it('están los ficheros de las rutas que iOS sondea SOLO', () => {
+    // La trampa que costó el segundo intento: iOS pide
+    // /apple-touch-icon.png y /apple-touch-icon-precomposed.png por su
+    // cuenta, sin leer el HTML. Como vercel.json reescribe todo lo que no
+    // existe a index.html, esas rutas devolvían 200 con HTML; iOS daba el
+    // 200 por bueno, no podía decodificarlo y pintaba una «E».
+    //
+    // En Vercel el fichero estático gana al rewrite, así que basta con
+    // que existan. Si alguien los borra por parecer duplicados, vuelve la
+    // letra y nadie relaciona una cosa con la otra.
+    for (const f of ['apple-touch-icon.png', 'apple-touch-icon-precomposed.png', 'favicon.ico']) {
+      expect(publico, `falta ${f}: iOS lo sondea solo`).toContain(f)
+    }
+  })
+
+  it('el rewrite catch-all sigue ahí, que es lo que hace necesarios esos ficheros', () => {
+    // Si algún día se quita, este test recuerda por qué existían.
+    const vercel = JSON.parse(readFileSync(new URL('vercel.json', raiz), 'utf8'))
+    const pillaTodo = vercel.rewrites?.some((r) => r.source === '/(.*)' && r.destination === '/index.html')
+    expect(pillaTodo).toBe(true)
   })
 
   it('el manifiesto declara tamaños y tiene un icono maskable', () => {
