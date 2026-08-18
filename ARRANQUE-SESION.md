@@ -1791,20 +1791,38 @@ filosofía de siempre: `npm run deploy` publica en GitHub Pages (la red de
 seguridad) y `npm run vercel` en Vercel (lo que sirve el dominio).
 
 ### Lo que queda
-- **`www` sigue apuntando a `drraulferrer.github.io`** y no se tocó a
-  propósito: GitHub Pages lo redirige al ápice, que ya es Vercel, así que
-  funciona durante toda la transición. Moverlo a Vercel cuando el ápice
-  esté confirmado, y añadiendo antes `www.elgremioapp.com` al proyecto
-  como redirección, o dará un 404 de Vercel.
+- ~~Mover `www` a Vercel.~~ **HECHO** (18-ago). En este orden, que
+  importa: primero `www.elgremioapp.com` al proyecto **como redirección
+  308 al ápice** —no como sitio, que daría contenido duplicado y un
+  hostname que Turnstile no conoce—, y solo después el CNAME en Hostinger
+  a `0f700ed78b5b64af.vercel-dns-017.com`. Al revés, `www` habría dado un
+  404 de Vercel. Comprobado: `HTTP 308 → https://elgremioapp.com/`,
+  `server: Vercel`, un solo salto y 200 al final. El correo, sin tocar.
 - ~~Añadir `VITE_VAPID_PUBLIC` como Variable del repositorio.~~ **HECHO**
   (18-ago). Se comprobó que en el repositorio solo estaban tres, lo que
   confirma el bug: la vía de emergencia llevaba desde el 16-ago publicando
   una app sin avisos. Las cuatro están ahora y coinciden con el `.env`.
 
-**GitHub Pages se queda como red de seguridad**, no se retira. Sigue
-sirviendo en `drraulferrer.github.io/el-gremio` y `npm run deploy` sigue
-funcionando igual. Para volver atrás del todo: restaurar los A y AAAA del
-fichero de `docs/dns/`.
+**GitHub Pages se queda como red de seguridad, pero con un matiz que hay
+que saber ANTES de necesitarla.** La rama `gh-pages` sigue ahí y
+`npm run deploy` sigue publicando en ella igual que siempre. Lo que **no**
+se puede es verla: `drraulferrer.github.io/el-gremio/` **responde 301 al
+dominio**, o sea a Vercel, porque dentro de `gh-pages` viaja un `CNAME`
+con `elgremioapp.com` y Pages redirige su propia dirección a la
+personalizada. Medido el 18-ago, no supuesto.
+
+O sea que **la red de seguridad no es «abrir la dirección vieja»**: es
+**devolver el DNS**. Restaurar en Hostinger los cuatro A y los cuatro AAAA
+de `docs/dns/zona-elgremioapp-antes-de-vercel-2026-08-18.txt` y volver a
+poner el CNAME de `www` en `drraulferrer.github.io`. Con TTL 300 en los
+registros, eso surte efecto en minutos.
+
+Si algún día se quiere además poder MIRAR la copia de Pages sin tocar el
+DNS —para comparar dos versiones, por ejemplo—, hay que sacar el `CNAME`
+de la rama `gh-pages`; pero entonces deja de estar lista para el rollback
+por DNS, porque Pages solo sirve el dominio propio si ese fichero está.
+Son dos usos incompatibles y hay que elegir uno: hoy está elegido el
+rollback, que es el que importa cuando algo va mal.
 
 ### Dos trampas del trayecto, ya pagadas
 
