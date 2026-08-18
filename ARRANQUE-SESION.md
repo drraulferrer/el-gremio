@@ -1895,17 +1895,74 @@ falta `gh auth refresh -s workflow` **ya no aplica**.
 
 ---
 
+## 7o. El recordatorio de avisos (18 de agosto) · 2.2.0
+
+Nació de un número, no de una idea: al comprobar los avisos tras el
+despliegue salió que **de ocho perfiles activos, cinco no tenían ningún
+aparato registrado**. El sistema les escribía avisos en `push_log` que no
+salían a ninguna parte. Y no se notaba —la app funciona igual y el
+registro dice que el aviso «se apuntó»—, que es justo lo que lo hacía
+peligroso. La ironía: los tres que esa tarde tenían motivo `vuelve`
+—«hace días que no apareces»— eran de los que no podían recibirlo.
+
+**Dos piezas.** En el Setup, un paso que explica qué son, cuándo llegan y
+dónde se activan; **no los activa**, porque durante el alta el gremio
+todavía no existe y el permiso se concede aparato por aparato. Y en el
+panel parental, un aviso arriba mientras este dispositivo no los tenga,
+con cuántos miembros se quedarían sin nada, que lleva a 🔔 Avisos con la
+sección ya abierta.
+
+### Tres decisiones que conviene no deshacer
+
+1. **El aviso vive SOLO en el panel parental, detrás del PIN.** No es
+   pereza: es la misma razón que ya estaba escrita en `Avisos.jsx`. Pedir
+   el permiso del navegador es un gesto de UNA vez y, si se deniega, **no
+   vuelve a preguntar nunca**. Mejor un adulto con el móvil en la mano
+   que una niña de once años a la carrera. Un banner en el tablero de la
+   junior invitaría justo a eso.
+2. **El «deja de mostrarlo» se guarda en el APARATO, no en la base.** Una
+   suscripción pertenece a la instalación, así que «aquí no hay avisos» es
+   una verdad local: guardarlo por perfil lo escondería en el móvil de al
+   lado, donde sigue haciendo falta. La clave lleva el gremio dentro para
+   que dos familias en el mismo navegador no se pisen.
+3. **Calla cuando no serviría de nada**: navegador que ya bloqueó, aparato
+   que no puede, clave del despliegue ausente. El botón al que llevaría
+   tampoco funcionaría, y culpar a quien no tiene la culpa es ruido.
+
+### Lo que enseñó el trayecto
+
+**Un bug que ningún test habría cogido, y que solo apareció mirando la
+pantalla.** El mensaje de despedida —el que explica la ruta tras pulsar
+«Dejar de mostrar»— tapaba el panel **para siempre**: su rama cortaba
+antes de que se mirara el flag de oculto, así que «Entendido» no hacía
+nada. Los 617 tests estaban en verde y el build limpio. Es exactamente lo
+que dice §3 de este documento y por eso se repite aquí.
+
+**Y `push_subs` entró en el backend simulado.** Sin ella el aviso reventaba
+en modo demo mientras en producción habría funcionado: la peor
+combinación, porque la demo es justo donde se prueba. Es la trampa de §7
+del arranque, encontrada antes de pagarla porque estaba escrita.
+
+**Dónde está**: `lib/avisosPendientes.js` (la lógica y el porqué),
+`screens/AvisoPush.jsx` (el banner), el paso `avisos` de `Onboarding.jsx`,
+y `perfilesConAvisos()` en `lib/push.js` para el recuento —que devuelve
+`null` si falla, a propósito: el aviso distingue «no le llega a cinco» de
+«no he podido averiguarlo» y en el segundo caso no se inventa la cifra—.
+
+---
+
 ## 8. Pendientes
 
 **Lo que de verdad queda abierto, por orden.** Nada de esto es código
 bloqueado: son cosas de uso, o decisiones que piden datos antes que
 teclado.
 
-1. **Activar los avisos en los teléfonos que faltan.** Medido el 18-ago al
-   forzar la franja de noche: de seis perfiles, cuatro tenían algo que
-   decir y **solo dos tienen dónde recibirlo**. Hay que reinstalar la PWA
-   desde elgremioapp.com y activar Ajustes → 🔔 Avisos en cada aparato.
-   Es lo único que le falta a una funcionalidad ya montada y probada.
+1. **Activar los avisos en los teléfonos que faltan.** Medido el 18-ago:
+   **cinco de los ocho perfiles activos no tienen ningún aparato**. Hay
+   que reinstalar la PWA desde elgremioapp.com y activar Ajustes → 🔔
+   Avisos en cada uno. **Desde 2.2.0 la app lo recuerda sola** en el panel
+   parental (§7o), así que esto ya no depende de que alguien se acuerde;
+   pero el gesto sigue teniendo que hacerlo una persona en cada móvil.
 2. **Un par de semanas de uso antes de añadir nada**, y entonces mirar el
    cuadro de mando y el diagnóstico de economía con datos reales.
 3. Lo demás —poderes por cablear, huecos de producto, backlog— está más
