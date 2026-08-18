@@ -87,9 +87,9 @@ rechazando de verdad una fecha a 30 días (P0001 · `fuera_de_rango`); la
 desde fuera: `plan_diario` responde 400 a una columna inventada —o sea que
 existe— y `[]` a la lectura anónima, así que el RLS aguanta.
 
-**Pero la Edge Function `notificar` se quedó atrás y hay que
-redesplegarla** (§8). El esquema ya tiene lo de la 026 y su código en el
-repo también, pero lo que corre en Supabase es de hace dos días.
+La Edge Function `notificar` se había quedado atrás —lo desplegado era de
+dos días antes— y **también está ya al día** (versión 5, `verify_jwt` en
+false). Ojo con la bandera al redesplegarla: §8.
 
 La 024 sí se ejecutó y se comprobó: los cinco contadores del final del fichero a 1, el array vacío
 rechazado de verdad, 51 misiones con **cero patrones puestos** —o sea,
@@ -1267,7 +1267,7 @@ mensajes: **la función escribe en `push_log.titulo` la frase que compone**,
 así que basta con borrar la fila del día, volver a lanzarla y leer la
 columna. Salió «**1 día seguido**», con su acento. De paso quedó probado
 que el tope aguanta: a la adulta ya avisada la saltó con
-`saltados: ["Carol: ya avisado hoy"]` en vez de mandarle un segundo aviso.
+`saltados: ["<perfil>: ya avisado hoy"]` en vez de mandarle un segundo aviso.
 
 **La trampa de los acentos también vive en el editor de Edge Functions, no
 solo en el SQL Editor.** El primer pegado dejó el fichero lleno de
@@ -1281,13 +1281,14 @@ python3 -c "import subprocess;s=open('supabase/functions/notificar/mensajes.ts',
 ```
 
 **Y una ventana en la que un aviso no llega a nadie, descubierta al
-repetir el test.** Una consulta devolvió de pronto **dos aparatos de Raúl
-y ninguno de Irene**, y un minuto después uno por persona. No era un
-fallo: el teléfono de la junior tenía seleccionado el perfil de un adulto
-en ese momento, y `apuntarPerfil` **reasigna la suscripción al cambiar de
-perfil**, que es justo lo que se quiere en una tablet compartida. El envío
-cayó dentro de esa ventana, así que Irene se quedó sin aparato y su aviso
-se apuntó en `push_log` sin salir a ninguna parte.
+repetir el test.** Una consulta devolvió de pronto **dos aparatos de un
+adulto y ninguno de la junior**, y un minuto después uno por persona. No
+era un fallo: el teléfono de la junior tenía seleccionado el perfil de un
+adulto en ese momento, y `apuntarPerfil` **reasigna la suscripción al
+cambiar de perfil**, que es justo lo que se quiere en una tablet
+compartida. El envío cayó dentro de esa ventana, así que la junior se
+quedó sin aparato y su aviso se apuntó en `push_log` sin salir a ninguna
+parte.
 
 Consecuencia práctica, que no es teórica: **si el móvil de alguien se
 queda con otro perfil abierto, esa persona deja de recibir avisos y el
@@ -1838,35 +1839,60 @@ el sitio donde mirar es **Authentication → Auth Logs** —un fallo de SMTP
 sale ahí en vez de un «request completed»— y después el tope de 30/hora
 en Rate Limits.
 
-### Lo primero al retomar: redesplegar la Edge Function `notificar`
+### La Edge Function `notificar` ya está al día (18-ago) · HECHO
 
-**Las migraciones 025 y 026 ya están ejecutadas y comprobadas** (§2). Lo
-que quedó a medias es la otra pieza: `supabase/functions/notificar/` se
-cambió en el mismo commit que la 025 (`d516a64`, 18-ago 11:27) y ya usa
-`franja`, `sin_programar` y `sin_plan_manana` — pero **lo que corre en
-Supabase es de hace dos días**, porque las Edge Functions se despliegan
-aparte y no viajan con el repositorio.
+Estaba desplegada la de **hace dos días** mientras el esquema y el
+repositorio ya llevaban lo de la 026 (`franja`, `sin_programar`,
+`sin_plan_manana`). No se notaba —`push_log.franja` tiene `'tarde'` por
+defecto, así que los avisos de siempre seguían saliendo— y por eso era
+fácil que se quedara así para siempre: se enviaba todo menos el
+recordatorio de noche, en silencio.
 
-**No está roto, y por eso es fácil que se olvide:** `push_log.franja`
-tiene `'tarde'` por defecto, así que los avisos de siempre siguen
-saliendo. Lo que NO va a ocurrir es el recordatorio de noche —«registra lo
-tuyo y deja programado mañana»—, que es justamente aquello para lo que se
-escribió la 026. Se envía todo menos lo nuevo, en silencio.
+Redesplegada: **versión 5, `verify_jwt=False`**, comprobado con
+`supabase functions list`.
+
+**La trampa que casi se paga, y que hay que leer antes de volver a tocar
+esto.** La primera versión de esta sección decía:
 
 ```bash
-brew install supabase/tap/supabase
-supabase login                       # interactivo: lo tiene que hacer la persona
-supabase link --project-ref chfbrawsoulfiywiqhpe
-supabase functions deploy notificar
+supabase functions deploy notificar        # ← MAL, sin la bandera
 ```
 
-Y después comprobar que el aviso de noche sale de verdad, que es lo único
-que prueba que esto quedó cerrado:
+Ejecutado tal cual, **habría roto los avisos por completo**: la función se
+autentica con su propia cabecera `x-gremio-secreto` y está desplegada con
+`verify_jwt` en false (lo dice su propia cabecera, líneas 15-16). Sin la
+bandera, el despliegue reactiva la verificación de JWT y el cron —que
+manda `x-gremio-secreto` y ningún `Authorization`— empezaría a comerse
+401. Y como el fallo estaría en `cron.job_run_details` y no en la app,
+nadie se enteraría hasta echar de menos los avisos.
+
+**Cómo se comprueba en qué modo está la desplegada, sin deducirlo:** una
+llamada sin cabeceras. Si contesta `{"error":"no autorizado"}`, eso es la
+FUNCIÓN hablando y `verify_jwt` está en false. Si contestara el mensaje
+del gateway de Supabase, estaría en true.
+
+El comando bueno, y sin `supabase link` —que pediría la contraseña de la
+base sin necesitarla para esto—:
+
+```bash
+supabase functions deploy notificar --project-ref chfbrawsoulfiywiqhpe --no-verify-jwt
+```
+
+Comprobado después: sin secreto sigue dando el 401 de la función, y con él
+responde 200 con su resumen, saltando los perfiles por franja horaria.
+
+**Lo que queda por ver, y solo lo puede ver la familia:** que el aviso de
+noche llegue de verdad a los teléfonos. Se puede forzar con
+`?forzar=noche`, pero eso **envía notificaciones reales**, así que se hace
+cuando alguien quiera comprobarlo, no de pasada. Lo natural es esperar a
+las 21:00 y mirar:
 
 ```sql
 select l.dia, l.franja, l.motivo, l.enviados
   from public.push_log l order by l.created_at desc limit 10;
 ```
+
+Debe aparecer una fila con `franja = 'noche'`.
 
 **La lección, que es la del §7e otra vez y del revés.** Aquella decía que
 la migración va antes del despliegue del bundle, porque el cliente no
