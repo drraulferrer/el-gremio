@@ -20,6 +20,26 @@ No esperes a que se agote el contexto. Un cierre ordenado a tiempo vale
 más que dos tareas más apuradas: lo que no queda escrito en el arranque se
 pierde, y esta app se construye en sesiones largas y espaciadas.
 
+## Versionado
+
+`package.json` manda: `deploy.mjs` lee de ahí la versión que viaja en el
+bundle y en `app_logs.release`. **Súbela antes de desplegar algo nuevo** y
+anótalo en `CHANGELOG.md`:
+
+```bash
+npm version patch|minor|major --no-git-tag-version
+```
+
+- **mayor** — una migración deja al cliente viejo roto: el rollback de
+  frontend deja de ser seguro por sí solo.
+- **menor** — algo nuevo que la familia ve y usa.
+- **parche** — arreglos que no cambian lo que se puede hacer.
+
+`npm run deploy` avisa si la versión es la misma que en el último
+despliegue etiquetado. Es un aviso, no un bloqueo: republicar lo mismo es
+legítimo tras un rollback. Estuvo parada en 1.0.0 durante 55 despliegues
+por depender de acordarse.
+
 ## Cómo se trabaja aquí
 
 - **Verifica en el navegador, no solo compilando.** `npm run dev:demo` y

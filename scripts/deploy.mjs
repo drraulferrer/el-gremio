@@ -31,6 +31,25 @@ const rama = sh('git rev-parse --abbrev-ref HEAD')
 const version = JSON.parse(readFileSync('package.json', 'utf8')).version
 const sello = new Date().toISOString()
 
+// La versión es un campo a mano de package.json, y lo que depende de
+// acordarse no se hace: estuvo en 1.0.0 durante 55 despliegues y 102
+// commits, con el hash del commit haciendo todo el trabajo de identificar
+// qué corría cada dispositivo. Esto no bloquea el despliegue —a veces se
+// republica lo mismo a propósito, por ejemplo tras un rollback— pero lo
+// dice en voz alta.
+const ultimoDeploy = intentar('git tag --list "deploy-*" --sort=-creatordate')?.split('\n')[0]
+if (ultimoDeploy) {
+  const antes = intentar(`git show ${ultimoDeploy}:package.json`)
+  const versionAntes = antes ? JSON.parse(antes).version : null
+  if (versionAntes === version) {
+    console.warn(
+      `⚠  La versión sigue en ${version}, la misma que en ${ultimoDeploy}.\n` +
+      '   Si esto trae algo nuevo, súbela antes y anótala en CHANGELOG.md:\n' +
+      '     npm version patch|minor|major --no-git-tag-version\n'
+    )
+  }
+}
+
 console.log(`\n▸ Desplegando El Gremio ${version} (${commit}, rama ${rama})\n`)
 
 if (existsSync(DIST)) rmSync(DIST, { recursive: true, force: true })
