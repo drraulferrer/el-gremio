@@ -2,14 +2,19 @@
 
 Documento de continuidad. Si abres una sesión nueva sobre este proyecto,
 lee esto primero: dice dónde está todo, qué está hecho, qué falta y qué
-trampas tiene. Última actualización: **16 de agosto de 2026**, con la app
-en su propio dominio, **elgremioapp.com**, y el correo cerrado de punta a
-punta (SMTP propio, plantillas en español y confirmación de correo
-encendida).
+trampas tiene. Última actualización: **18 de agosto de 2026**, el día en
+que el sitio **dejó de servirse desde GitHub Pages y pasó a Vercel** (§7n)
+y en que se ejecutaron las dos migraciones que faltaban.
 
-Si solo vas a leer un párrafo: la app está **en producción y estable**; lo
-que queda no es código, es uso. Antes de añadir nada, lee §8 y pregunta
-las tres cosas de ahí.
+Si solo vas a leer un párrafo: la app está **en producción y estable**, en
+elgremioapp.com, servida por **Vercel**, con las cabeceras de seguridad
+que antes no se podían poner y con un cron diario que impide que Supabase
+se pause. **Ya no hay migraciones pendientes.** Lo que queda no es código,
+es uso: activar los avisos en los teléfonos que faltan y mirar el cuadro
+de mando con datos reales. Antes de añadir nada, lee §8.
+
+**Y lo primero que hay que saber, porque cambió hoy:** publicar ya no es
+`npm run deploy`. Ahora es empujar y después `npm run vercel` (§7n).
 
 ---
 
@@ -33,11 +38,13 @@ modo peque, la capa de producción y la gestión de miembros.
 |---|---|
 | Web | https://elgremioapp.com/ (la dirección vieja redirige sola) |
 | Exposición pública | https://elgremioapp.com/narrativa/ |
-| Dominio y correo | Hostinger, cuenta de Raúl; el sitio lo sigue sirviendo GitHub Pages |
+| Quién sirve el sitio | **Vercel** (proyecto `el-gremio`), desde el 18-ago · §7n |
+| DNS y correo | Hostinger. `A @` a las IPs de Vercel, `www` por CNAME a Vercel con 308 al ápice; MX y DKIM sin tocar |
 | Repo (público) | https://github.com/drraulferrer/el-gremio |
 | Código local | `~/el-gremio` |
 | Supabase | proyecto `chfbrawsoulfiywiqhpe`, Postgres 17.6, región EU |
-| Versión publicada | ver `npm run health`; cada despliegue deja etiqueta `deploy-AAAA-MM-DD-HHMM` |
+| Edge Function | `notificar`, versión 5, `verify_jwt` en false |
+| Versión publicada | ver `npm run health` (lee `version.json`, que ahora se emite en el build) |
 | Tests | 599, en 35 ficheros, todos en verde |
 
 Comprobar que sigue vivo:
@@ -46,10 +53,12 @@ Comprobar que sigue vivo:
 cd ~/el-gremio && npm run health
 ```
 
-Debe salir 🟢 en `web` y en `supabase`. Si `web` falla, mira GitHub Pages;
-si falla `supabase`, casi seguro que el proyecto está pausado (ver §7).
+Debe salir 🟢 en `web` y en `supabase`. Si `web` falla, mira el panel de
+Vercel; si falla `supabase`, casi seguro que el proyecto está pausado
+—aunque desde el 18-ago eso es mucho menos probable, porque hay un cron
+diario que lo mantiene despierto (§7n)—.
 
-**Estado del esquema**, comprobado contra la base el 15-ago:
+**Estado del esquema**, comprobado contra la base el 18-ago:
 
 ```
 ✅ 003  profiles.active
@@ -222,25 +231,38 @@ curl -s -o /dev/null -w '%{http_code}\n' "$U/rest/v1/profiles?select=gender&limi
 
 ## 3. Lo que hay que saber para no romper nada
 
-### El despliegue no usa GitHub Actions
+### Publicar es un acto deliberado, y desde el 18-ago va por Vercel
 
-El token de `gh` de esta máquina tiene scopes `gist, read:org, repo`, **sin
-`workflow`**: no puede subir ficheros de Actions. Por eso se compila en
-local y se publica en la rama `gh-pages`:
+**Lo que actualiza elgremioapp.com es Vercel**, no `npm run deploy` (§7n).
+El orden importa y no es cosmético:
 
 ```bash
-npm run deploy                              # compila, publica, etiqueta
-npm run rollback -- --lista                 # ver versiones
-npm run rollback -- deploy-2026-08-15-0813  # volver a una
+npm run verify           # tests + build + credenciales
+git push origin main     # PRIMERO: Vercel construye desde el REMOTO
+npm run vercel           # y entonces publica
+npm run health           # y se comprueba
 ```
 
-Si algún día hace falta CI/CD: `gh auth refresh -s workflow` (interactivo,
-lo tiene que hacer el usuario) y montar el workflow. Los scripts seguirán
-sirviendo como salida de emergencia.
+Publicar sin haber empujado publica lo que hubiera en `origin/main`, que
+es una forma silenciosa de desplegar algo distinto de lo que tienes
+delante. El script avisa —rama, divergencia con el remoto, cambios sin
+confirmar— pero avisar no es impedir.
 
-**Ese mismo `npm run deploy` es el que actualiza elgremioapp.com**: el
-dominio no cambió quién sirve el sitio, solo cómo se llama. No hay un
-segundo despliegue a Hostinger, ni FTP, ni nada que subir a mano.
+**No hay despliegue automático, a propósito.** Conectar el repositorio
+hizo que Vercel publicara en cada empujón, y el 18-ago producción acabó
+sirviendo un commit de solo documentación. Está apagado con
+`git.deploymentEnabled.main = false` en `vercel.json`, por la razón de
+siempre: aquí se empuja documentación varias veces al día.
+
+`npm run deploy` y `npm run rollback` **siguen existiendo y funcionando**,
+pero publican en `gh-pages`, que hoy es solo la red de seguridad y no el
+sitio que ve la familia. Ojo con lo que eso implica para un rollback de
+verdad: está explicado en §7n, y no es lo que parece.
+
+**Una afirmación de este documento que quedó obsoleta el 18-ago:** decía
+que el token de `gh` no tenía scope `workflow` y que por eso no se podían
+empujar ficheros de Actions. Ya no es cierto: ese día se empujó un cambio
+a `.github/workflows/desplegar.yml` sin ningún problema.
 
 ### El dominio va dentro de la build, en `public/CNAME`
 
@@ -252,13 +274,30 @@ Por eso vive en `public/`, lo copia Vite, y `prepararDist` **aborta** si
 no lo encuentra en `dist/`. `urlDePages()` lee ese mismo fichero, así que
 despliegue, `health` y QR no pueden discrepar sobre cuál es la URL buena.
 
-### El repo tiene que ser público
+### El repo es público, pero ya no por la razón que decía aquí
 
-GitHub Pages en repositorio privado exige plan de pago. Es seguro porque el
-código **no contiene ni un dato familiar**: nombres, emojis y colores se
-introducen en el asistente y viven en Supabase con RLS. Mantener esa
-propiedad: nunca meter nombres reales en el repo, ni en fixtures ni en
-ejemplos de documentación.
+**El motivo original caducó el 18-ago.** Era que GitHub Pages en
+repositorio privado exige plan de pago; ahora sirve Vercel, y su plan
+Hobby funciona igual con repositorios privados. Si algún día se quiere
+cerrar el repo, ese obstáculo ya no existe.
+
+Lo que sí depende hoy de que sea público es el **método bueno de ejecutar
+migraciones** (§2): la consola del SQL Editor se trae el fichero desde
+`raw.githubusercontent.com`, y eso solo funciona sin autenticación en un
+repo público. Es el método que evita la trampa de los acentos, así que
+cerrarlo tendría un coste real.
+
+**La regla de privacidad no cambia y hay que tomársela en serio:** nunca
+meter nombres reales en el repo, ni en fixtures ni en ejemplos de
+documentación. El código no contiene ni un dato familiar —nombres, emojis
+y colores se introducen en el asistente y viven en Supabase con RLS—, pero
+**la documentación sí llegó a contenerlos**: el 18-ago se encontraron tres
+nombres de pila en §7d, colados al pegar la salida real de la función al
+documentar los avisos. Sustituidos por el rol. **Siguen en el historial de
+git**, que esto no lo arregla.
+
+De ahí la regla práctica: cuando pegues una salida real en la
+documentación, **anonimízala en el mismo gesto**, no después.
 
 ### Cada cambio de esquema se escribe dos veces
 
@@ -292,7 +331,7 @@ demasiado tarde", con lo que aplica de verdad a ESTA app.
 | Capa de caché | ✅ hecho a la medida | Validar disparaba realtime en dos tablas y provocaba 3 recargas completas de 7 tablas por acción. Ahora se agrupan en 250 ms y no se solapan: 2 por acción (una inmediata para que la interfaz responda, otra de confirmación). |
 | Índices | ✅ migración 008 | Faltaban cinco, y los que había no cubrían la ordenación. A esta escala no arregla ninguna lentitud: es seguro para cuando haya dos años de historial. |
 | Manejo de errores real | ✅ hecho | `mensajeDeError` traduce, `operacion` registra con id de petición, y ninguna acción se traga un fallo en silencio. |
-| CDN | ✅ lo pone la plataforma | GitHub Pages sirve por CDN. Las fuentes, por Google Fonts. |
+| CDN | ✅ lo pone la plataforma | Vercel sirve por su red desde el 18-ago (antes, GitHub Pages). Las fuentes, por Google Fonts. |
 | Escalado horizontal | ➖ no aplica | Frontend estático y backend gestionado. No hay servidor propio que escalar. |
 | Pruebas de carga | ⚠️ traducidas | Simular 100 usuarios en una app de cuatro no dice nada. Lo que importa son las CARRERAS: `npm run prueba:concurrencia` lanza validaciones, canjes y deshaceres simultáneos contra la base real y comprueba que la XP se abona una sola vez. Requiere la cuenta familiar y **aún no se ha ejecutado**. |
 | Logs y monitoreo | ✅ hecho | JSON estructurado con id de petición, tabla `app_logs`, captura de errores globales y pantalla de Estado. |
@@ -500,11 +539,16 @@ quien la visita. Lo que protege los datos del gremio es RLS, y eso está
 comprobado desde fuera (lectura anónima: `[]` en las cinco tablas;
 escritura: 401; funciones: 401/404).
 
-**Cabeceras de seguridad: elgremioapp.com no envía ninguna** —ni HSTS, ni
-`X-Content-Type-Options`, ni `X-Frame-Options`, ni `Permissions-Policy`—
-y **no se pueden añadir**, porque GitHub Pages no deja. Como meta se
-ignoran todas salvo CSP y `referrer`, que ya están puestas: escribirlas en
-el HTML sería teatro.
+**Cabeceras de seguridad: RESUELTO el 18-ago.** elgremioapp.com envía
+ahora HSTS, `X-Content-Type-Options`, `X-Frame-Options`,
+`Permissions-Policy` y la CSP **como cabecera de verdad** —lo que activa
+`frame-ancestors`, que en un `<meta>` se ignora—. Las sirve `vercel.json`.
+
+Lo que sigue se conserva porque explica **por qué** hubo que mudarse y
+porque su diagnóstico sobre CORS sigue siendo válido: durante meses esto
+no tuvo salida dentro de GitHub Pages, que no sirve cabeceras propias, y
+como meta se ignoran todas salvo CSP y `referrer`. Escribirlas en el HTML
+habría sido teatro.
 
 Las dos salidas reales, las dos son una decisión, no código:
 
@@ -515,15 +559,19 @@ Las dos salidas reales, las dos son una decisión, no código:
    fichero `_headers`. El sitio es estático: la mudanza es el CNAME y poco
    más.
 
-> **Se eligió la segunda, con Vercel (18-ago). Ver §7n.** El `vercel.json`
-> del repositorio ya sirve las cinco cabeceras y la CSP como cabecera de
-> verdad. Mientras el DNS siga apuntando a GitHub Pages, **todo lo que
-> dice esta sección sigue siendo cierto en producción**: las cabeceras no
-> llegan hasta que se corte el dominio.
+> **Se eligió la segunda, con Vercel, y ya está hecho (18-ago). Ver §7n.**
+> El DNS se cortó ese mismo día y las cabeceras llegan de verdad:
+>
+> ```
+> curl -sI https://elgremioapp.com/ | grep -i strict-transport
+> strict-transport-security: max-age=31536000
+> ```
 
-Mientras tanto, el único hueco que de verdad muerde —el clickjacking del
-formulario de entrada y del panel— lo tapa `src/lib/marco.js` desde
-JavaScript. Es peor que una cabecera y hay que saberlo: si alguien
+El hueco que de verdad mordía —el clickjacking del formulario de entrada
+y del panel— lo tapaba `src/lib/marco.js` desde JavaScript. **Sigue ahí y
+conviene que siga**, pero ya no es la única defensa: ahora hay
+`X-Frame-Options: DENY` y `frame-ancestors 'none'` por cabecera, que
+funcionan aunque alguien
 desactiva JS, no hay defensa. Pero cubre el caso real.
 
 ---
@@ -1509,8 +1557,9 @@ devuelve el comportamiento antiguo sin tocar código.
 **Trampa de desarrollo:** `/narrativa/` **no funciona con `npm run dev`**.
 El servidor de Vite no sirve el índice de un directorio de `public/`: cae
 en el fallback de la SPA y devuelve la app otra vez, así que el enlace
-parece roto justo cuando vas a comprobarlo. En producción GitHub Pages sí
-resuelve el directorio. Por eso `urlDeLaNarrativa()` pide
+parece roto justo cuando vas a comprobarlo. En producción sí se resuelve
+el directorio: lo hacía GitHub Pages y lo sigue haciendo Vercel
+—comprobado el 18-ago, `/narrativa/` responde 200—. Por eso `urlDeLaNarrativa()` pide
 `narrativa/index.html` en local y la dirección corta fuera.
 
 **Dónde se ve la exposición, por orden de visibilidad:** en la pantalla de
@@ -1848,6 +1897,25 @@ falta `gh auth refresh -s workflow` **ya no aplica**.
 
 ## 8. Pendientes
 
+**Lo que de verdad queda abierto, por orden.** Nada de esto es código
+bloqueado: son cosas de uso, o decisiones que piden datos antes que
+teclado.
+
+1. **Activar los avisos en los teléfonos que faltan.** Medido el 18-ago al
+   forzar la franja de noche: de seis perfiles, cuatro tenían algo que
+   decir y **solo dos tienen dónde recibirlo**. Hay que reinstalar la PWA
+   desde elgremioapp.com y activar Ajustes → 🔔 Avisos en cada aparato.
+   Es lo único que le falta a una funcionalidad ya montada y probada.
+2. **Un par de semanas de uso antes de añadir nada**, y entonces mirar el
+   cuadro de mando y el diagnóstico de economía con datos reales.
+3. Lo demás —poderes por cablear, huecos de producto, backlog— está más
+   abajo y no corre prisa.
+
+**Cerrado el 18-ago y aquí solo como registro:** las migraciones 025 y
+026, la Edge Function `notificar`, la mudanza a Vercel (§7n), `www`, y la
+variable `VITE_VAPID_PUBLIC` del repositorio. **No queda ninguna migración
+pendiente.**
+
 ### El correo ya no está pendiente
 
 La cadena entera está hecha y probada: dominio, buzón, SMTP propio, las
@@ -2058,12 +2126,17 @@ desde la 019, así que arreglar la cuenta en un sitio la arregló en los
 dos. Si llevara su propia copia, hoy habría dos que mantener y el aviso
 diría 12 mientras el cobro pagaba por 4.
 
-### Programación diaria de tareas · CONSTRUIDO (17-ago)
+### Programación diaria de tareas · ENTREGADA (17-ago, cerrada el 18)
 
 Lo pidió la familia: que un adulto decida cada noche qué harán al día
-siguiente la junior y la peque. Está hecho de punta a punta y verificado
-en el navegador; **falta ejecutar las migraciones 025 y 026 y desplegar**
-(§8, «Lo primero al retomar»).
+siguiente la junior y la peque. **Ya está entregada del todo**: las tres
+piezas —esquema (025 y 026), bundle y Edge Function— van a la vez desde el
+18-ago.
+
+**Lo que costó y merece recordarse:** el bundle estuvo desde la mañana del
+18 pidiendo `plan_diario` a una base donde esa tabla todavía no existía,
+porque se desplegó antes de migrar. Es el §7e otra vez, y estuvo roto en
+producción unas horas sin que saltara ninguna alarma.
 
 **LA DECISIÓN QUE LO SOSTIENE, y que hay que respetar si se toca: el plan
 es una CAPA por fecha ENCIMA del patrón semanal, no un requisito.** Si
@@ -2257,7 +2330,7 @@ Si se pierde ese fichero: los dos valores se recuperan del panel de Supabase
 ```bash
 cd ~/el-gremio
 npm install          # si es una máquina nueva
-npm test             # 190 tests, deben pasar
+npm test             # 599 tests, deben pasar
 npm run dev:demo     # trastear sin tocar producción
 npm run dev          # contra la Supabase real
 ```
@@ -2265,10 +2338,28 @@ npm run dev          # contra la Supabase real
 Antes de dar nada por terminado:
 
 ```bash
-npm run verify       # tests + build + revisión de credenciales
-npm run deploy
-npm run health
+npm run verify           # tests + build + revisión de credenciales
+git push origin main     # PRIMERO: Vercel construye desde el remoto
+npm run vercel           # publica en elgremioapp.com
+npm run health           # 🟢 web + 🟢 supabase
 ```
+
+**`npm run deploy` ya NO es el comando de publicar.** Sigue funcionando,
+pero publica en `gh-pages`, que desde el 18-ago es la red de seguridad y
+no el sitio que ve la familia (§3 y §7n).
+
+Y si lo que has tocado es el esquema o la Edge Function, recuerda que una
+funcionalidad aquí tiene **tres piezas** y no está entregada hasta que las
+tres van a la vez:
+
+```bash
+# 1. esquema: ejecutar la migración en el SQL Editor (método en §2)
+# 2. bundle:  git push && npm run vercel
+supabase functions deploy notificar --project-ref chfbrawsoulfiywiqhpe --no-verify-jwt   # 3.
+```
+
+La bandera del final no es opcional: sin ella se rompen los avisos. El
+porqué está en §8.
 
 ---
 
