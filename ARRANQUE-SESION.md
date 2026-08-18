@@ -20,11 +20,11 @@ de mando con datos reales. Antes de añadir nada, lee §8.
 `npm run deploy`. Ahora es empujar y después `npm run vercel` (§7n).
 
 **Si abres sesión nueva, empieza por §8.** No hay nada a medias: no queda
-ninguna migración pendiente y los **669 tests están en verde**. La 2.4.1
-(Talis §7q, y los tres fallos del alta de mascotas §7r) está construida y
-verificada en local pero **todavía no publicada**: falta `git push origin
-main && npm run vercel`. Producción
-sirve la 2.3.1. Lo que queda es de uso y de producto, no código bloqueado.
+ninguna migración pendiente y los **669 tests están en verde**. **Producción
+sirve la 2.4.1** (`a50f389`), publicada el 18-ago a las 18:20: los Talis
+(§7q) y los tres fallos del alta de mascotas (§7r). Comprobado con `npm
+run health` y en el sitio real. Lo que queda es de uso y de producto, no
+código bloqueado.
 
 ---
 
@@ -2042,12 +2042,11 @@ cepilla al perro no se lleva puntos propios.
 bloqueado: son cosas de uso, o decisiones que piden datos antes que
 teclado.
 
-0. **Publicar la 2.4.1** (los Talis §7q y los tres fallos del alta de
-   mascotas §7r): construida, verificada y en verde, pero solo en local.
-   `npm run verify && git push origin main && npm run vercel && npm run
-   health`. No lleva migración. **Corre algo de prisa**: hasta que se
-   publique, quien funde un gremio nuevo y elija «Mascota» en el alta no
-   puede terminar de crearlo.
+0. **Vivir con los Talis y con la mascota.** Es lo único que queda de la
+   2.4.1, y no es código: el nombre nuevo y la Crónica llevan en
+   producción desde el 18-ago sin que nadie los haya usado una semana, y
+   ese es justo el error que sacó los tres fallos de §7r. Mirar sobre
+   todo si la Crónica se entiende sin explicarla.
 1. **Activar los avisos en los teléfonos que faltan.** Medido el 18-ago:
    **cinco de los ocho perfiles activos no tienen ningún aparato**. Hay
    que reinstalar la PWA desde elgremioapp.com y activar Ajustes → 🔔
@@ -2517,7 +2516,7 @@ porqué está en §8.
 
 ---
 
-## 7q. Las monedas ahora son Talis (18 de agosto) · 2.4.0 · SIN PUBLICAR
+## 7q. Las monedas ahora son Talis (18 de agosto) · 2.4.0 · EN PRODUCCIÓN
 
 Cambio de nombre de la divisa, y no es cosmético. **El canon completo está
 en `docs/TALIS.md`**; aquí solo lo que hay que saber para no deshacerlo.
