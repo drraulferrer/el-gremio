@@ -6,10 +6,21 @@
 // salida (por ejemplo, sin ninguna persona adulta que valide nada).
 // ------------------------------------------------------------------
 
+import { especieValida } from './mascotas'
+
 export const MAX_PERFILES = 8
 const MAX_NOMBRE = 40
 
+// Las mascotas cuentan APARTE, y no por generosidad: el gremio de casa ya
+// tenía los ocho sitios ocupados el día que se añadió esto, así que un
+// tope compartido significaba «no cabe el perro». Y son categorías
+// distintas de verdad: un perfil de persona consume un sitio en el
+// selector, en los avisos y en la meta; una mascota no aparece en el
+// selector ni recibe avisos.
+export const MAX_MASCOTAS = 4
+
 export const ROLES = ['adulto', 'junior', 'peque']
+export const ROLES_CON_MASCOTA = [...ROLES, 'mascota']
 
 /** Un perfil sin `active` es activo: así funciona antes de la migración 003. */
 export function estaActivo(perfil) {
@@ -43,7 +54,18 @@ export function validarMiembro(miembro, perfiles = []) {
   if (nombre.length > MAX_NOMBRE) {
     return { ok: false, mensaje: `El nombre no puede pasar de ${MAX_NOMBRE} caracteres.` }
   }
-  if (!ROLES.includes(miembro?.role)) return { ok: false, mensaje: 'Ese rol no existe.' }
+  if (!ROLES_CON_MASCOTA.includes(miembro?.role)) return { ok: false, mensaje: 'Ese rol no existe.' }
+
+  // La especie es obligatoria en una mascota y prohibida en una persona.
+  // Lo mismo que vigila la base (`profiles_especie_coherente`), aquí para
+  // poder decirlo con palabras en vez de con un error de Postgres.
+  const esAnimal = miembro.role === 'mascota'
+  if (esAnimal && !especieValida(miembro?.species)) {
+    return { ok: false, mensaje: 'Di si es perro o gato.' }
+  }
+  if (!esAnimal && miembro?.species) {
+    return { ok: false, mensaje: 'Solo las mascotas tienen especie.' }
+  }
 
   const repetido = perfiles.some(
     (p) => p.id !== miembro.id && estaActivo(p) && normalizar(p.name) === normalizar(nombre)
@@ -51,7 +73,11 @@ export function validarMiembro(miembro, perfiles = []) {
   if (repetido) return { ok: false, mensaje: `Ya hay alguien que se llama ${nombre}.` }
 
   const esNuevo = !miembro.id
-  if (esNuevo && perfilesActivos(perfiles).length >= MAX_PERFILES) {
+  const activos = perfilesActivos(perfiles)
+  if (esNuevo && esAnimal && activos.filter((p) => p.role === 'mascota').length >= MAX_MASCOTAS) {
+    return { ok: false, mensaje: `El gremio admite hasta ${MAX_MASCOTAS} mascotas.` }
+  }
+  if (esNuevo && !esAnimal && activos.filter((p) => p.role !== 'mascota').length >= MAX_PERFILES) {
     return { ok: false, mensaje: `El gremio admite hasta ${MAX_PERFILES} miembros activos.` }
   }
 

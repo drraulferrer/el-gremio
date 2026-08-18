@@ -18,6 +18,33 @@ verdad duele en esta app: que el esquema y el cliente dejen de encajar.
 
 ---
 
+## 2.3.0 · 18 de agosto de 2026
+
+**Perfiles de mascota: perro o gato, con misiones y premios propios.**
+
+La justificación, con la literatura, está en `docs/MASCOTAS.md`. Lo que
+hay que saber al usarlo:
+
+- **Se da de alta en Miembros** eligiendo el rol «Mascota» y la especie, y
+  **llega con su catálogo puesto**: nueve misiones y cinco premios. Sin
+  eso habría que escribirlos a mano y nadie lo haría.
+- **Los trucos NO son diarios**, y es lo más contraintuitivo de la app:
+  entrenar a diario se aprende PEOR que espaciarlo (Demant et al. 2011),
+  así que salen en días alternos y con la sesión marcada en 5 minutos.
+  Los hábitos —comida, agua, arenero, paseo— sí son diarios, porque ahí
+  la constancia no es una técnica de aprendizaje sino una necesidad.
+- **Sus misiones las apunta un adulto** desde la pestaña Mascotas del
+  panel, y quedan aprobadas en el acto: no hay a quién validárselas. Queda
+  guardado quién las apuntó.
+- **El XP va a la mascota**, no a quien la cuida.
+- **Para el gato, los premios son juego y atención, no comida**: el 50 %
+  de los gatos prefiere interacción social humana (Vitale Shreve 2017).
+- **Ninguna misión es aversiva**, y hay un test que lo vigila (AVSAB 2021).
+
+Y tres exclusiones, porque una mascota no es un jugador: no sale en el
+selector de perfiles, no recibe avisos, y no hereda las misiones genéricas
+de la casa.
+
 ## 2.2.0 · 18 de agosto de 2026
 
 **Recordatorio de que los avisos están sin activar.**

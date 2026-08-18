@@ -271,7 +271,7 @@ export function goalProgress(goal, completions) {
 // triple en cerrar la misma meta.
 
 // 'Junior' y 'Peque' son epicenos; 'Adulto' no.
-export const ROLE_LABEL = { adulto: '{Adulto|Adulta|Persona adulta}', junior: 'Junior', peque: 'Peque' }
+export const ROLE_LABEL = { adulto: '{Adulto|Adulta|Persona adulta}', junior: 'Junior', peque: 'Peque', mascota: 'Mascota' }
 
 export const EMOJIS = ['🦊', '🐣', '🦄', '🐨', '🐙', '🦖', '🐼', '🐬', '🦁', '🌟', '🌈', '🚀', '🧙', '🧝', '🐲', '🦉']
 

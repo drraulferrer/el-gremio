@@ -407,7 +407,10 @@ export default function App() {
         ) : (
           <ProfilePicker
             family={family}
-            profiles={perfilesActivos(data.profiles)}
+            // Sin mascotas: nadie «entra como el perro». Es la
+            // exclusión más fácil de olvidar y la más visible si se
+            // olvida, porque sale en la primera pantalla.
+            profiles={perfilesActivos(data.profiles).filter((p) => p.role !== 'mascota')}
             onPick={elegirPerfil}
             onParent={() => setPidePin(true)}
           />

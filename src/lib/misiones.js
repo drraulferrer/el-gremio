@@ -40,13 +40,22 @@ export function rolesDe(reto) {
   return null
 }
 
-/** ¿Esta misión va dirigida a este perfil? No mira si está activa. */
+/**
+ * ¿Esta misión va dirigida a este perfil? No mira si está activa.
+ *
+ * OJO CON LA ÚLTIMA LÍNEA, que es la que casi cuela un fallo: una misión
+ * sin destinatario es «de la casa» y vale para cualquiera. Eso estaba
+ * bien mientras todos los perfiles eran personas, pero **una mascota
+ * heredaría «Beber agua» y «Cocina»**. Por eso lleva su excepción: al
+ * animal solo le llega lo que es explícitamente suyo, por `profile_id` o
+ * por `target_roles`. Nunca por omisión.
+ */
 export function esParaPerfil(reto, perfil) {
   if (!reto || !perfil) return false
   if (reto.profile_id) return reto.profile_id === perfil.id
   const roles = rolesDe(reto)
   if (roles) return roles.includes(perfil.role)
-  return true
+  return perfil.role !== 'mascota'
 }
 
 /**

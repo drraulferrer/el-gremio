@@ -7,9 +7,11 @@ import {
   puedeRetirar,
   loQueSePierde,
   MAX_PERFILES,
-  ROLES
+  MAX_MASCOTAS,
+  ROLES_CON_MASCOTA
 } from '../lib/miembros'
 import { log } from '../lib/log'
+import { ESPECIES, catalogoDe, premiosDe, filaDeMision, filaDePremio } from '../lib/mascotas'
 import { GENEROS, flex, generoDe } from '../lib/genero'
 import { Modal, Gema } from '../components/ui'
 import Icono from '../components/Icono'
@@ -23,13 +25,17 @@ import Icono from '../components/Icono'
 // deja la historia intacta.
 // ------------------------------------------------------------------
 
-const MIEMBRO_NUEVO = () => ({ name: '', role: 'junior', emoji: '🦊', color: COLORS[0], gender: 'neutro', active: true })
+const MIEMBRO_NUEVO = () => ({ name: '', role: 'junior', species: null, emoji: '🦊', color: COLORS[0], gender: 'neutro', active: true })
 
 const AYUDA_ROL = {
   adulto: 'Pide misiones, valida las de los demás y entra al panel con el PIN.',
   junior: 'Pide sus misiones desde su dispositivo y espera el visto bueno.',
-  peque: 'Pantalla propia de botones enormes. La estrella cae al momento, sin validación.'
+  peque: 'Pantalla propia de botones enormes. La estrella cae al momento, sin validación.',
+  mascota:
+    'No entra en la app ni recibe avisos: sus misiones las apunta un adulto desde el panel. Se le crean sus misiones y premios al guardarla.'
 }
+
+const ESPECIE_LABEL = { perro: '🐕 Perro', gato: '🐈 Gato' }
 
 export default function Miembros({ family, data, refresh }) {
   const [editando, setEditando] = useState(null)
@@ -38,6 +44,8 @@ export default function Miembros({ family, data, refresh }) {
   const [ocupado, setOcupado] = useState(false)
 
   const activos = perfilesActivos(data.profiles)
+  const personas = activos.filter((p) => p.role !== 'mascota')
+  const animales = activos.filter((p) => p.role === 'mascota')
   const retirados = perfilesRetirados(data.profiles)
 
   async function guardar(m) {
@@ -54,17 +62,50 @@ export default function Miembros({ family, data, refresh }) {
       role: m.role,
       emoji: m.emoji,
       color: m.color,
-      gender: m.gender || 'neutro'
+      gender: m.gender || 'neutro',
+      // Null explícito y no `undefined`: al dejar de ser mascota hay que
+      // BORRAR la especie en la base, y `undefined` no viaja en el JSON,
+      // así que la fila se quedaría con perro y rol junior. La base lo
+      // rechazaría, pero con un error que no dice nada.
+      species: m.role === 'mascota' ? m.species : null
     }
-    const { error } = m.id
+
+    // Se necesita el id para colgarle las misiones, así que en el alta se
+    // pide la fila de vuelta.
+    const { data: creado, error } = m.id
       ? await supabase.from('profiles').update(fila).eq('id', m.id)
-      : await supabase.from('profiles').insert(fila)
-    setOcupado(false)
+      : await supabase.from('profiles').insert(fila).select().single()
 
     if (error) {
+      setOcupado(false)
       setFallo(mensajeDeError(error))
       return
     }
+
+    // Una mascota recién dada de alta llega con su catálogo puesto. Sin
+    // esto habría que escribir a mano nueve misiones y cinco premios
+    // antes de que sirviera para algo, y nadie lo haría: se quedaría como
+    // un perfil vacío con un nombre bonito.
+    //
+    // Si esto falla, el perfil YA está creado y no se deshace: es mejor
+    // una mascota sin catálogo —que se puede rellenar a mano— que perder
+    // el alta entera por no poder escribir una misión.
+    if (!m.id && m.role === 'mascota' && creado?.id) {
+      const misiones = catalogoDe(m.species).map((x) =>
+        filaDeMision(x, { familyId: family.id, profileId: creado.id })
+      )
+      const premios = premiosDe(m.species).map((x) => filaDePremio(x, { familyId: family.id }))
+      const [r1, r2] = await Promise.all([
+        supabase.from('challenges').insert(misiones),
+        supabase.from('rewards').insert(premios)
+      ])
+      if (r1.error || r2.error) {
+        log.warn('mascota.catalogo.fallo', { error: (r1.error || r2.error)?.message })
+        setFallo('Se creó la mascota, pero no sus misiones. Puedes añadirlas a mano.')
+      }
+    }
+
+    setOcupado(false)
     log.info(m.id ? 'miembro.editado' : 'miembro.creado', { rol: m.role })
     setFallo('')
     setEditando(null)
@@ -114,13 +155,19 @@ export default function Miembros({ family, data, refresh }) {
       <button
         className="btn btn-mini btn-bloque"
         style={{ marginBottom: 12 }}
-        disabled={activos.length >= MAX_PERFILES}
+        disabled={personas.length >= MAX_PERFILES && animales.length >= MAX_MASCOTAS}
         onClick={() => { setFallo(''); setEditando(MIEMBRO_NUEVO()) }}
       >
         + Añadir miembro
       </button>
 
-      <div className="titulo-seccion">En el gremio · {activos.length} de {MAX_PERFILES}</div>
+      {/* Dos cuentas, porque son dos cupos: la validación ya los separa
+          y un solo «2 de 8» haría creer que el perro ocupa el sitio de
+          una persona. */}
+      <div className="titulo-seccion">
+        En el gremio · {personas.length} de {MAX_PERFILES}
+        {animales.length > 0 && ` · ${animales.length} de ${MAX_MASCOTAS} mascotas`}
+      </div>
 
       {activos.map((p) => (
         <div className="carta" key={p.id}>
@@ -166,7 +213,7 @@ export default function Miembros({ family, data, refresh }) {
               <div className="fila" style={{ marginTop: 10 }}>
                 <button
                   className="btn btn-mini crece"
-                  disabled={ocupado || perfilesActivos(data.profiles).length >= MAX_PERFILES}
+                  disabled={ocupado || perfilesActivos(data.profiles).filter((x) => x.role !== 'mascota').length >= MAX_PERFILES}
                   onClick={() => cambiarActivo(p, true)}
                 >
                   Reincorporar
@@ -215,13 +262,43 @@ function FormMiembro({ miembro, ocupado, onGuardar, onClose }) {
 
       <div className="campo">
         <label>Rol</label>
-        <select value={m.role} onChange={(e) => set({ role: e.target.value })}>
-          {ROLES.map((r) => (
+        <select
+          value={m.role}
+          onChange={(e) => {
+            // Al dejar de ser mascota hay que soltar la especie, o la
+            // base rechaza la fila entera (profiles_especie_coherente).
+            const role = e.target.value
+            set(role === 'mascota' ? { role } : { role, species: null })
+          }}
+        >
+          {ROLES_CON_MASCOTA.map((r) => (
             <option key={r} value={r}>{flex(ROLE_LABEL[r], m.gender || 'neutro')}</option>
           ))}
         </select>
         <span className="suave">{AYUDA_ROL[m.role]}</span>
       </div>
+
+      {m.role === 'mascota' && (
+        <div className="campo">
+          <label>¿Perro o gato?</label>
+          <div className="grid-habilidades">
+            {ESPECIES.map((e) => (
+              <button
+                key={e}
+                type="button"
+                className={'pastilla-habilidad' + (m.species === e ? ' activa' : '')}
+                onClick={() => set({ species: e })}
+              >
+                {ESPECIE_LABEL[e]}
+              </button>
+            ))}
+          </div>
+          <span className="suave">
+            Decide qué misiones y premios se le crean. Solo perro y gato: son las dos especies
+            para las que el catálogo tiene respaldo (ver docs/MASCOTAS.md).
+          </span>
+        </div>
+      )}
 
       <div className="campo">
         <label>¿Cómo le habla la app?</label>

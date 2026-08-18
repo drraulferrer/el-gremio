@@ -28,6 +28,7 @@ import { Modal, Celebracion, Pestana } from '../components/ui'
 import Icono from '../components/Icono'
 import Ajustes from './Ajustes'
 import AvisoPush from './AvisoPush'
+import TableroMascota from './TableroMascota'
 import Cuadro from './Cuadro'
 import {
   misionesDe,
@@ -53,6 +54,15 @@ export default function ParentPanel({ family, data, refresh, refreshFamily, onVe
   // Con qué pestaña de Ajustes abrir. Solo lo usa el recordatorio de
   // avisos; el resto de entradas a Ajustes siguen cayendo en Miembros.
   const [seccionAjustes, setSeccionAjustes] = useState(null)
+  // Cuál de las mascotas se está mirando, cuando hay más de una.
+  const [mascotaAbierta, setMascotaAbierta] = useState(null)
+
+  const mascotas = data.profiles.filter((p) => p.role === 'mascota' && p.active !== false)
+  // Quién está apuntando. El panel se entra con PIN, no como perfil, así
+  // que lo único que se puede saber es de quién es ESTE aparato —la misma
+  // señal que usa la pantalla de Avisos—. Si no consta, se guarda null:
+  // mejor un hueco honesto que atribuirle el trabajo a alguien al azar.
+  const quien = data.profiles.find((p) => p.id === localStorage.getItem('gremio_profile')) || null
   const [programar, setProgramar] = useState(false)
   const [celeb, setCeleb] = useState(null)
   const [aviso, setAviso] = useState('')
@@ -247,6 +257,35 @@ export default function ParentPanel({ family, data, refresh, refreshFamily, onVe
         </div>
       )}
 
+      {tab === 'mascotas' && (
+        <div>
+          {/* Con una sola mascota no se enseña selector: sería una fila de
+              un botón. Con varias, sí. */}
+          {mascotas.length > 1 && (
+            <div className="segmentos" role="tablist">
+              {mascotas.map((m) => (
+                <button
+                  key={m.id}
+                  role="tab"
+                  aria-selected={(mascotaAbierta || mascotas[0].id) === m.id}
+                  className={(mascotaAbierta || mascotas[0].id) === m.id ? 'activo' : ''}
+                  onClick={() => setMascotaAbierta(m.id)}
+                >
+                  {m.emoji} {m.name}
+                </button>
+              ))}
+            </div>
+          )}
+          <TableroMascota
+            family={family}
+            data={data}
+            mascota={mascotas.find((m) => m.id === (mascotaAbierta || mascotas[0].id)) || mascotas[0]}
+            quien={quien}
+            refresh={refresh}
+          />
+        </div>
+      )}
+
       {tab === 'cuadro' && <Cuadro data={data} />}
       {tab === 'peque' && <ModoPeque family={family} data={data} refresh={refresh} onCeleb={setCeleb} />}
       {tab === 'misiones' && <GestionMisiones family={family} data={data} refresh={refresh} />}
@@ -283,6 +322,16 @@ export default function ParentPanel({ family, data, refresh, refreshFamily, onVe
         />
         <Pestana icono="cuadro" etiqueta="Cuadro" activa={tab === 'cuadro'} onClick={() => setTab('cuadro')} />
         <Pestana icono="estrella" etiqueta="Peque" activa={tab === 'peque'} onClick={() => setTab('peque')} />
+        {/* Solo si hay alguna: una pestaña vacía enseña un hueco y no una
+            función, y esta app tiene ya seis pestañas peleándose el ancho. */}
+        {mascotas.length > 0 && (
+          <Pestana
+            icono="estrella"
+            etiqueta="Mascotas"
+            activa={tab === 'mascotas'}
+            onClick={() => setTab('mascotas')}
+          />
+        )}
         <Pestana icono="misiones" etiqueta="Misiones" activa={tab === 'misiones'} onClick={() => setTab('misiones')} />
         <Pestana icono="premio" etiqueta="Premios" activa={tab === 'premios'} onClick={() => setTab('premios')} />
         <Pestana icono="meta" etiqueta="Meta" activa={tab === 'meta'} onClick={() => setTab('meta')} />

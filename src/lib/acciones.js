@@ -366,3 +366,65 @@ export async function premioAMano({ profileId, monedas, motivo, otorgadoPor }) {
   })
   return { ok: true, mensaje: '' }
 }
+
+/**
+ * Apuntar una misión de la mascota. La hace una persona, la puntúa el
+ * animal.
+ *
+ * Es `estrellaInmediata` con dos diferencias que importan:
+ *
+ * - **Queda aprobada en el acto**, sin cola de validación. No hay a quién
+ *   validarle nada: el adulto que la apunta ES el validador, y mandarla a
+ *   una cola para que ese mismo adulto se la apruebe después sería
+ *   ceremonia sin contenido.
+ * - **Guarda quién la apuntó** (`registrado_por`). Sin eso, el historial
+ *   de un perro con tres cuidadores no distingue quién estuvo cepillándolo
+ *   cada día, que es justo lo que un adulto querrá mirar el día que
+ *   sospeche que el trabajo lo hace siempre el mismo.
+ *
+ * El XP y las monedas van a la mascota, no a quien la cuida: decisión
+ * tomada a conciencia en §2.1 de docs/MASCOTAS.md.
+ */
+export async function apuntarMisionDeMascota({ family, mascota, reto, quien }) {
+  const requestId = nuevoRequestId()
+  log.info('mascota.mision.apuntada', {
+    request_id: requestId,
+    challenge_id: reto.id,
+    profile_id: mascota.id
+  })
+
+  const alta = await operacion(
+    'mascota.mision.alta_error',
+    () =>
+      supabase
+        .from('completions')
+        .insert({
+          family_id: family.id,
+          challenge_id: reto.id,
+          profile_id: mascota.id,
+          registrado_por: quien?.id || null,
+          xp: reto.xp,
+          coins: reto.coins
+        })
+        .select()
+        .single(),
+    { request_id: requestId, challenge_id: reto.id }
+  )
+
+  if (alta.error || !alta.data) {
+    return { ok: false, mensaje: alta.mensaje || 'No se pudo apuntar la misión.' }
+  }
+
+  const aprobacion = await operacion(
+    'mascota.mision.aprobacion_error',
+    () =>
+      supabase.rpc('resolve_completion', {
+        c_id: alta.data.id,
+        new_status: 'aprobado',
+        praise_text: null
+      }),
+    { request_id: requestId, completion_id: alta.data.id }
+  )
+
+  return { ok: !aprobacion.error, mensaje: aprobacion.mensaje }
+}
