@@ -2364,6 +2364,17 @@ code { background: var(--tablero-hondo); padding: 2px 6px; border-radius: 6px; f
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
+/* El editor de una tarea, desplegado bajo su fila. Un panel hundido en
+   teal suave: es la misma familia visual que la operación, y hundido
+   —no una carta encima— para que se lea como «esta fila, abierta». */
+.editor-tarea {
+  margin: 0 0 10px;
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(79, 196, 181, 0.25);
+  background: rgba(79, 196, 181, 0.05);
+}
+
 .fila-reparto select {
   flex: none;
   width: auto;

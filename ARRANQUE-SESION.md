@@ -3153,7 +3153,7 @@ tenerlas.
 
 ---
 
-## 7x. El modo limpieza (19 de agosto) · 2.9.0 · **EN PRODUCCIÓN, DE PUNTA A PUNTA**
+## 7x. El modo limpieza (19 de agosto) · 2.9.0-2.10.0 · **EN PRODUCCIÓN, DE PUNTA A PUNTA**
 
 Campañas de limpieza como misión secundaria, a petición de la familia y
 a partir de un planificador doméstico real. **El diseño completo está en
@@ -3244,3 +3244,37 @@ reloj) · tintes en `ParentPanel.jsx` (`carta-operacion`) · flag
 `modoLimpieza` · migración `migracion-031-modo-limpieza.sql` + espejo en
 `schema.sql` · tests en `tests/limpieza.test.js` y
 `tests/temporizador.test.js`.
+
+### Personalizar las tareas (2.10.0, la misma noche)
+
+Lo pidió la familia en cuanto lo vio: el catálogo tiene que ser un punto
+de partida, no un contrato. En el paso del reparto, el lápiz de cada
+tarea abre un editor con el nombre, el esfuerzo y el dibujo, y «+ Añadir
+una tarea de esta casa» crea tareas propias (el hueco «{Agrega los
+tuyos}» del planificador original). Verificado en el navegador: editar
+título/esfuerzo/emoji se refleja en la fila y en los totales al
+instante, la tarea propia no viaja sin nombre, y el reloj de una tarea
+renombrada sale bien en el tablero.
+
+Tres decisiones que no hay que deshacer:
+
+- **Los roles aptos no se editan.** Renombrar «Limpiar el horno» no lo
+  vuelve apto para la junior; la seguridad no se rebautiza. Las propias
+  nacen para cualquiera porque las escribe el adulto sabiendo para quién.
+- **Los puntos no se teclean**: esfuerzo × rol, como en todo el sistema.
+- **`esfuerzoDeMision(reto, rol)` tiene segunda vía por PUNTOS** (el
+  multiplicador de XP más cercano a {1 · 1,5 · 2}): sin ella, el reloj
+  de cualquier tarea renombrada caía a «media». El título del catálogo
+  sigue mandando cuando existe. Si alguien la quita «porque el título
+  basta», el reloj de las personalizadas vuelve a mentir.
+
+Las tareas del asistente viajan MATERIALIZADAS (cada una con su
+`asignado` dentro); `tareasParaLanzar`/`resumenDeReparto` ya no reciben
+la campaña sino la lista personalizada. Cambio solo de bundle: ni
+esquema ni Edge Function.
+
+Y una molestia de entorno que costó un rato en la verificación: la
+primera visita tras `npm install`/lockfile nuevo hace que Vite
+re-optimice dependencias y RECARGUE la página un par de veces; en esas
+recargas el asistente pierde su estado y parece un bug de la app. No lo
+es: en cuanto Vite se asienta, el modal aguanta entero.

@@ -14,6 +14,9 @@ import {
   repartoSugerido,
   tareasParaLanzar,
   resumenDeReparto,
+  nuevaTareaPropia,
+  tituloDeTareaValido,
+  esfuerzoDeMision,
   campanaActiva,
   misionesDeCampana,
   progresoDeCampana,
@@ -202,9 +205,13 @@ describe('el reparto', () => {
     })
   })
 
+  // Las tareas viajan MATERIALIZADAS: cada una con su `asignado` dentro,
+  // porque desde que se editan al lanzar, el catálogo es solo la plantilla.
+  const materializar = (lista, reparto) => lista.map((t, i) => ({ ...t, asignado: reparto[i] }))
+
   it('tareasParaLanzar construye las filas con los puntos del rol de cada cual', () => {
-    const reparto = repartoSugerido(camp.tareas, FAMILIA)
-    const filas = tareasParaLanzar(camp, reparto, FAMILIA)
+    const tareas = materializar(camp.tareas, repartoSugerido(camp.tareas, FAMILIA))
+    const filas = tareasParaLanzar(tareas, FAMILIA)
     expect(filas.length).toBe(camp.tareas.length)
     for (const fila of filas) {
       const perfil = FAMILIA.find((p) => p.id === fila.profile_id)
@@ -218,27 +225,78 @@ describe('el reparto', () => {
     }
   })
 
-  it('quitar una tarea (asignación null) la deja fuera del envío', () => {
-    const reparto = repartoSugerido(camp.tareas, FAMILIA)
-    reparto[0] = null
-    expect(tareasParaLanzar(camp, reparto, FAMILIA).length).toBe(camp.tareas.length - 1)
+  it('quitar una tarea (asignado null) la deja fuera del envío', () => {
+    const tareas = materializar(camp.tareas, repartoSugerido(camp.tareas, FAMILIA))
+    tareas[0] = { ...tareas[0], asignado: null }
+    expect(tareasParaLanzar(tareas, FAMILIA).length).toBe(camp.tareas.length - 1)
   })
 
   it('una asignación a alguien no apto no cuela: se descarta en vez de enviarse', () => {
-    const reparto = camp.tareas.map(() => 'p1')
-    const filas = tareasParaLanzar(camp, reparto, FAMILIA)
+    const tareas = camp.tareas.map((t) => ({ ...t, asignado: 'p1' }))
+    const filas = tareasParaLanzar(tareas, FAMILIA)
     const aptas = camp.tareas.filter((t) => t.roles.includes('peque')).length
     expect(filas.length).toBe(aptas)
   })
 
   it('resumenDeReparto suma tareas, minutos y puntos por persona', () => {
-    const reparto = repartoSugerido(camp.tareas, [JUNIOR, PEQUE])
-    const resumen = resumenDeReparto(camp, reparto, [JUNIOR, PEQUE, ADULTA])
+    const tareas = materializar(camp.tareas, repartoSugerido(camp.tareas, [JUNIOR, PEQUE]))
+    const resumen = resumenDeReparto(tareas, [JUNIOR, PEQUE, ADULTA])
     const junior = resumen.find((r) => r.perfil.id === 'j1')
     expect(junior.tareas).toBeGreaterThan(0)
     // En limpieza los Talis superan a la XP; en el tablón normal es al revés.
     expect(junior.coins).toBeGreaterThan(junior.xp)
     expect(resumen.some((r) => r.perfil.id === 'a1')).toBe(false)
+  })
+})
+
+describe('personalizar las tareas', () => {
+  it('la tarea propia nace en blanco, para todos y de esfuerzo medio', () => {
+    const tarea = nuevaTareaPropia()
+    expect(tarea).toEqual({
+      t: '', e: '🧹', roles: ['peque', 'junior', 'adulto'], esf: 'media', propia: true, asignado: null
+    })
+    // Cada llamada da un objeto NUEVO: dos huecos no comparten roles.
+    expect(nuevaTareaPropia().roles).not.toBe(tarea.roles)
+  })
+
+  it('el título válido es el mismo límite que comprueba la RPC: 3-120 tras recortar', () => {
+    expect(tituloDeTareaValido('Limpiar la pecera')).toBe(true)
+    expect(tituloDeTareaValido('  ab  ')).toBe(false)
+    expect(tituloDeTareaValido('')).toBe(false)
+    expect(tituloDeTareaValido(null)).toBe(false)
+    expect(tituloDeTareaValido('x'.repeat(121))).toBe(false)
+  })
+
+  it('una tarea propia a medio escribir no viaja aunque esté asignada', () => {
+    const tareas = [
+      { ...nuevaTareaPropia(), asignado: 'j1' },
+      { ...nuevaTareaPropia(), t: 'Ordenar el trastero', asignado: 'j1' }
+    ]
+    const filas = tareasParaLanzar(tareas, FAMILIA)
+    expect(filas.length).toBe(1)
+    expect(filas[0].title).toBe('Ordenar el trastero')
+  })
+
+  it('editar el esfuerzo arrastra los puntos: la palanca honesta', () => {
+    const base = { t: 'Limpiar la pecera', e: '🐠', roles: ['junior'], esf: 'rapida', asignado: 'j1' }
+    const [rapida] = tareasParaLanzar([base], FAMILIA)
+    const [intensa] = tareasParaLanzar([{ ...base, esf: 'intensa' }], FAMILIA)
+    expect(rapida).toMatchObject({ xp: 15, coins: 16 })
+    expect(intensa).toMatchObject({ xp: 30, coins: 32 })
+  })
+
+  it('el título editado no rompe el reloj: el esfuerzo se recupera por los puntos', () => {
+    // Por título ya no está en el catálogo; con el rol delante, la XP
+    // guardada dice el esfuerzo. Y aguanta un retoque a mano posterior,
+    // porque se toma el multiplicador más cercano.
+    expect(esfuerzoDeMision({ title: 'Limpiar la pecera', xp: 15 }, 'junior')).toBe(ESFUERZO.rapida)
+    expect(esfuerzoDeMision({ title: 'Limpiar la pecera', xp: 23 }, 'junior')).toBe(ESFUERZO.media)
+    expect(esfuerzoDeMision({ title: 'Limpiar la pecera', xp: 20 }, 'adulto')).toBe(ESFUERZO.intensa)
+    expect(esfuerzoDeMision({ title: 'Limpiar la pecera', xp: 28 }, 'junior')).toBe(ESFUERZO.intensa)
+    // El título del catálogo sigue mandando aunque los puntos digan otra cosa.
+    expect(esfuerzoDeMision({ title: 'Limpiar el horno', xp: 10 }, 'adulto')).toBe(ESFUERZO.intensa)
+    // Y sin rol ni catálogo, la red de siempre.
+    expect(esfuerzoDeMision({ title: 'Limpiar la pecera' })).toBe(ESFUERZO.media)
   })
 })
 

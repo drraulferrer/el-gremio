@@ -1,6 +1,9 @@
 import { useState } from 'react'
 import { perfilesActivos } from '../lib/miembros'
 import { Modal, Talis } from '../components/ui'
+import Icono from '../components/Icono'
+import SelectorEmoji from '../components/SelectorEmoji'
+import { GRUPOS_EMOJI_MISION } from '../lib/emojis'
 import { lanzarCampanaLimpieza, cerrarCampanaLimpieza } from '../lib/acciones'
 import {
   TIPOS,
@@ -11,6 +14,8 @@ import {
   repartoSugerido,
   tareasParaLanzar,
   resumenDeReparto,
+  nuevaTareaPropia,
+  tituloDeTareaValido,
   puedeLanzarCampana,
   campanaActiva,
   misionesDeCampana,
@@ -114,18 +119,30 @@ function LanzarCampana({ data, refresh }) {
   // Quién participa. Por defecto, toda la casa: la peque incluida, que
   // para eso tiene tareas propias en el catálogo.
   const [participantes, setParticipantes] = useState(() => new Set(gente.map((p) => p.id)))
-  // Array paralelo a las tareas del catálogo: id de perfil o null (fuera).
-  const [asignacion, setAsignacion] = useState([])
+  // Las tareas ya MATERIALIZADAS: el catálogo es un punto de partida y
+  // aquí cada una lleva su asignación y sus retoques (título, esfuerzo,
+  // emoji). El catálogo original no se toca nunca.
+  const [tareas, setTareas] = useState([])
+  // Cuál está abierta en edición. Una a la vez: dos editores abiertos
+  // convierten el modal en un acordeón que nadie puede leer.
+  const [editando, setEditando] = useState(null)
   const [quienId, setQuienId] = useState(() => adultoDelAparato(data.profiles))
   const [lanzando, setLanzando] = useState(false)
   const [fallo, setFallo] = useState('')
 
   const camp = clave ? campanaDeCatalogo(clave) : null
   const grupo = gente.filter((p) => participantes.has(p.id))
+  const filas = camp ? tareasParaLanzar(tareas, gente) : []
+
+  function repartir(lista, quienes) {
+    const sugerencia = repartoSugerido(lista, quienes)
+    return lista.map((t, i) => ({ ...t, asignado: sugerencia[i] }))
+  }
 
   function elegirCampana(c) {
     setClave(c.clave)
-    setAsignacion(repartoSugerido(c.tareas, gente.filter((p) => participantes.has(p.id))))
+    setEditando(null)
+    setTareas(repartir(c.tareas, gente.filter((p) => participantes.has(p.id))))
   }
 
   function alternarParticipante(id) {
@@ -133,13 +150,28 @@ function LanzarCampana({ data, refresh }) {
     if (siguiente.has(id)) siguiente.delete(id)
     else siguiente.add(id)
     setParticipantes(siguiente)
-    // Cambiar el grupo re-reparte entero: una asignación a medias con
+    // Cambiar el grupo re-reparte entero (los retoques de título,
+    // esfuerzo y emoji se conservan): una asignación a medias con
     // alguien que ya no participa es peor que volver a la sugerencia.
-    if (camp) setAsignacion(repartoSugerido(camp.tareas, gente.filter((p) => siguiente.has(p.id))))
+    if (camp) setTareas(repartir(tareas, gente.filter((p) => siguiente.has(p.id))))
   }
 
   function asignar(indice, perfilId) {
-    setAsignacion(asignacion.map((v, i) => (i === indice ? (perfilId || null) : v)))
+    setTareas(tareas.map((t, i) => (i === indice ? { ...t, asignado: perfilId || null } : t)))
+  }
+
+  function editar(indice, cambios) {
+    setTareas(tareas.map((t, i) => (i === indice ? { ...t, ...cambios } : t)))
+  }
+
+  function anadirPropia() {
+    setTareas([...tareas, nuevaTareaPropia()])
+    setEditando(tareas.length)
+  }
+
+  function quitarPropia(indice) {
+    setEditando(null)
+    setTareas(tareas.filter((_, i) => i !== indice))
   }
 
   async function lanzar() {
@@ -149,7 +181,6 @@ function LanzarCampana({ data, refresh }) {
       setFallo(problema)
       return
     }
-    const filas = tareasParaLanzar(camp, asignacion, gente)
     if (!filas.length) {
       setFallo('No queda ninguna tarea asignada. Reparte algo antes de lanzar.')
       return
@@ -210,8 +241,7 @@ function LanzarCampana({ data, refresh }) {
   }
 
   // Paso 3: quién participa, quién hace qué, y lanzar.
-  const resumen = resumenDeReparto(camp, asignacion, grupo)
-  const totalAsignadas = asignacion.filter(Boolean).length
+  const resumen = resumenDeReparto(tareas, grupo)
 
   return (
     <div>
@@ -239,31 +269,61 @@ function LanzarCampana({ data, refresh }) {
 
       <div className="titulo-seccion">El reparto</div>
       <p className="suave" style={{ marginTop: 0 }}>
-        Viene repartido para equilibrar el tiempo de cada cual. Cambia lo que haga falta, o
-        deja una tarea «fuera» si esta vez no toca.
+        Viene repartido para equilibrar el tiempo de cada cual. Con el lápiz se retoca una
+        tarea para esta casa —el nombre, el esfuerzo, el dibujo—, y «fuera» la deja para
+        otra vez.
       </p>
-      {camp.tareas.map((tarea, i) => {
+      {tareas.map((tarea, i) => {
         const aptos = grupo.filter((p) => tareaApta(tarea, p))
+        const sinNombre = !tituloDeTareaValido(tarea.t)
         return (
-          <div className="fila fila-reparto" key={i}>
-            <span style={{ fontSize: '1.15rem' }}>{tarea.e}</span>
-            <div className="crece">
-              <div>{tarea.t}</div>
-              <div className="suave" style={{ fontSize: '0.76rem' }}>{ESFUERZO[tarea.esf].texto}</div>
+          <div key={i}>
+            <div className="fila fila-reparto">
+              <span style={{ fontSize: '1.15rem' }}>{tarea.e}</span>
+              <div className="crece">
+                <div>{sinNombre ? <em className="suave">Ponle nombre a esta tarea…</em> : tarea.t}</div>
+                <div className="suave" style={{ fontSize: '0.76rem' }}>
+                  {ESFUERZO[tarea.esf].texto}
+                  {tarea.propia && ' · tarea de esta casa'}
+                </div>
+              </div>
+              <button
+                className={'btn-icono' + (editando === i ? ' activo' : '')}
+                onClick={() => setEditando(editando === i ? null : i)}
+                aria-expanded={editando === i}
+                aria-label={`Editar ${tarea.t || 'la tarea nueva'}`}
+              >
+                <Icono nombre="editar" />
+              </button>
+              <select
+                value={tarea.asignado || ''}
+                onChange={(e) => asignar(i, e.target.value)}
+                aria-label={`Quién hace: ${tarea.t || 'la tarea nueva'}`}
+              >
+                <option value="">— fuera</option>
+                {aptos.map((p) => (
+                  <option key={p.id} value={p.id}>{p.emoji} {p.name}</option>
+                ))}
+              </select>
             </div>
-            <select
-              value={asignacion[i] || ''}
-              onChange={(e) => asignar(i, e.target.value)}
-              aria-label={`Quién hace: ${tarea.t}`}
-            >
-              <option value="">— fuera</option>
-              {aptos.map((p) => (
-                <option key={p.id} value={p.id}>{p.emoji} {p.name}</option>
-              ))}
-            </select>
+
+            {editando === i && (
+              <EditorDeTarea
+                tarea={tarea}
+                onCambiar={(cambios) => editar(i, cambios)}
+                onQuitar={tarea.propia ? () => quitarPropia(i) : null}
+                onListo={() => setEditando(null)}
+              />
+            )}
           </div>
         )
       })}
+
+      {/* El hueco «{Agrega los tuyos}» del planificador original: cada
+          casa limpia cosas que ningún catálogo conoce. */}
+      <button className="btn btn-fantasma btn-mini btn-bloque" style={{ marginTop: 8 }} onClick={anadirPropia}>
+        + Añadir una tarea de esta casa
+      </button>
 
       {resumen.length > 0 && (
         <>
@@ -289,11 +349,73 @@ function LanzarCampana({ data, refresh }) {
       {fallo && <p className="error-texto" role="alert">{fallo}</p>}
       <button
         className="btn btn-bloque"
-        disabled={lanzando || totalAsignadas === 0 || !quienId}
+        disabled={lanzando || filas.length === 0 || !quienId}
         onClick={lanzar}
       >
-        {lanzando ? 'Lanzando…' : `🧹 Lanzar la operación (${totalAsignadas} tareas)`}
+        {lanzando ? 'Lanzando…' : `🧹 Lanzar la operación (${filas.length} ${filas.length === 1 ? 'tarea' : 'tareas'})`}
       </button>
+    </div>
+  )
+}
+
+/**
+ * Retocar una tarea para esta casa: el nombre, el esfuerzo y el dibujo.
+ *
+ * Lo que NO se edita aquí es deliberado:
+ *  · Los roles aptos del catálogo: renombrar «Limpiar el horno» no lo
+ *    vuelve apto para la junior. La seguridad no se rebautiza.
+ *  · Los puntos: salen del esfuerzo y del rol, como en todo el sistema.
+ *    El esfuerzo es la palanca honesta para «esta tarea aquí es más
+ *    gorda», y arrastra también el reloj.
+ */
+function EditorDeTarea({ tarea, onCambiar, onQuitar, onListo }) {
+  return (
+    <div className="editor-tarea">
+      <div className="campo">
+        <label>Cómo se llama en esta casa</label>
+        <input
+          value={tarea.t}
+          maxLength={120}
+          autoFocus
+          placeholder="Limpiar la pecera, ordenar el trastero…"
+          onChange={(e) => onCambiar({ t: e.target.value })}
+        />
+      </div>
+
+      <div className="campo">
+        <label>Esfuerzo · decide los puntos y el reloj</label>
+        <div className="fila" style={{ flexWrap: 'wrap' }}>
+          {Object.values(ESFUERZO).map((esf) => (
+            <button
+              key={esf.id}
+              type="button"
+              className={'pastilla-habilidad' + (tarea.esf === esf.id ? ' sel' : '')}
+              aria-pressed={tarea.esf === esf.id}
+              onClick={() => onCambiar({ esf: esf.id })}
+            >
+              {esf.nombre} · {esf.texto}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="campo">
+        <label>El dibujo</label>
+        <SelectorEmoji
+          valor={tarea.e}
+          onElegir={(e) => onCambiar({ e })}
+          id="emoji-tarea-limpieza"
+          grupos={GRUPOS_EMOJI_MISION}
+          ejemplos="escoba, plancha, coche"
+        />
+      </div>
+
+      <div className="fila">
+        <button className="btn btn-mini crece" onClick={onListo}>Listo</button>
+        {onQuitar && (
+          <button className="btn btn-fantasma btn-mini" onClick={onQuitar}>Quitar esta tarea</button>
+        )}
+      </div>
     </div>
   )
 }

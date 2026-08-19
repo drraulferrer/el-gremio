@@ -111,12 +111,33 @@ dice «¡Tiempo!» sin bloquear nada.
   interacción es un toque y sus tareas son rápidas; un temporizador ahí
   rompería la regla de esa pantalla (nada que la saque de su sitio).
 
+## Personalizar (2.10.0)
+
+El catálogo es un punto de partida, no un contrato: en el paso del
+reparto, el lápiz de cada tarea abre un editor (`EditorDeTarea`) con el
+nombre, el esfuerzo y el dibujo, y «+ Añadir una tarea de esta casa»
+crea tareas propias (`nuevaTareaPropia`), que nacen para cualquiera y
+no viajan hasta tener un nombre válido (`tituloDeTareaValido`, el mismo
+3-120 de la RPC). Dos límites deliberados:
+
+- **Los roles aptos no se editan**: renombrar «Limpiar el horno» no lo
+  vuelve apto para la junior. La seguridad no se rebautiza.
+- **Los puntos no se teclean**: salen del esfuerzo y del rol. El
+  esfuerzo es la palanca honesta para «esta tarea aquí es más gorda», y
+  arrastra el reloj.
+
+Personalizar rompía la vía «esfuerzo por título» del reloj, así que
+`esfuerzoDeMision(reto, rol)` tiene ahora una segunda vía: los PUNTOS
+guardados (xp = base_del_rol × {1 · 1,5 · 2}, se toma el multiplicador
+más cercano). El título del catálogo sigue mandando cuando existe.
+
 ## Dónde se ve
 
 - **Panel → Misiones**: botón «🧹 Modo limpieza» (dice si hay operación
   en marcha). El asistente: formato → campaña → participantes y reparto
   (sugerido por `repartoSugerido`, equilibrado por minutos y
-  determinista) → qué adulto responde → lanzar.
+  determinista; cada tarea editable, con la asignación embebida en la
+  propia tarea) → qué adulto responde → lanzar.
 - **Tablero de adultos y junior**: bloque propio encima de las misiones,
   con tinte teal (`carta-operacion`), días restantes, Talis visibles (al
   revés que las misiones normales: pagar más es lo que ofrece) y reloj.

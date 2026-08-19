@@ -294,6 +294,7 @@ function Misiones({ data, profile, ocupado, onPedir, misPendientes, misAprobadas
                 ocupado={ocupado}
                 onPedir={onPedir}
                 profileId={profile.id}
+                rol={profile.role}
               />
             ))}
           </div>
@@ -396,8 +397,10 @@ function Misiones({ data, profile, ocupado, onPedir, misPendientes, misAprobadas
  *  · Agotarse no bloquea nada: el reloj dice «¡Tiempo!» y la tarea
  *    sigue igual. Un reloj que castiga convierte la ayuda en examen.
  */
-function TareaDeOperacion({ reto, genero, ocupado, onPedir, profileId }) {
-  const esf = esfuerzoDeMision(reto)
+function TareaDeOperacion({ reto, genero, ocupado, onPedir, profileId, rol }) {
+  // Con el rol delante, una tarea con el título personalizado recupera
+  // su esfuerzo por los puntos; sin él caería a «media».
+  const esf = esfuerzoDeMision(reto, rol)
   const [inicio, setInicio] = useState(() => inicioDe(profileId, reto.id))
   const [, setTic] = useState(0)
 

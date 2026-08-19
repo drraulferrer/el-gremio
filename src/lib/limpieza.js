@@ -405,18 +405,66 @@ export function esDeOperacion(reto) {
   return Boolean(reto?.campana_id)
 }
 
-// El esfuerzo de una misión ya guardada se recupera POR TÍTULO desde el
-// catálogo: `challenges` no guarda esfuerzo, y añadir una columna para
-// un dato que solo alimenta el reloj sería pagar esquema por cosmética.
-// Si el título no está (un adulto lo editó a mano), se asume 'media':
-// un reloj aproximado sigue siendo mejor que ningún reloj.
+// El esfuerzo de una misión ya guardada se recupera sin columna nueva:
+// `challenges` no guarda esfuerzo, y añadir esquema para un dato que
+// solo alimenta el reloj sería pagar caro una cosmética. Dos vías, en
+// orden:
+//
+//  1. Por TÍTULO, si sigue siendo el del catálogo.
+//  2. Por PUNTOS, si el título se personalizó (desde que las tareas se
+//     editan al lanzar, es el caso normal): la XP de una tarea es
+//     base_del_rol × {1 · 1,5 · 2}, así que el multiplicador más
+//     cercano dice el esfuerzo. Aguanta incluso que un adulto retoque
+//     la XP a mano después, porque se toma el más cercano.
+//
+// Y 'media' como red final: un reloj aproximado sigue siendo mejor que
+// ningún reloj.
 const ESFUERZO_POR_TITULO = new Map(
   CAMPANAS.flatMap((c) => c.tareas).map((t) => [t.t, t.esf])
 )
 
-/** El esfuerzo de una misión de campaña, con 'media' como red. */
-export function esfuerzoDeMision(reto) {
-  return ESFUERZO[ESFUERZO_POR_TITULO.get(String(reto?.title || '').trim())] || ESFUERZO.media
+/** El esfuerzo de una misión de campaña. `rol` afina la vía por puntos. */
+export function esfuerzoDeMision(reto, rol = null) {
+  const porTitulo = ESFUERZO[ESFUERZO_POR_TITULO.get(String(reto?.title || '').trim())]
+  if (porTitulo) return porTitulo
+
+  const base = DEFAULTS_ROL[rol]?.xp
+  if (base && Number(reto?.xp) > 0) {
+    const factor = Number(reto.xp) / base
+    const candidatos = Object.values(ESFUERZO)
+    return candidatos.reduce((a, b) => (Math.abs(b.xp - factor) < Math.abs(a.xp - factor) ? b : a))
+  }
+
+  return ESFUERZO.media
+}
+
+// ------------------------------------------------------------------
+// Personalizar: las tareas del catálogo son un punto de partida
+//
+// El planificador original deja huecos «{Agrega los tuyos}» en cada
+// lista, y esta casa no limpia igual que ninguna otra: al lanzar, cada
+// tarea se puede editar (título, esfuerzo y emoji) y se pueden añadir
+// tareas propias. Dos límites que NO se abren:
+//
+//  · Los ROLES APTOS del catálogo no se editan: renombrar «Limpiar el
+//    horno» no lo vuelve apto para la junior. Lo que lleva químicos,
+//    horno o altura sigue siendo de personas adultas se llame como se
+//    llame. Las tareas propias nacen para todos, porque las escribe el
+//    adulto sabiendo para quién son.
+//  · Los PUNTOS no se teclean: salen del esfuerzo y del rol, como
+//    siempre. Editar el esfuerzo es la palanca honesta para «esta
+//    tarea en esta casa es más gorda».
+// ------------------------------------------------------------------
+
+/** Una tarea en blanco, para los huecos «{Agrega los tuyos}». */
+export function nuevaTareaPropia() {
+  return { t: '', e: '🧹', roles: [...TODOS], esf: 'media', propia: true, asignado: null }
+}
+
+/** El mismo límite que comprueba la RPC: 3-120 tras recortar. */
+export function tituloDeTareaValido(t) {
+  const limpio = String(t || '').trim()
+  return limpio.length >= 3 && limpio.length <= 120
 }
 
 /** Una campaña del catálogo por su clave, o null. */
@@ -471,36 +519,39 @@ export function repartoSugerido(tareas = [], participantes = []) {
 /**
  * Las filas que se envían a `crear_campana_limpieza`: una por tarea
  * asignada, con los puntos ya calculados para el rol de quien la hará.
- * `asignacion` es el array paralelo del reparto (id de perfil o null);
- * las tareas sin nadie se quedan fuera, que es lo que significa quitarlas.
+ * Las tareas trabajan ya PERSONALIZADAS —cada una lleva su `asignado`—
+ * y aquí se filtra lo que no puede viajar: sin nadie asignado (quitarla
+ * es eso), asignada a alguien no apto, o con un título que la base va a
+ * rechazar (una tarea propia a medio escribir).
  */
-export function tareasParaLanzar(campana, asignacion = [], perfiles = []) {
+export function tareasParaLanzar(tareas = [], perfiles = []) {
   const porId = new Map(perfiles.map((p) => [p.id, p]))
-  return campana.tareas
-    .map((tarea, i) => {
-      const perfil = porId.get(asignacion[i])
+  return tareas
+    .map((tarea) => {
+      const perfil = porId.get(tarea.asignado)
       if (!perfil || !tareaApta(tarea, perfil)) return null
+      if (!tituloDeTareaValido(tarea.t)) return null
       const puntos = puntosDeTarea(tarea, perfil.role)
       if (!puntos) return null
-      return { profile_id: perfil.id, title: tarea.t, emoji: tarea.e, xp: puntos.xp, coins: puntos.coins }
+      return { profile_id: perfil.id, title: tarea.t.trim(), emoji: tarea.e, xp: puntos.xp, coins: puntos.coins }
     })
     .filter(Boolean)
 }
 
 /** Totales por persona para el formulario: tareas, minutos y puntos. */
-export function resumenDeReparto(campana, asignacion = [], perfiles = []) {
+export function resumenDeReparto(tareas = [], perfiles = []) {
   return perfiles
     .map((perfil) => {
-      const indices = campana.tareas.map((_, i) => i).filter((i) => asignacion[i] === perfil.id)
-      const minutos = indices.reduce((t, i) => t + minutosDe(campana.tareas[i]), 0)
-      const puntos = indices.reduce(
-        (t, i) => {
-          const p = puntosDeTarea(campana.tareas[i], perfil.role)
-          return p ? { xp: t.xp + p.xp, coins: t.coins + p.coins } : t
+      const suyas = tareas.filter((t) => t.asignado === perfil.id)
+      const minutos = suyas.reduce((total, t) => total + minutosDe(t), 0)
+      const puntos = suyas.reduce(
+        (total, t) => {
+          const p = puntosDeTarea(t, perfil.role)
+          return p ? { xp: total.xp + p.xp, coins: total.coins + p.coins } : total
         },
         { xp: 0, coins: 0 }
       )
-      return { perfil, tareas: indices.length, minutos, ...puntos }
+      return { perfil, tareas: suyas.length, minutos, ...puntos }
     })
     .filter((r) => r.tareas > 0)
 }

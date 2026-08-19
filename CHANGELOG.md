@@ -18,6 +18,23 @@ verdad duele en esta app: que el esquema y el cliente dejen de encajar.
 
 ---
 
+## 2.10.0 · 19 de agosto de 2026
+
+**Las tareas del modo limpieza se personalizan al lanzar.** El catálogo
+pasa a ser un punto de partida: en el reparto, el lápiz de cada tarea
+abre un editor con el nombre («Recoger el cuarto de juegos a fondo»),
+el esfuerzo —que arrastra puntos y reloj, como siempre— y el dibujo,
+con el mismo buscador de emojis de las misiones. Y el hueco «{Agrega
+los tuyos}» del planificador original ya existe: «+ Añadir una tarea de
+esta casa» crea tareas propias, que nacen para cualquiera y no viajan
+hasta tener nombre.
+
+Dos límites a propósito: los roles aptos del catálogo no se editan
+(renombrar «Limpiar el horno» no lo vuelve apto para la junior) y los
+puntos no se teclean (salen del esfuerzo y del rol). El reloj de una
+tarea renombrada se recupera por los puntos guardados, no por el título,
+así que personalizar no lo rompe.
+
 ## 2.9.0 · 19 de agosto de 2026
 
 **El modo limpieza: campañas de limpieza como misión secundaria.** Un

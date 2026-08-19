@@ -400,7 +400,7 @@ function TarjetaValidacion({ completion, perfil, reto, completions, onResolver }
           <strong>{reto?.emoji} {flex(reto?.title, genero) || 'Misión'}</strong>
           <div className="suave">
             {perfil?.name} · +{completion.xp} XP · +<Talis n={completion.coins} />
-            {deOperacion && <> · 🧹 {esfuerzoDeMision(reto).texto}</>}
+            {deOperacion && <> · 🧹 {esfuerzoDeMision(reto, perfil?.role).texto}</>}
             {racha >= 2 && <> · 🔥 {racha + 1} días seguidos</>}
           </div>
         </div>
@@ -849,7 +849,9 @@ function GestionMisiones({ family, data, refresh }) {
             <div className="crece">
               <strong>{flex(ch.title, generoDe(data.profiles.find((p) => p.id === ch.profile_id)))}</strong>
               <div className="suave">
-                {esDeOperacion(ch) && <>🧹 Operación · {esfuerzoDeMision(ch).texto} · </>}
+                {esDeOperacion(ch) && (
+                  <>🧹 Operación · {esfuerzoDeMision(ch, data.profiles.find((p) => p.id === ch.profile_id)?.role).texto} · </>
+                )}
                 {habilidad(ch.skill) && <>{habilidad(ch.skill).emoji} {habilidad(ch.skill).nombre} · </>}
                 +{ch.xp} XP · <Talis n={ch.coins} />
               </div>
