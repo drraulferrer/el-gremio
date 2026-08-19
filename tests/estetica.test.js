@@ -5,7 +5,12 @@ import { HABILIDADES } from '../src/lib/habilidades'
 const raiz = new URL('../', import.meta.url)
 const dir = new URL('public/assets/', raiz)
 const css = readFileSync(new URL('src/styles.css', raiz), 'utf8')
-const ficheros = readdirSync(dir)
+
+// Solo FICHEROS de la raíz de assets. `public/assets/insignias/` es una
+// carpeta y tiene su propio presupuesto más abajo: son piezas de otra
+// naturaleza —80, en diferido, dentro de una pestaña— y meterlas en el
+// mismo saco que el fondo del tablero haría el tope de arriba inútil.
+const ficheros = readdirSync(dir).filter((f) => statSync(new URL(f, dir)).isFile())
 
 describe('las piezas del tablero', () => {
   it('están todas las que la interfaz pide', () => {

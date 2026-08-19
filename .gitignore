@@ -6,3 +6,4 @@ dist
 .gh-pages-worktree
 .rollback-worktree
 supabase/.temp
+.impeccable

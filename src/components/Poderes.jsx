@@ -18,6 +18,7 @@ import { PODERES, PODERES_LISTOS, insigniaPorCodigo, poderActivo, usosRestantes 
 import { gastarPoder } from '../lib/acciones'
 import { perfilesActivos } from '../lib/miembros'
 import { flex } from '../lib/genero'
+import Sello from './Sello'
 
 function diasQueQuedan(ganada, poder) {
   if (!poder?.dias || !ganada?.earned_at) return null
@@ -80,7 +81,7 @@ export default function Poderes({ data, profile, refresh, genero }) {
 
           return (
             <div className="fila-poder" key={def.code}>
-              <span className="hab-emoji">{def.emoji}</span>
+              <Sello code={def.code} nombre={flex(def.name, genero)} conseguida tamano={40} />
               <div className="crece">
                 <div className="fila-separada">
                   <strong style={{ fontSize: '0.95rem' }}>{meta.nombre}</strong>

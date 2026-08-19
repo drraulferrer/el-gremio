@@ -5,6 +5,7 @@ import { estadoDeTemporada } from '../lib/temporadas'
 import Poderes from '../components/Poderes'
 import CaminoRacha from '../components/CaminoRacha'
 import Cronica from '../components/Cronica'
+import Sello from '../components/Sello'
 import { pedirMision as pedirMisionRemota, canjearPremio, deshacerMision } from '../lib/acciones'
 import { Gema, XPBar, Bolsa, Celebracion, Pestana } from '../components/ui'
 import { talis, progresoDeTalis } from '../lib/talis'
@@ -504,10 +505,18 @@ function Progreso({ data, profile, genero, refresh }) {
 
       <div className="titulo-seccion">Insignias · {mias.size} de {INSIGNIAS.length}</div>
       <div className="grid-insignias">
-        {INSIGNIAS.map((b) => (
-          <div className={'insignia' + (mias.has(b.code) ? '' : ' bloqueada')} key={b.code}>
-            <span className="ins-emoji">{b.emoji}</span>
+        {INSIGNIAS.map((b) => {
+          const conseguida = mias.has(b.code)
+          return (
+          <div className={'insignia' + (conseguida ? '' : ' bloqueada')} key={b.code}>
+            <Sello code={b.code} nombre={flex(b.name, genero)} conseguida={conseguida} />
             <span className="ins-nombre">{flex(b.name, genero)}</span>
+            {/* El estado va en TEXTO, no solo en el gris del sello: quien
+                no distingue bien el color —o mira el móvil al sol— tiene
+                que poder saber si la tiene sin adivinarlo por el tono. */}
+            <span className={'ins-estado' + (conseguida ? ' ins-estado-si' : '')}>
+              {conseguida ? 'Conseguida' : 'Aún no'}
+            </span>
             <div className="suave" style={{ fontSize: '0.72rem', marginTop: 2 }}>{b.desc}</div>
             {/* Qué DA, no solo qué reconoce: una insignia que hace algo se
                 busca, y para buscarla hay que poder leer qué hace desde
@@ -516,7 +525,8 @@ function Progreso({ data, profile, genero, refresh }) {
               <span className="ins-poder">{PODERES[b.poder.tipo].nombre}: {PODERES[b.poder.tipo].describe(b.poder)}</span>
             )}
           </div>
-        ))}
+          )
+        })}
       </div>
 
       {/* Va detrás de las insignias a propósito: el último fragmento

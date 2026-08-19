@@ -994,8 +994,66 @@ input:focus, select:focus, button:focus-visible {
 }
 .insignia .ins-emoji { font-size: 1.9rem; display: block; }
 .insignia .ins-nombre { font-family: var(--display); font-weight: 600; font-size: 0.82rem; margin-top: 4px; }
-.insignia.bloqueada { opacity: 0.38; filter: grayscale(1); }
 .grid-insignias { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+
+/* ------------------------------------------------------------------
+   Sellos de oficio.
+
+   Antes esto era un emoji y `bloqueada` era `opacity:.38 + grayscale(1)`.
+   Las dos cosas se han caído a la vez y por el mismo motivo: el estado no
+   puede vivir SOLO en el color. Al 38 % el texto de la tarjeta bajaba de
+   contraste AA, y a pleno sol un móvil no distingue el gris del oro. Ahora
+   el sello pendiente se apaga —pero mucho menos— y el estado se dice
+   además con palabras («Conseguida» / «Aún no»), que es lo que de verdad
+   se lee.
+   ------------------------------------------------------------------ */
+.sello {
+  display: block;
+  margin: 0 auto;
+  /* Sin esto la rejilla salta mientras bajan las 16 imágenes en diferido. */
+  aspect-ratio: 1;
+  object-fit: contain;
+}
+
+.sello-pendiente {
+  /* Ni gris del todo ni a color: se ve QUÉ es y se ve que aún no está. */
+  filter: grayscale(0.75) brightness(0.7) contrast(0.9);
+  opacity: 0.75;
+}
+
+/* El TEXTO de una insignia pendiente no se apaga. `--tinta-suave` sobre
+   `--carta` da 6,05:1, pero bajarlo al 72 % lo dejaba en 3,8:1 y AA pide
+   4,5:1 para texto normal. Y apagarlo no aportaba nada: quién la tiene y
+   quién no ya lo dicen el sello y la palabra «Aún no». Se atenúa la
+   imagen, no lo que hay que leer. */
+
+/* El fallback cuando la imagen no llega: marco de sello con la inicial.
+   Un icono que no carga es un fallo de red, y no debe parecer una
+   insignia rota ni dejar un hueco que descuadre la rejilla. */
+.sello-sin-imagen {
+  display: grid;
+  place-items: center;
+  border: 2px dashed var(--linea);
+  border-radius: 50%;
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 1.4rem;
+  color: var(--tinta-suave);
+}
+
+.ins-estado {
+  display: block;
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  margin-top: 3px;
+  color: var(--tinta-suave);
+}
+.ins-estado-si { color: var(--teal); }
+
+/* En la fila de poderes el sello va al lado del texto, no centrado. */
+.fila-poder .sello { margin: 0; flex: none; }
 
 .boton-peque {
   width: 100%;

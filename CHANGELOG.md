@@ -18,6 +18,37 @@ verdad duele en esta app: que el esquema y el cliente dejen de encajar.
 
 ---
 
+## 2.6.0 · 19 de agosto de 2026
+
+**Las insignias dejan de ser emoji y pasan a ser sellos grabados.** 80
+piezas nuevas en `public/assets/insignias/`: las 73 del catálogo v1 que
+describen `docs/INSIGNIAS-01..06` más 7 de legado.
+
+El emoji tenía un problema que no se arregla cambiándolo por otro emoji:
+🌟 y 👑 pesan lo mismo en pantalla aunque una sea la primera misión y la
+otra cincuenta. El sello sí sabe decir cuánto cuesta, porque el **material
+es la escala** —bronce → plata → oro → oro con gema → legendaria—. Es la
+misma pieza grabada, cada vez en un metal mejor, y se lee sin leer.
+
+Tres cosas que se vieron en el navegador y no en los tests:
+
+- `x10` y `x25` caían las dos en bronce y en la rejilla parecían la misma
+  insignia repetida. Ahora las series prestan peldaños **saltados**
+  (Trayectoria 01/03/06), y un test lo fija: dos insignias visibles a la
+  vez no comparten metal.
+- El estado ya no vive solo en el color. `bloqueada` era `opacity:.38 +
+  grayscale(1)` sobre la tarjeta entera, que dejaba el texto en ~1,9:1.
+  Ahora se atenúa **la imagen**, el texto va a opacidad completa (6,05:1) y
+  el estado se dice además con palabras: «Conseguida» / «Aún no».
+- 80 PNG a resolución nativa eran 206 MB. En WebP a 192 px son 976 KB, con
+  tope propio en `tests/sellos.test.js`: el de `public/assets` defiende la
+  carga inicial y estas bajan en diferido, dentro de una pestaña.
+
+Esto es **solo la capa visual**. El motor sigue siendo el de las 16
+insignias de `insignias.js`: no se concede nada nuevo, no se evalúa
+ninguna condición del catálogo v1 y la economía no se toca. Las 57 piezas
+que aún no tienen regla quedan esperando en `src/lib/sellos.js`.
+
 ## 2.5.3 · 18 de agosto de 2026
 
 **El ornamento del estandarte deja de ser un recorte.** Se probaron tres
