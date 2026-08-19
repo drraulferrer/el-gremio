@@ -250,6 +250,29 @@ class Consulta {
         // Igual que Postgres: la fila entera se cae, no se guarda a
         // medias. El mensaje imita al de la base para que quien lo lea en
         // demo reconozca el de producción.
+        // Espejo de `tg_completion_snapshot` (migración 029). Sin esto,
+        // la demo guardaría completaciones sin contexto congelado y los
+        // sellos de oficio se calcularían por el respaldo en vez de por
+        // el camino real: se probaría una cosa y se publicaría otra.
+        if (this.tabla === 'completions') {
+          const reto = (db.challenges || []).find((c) => c.id === nueva.challenge_id)
+          nueva.snapshot_title = nueva.snapshot_title ?? (reto?.title || '').slice(0, 160)
+          nueva.snapshot_skill = nueva.snapshot_skill ?? reto?.skill ?? null
+          nueva.snapshot_frequency = nueva.snapshot_frequency ?? reto?.frequency ?? null
+          nueva.snapshot_mission_family_id =
+            nueva.snapshot_mission_family_id ?? reto?.mission_family_id ?? null
+          nueva.snapshot_xp = nueva.snapshot_xp ?? nueva.xp
+          nueva.snapshot_coins = nueva.snapshot_coins ?? nueva.coins
+          nueva.snapshot_quality = nueva.snapshot_quality ?? (reto ? 'native' : 'legacy_current_state')
+          // El nivel de ayuda solo cuenta si la misión lo registra.
+          if (nueva.assistance_level && !reto?.track_assistance) nueva.assistance_level = null
+        }
+
+        // Y de `tg_challenge_familia`: toda misión nace con familia.
+        if (this.tabla === 'challenges' && !nueva.mission_family_id) {
+          nueva.mission_family_id = `mf:${nueva.id}`
+        }
+
         if (this.tabla === 'profiles' && !especieCoherente(nueva)) {
           return {
             data: null,

@@ -60,20 +60,29 @@ const distintos = (lista) => new Set(lista).size
 /**
  * Qué habilidad, familia y frecuencia entrenó una completación.
  *
- * Hoy sale del `challenge` que sigue existiendo, y eso es una debilidad
- * conocida: si alguien edita la habilidad de una misión, el pasado cambia
- * de interpretación; si borra la misión, la cascada se lleva también sus
- * completions. INSIGNIAS-01 §9.3 pide congelar esto en la propia
- * completación. Mientras no exista esa columna, la FAMILIA es el
- * `challenge_id`: es estable frente a renombrar el título, que es el caso
- * frecuente, aunque no frente a duplicar la misión.
+ * Manda el SNAPSHOT (migración 029): lo que se guardó cuando la persona
+ * hizo la cosa. Editar la habilidad de una misión ya no reescribe el
+ * pasado, y borrar la misión ya no se lleva su historia por delante.
+ *
+ * El respaldo al `challenge` actual queda para dos casos, los dos
+ * legítimos: filas anteriores a la migración en una base donde el
+ * backfill aún no ha corrido, y el modo demo recién sembrado a mano.
+ * Cuando ni una cosa ni la otra, la familia es el `challenge_id`, que
+ * aguanta renombrar el título aunque no duplicar la misión.
  */
 function contextoDe(completion, retosPorId) {
   const reto = retosPorId.get(completion.challenge_id)
   return {
-    habilidad: reto?.skill || null,
-    familia: completion.challenge_id,
-    frecuencia: reto?.frequency || null
+    habilidad: completion.snapshot_skill ?? reto?.skill ?? null,
+    familia: completion.snapshot_mission_family_id
+      || reto?.mission_family_id
+      || completion.challenge_id,
+    frecuencia: completion.snapshot_frequency ?? reto?.frequency ?? null,
+    xp: completion.snapshot_xp ?? completion.xp ?? 0,
+    // Cuánta ayuda hizo falta. `null` mientras la misión no lo registre,
+    // que es el estado de casi todas: los sellos de Autonomía no se
+    // conceden sin este dato y no se infiere de nada.
+    ayuda: completion.assistance_level ?? null
   }
 }
 
@@ -163,7 +172,7 @@ export function proyeccionDe(perfil, datos = {}) {
   for (const item of ctx) {
     if (!item.habilidad) continue
     const h = (porHabilidad[item.habilidad] ||= { xp: 0, completions: [], familias: new Set() })
-    h.xp += item.c.xp || 0
+    h.xp += item.xp
     h.completions.push(item.c)
     h.familias.add(item.familia)
   }

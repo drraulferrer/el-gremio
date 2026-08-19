@@ -21,6 +21,7 @@ import {
 import { PREMIOS_DE_LA_PEQUE } from '../lib/setup'
 import { SUBIDA_POR_TEMPORADA, precioSiguienteTemporada, premiosQueSuben } from '../lib/temporadas'
 import { quienMasAporta } from '../lib/meritos'
+import { borrarORetirar } from '../lib/retirarMision'
 import { habilidad, HABILIDADES } from '../lib/habilidades'
 import { sugerenciasDeElogio, rachaDeMision, sugerenciasDeCorreccion, correccionValida } from '../lib/elogio'
 import { flex, generoDe } from '../lib/genero'
@@ -515,12 +516,14 @@ function ModoPeque({ family, data, refresh, onCeleb }) {
   }
 
   async function borrar(m) {
-    if (!window.confirm(`¿Borrar "${flex(m.title, 'neutro')}" y su historial?`)) return
-    const { error } = await supabase.from('challenges').delete().eq('id', m.id)
+    // Si tiene historial se ofrece retirarla: borrarla se llevaría por
+    // delante la prueba de las insignias que sostiene. Ver retirarMision.js.
+    const { resultado, error } = await borrarORetirar({ ...m, titulo: flex(m.title, 'neutro') })
     if (error) {
       setFallo(mensajeDeError(error))
       return
     }
+    if (resultado === 'cancelado') return
     setEditando(null)
     await refresh()
   }
@@ -723,12 +726,14 @@ function GestionMisiones({ family, data, refresh }) {
   }
 
   async function borrar(m) {
-    if (!window.confirm(`¿Borrar "${m.title}" y su historial?`)) return
-    const { error } = await supabase.from('challenges').delete().eq('id', m.id)
+    // Si tiene historial se ofrece retirarla: borrarla se llevaría por
+    // delante la prueba de las insignias que sostiene. Ver retirarMision.js.
+    const { resultado, error } = await borrarORetirar({ ...m, titulo: m.title })
     if (error) {
       setFallo(mensajeDeError(error))
       return
     }
+    if (resultado === 'cancelado') return
     setEditando(null)
     await refresh()
   }

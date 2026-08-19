@@ -103,6 +103,25 @@ create table if not exists public.profiles (
   )
 );
 
+-- La identidad estable de una ACTIVIDAD (migración 028), por encima del
+-- challenge concreto que la representa hoy.
+--
+-- `key` no se enseña nunca: existe para que un backfill o una
+-- importación vuelvan a apuntar al mismo sitio sin adivinar. `label` es
+-- administrativo y NINGUNA regla lo lee: si una regla leyera un texto
+-- editable, cambiar una palabra reescribiría el pasado.
+create table if not exists public.mission_families (
+  id uuid primary key default gen_random_uuid(),
+  family_id uuid not null references public.families(id) on delete cascade,
+  key text not null check (length(key) between 1 and 80),
+  label text not null check (length(label) between 1 and 120),
+  created_at timestamptz not null default now(),
+  -- Retiro lógico: una familia retirada sigue explicando completaciones
+  -- antiguas.
+  retired_at timestamptz,
+  unique (family_id, key)
+);
+
 create table if not exists public.challenges (
   id uuid primary key default gen_random_uuid(),
   family_id uuid not null references public.families(id) on delete cascade,
@@ -146,13 +165,27 @@ create table if not exists public.challenges (
     or (cardinality(days) between 1 and 7 and days <@ array[1,2,3,4,5,6,7]::smallint[])
   ),
   active boolean not null default true,
+  -- La identidad estable de la ACTIVIDAD, por encima de este challenge
+  -- concreto (migración 028). Varios challenges pueden compartirla: el de
+  -- invierno y el de verano, el del peque y el de la junior. Sin esto,
+  -- duplicar una misión fabricaba variedad de la nada y los caminos de
+  -- oficio —que piden practicar de varias formas— se podían comprar.
+  mission_family_id uuid references public.mission_families(id) on delete set null,
+  -- ¿Se anota cuánta ayuda hizo falta en cada validación? Apagado por
+  -- defecto: pedir ese dato sin haberlo pensado convierte una app de
+  -- reconocimiento en un formulario.
+  track_assistance boolean not null default false,
   created_at timestamptz not null default now()
 );
 
 create table if not exists public.completions (
   id uuid primary key default gen_random_uuid(),
   family_id uuid not null references public.families(id) on delete cascade,
-  challenge_id uuid not null references public.challenges(id) on delete cascade,
+  -- `restrict`, no `cascade` (migración 029): borrar una misión ya no se
+  -- lleva su historial por delante. No pueden ser verdad a la vez «una
+  -- insignia ganada no se pierde» y «cualquiera puede borrar la prueba de
+  -- que se ganó». Una misión SIN historia se sigue pudiendo borrar.
+  challenge_id uuid not null references public.challenges(id) on delete restrict,
   profile_id uuid not null references public.profiles(id) on delete cascade,
   status text not null default 'pendiente' check (status in ('pendiente','aprobado','rechazado')),
   xp integer not null,
@@ -165,7 +198,33 @@ create table if not exists public.completions (
   -- todo lo anterior, que eran personas apuntándose lo suyo.
   registrado_por uuid references public.profiles(id) on delete set null,
   requested_at timestamptz not null default now(),
-  resolved_at timestamptz
+  resolved_at timestamptz,
+  -- ------------------------------------------------------------------
+  -- El contexto CONGELADO de lo que se hizo (migración 029).
+  --
+  -- Se captura al crear la completación, no al validarla: es cuando la
+  -- persona hizo la cosa. Editar la misión mañana no toca el trabajo de
+  -- ayer, porque el trabajo de ayer ya ocurrió. Las reglas de los sellos
+  -- leen esto, no `challenges`.
+  --
+  -- `snapshot_quality` no se barre bajo la alfombra: `native` se capturó
+  -- en su momento y es fiel; `legacy_current_state` se dedujo en el
+  -- backfill del challenge que existía ese día, y puede no ser lo que
+  -- realmente se entrenó si alguien lo editó por el camino.
+  -- ------------------------------------------------------------------
+  snapshot_title text,
+  snapshot_skill text,
+  snapshot_frequency text,
+  snapshot_mission_family_id uuid references public.mission_families(id) on delete set null,
+  snapshot_xp integer,
+  snapshot_coins integer,
+  snapshot_quality text check (snapshot_quality is null or snapshot_quality in ('native','legacy_current_state')),
+  -- Cuánta ayuda hizo falta ESTA vez. Va en la completación y no en el
+  -- perfil porque la autonomía no es un rasgo de la persona: alguien
+  -- puede vestirse sola el martes y necesitar ayuda el jueves porque
+  -- está malita, y eso no la vuelve menos autónoma. Solo se acepta si la
+  -- misión tiene `track_assistance`.
+  assistance_level text check (assistance_level is null or assistance_level in ('guided','prompted','independent'))
 );
 
 create table if not exists public.rewards (
@@ -203,7 +262,12 @@ create table if not exists public.family_goals (
   target_xp integer not null default 1000,
   achieved boolean not null default false,
   starts_at timestamptz not null default now(),
-  achieved_at timestamptz
+  achieved_at timestamptz,
+  -- El número de temporada se GUARDA (migración 030). Venía derivándose
+  -- de cuántas metas cerradas había, y eso deja de funcionar en cuanto
+  -- alguien reabre o corrige una. Un sello que dice «temporada 3» tiene
+  -- que seguir diciendo 3 dentro de cinco años.
+  season_number integer check (season_number is null or season_number >= 1)
 );
 
 create table if not exists public.profile_badges (
@@ -212,7 +276,18 @@ create table if not exists public.profile_badges (
   profile_id uuid not null references public.profiles(id) on delete cascade,
   code text not null,
   earned_at timestamptz not null default now(),
-  unique (profile_id, code)
+  -- Qué instancia de un sello repetible es esta (migración 030). Vacío =
+  -- «este sello es único en la vida», que es como se comportan los 16
+  -- viejos y los 66 del catálogo que no son de temporada. Con el
+  -- `goal_id` dentro, el sello de la temporada 5 convive con el de la 1.
+  --
+  -- Vacío y NO null: en Postgres un `unique` con NULL deja pasar
+  -- duplicados, porque NULL no es igual a NULL, y entonces la
+  -- restricción no protegería justo el caso de siempre.
+  instance_key text not null default '',
+  season_number integer check (season_number is null or season_number >= 1),
+  earned_context text check (earned_context is null or earned_context in ('directo','retroactivo','legado')),
+  constraint profile_badges_perfil_code_instancia unique (profile_id, code, instance_key)
 );
 
 -- Plan diario: qué diarias se han programado para un día concreto.
@@ -307,7 +382,7 @@ create policy familia_owner on public.families
 do $$
 declare t text;
 begin
-  foreach t in array array['profiles','challenges','completions','rewards','redemptions','family_goals','profile_badges','plan_diario']
+  foreach t in array array['profiles','challenges','completions','rewards','redemptions','family_goals','profile_badges','plan_diario','mission_families']
   loop
     execute format('drop policy if exists familia_miembro on public.%I', t);
     execute format($f$
@@ -993,6 +1068,128 @@ do $$ begin alter publication supabase_realtime add table public.power_uses; exc
 create unique index if not exists idx_badges_unica_por_gremio
   on public.profile_badges (family_id, code)
   where code in ('primer_nivel10', 'mano_derecha', 'coleccionista');
+
+-- ------------------------------------------------------------------
+-- Sellos de oficio: familias de misión y contexto congelado
+-- (migraciones 028 y 029). El porqué de cada pieza está en sus ficheros.
+-- ------------------------------------------------------------------
+
+create index if not exists idx_mission_families_gremio
+  on public.mission_families (family_id, retired_at);
+create index if not exists idx_challenges_mission_family
+  on public.challenges (mission_family_id);
+
+-- Las tres preguntas que hacen las reglas: días distintos, por habilidad
+-- y por familia de misión. Parciales sobre aprobadas porque ninguna
+-- regla mira lo pendiente ni lo rechazado.
+create index if not exists idx_completions_sellos_habilidad
+  on public.completions (profile_id, snapshot_skill, requested_at)
+  where status = 'aprobado';
+create index if not exists idx_completions_sellos_familia
+  on public.completions (profile_id, snapshot_mission_family_id, requested_at)
+  where status = 'aprobado';
+
+create unique index if not exists idx_family_goals_temporada
+  on public.family_goals (family_id, season_number)
+  where season_number is not null;
+
+-- Una familia de misión no se muda de gremio ni cambia de clave: sin
+-- esto, un `update` dejaría challenges de un gremio apuntando a la
+-- familia de otro y el aislamiento se rompería por la puerta de atrás.
+create or replace function public.tg_mission_family_inmutable()
+returns trigger language plpgsql as $$
+begin
+  if new.family_id is distinct from old.family_id then
+    raise exception 'una familia de misión no cambia de gremio';
+  end if;
+  if new.key is distinct from old.key then
+    raise exception 'la clave de una familia de misión no se reescribe';
+  end if;
+  return new;
+end $$;
+
+drop trigger if exists tg_mission_family_inmutable on public.mission_families;
+create trigger tg_mission_family_inmutable
+  before update on public.mission_families
+  for each row execute function public.tg_mission_family_inmutable();
+
+-- Toda misión nueva nace con familia. En el trigger y no en la app
+-- porque hay tres sitios que crean challenges y el día que aparezca un
+-- cuarto se olvidaría.
+create or replace function public.tg_challenge_familia()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare nueva uuid;
+begin
+  if new.mission_family_id is not null then
+    return new;
+  end if;
+  insert into public.mission_families (family_id, key, label)
+  values (new.family_id, 'challenge:' || new.id::text, left(new.title, 120))
+  on conflict (family_id, key) do update set label = excluded.label
+  returning id into nueva;
+  new.mission_family_id := nueva;
+  return new;
+end $$;
+
+drop trigger if exists tg_challenge_familia on public.challenges;
+create trigger tg_challenge_familia
+  before insert on public.challenges
+  for each row execute function public.tg_challenge_familia();
+
+-- El contexto se captura al CREAR, no al validar: una misión pedida el
+-- lunes y aprobada el jueves debe guardar lo que era el lunes.
+create or replace function public.tg_completion_snapshot()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare reto public.challenges%rowtype;
+begin
+  select * into reto from public.challenges where id = new.challenge_id;
+  if not found then
+    new.snapshot_quality := coalesce(new.snapshot_quality, 'legacy_current_state');
+    return new;
+  end if;
+  new.snapshot_title := coalesce(new.snapshot_title, left(reto.title, 160));
+  new.snapshot_skill := coalesce(new.snapshot_skill, reto.skill);
+  new.snapshot_frequency := coalesce(new.snapshot_frequency, reto.frequency);
+  new.snapshot_mission_family_id := coalesce(new.snapshot_mission_family_id, reto.mission_family_id);
+  new.snapshot_xp := coalesce(new.snapshot_xp, new.xp);
+  new.snapshot_coins := coalesce(new.snapshot_coins, new.coins);
+  new.snapshot_quality := coalesce(new.snapshot_quality, 'native');
+  -- El nivel de ayuda solo se acepta si esa misión lo pide: si no, un
+  -- cliente podría marcar «independiente» en cualquier cosa y abrir los
+  -- sellos de Autonomía sin que nadie lo haya observado.
+  if new.assistance_level is not null and not coalesce(reto.track_assistance, false) then
+    new.assistance_level := null;
+  end if;
+  return new;
+end $$;
+
+drop trigger if exists tg_completion_snapshot on public.completions;
+create trigger tg_completion_snapshot
+  before insert on public.completions
+  for each row execute function public.tg_completion_snapshot();
+
+-- Si se pudiera actualizar no sería un snapshot, sería una copia del
+-- estado actual con pasos extra. `assistance_level` sí se deja mover:
+-- quien valida puede anotarlo después de haber visto cómo fue.
+create or replace function public.tg_completion_snapshot_inmutable()
+returns trigger language plpgsql as $$
+begin
+  if new.snapshot_title is distinct from old.snapshot_title
+     or new.snapshot_skill is distinct from old.snapshot_skill
+     or new.snapshot_frequency is distinct from old.snapshot_frequency
+     or new.snapshot_mission_family_id is distinct from old.snapshot_mission_family_id
+     or new.snapshot_xp is distinct from old.snapshot_xp
+     or new.snapshot_coins is distinct from old.snapshot_coins
+     or new.snapshot_quality is distinct from old.snapshot_quality then
+    raise exception 'el contexto histórico de una completación no se reescribe';
+  end if;
+  return new;
+end $$;
+
+drop trigger if exists tg_completion_snapshot_inmutable on public.completions;
+create trigger tg_completion_snapshot_inmutable
+  before update on public.completions
+  for each row execute function public.tg_completion_snapshot_inmutable();
 
 -- Gastar un uso. Devuelve 'ok' · 'sin_usos' · 'no_la_tienes' ·
 -- 'poder_no_gastable' · 'sin_destino' · 'destino_no_existe' · 'a_ti_no' ·

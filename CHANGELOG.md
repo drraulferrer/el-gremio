@@ -18,6 +18,49 @@ verdad duele en esta app: que el esquema y el cliente dejen de encajar.
 
 ---
 
+## 2.8.0 · 19 de agosto de 2026
+
+**El pasado deja de poder reescribirse.** Migraciones 028, 029 y 030, con
+el código que las acompaña.
+
+Había una incoherencia de fondo: una insignia ganada no se pierde, pero la
+prueba de por qué se ganó sí se podía destruir. De dos maneras. Editar la
+habilidad de una misión reescribía el pasado —«Hacer la cama» pasa de
+Hogar a Responsabilidad y las cuarenta veces del año pasado dejan de haber
+entrenado Hogar, con la Maestría todavía en el perfil y nada detrás—. Y
+borrar una misión se llevaba sus completaciones por cascada; el botón
+incluso lo anunciaba: «¿Borrar … y su historial?».
+
+- **029 congela el contexto** de cada completación al crearla: habilidad,
+  frecuencia, título, familia y valores. Es lo que leen ahora las reglas.
+  Al CREAR y no al validar, porque una misión pedida el lunes y aprobada
+  el jueves debe guardar lo que era el lunes.
+- **028 da identidad estable a las actividades.** Antes la familia de
+  misión era el `challenge_id`, así que duplicar «Hacer la cama» en «Hacer
+  la cama II» fabricaba variedad de la nada y los caminos de oficio —que
+  piden practicar de varias formas— se podían comprar.
+- **030 permite los sellos repetibles**: `unique(profile_id, code)` impedía
+  que existieran el sello de la temporada 2 y el de la 5 a la vez.
+
+**Borrar una misión con historial ya no borra el historial.** La clave pasa
+a `restrict` y la app ofrece retirarla, que es lo que quien pulsa quería de
+verdad: que deje de salir. Una misión sin historia se sigue borrando.
+
+Dos cosas que conviene saber:
+
+- **La app aguanta la ventana entre desplegar y migrar.** Si las columnas
+  aún no existen, la consulta se repite con las básicas y el motor cae al
+  challenge actual, igual que en 2.7.0. Sin ese respaldo el fallo se vería
+  como «dejaron de darse insignias».
+- **Algún sello de oficio puede dejar de estar a punto** si dos misiones
+  que parecían distintas eran la misma actividad. Lo ya concedido no se
+  quita, que es la regla.
+
+Se habilitan —pero no se usan todavía— el nivel de ayuda que necesitan los
+cuatro sellos de Autonomía y las instancias por temporada. Los seis siguen
+sin regla a propósito: conceder por algo que el sistema no puede demostrar
+es lo único irreversible.
+
 ## 2.7.0 · 19 de agosto de 2026
 
 **El motor de los sellos se enciende: 66 de los 73 ya se pueden ganar.**

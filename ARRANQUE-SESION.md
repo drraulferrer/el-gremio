@@ -3037,3 +3037,97 @@ Demo sembrada con 60 misiones aprobadas en 20 días distintos, 3 retos y 2
 habilidades: se conceden 11 (5 viejas + 6 sellos), en UN solo overlay, sin
 errores en consola. `oficio_hogar_2` NO se concede, y está bien: le faltan
 familias de misión. `coleccionista` tampoco, que era el fallo.
+
+---
+
+## 7w. Las migraciones 028–030 (19 de agosto) · 2.8.0 · **PENDIENTES DE EJECUTAR**
+
+> **El código está desplegado; el SQL NO.** La app funciona igual mientras
+> tanto —degrada sola, ver «la ventana» más abajo— pero los agujeros que
+> estas migraciones cierran siguen abiertos hasta que alguien las corra.
+
+### Qué cierran
+
+| # | Fichero | Qué arregla |
+|---|---|---|
+| 028 | `migracion-028-familias-de-mision.sql` | duplicar una misión fabricaba variedad de la nada |
+| 029 | `migracion-029-snapshot-historico.sql` | editar o borrar una misión reescribía o destruía el pasado |
+| 030 | `migracion-030-sellos-por-temporada.sql` | `unique(profile_id,code)` impedía los sellos repetibles |
+
+### Cómo se ejecutan
+
+En ORDEN. La 029 depende de la 028.
+
+```
+028 → 029 → 030
+```
+
+SHA-256 para cotejar antes de pulsar Run (§2: pegar desde el navegador
+destroza los acentos, hay que traer el fichero con la consola del editor):
+
+```
+028  9655f9ced0e59aff5ffd51e70f8bfe1e86cf7f3df4815c67e5a2e4e0cc00462d
+029  d9a6307b1d00529be9bdda91c8cd3d595137c4d96984f783f71fba20c9860c09
+030  55398a4563639f4be457e41d0416fc936158af5f454378b3e4c1b1eb1c552ade
+```
+
+La 029 hace backfill de TODAS las completaciones en lotes de 5.000. En una
+familia con años de historia tarda; el lote existe para que el SQL Editor
+no se rinda a la mitad.
+
+### La ventana entre desplegar y migrar
+
+Es real, porque las migraciones las corre una persona a mano. El código ya
+desplegado la aguanta:
+
+- `sellos-carga.js` pide las columnas del snapshot y, si Postgres
+  responde `42703` (no existe la columna), **repite la consulta con las
+  básicas**. El motor cae al challenge actual, que es exactamente como
+  funcionaba en 2.7.0.
+- Sin ese respaldo el fallo se vería como «dejaron de darse insignias»,
+  que es de los que cuesta días diagnosticar.
+
+### Lo que CAMBIA de comportamiento al ejecutarlas
+
+1. **Borrar una misión con historial deja de funcionar.** La clave pasa a
+   `restrict`. La app lo detecta por el código `23503` y ofrece retirarla
+   (`active = false`), conservando la historia. Ver `src/lib/retirarMision.js`.
+   Una misión SIN historia se sigue borrando igual.
+
+2. **Algunos sellos de oficio pueden dejar de estar «a punto».** Si dos
+   challenges de la misma habilidad eran en realidad la misma actividad,
+   ahora cuentan como UNA familia y la variedad exigida no está cubierta.
+   Verificado en demo: con «Hacer la cama» y «Hacer la cama (verano)»
+   compartiendo familia, `oficio_hogar_1` deja de concederse; separándolas
+   en dos actividades reales, vuelve. **Lo ya concedido no se quita**, que
+   es la regla.
+
+3. **El backfill marca `snapshot_quality = 'legacy_current_state'`**, y eso
+   dice la verdad sobre sí mismo: ese contexto se dedujo del challenge que
+   existía el día del backfill, no del que había cuando se hizo la misión.
+   Lo capturado a partir de ahora es `native`. Ninguna regla futura debe
+   tratarlos como equivalentes sin decirlo en voz alta.
+
+### Lo que habilitan pero AÚN NO usa nadie
+
+- `challenges.track_assistance` + `completions.assistance_level` son el
+  dato que les falta a los cuatro sellos de **Autonomía**. La columna ya
+  está; falta la interacción para declararlo sin convertir la validación
+  en un formulario, y esa es una decisión de producto (INSIGNIAS-04 §7.7).
+- `profile_badges.instance_key` + `family_goals.season_number` habilitan
+  los dos sellos **repetibles de temporada**. Falta concederlos al cerrar
+  meta con `instance_key = goal_id`.
+
+Hasta que eso exista, esos seis sellos siguen SIN regla en `sellos.js`, y
+así debe seguir: conceder por una condición que el sistema no puede
+demostrar es lo único irreversible.
+
+### Lo que sigue faltando para el motor de INSIGNIAS-02
+
+Esto evalúa en el CLIENTE. Falta la parte grande: ledger de eventos,
+proyecciones incrementales, concesión transaccional en servidor, cola de
+evaluación y reconstrucción. Son las tablas de INSIGNIAS-05 §6–§9, y no se
+escribieron aquí a propósito: son ~15 tablas y ~20 funciones de PL/pgSQL
+que no se pueden probar contra una base desechable desde este portátil, y
+soltarlas sin probar sobre la base de una familia real es peor que no
+tenerlas.

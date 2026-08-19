@@ -32,7 +32,30 @@ const TOPE = 60 * PAGINA
 
 // `id` no lo mira ninguna regla: está para poder añadir después lo nuevo
 // sin contar dos veces la misma fila (ver `conNuevas`).
-const COLUMNAS = 'id,profile_id,challenge_id,status,xp,requested_at,resolved_at'
+//
+// Los `snapshot_*` son el contexto congelado (migración 029) y son lo que
+// leen las reglas: qué habilidad, qué familia y qué frecuencia entrenó
+// esa completación CUANDO SE HIZO, no lo que diga hoy la misión.
+const BASICAS = ['id', 'profile_id', 'challenge_id', 'status', 'xp', 'requested_at', 'resolved_at']
+
+const DEL_SNAPSHOT = [
+  'snapshot_skill', 'snapshot_frequency', 'snapshot_mission_family_id',
+  'snapshot_xp', 'assistance_level'
+]
+
+const COLUMNAS = [...BASICAS, ...DEL_SNAPSHOT].join(',')
+
+/**
+ * Postgres dice «undefined column» con el código 42703.
+ *
+ * Pasa durante la ventana entre desplegar este código y ejecutar la
+ * migración 029, que es un rato real: la migración la corre una persona a
+ * mano en el SQL Editor. Sin este respaldo, la app se quedaría sin motor
+ * de sellos hasta que alguien se acordara, y el fallo se vería como
+ * «dejaron de darse insignias», que es de los que cuesta días diagnosticar.
+ */
+const faltanLasColumnas = (error) =>
+  error?.code === '42703' || /snapshot_|assistance_level/.test(error?.message || '')
 
 /**
  * Todas las completaciones aprobadas de una familia, de la más antigua a
@@ -43,13 +66,13 @@ const COLUMNAS = 'id,profile_id,challenge_id,status,xp,requested_at,resolved_at'
  * para PINTAR progreso y no sirve para CONCEDER, y quien llama ya sabe
  * distinguir esas dos cosas.
  */
-export async function historialAprobado(supabase, familyId) {
+export async function historialAprobado(supabase, familyId, columnas = COLUMNAS) {
   const filas = []
 
   for (let desde = 0; desde < TOPE; desde += PAGINA) {
     const { data, error } = await supabase
       .from('completions')
-      .select(COLUMNAS)
+      .select(columnas)
       .eq('family_id', familyId)
       .eq('status', 'aprobado')
       // Ascendente y por una columna `not null`: si el orden no fuera
@@ -57,7 +80,15 @@ export async function historialAprobado(supabase, familyId) {
       .order('requested_at', { ascending: true })
       .range(desde, desde + PAGINA - 1)
 
-    if (error) return { filas, completa: false, error }
+    if (error) {
+      // Sin las columnas del snapshot se vuelve a intentar con lo básico.
+      // El motor lo nota —cae al challenge actual para saber la habilidad—
+      // pero sigue concediendo, que es lo que importa.
+      if (faltanLasColumnas(error) && columnas !== BASICAS.join(',')) {
+        return historialAprobado(supabase, familyId, BASICAS.join(','))
+      }
+      return { filas, completa: false, error }
+    }
 
     const pagina = data || []
     filas.push(...pagina)
