@@ -2,6 +2,9 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { supabase, configured, modoDemo, crearSinkDeLogs, mensajeDeError, configurarZona } from './lib/supabase'
 import { ganablesPor, insigniaPorCodigo } from './lib/insignias'
 import { meritosDe } from './lib/meritos'
+import { proyeccionDe, sellosGanados } from './lib/sellos-motor'
+import { EVALUABLES } from './lib/sellos'
+import { historialAprobado, conNuevas } from './lib/sellos-carga'
 import { log, setContexto, setSink, instalarVaciadoAlSalir, nuevoRequestId } from './lib/log'
 import { instalarMonitorizacion, capturar } from './lib/monitoring'
 import { flag } from './lib/flags'
@@ -9,6 +12,7 @@ import { perfilesActivos, estaActivo } from './lib/miembros'
 import { RELEASE } from './lib/version'
 import { registrarServiceWorker, apuntarPerfil } from './lib/push'
 import { PinModal } from './components/ui'
+import LoteDeSellos from './components/LoteDeSellos'
 import Login from './screens/Login'
 import NuevaClave from './screens/NuevaClave'
 import { esRecuperacion } from './lib/acceso'
@@ -28,6 +32,15 @@ export default function App() {
   const [errorCarga, setErrorCarga] = useState('')
   const [profileId, setProfileId] = useState(() => localStorage.getItem('gremio_profile'))
   const [pidePin, setPidePin] = useState(false)
+  // Los códigos recién concedidos a quien mira, para celebrarlos en UN
+  // lote. `perfilActual` es la misma cosa en forma de ref porque
+  // `otorgarInsignias` corre fuera del render y leería un valor viejo.
+  const [loteNuevo, setLoteNuevo] = useState([])
+  const perfilActual = useRef(profileId)
+  useEffect(() => { perfilActual.current = profileId }, [profileId])
+  // El historial completo para los sellos: se pagina una vez y se va
+  // completando. `null` = todavía no se ha traído.
+  const historialSellos = useRef(null)
   // Ojo: el estado se inicializa UNA vez desde localStorage y no se
   // consulta en cada render. Si se leyera cada vez, cerrar el tutorial
   // llamaría a setVerTutorial(false) sobre un false y React no
@@ -217,6 +230,39 @@ export default function App() {
         }
       }
     }
+
+    // Los sellos del catálogo v1. Van al MISMO lote que las 16 de siempre
+    // para que una acción que desbloquea las dos cosas produzca una sola
+    // celebración, no dos seguidas.
+    //
+    // Su historial se pide aparte y entero: las 400 completions del
+    // tablero no alcanzan para preguntar por mil días. Si esa carga falla
+    // o se queda a medias, `completa` sale false y el motor se abstiene de
+    // las reglas que podrían dar un falso positivo.
+    if (flag('sellosV2')) {
+      // Se pagina una vez por sesión; después basta con pegarle lo que
+      // haya llegado nuevo, que siempre viene en el lote reciente.
+      if (!historialSellos.current) {
+        historialSellos.current = await historialAprobado(supabase, fid)
+      } else {
+        historialSellos.current = conNuevas(historialSellos.current, d.completions)
+      }
+      const { filas, completa } = historialSellos.current
+
+      for (const p of activos) {
+        const tiene = new Set(d.badges.filter((b) => b.profile_id === p.id).map((b) => b.code))
+        const proyeccion = proyeccionDe(p, {
+          completions: filas,
+          challenges: d.challenges,
+          metas: d.goals || [],
+          completa
+        })
+        for (const s of sellosGanados(proyeccion, EVALUABLES, tiene)) {
+          normales.push({ family_id: fid, profile_id: p.id, code: s.id })
+        }
+      }
+    }
+
     if (!normales.length && !unicas.length) return
 
     otorgando.current = true
@@ -247,6 +293,19 @@ export default function App() {
       log.info('insignias.otorgadas', { cuantas: puestas, unicas: unicas.length })
       const { data: bg } = await supabase.from('profile_badges').select('*').eq('family_id', fid)
       setData((prev) => (prev ? { ...prev, badges: bg || prev.badges } : prev))
+
+      // El lote de QUIEN está mirando la app, no el de toda la familia:
+      // celebrar en el móvil de alguien lo que ha ganado otra persona
+      // convierte su pantalla en el tablón de los demás.
+      const mios = [...normales, ...unicas]
+        .filter((f) => f.profile_id === perfilActual.current)
+        .map((f) => f.code)
+      // Se SUMA al lote abierto en vez de sustituirlo. Conceder recarga
+      // los datos, y esa recarga vuelve a pasar por aquí: la segunda
+      // tanda llegaba como un modal nuevo encima del que se estaba
+      // leyendo. Un desbloqueo múltiple tiene que producir una sola
+      // experiencia (INSIGNIAS-04 §9.6), venga en una pasada o en tres.
+      if (mios.length) setLoteNuevo((prev) => [...new Set([...prev, ...mios])])
     }
     otorgando.current = false
   }
@@ -413,6 +472,16 @@ export default function App() {
             profiles={perfilesActivos(data.profiles).filter((p) => p.role !== 'mascota')}
             onPick={elegirPerfil}
             onParent={() => setPidePin(true)}
+          />
+        )}
+
+        {/* Va fuera de Home a propósito: el lote se concede desde aquí y
+            tiene que sobrevivir a que Home se recargue por realtime. */}
+        {profile && loteNuevo.length > 0 && (
+          <LoteDeSellos
+            codigos={loteNuevo}
+            genero={profile.gender}
+            onClose={() => setLoteNuevo([])}
           />
         )}
 

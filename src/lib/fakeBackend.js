@@ -181,6 +181,18 @@ class Consulta {
     return this
   }
 
+  // Paginación, para el historial completo que evalúa los sellos
+  // (`sellos-carga.js`). Ambos extremos van INCLUIDOS, como en PostgREST:
+  // `range(0, 999)` son mil filas, no 999. Sin esto la demo devolvía el
+  // historial entero en la primera página, el cargador veía menos filas
+  // que el tamaño de página, daba por bueno el final y por casualidad
+  // acertaba... hasta la primera familia de demo con más de mil.
+  range(desde, hasta) {
+    this.desde = desde
+    this.hasta = hasta
+    return this
+  }
+
   single() {
     this.unico = true
     return this
@@ -215,6 +227,7 @@ class Consulta {
         })
       }
       if (this.tope) filas = filas.slice(0, this.tope)
+      if (this.desde !== undefined) filas = filas.slice(this.desde, this.hasta + 1)
       return { data: this.unico ? filas[0] || null : filas, error: null }
     }
 

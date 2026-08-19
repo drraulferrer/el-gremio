@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { selloDeInsignia } from '../lib/sellos'
+import { selloDeCodigo } from '../lib/sellos'
 
 // ------------------------------------------------------------------
 // El sello de una insignia.
@@ -21,7 +21,7 @@ import { selloDeInsignia } from '../lib/sellos'
 
 export default function Sello({ code, nombre = '', conseguida = false, tamano = 64 }) {
   const [falla, setFalla] = useState(false)
-  const def = selloDeInsignia(code)
+  const def = selloDeCodigo(code)
 
   const clases = [
     'sello',

@@ -1055,6 +1055,53 @@ input:focus, select:focus, button:focus-visible {
 /* En la fila de poderes el sello va al lado del texto, no centrado. */
 .fila-poder .sello { margin: 0; flex: none; }
 
+/* La biografía de sellos. Rejilla más densa que la de insignias porque
+   aquí la pieza manda y el nombre acompaña, no al revés. */
+.grid-sellos {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
+  gap: 10px;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.sello-ficha {
+  background: var(--carta);
+  border: 1px solid var(--linea);
+  border-radius: var(--radio-s);
+  padding: 10px 6px;
+  text-align: center;
+}
+.sello-ficha-nombre {
+  display: block;
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 0.72rem;
+  margin-top: 4px;
+  /* Dos líneas caben; a la tercera se corta. Los nombres largos
+     («Responsabilidad») no pueden estirar toda la fila. */
+  line-height: 1.25;
+}
+
+/* El lote: la única celebración de un desbloqueo múltiple. */
+.lote-sellos { text-align: center; }
+.lote-piezas {
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin: 16px 0 10px;
+}
+.lote-pieza { max-width: 96px; }
+.lote-nombre {
+  display: block;
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 0.74rem;
+  margin-top: 6px;
+}
+.lote-resto { font-size: 0.82rem; margin-bottom: 4px; }
+
 .boton-peque {
   width: 100%;
   border: 2px solid var(--linea);

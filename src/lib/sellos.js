@@ -48,6 +48,22 @@ const sello = (id, fichero, categoria, material, extra = {}) => ({
   ...extra
 })
 
+// ------------------------------------------------------------------
+// Las REGLAS.
+//
+// Cada sello evaluable lleva un objeto `regla` declarativo. No son
+// funciones: son datos que `sellos-motor.js` interpreta. Esa separación
+// es la misma que ya había entre `insignias.js` y `meritos.js`, y existe
+// por lo mismo —el catálogo se lee de un vistazo y las cuentas se prueban
+// sin tocarlo—, pero además aquí hace falta para otra cosa: un día estas
+// mismas reglas tendrán que evaluarse en Postgres, y un objeto se traduce
+// a SQL mientras que un `(s) => s.x >= 3` no.
+//
+// Un sello SIN `regla` no se concede nunca. Es el estado correcto para
+// los que aún no tienen dato que los sostenga (Autonomía) o modelo donde
+// vivir (los repetibles de temporada). Ver `EVALUABLES` al final.
+// ------------------------------------------------------------------
+
 // --- Series numéricas ------------------------------------------------
 // Ritmo y Trayectoria comparten forma: ocho escalones que suben de metal
 // y terminan en legendaria. Los umbrales son los del catálogo v1 y aquí
@@ -55,19 +71,56 @@ const sello = (id, fichero, categoria, material, extra = {}) => ({
 
 const ESCALA_OCHO = ['bronce', 'bronce', 'plata', 'plata', 'plata', 'oro', 'oro', 'legendaria']
 
-const serieDeOcho = (prefijo, categoria, umbrales) =>
-  umbrales.map((umbral, i) => {
+const serieDeOcho = (prefijo, categoria, escalones) =>
+  escalones.map(({ umbral, regla }, i) => {
     const n = String(i + 1).padStart(2, '0')
-    return sello(`${prefijo}_${n}`, `${prefijo}-${n}`, categoria, ESCALA_OCHO[i], { umbral })
+    return sello(`${prefijo}_${n}`, `${prefijo}-${n}`, categoria, ESCALA_OCHO[i], { umbral, regla })
   })
+
+/**
+ * Ritmo: días con presencia real, sin exigir que sean seguidos.
+ * Un día cuenta UNA vez aunque se hagan diez misiones.
+ */
+const RITMO = [3, 10, 25, 60, 120, 250, 500, 1000]
+  .map((d) => ({ umbral: d, regla: { diasActivos: d } }))
+
+/**
+ * Trayectoria: volumen CON dispersión. El número solo nunca basta a
+ * partir del segundo escalón, porque si bastara, crear cincuenta misiones
+ * fáciles un domingo compraría años de trayectoria.
+ */
+const TRAYECTORIA = [
+  { umbral: 10, regla: { aprobadas: 10, diasActivos: 3 } },
+  { umbral: 50, regla: { aprobadas: 50, diasActivos: 14, semanasActivas: 3 } },
+  { umbral: 100, regla: { aprobadas: 100, diasActivos: 25, semanasActivas: 6 } },
+  { umbral: 250, regla: { aprobadas: 250, diasActivos: 60, mesesActivos: 3 } },
+  { umbral: 500, regla: { aprobadas: 500, diasActivos: 120, mesesActivos: 6 } },
+  { umbral: 1000, regla: { aprobadas: 1000, diasActivos: 220, mesesActivos: 12 } },
+  { umbral: 2500, regla: { aprobadas: 2500, diasActivos: 500, mesesActivos: 24 } },
+  { umbral: 5000, regla: { aprobadas: 5000, diasActivos: 900, mesesActivos: 48 } }
+]
+
+/**
+ * Caminos de oficio. La XP sola no acredita un oficio: hacen falta días
+ * distintos, semanas distintas y VARIEDAD de misiones dentro de esa
+ * habilidad. Repetir la misma tarea cien veces demuestra constancia, que
+ * ya la reconoce Ritmo, no dominio.
+ */
+const GRADO_REGLA = [
+  { xp: 100, dias: 3, semanas: 2, familias: 2 },
+  { xp: 300, dias: 10, semanas: 4, familias: 3 },
+  { xp: 700, dias: 25, semanas: 12, meses: 3, familias: 4 },
+  { xp: 1500, dias: 60, semanas: 24, meses: 9, familias: 5 }
+]
 
 // --- Catálogo v1 (73) ------------------------------------------------
 
 export const SELLOS_V1 = [
-  sello('inicio_primer_encargo', 'inicio-primer-encargo', 'primeros_encargos', 'bronce'),
+  sello('inicio_primer_encargo', 'inicio-primer-encargo', 'primeros_encargos', 'bronce',
+    { regla: { aprobadas: 1 } }),
 
-  ...serieDeOcho('ritmo', 'ritmo', [3, 10, 25, 60, 120, 250, 500, 1000]),
-  ...serieDeOcho('trayectoria', 'trayectoria', [10, 50, 100, 250, 500, 1000, 2500, 5000]),
+  ...serieDeOcho('ritmo', 'ritmo', RITMO),
+  ...serieDeOcho('trayectoria', 'trayectoria', TRAYECTORIA),
 
   // Ocho caminos × cuatro grados. Se componen en vez de escribirse a
   // mano: 32 literales casi idénticos es el sitio donde se cuela una
@@ -79,39 +132,71 @@ export const SELLOS_V1 = [
         `oficio-${habilidad}-${i + 1}`,
         'caminos_de_oficio',
         MATERIAL_POR_GRADO[i],
-        { habilidad, grado }
+        { habilidad, grado, regla: { habilidad, ...GRADO_REGLA[i] } }
       )
     )
   ),
 
-  sello('exploracion_4_habilidades', 'exploracion-habilidades-4', 'exploracion', 'plata'),
-  sello('exploracion_8_habilidades', 'exploracion-habilidades-8', 'exploracion', 'oro'),
-  sello('exploracion_5_familias', 'exploracion-familias-5', 'exploracion', 'bronce'),
-  sello('exploracion_15_familias', 'exploracion-familias-15', 'exploracion', 'plata'),
-  sello('exploracion_30_familias', 'exploracion-familias-30', 'exploracion', 'oro'),
-  sello('exploracion_4_frecuencias', 'exploracion-frecuencias-4', 'exploracion', 'plata'),
+  // Exploración: valores DISTINTOS. Repetir no amplía nada, y por eso
+  // ninguna de estas reglas mira cuántas veces se hizo algo.
+  sello('exploracion_4_habilidades', 'exploracion-habilidades-4', 'exploracion', 'plata',
+    { regla: { habilidadesTocadas: 4, diasActivos: 3 } }),
+  sello('exploracion_8_habilidades', 'exploracion-habilidades-8', 'exploracion', 'oro',
+    { regla: { habilidadesTocadas: 8, diasActivos: 8 } }),
+  sello('exploracion_5_familias', 'exploracion-familias-5', 'exploracion', 'bronce',
+    { regla: { familias: 5, habilidadesTocadas: 3, diasActivos: 5 } }),
+  sello('exploracion_15_familias', 'exploracion-familias-15', 'exploracion', 'plata',
+    { regla: { familias: 15, habilidadesTocadas: 6, semanasActivas: 6 } }),
+  sello('exploracion_30_familias', 'exploracion-familias-30', 'exploracion', 'oro',
+    { regla: { familias: 30, habilidadesTocadas: 8, mesesActivos: 6 } }),
+  sello('exploracion_4_frecuencias', 'exploracion-frecuencias-4', 'exploracion', 'plata',
+    { regla: { frecuencias: 4, diasActivos: 8, semanasActivas: 4 } }),
 
-  sello('equilibrio_4_caminos', 'equilibrio-04', 'equilibrio', 'bronce'),
-  sello('equilibrio_6_caminos', 'equilibrio-06', 'equilibrio', 'oro-gema'),
-  sello('equilibrio_8_caminos', 'equilibrio-08', 'equilibrio', 'legendaria'),
+  // Equilibrio: mínimos en varias habilidades y un techo de
+  // concentración. No exige barras iguales —una especialidad es legítima—
+  // solo que no haya UNA que se lo coma todo.
+  sello('equilibrio_4_caminos', 'equilibrio-04', 'equilibrio', 'bronce',
+    { regla: { equilibrio: { habilidades: 4, xp: 100, dias: 3, familias: 2, xpTotal: 500, concentracionMax: 0.60 } } }),
+  sello('equilibrio_6_caminos', 'equilibrio-06', 'equilibrio', 'oro-gema',
+    { regla: { equilibrio: { habilidades: 6, xp: 300, dias: 10, familias: 3, xpTotal: 2200, concentracionMax: 0.45 } } }),
+  sello('equilibrio_8_caminos', 'equilibrio-08', 'equilibrio', 'legendaria',
+    { regla: { equilibrio: { habilidades: 8, xp: 700, dias: 25, familias: 4, xpTotal: 6500, concentracionMax: 0.35 } } }),
 
+  // Autonomía: SIN regla, a propósito. Necesita que alguien declare el
+  // nivel de ayuda de cada misión, y ese dato no existe todavía. No se
+  // infiere del título ni del volumen: hacer algo cien veces no demuestra
+  // hacerlo con menos ayuda. Ver `docs/INSIGNIAS-03-CATALOGO.md` §11.
   sello('autonomia_transicion_01', 'autonomia-transicion-01', 'autonomia', 'bronce'),
   sello('autonomia_transicion_02', 'autonomia-transicion-02', 'autonomia', 'plata'),
   sello('autonomia_transicion_03', 'autonomia-transicion-03', 'autonomia', 'oro'),
   sello('autonomia_transicion_04', 'autonomia-transicion-04', 'autonomia', 'oro-gema'),
 
+  // Los dos repetibles de temporada tampoco llevan regla: `profile_badges`
+  // tiene `unique(profile_id, code)` y no sabe guardar una instancia por
+  // temporada. Necesitan el modelo de instancias de INSIGNIAS-05.
   sello('obra_comun_temporada', 'obra-comun-temporada', 'obra_comun', 'oro-gema'),
   sello('obra_comun_participante', 'obra-comun-participante', 'obra_comun', 'bronce'),
-  sello('obra_comun_05', 'obra-comun-05', 'obra_comun', 'plata'),
-  sello('obra_comun_10', 'obra-comun-10', 'obra_comun', 'oro-gema'),
-  sello('obra_comun_25', 'obra-comun-25', 'obra_comun', 'legendaria'),
 
-  sello('regreso_01', 'regreso-01', 'regreso_al_taller', 'plata'),
-  sello('regreso_02', 'regreso-02', 'regreso_al_taller', 'oro'),
-  sello('regreso_03', 'regreso-03', 'regreso_al_taller', 'oro-gema'),
+  sello('obra_comun_05', 'obra-comun-05', 'obra_comun', 'plata', { regla: { obrasCerradas: 5 } }),
+  sello('obra_comun_10', 'obra-comun-10', 'obra_comun', 'oro-gema', { regla: { obrasCerradas: 10 } }),
+  sello('obra_comun_25', 'obra-comun-25', 'obra_comun', 'legendaria', { regla: { obrasCerradas: 25 } }),
 
-  sello('descubrimiento_semana_variada', 'descubrimiento-semana-variada', 'descubrimientos', 'descubrimiento'),
-  sello('descubrimiento_tres_ritmos', 'descubrimiento-tres-ritmos', 'descubrimientos', 'descubrimiento'),
+  // Regreso: hace falta historia previa, una pausa REAL y continuidad
+  // después. Las tres cosas juntas. Premiar la vuelta sola convertiría
+  // desaparecer un mes en una jugada.
+  sello('regreso_01', 'regreso-01', 'regreso_al_taller', 'plata',
+    { regla: { regreso: { baseDias: 5, pausaDias: 7, despuesDias: 2, ventanaDias: 7 } } }),
+  sello('regreso_02', 'regreso-02', 'regreso_al_taller', 'oro',
+    { regla: { regreso: { baseDias: 25, baseSemanas: 8, pausaDias: 21, despuesDias: 3, ventanaDias: 14 } } }),
+  sello('regreso_03', 'regreso-03', 'regreso_al_taller', 'oro-gema',
+    { regla: { regreso: { baseDias: 60, baseMeses: 6, pausaDias: 60, despuesDias: 5, ventanaDias: 21 } } }),
+
+  sello('descubrimiento_semana_variada', 'descubrimiento-semana-variada', 'descubrimientos', 'descubrimiento',
+    { regla: { enUnaSemana: { habilidades: 4, dias: 3 } } }),
+  sello('descubrimiento_tres_ritmos', 'descubrimiento-tres-ritmos', 'descubrimientos', 'descubrimiento',
+    { regla: { enUnMes: { frecuencias: ['diario', 'semanal', 'mensual'], dias: 4 } } }),
+  // Sin regla: necesita banda evolutiva por perfil, que no está en el
+  // modelo. `role` no sirve: una función doméstica no es una edad.
   sello('descubrimiento_varias_generaciones', 'descubrimiento-mesa-compartida', 'descubrimientos', 'descubrimiento')
 ]
 
@@ -182,5 +267,31 @@ export function selloPorId(id) {
   return POR_ID.get(id) || null
 }
 
+/**
+ * El sello de CUALQUIER código que pueda aparecer en `profile_badges`.
+ *
+ * Esa tabla mezcla dos vocabularios desde que el motor v1 concede: los 16
+ * códigos de siempre (`primera`, `x10`) y los ids del catálogo nuevo
+ * (`ritmo_01`, `oficio_hogar_3`). Quien pinta una insignia no debería
+ * tener que saber de cuál de los dos viene, así que se resuelve aquí y
+ * en un solo sitio.
+ */
+export function selloDeCodigo(code) {
+  return POR_ID.get(code) || selloDeInsignia(code)
+}
+
 /** Los códigos de insignia que hoy tienen sello. Lo usan los tests. */
 export const INSIGNIAS_CON_SELLO = Object.keys(POR_INSIGNIA)
+
+/**
+ * Los sellos que el motor puede conceder hoy: los que tienen regla.
+ *
+ * Los otros seis no son un olvido y no deben "arreglarse" poniéndoles una
+ * regla aproximada. Cuatro de Autonomía esperan a que exista el nivel de
+ * ayuda; dos de temporada esperan al modelo de instancias; y el
+ * descubrimiento de generaciones espera a la banda evolutiva. Conceder
+ * una insignia por una condición que el sistema no puede demostrar es la
+ * regla 6 de `INSIGNIAS-01`, y es la única que no se puede deshacer,
+ * porque una insignia dada no se quita.
+ */
+export const EVALUABLES = SELLOS_V1.filter((s) => s.regla)

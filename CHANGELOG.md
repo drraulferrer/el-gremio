@@ -18,6 +18,59 @@ verdad duele en esta app: que el esquema y el cliente dejen de encajar.
 
 ---
 
+## 2.7.0 · 19 de agosto de 2026
+
+**El motor de los sellos se enciende: 66 de los 73 ya se pueden ganar.**
+Hasta ahora las 80 piezas eran dibujo; desde esta versión hay reglas
+detrás y se conceden solas.
+
+`src/lib/sellos-motor.js` calcula una proyección por persona —días,
+semanas y meses activos, XP y variedad por habilidad, familias de misión,
+pausas— y `src/lib/sellos.js` guarda las reglas como DATOS, no como
+funciones, porque un objeto se traduce a SQL el día que esto viva en
+Postgres y un `(s) => s.x >= 3` no.
+
+**El anti-farming es real, no decorativo.** Cincuenta misiones un sábado
+no abren «cincuenta encargos»: la regla pide además catorce días y tres
+semanas. Cien XP repitiendo la misma tarea no abren un camino de oficio:
+pide dos familias de misión distintas. Se comprobó en el navegador con un
+historial de sesenta misiones en veinte días, y `oficio_hogar_2`
+correctamente NO se concedió por faltarle variedad.
+
+**La regla que manda sobre todas: una insignia dada no se quita.** De ahí
+salen las tres decisiones que más código ocupan:
+
+- **El historial se trae entero, paginado.** Las 400 completions del
+  tablero cubren tres semanas de una familia de cuatro, y «mil días en el
+  Gremio» es una pregunta sobre una vida. Se pagina una vez por sesión y
+  después solo se pega lo nuevo: paginarlo en cada validación serían
+  veinte peticiones por misión.
+- **Si el historial puede estar truncado, Regreso y Equilibrio no se
+  evalúan.** Son las dos únicas familias que pueden dar un falso
+  POSITIVO con datos a medias —con medio historial, la fila más antigua
+  siempre parece «volver tras una pausa»—. El resto solo puede quedarse
+  corto, que es seguro.
+- **Siete sellos se quedan sin regla a propósito.** Los cuatro de
+  Autonomía esperan a que exista el nivel de ayuda; los dos repetibles de
+  temporada, al modelo de instancias; el de generaciones, a la banda
+  evolutiva. Conceder por una condición que el sistema no puede demostrar
+  es lo único irreversible.
+
+Dos fallos que solo se vieron abriendo la app:
+
+- **`Coleccionista` se la llevaba quien abriera la app primero.** Contaba
+  todas las insignias, y el lote retroactivo sube a un perfil de tres a
+  doce de golpe. Ahora cuenta solo las dieciséis de siempre, que es
+  contra las que se escribió la regla.
+- **Salían dos celebraciones seguidas.** Conceder recarga los datos, y esa
+  recarga volvía a conceder. El lote ahora se acumula en vez de
+  sustituirse: un desbloqueo múltiple es una sola experiencia, venga en
+  una pasada o en tres.
+
+Progreso estrena «Tu historia en el Gremio» con lo conseguido y, de lo que
+falta, solo el siguiente escalón de cada serie empezada —nunca los 73 a la
+vez—. La bandera `sellosV2` apaga el motor sin desplegar si hiciera falta.
+
 ## 2.6.0 · 19 de agosto de 2026
 
 **Las insignias dejan de ser emoji y pasan a ser sellos grabados.** 80

@@ -14,6 +14,7 @@
 
 import { dayKey, levelFromXp } from './supabase'
 import { diasNeutros } from './misiones'
+import { insigniaPorCodigo } from './insignias'
 
 /** Las aprobadas de una persona, que es la base de casi todo lo demás. */
 function aprobadasDe(completions, profileId) {
@@ -153,7 +154,17 @@ export function meritosDe(perfil, datos) {
     approved: aprobadas.length,
     level: levelFromXp(perfil.xp),
     redemptions: redemptions.filter((r) => r.profile_id === perfil.id && r.status !== 'cancelado').length,
-    insignias: badges.filter((b) => b.profile_id === perfil.id).length,
+    // Solo las DIECISÉIS de siempre.
+    //
+    // `coleccionista` pregunta «¿nadie juntó diez insignias antes?», y esa
+    // pregunta se escribió contra un catálogo de dieciséis. Al encender el
+    // motor v1, un perfil pasa de tres sellos a doce en una sola pasada
+    // retroactiva, así que la única del gremio se la llevaría quien
+    // abriese la app primero. Eso no es un mérito, es el orden en que se
+    // desayuna, y es justo la comparación entre miembros que el catálogo
+    // nuevo retira. Contar solo el catálogo viejo deja la regla midiendo
+    // lo que medía.
+    insignias: badges.filter((b) => b.profile_id === perfil.id && insigniaPorCodigo(b.code)).length,
     rachaMax: rachaMaxima(completions, perfil.id, diasSalvados, diasNeutros(perfil, challenges)),
     porHabilidad,
     habilidadesTocadas: Object.keys(porHabilidad).length,

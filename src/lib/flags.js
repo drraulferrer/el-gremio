@@ -22,6 +22,13 @@ const DEFECTOS = {
   // Y esto deja la luz pero quieta: mantiene el color que el cristal
   // necesita para refractar, sin nada en movimiento.
   luzEnMovimiento: true,
+  // El motor de los sellos de oficio (catálogo v1). Encendido: concede.
+  //
+  // Tiene interruptor porque una insignia concedida NO SE QUITA. Si el
+  // evaluador se equivocara, apagar esto detiene el daño en el acto y sin
+  // esperar a un despliegue; lo ya concedido se queda, que es la regla,
+  // pero deja de crecer.
+  sellosV2: true,
   // Backend simulado en memoria, para ver la app sin Supabase.
   demo: false
 }
@@ -32,6 +39,7 @@ const ENV = {
   logsInfo: import.meta.env.VITE_FLAG_LOGS_INFO,
   luzAmbiental: import.meta.env.VITE_FLAG_LUZ,
   luzEnMovimiento: import.meta.env.VITE_FLAG_LUZ_MOVIMIENTO,
+  sellosV2: import.meta.env.VITE_FLAG_SELLOS_V2,
   demo: import.meta.env.VITE_DEMO
 }
 

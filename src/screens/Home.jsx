@@ -6,6 +6,7 @@ import Poderes from '../components/Poderes'
 import CaminoRacha from '../components/CaminoRacha'
 import Cronica from '../components/Cronica'
 import Sello from '../components/Sello'
+import SellosGanados from '../components/SellosGanados'
 import { pedirMision as pedirMisionRemota, canjearPremio, deshacerMision } from '../lib/acciones'
 import { Gema, XPBar, Bolsa, Celebracion, Pestana } from '../components/ui'
 import { talis, progresoDeTalis } from '../lib/talis'
@@ -502,6 +503,8 @@ function Progreso({ data, profile, genero, refresh }) {
       </div>
 
       <Poderes data={data} profile={profile} refresh={refresh} genero={genero} />
+
+      <SellosGanados mias={mias} />
 
       <div className="titulo-seccion">Insignias · {mias.size} de {INSIGNIAS.length}</div>
       <div className="grid-insignias">
