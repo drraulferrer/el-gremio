@@ -2961,3 +2961,79 @@ Con `npm run dev:demo`, sembrando la demo desde la consola
 conseguir: rejilla a 375 px sin scroll horizontal, sellos a 64 px (40 px
 en la fila de poderes), 19 imágenes cargando, `aria-hidden` en la imagen y
 el estado en texto, contrastes medidos en la propia página.
+
+---
+
+## 7v. El motor de los sellos (19 de agosto) · 2.7.0 · EN PRODUCCIÓN
+
+Las 80 piezas de §7u ya no son solo dibujo: **66 de los 73 del catálogo v1
+se conceden solos**. Lo que sigue es lo que hay que saber para no
+deshacerlo.
+
+### Las piezas
+
+| Fichero | Qué hace |
+|---|---|
+| `src/lib/sellos.js` | catálogo + las REGLAS, como datos |
+| `src/lib/sellos-motor.js` | proyección por persona y evaluación. Puro: ni red ni estado |
+| `src/lib/sellos-carga.js` | historial completo paginado + `conNuevas` |
+| `src/components/LoteDeSellos.jsx` | la celebración agrupada |
+| `src/components/SellosGanados.jsx` | «Tu historia» y el siguiente escalón |
+
+Las reglas son OBJETOS, no funciones, y eso es deliberado: el destino de
+esto es Postgres (INSIGNIAS-02) y un objeto se traduce a SQL mientras que
+un `(s) => s.x >= 3` hay que reescribirlo.
+
+### Lo que NO se toca sin pensarlo dos veces
+
+**Todo lo de abajo sale de la misma regla: una insignia dada no se quita.**
+Un falso positivo aquí no es un bug, es una insignia que un crío tiene
+para siempre sin haberla ganado.
+
+1. **`completa` no se pone a `true` a la ligera.** Es lo que decide si el
+   motor evalúa Regreso y Equilibrio. Son las dos únicas familias que
+   pueden dar un falso POSITIVO con datos a medias: con medio historial,
+   la fila más antigua que se ve SIEMPRE parece «volver tras una pausa».
+   El resto de familias solo puede quedarse corta, que es seguro, y por
+   eso sí se evalúan aunque falte historia.
+
+2. **Los siete sin regla se quedan sin regla.** Autonomía (4) necesita que
+   alguien declare el nivel de ayuda; los dos repetibles de temporada
+   necesitan instancias (`profile_badges` tiene `unique(profile_id,code)`);
+   el de generaciones necesita la banda evolutiva. Ponerles una regla
+   aproximada es exactamente lo que prohíbe la regla 6 de INSIGNIAS-01.
+
+3. **`meritosDe().insignias` cuenta SOLO las dieciséis viejas.** Si se
+   quita ese filtro, `coleccionista` —la única del gremio— se la lleva
+   quien abra la app primero, porque el lote retroactivo sube a un perfil
+   de tres insignias a doce de una pasada. No es un mérito, es el orden en
+   que se desayuna.
+
+4. **El lote se acumula, no se sustituye.** Conceder recarga los datos y
+   esa recarga vuelve a pasar por `otorgarInsignias`. Sustituyendo, la
+   segunda tanda abría un modal encima del que se estaba leyendo.
+
+5. **El historial se pagina UNA vez por sesión.** Después se le pega lo
+   nuevo con `conNuevas`, que deduplica por `id` porque las dos fuentes se
+   solapan. Paginarlo en cada pasada son veinte peticiones por misión
+   validada en una familia con años de historia.
+
+### Lo que falta para el motor de verdad
+
+Esto evalúa en el CLIENTE. INSIGNIAS-02 pide servidor autoritativo, y
+sigue siendo el destino: mientras tanto, dos dispositivos pueden proponer
+el mismo lote a la vez (lo salva el `unique`, no el diseño) y el contexto
+histórico no está congelado —editar la habilidad de una misión reescribe
+qué camino entrenó su pasado, y borrarla se lleva sus completions por
+cascada—. La familia de misión es hoy el `challenge_id`, que aguanta
+renombrar el título pero no duplicar la misión.
+
+Pendiente también: las migraciones 028+ de INSIGNIAS-05 (snapshot
+histórico, familia estable, instancias de temporada, nivel de ayuda).
+
+### Verificado en el navegador
+
+Demo sembrada con 60 misiones aprobadas en 20 días distintos, 3 retos y 2
+habilidades: se conceden 11 (5 viejas + 6 sellos), en UN solo overlay, sin
+errores en consola. `oficio_hogar_2` NO se concede, y está bien: le faltan
+familias de misión. `coleccionista` tampoco, que era el fallo.
