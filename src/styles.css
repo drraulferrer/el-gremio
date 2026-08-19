@@ -1083,6 +1083,142 @@ input:focus, select:focus, button:focus-visible {
   line-height: 1.25;
 }
 
+/* ------------------------------------------------------------------
+   El catálogo de sellos, plegable.
+   ------------------------------------------------------------------ */
+.ver-catalogo { margin: 4px 0 18px; }
+.ver-catalogo > summary {
+  cursor: pointer;
+  padding: 12px 14px;
+  background: var(--carta);
+  border: 1px solid var(--linea);
+  border-radius: var(--radio-s);
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 0.9rem;
+  /* 44 px de alto mínimo: es un control, y en un móvil los controles se
+     tocan con el pulgar. */
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+}
+.ver-catalogo > summary:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+
+.colecciones-intro { margin: 12px 2px; font-size: 0.84rem; }
+
+.bloque-coleccion { margin-bottom: 10px; }
+.bloque-cabecera {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-align: left;
+  background: var(--carta);
+  border: 1px solid var(--linea);
+  border-radius: var(--radio-s);
+  padding: 12px;
+  min-height: 52px;
+  color: inherit;
+}
+.bloque-nombre { display: block; font-family: var(--display); font-size: 0.95rem; }
+.bloque-significado { display: block; font-size: 0.74rem; margin-top: 2px; }
+.bloque-cuenta {
+  font-size: 0.74rem;
+  color: var(--tinta-suave);
+  font-variant-numeric: tabular-nums;
+  flex: none;
+}
+.bloque-flecha { color: var(--tinta-suave); flex: none; }
+
+.lista-series { list-style: none; padding: 0; margin: 8px 0 0; }
+.serie {
+  background: var(--tablero-hondo);
+  border: 1px solid var(--linea);
+  border-radius: var(--radio-s);
+  padding: 12px;
+  margin-bottom: 8px;
+}
+.serie-cabecera { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.serie-nombre { font-family: var(--display); font-size: 0.9rem; }
+.serie-cuenta { font-size: 0.74rem; font-variant-numeric: tabular-nums; flex: none; }
+.serie-significado { font-size: 0.75rem; margin: 2px 0 10px; }
+
+/* Las piezas de una serie. Se envuelven en vez de hacer scroll lateral:
+   una cinta horizontal esconde escalones fuera de pantalla, y aquí lo
+   que se viene a hacer es justamente verlos todos. */
+.serie-piezas {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.pieza { width: 74px; text-align: center; }
+.pieza-nombre {
+  display: block;
+  font-size: 0.66rem;
+  line-height: 1.2;
+  margin-top: 4px;
+}
+.pieza-cifra {
+  display: block;
+  font-size: 0.62rem;
+  color: var(--tinta-suave);
+  font-variant-numeric: tabular-nums;
+}
+.pieza-estado {
+  display: block;
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  color: var(--tinta-suave);
+  margin-top: 2px;
+}
+/* El siguiente escalón se distingue por un anillo, no solo por el brillo
+   del sello: el estado no puede vivir únicamente en el color. */
+.pieza-siguiente .sello {
+  outline: 2px solid var(--teal);
+  outline-offset: 2px;
+  border-radius: 50%;
+}
+.pieza-siguiente .pieza-cifra {
+  display: block;
+  font-size: 0.62rem;
+  color: var(--tinta-suave);
+  font-variant-numeric: tabular-nums;
+}
+.pieza-estado { color: var(--teal); }
+.pieza-conseguido .pieza-cifra {
+  display: block;
+  font-size: 0.62rem;
+  color: var(--tinta-suave);
+  font-variant-numeric: tabular-nums;
+}
+.pieza-estado { color: var(--exito); }
+.pieza-sin_dato .pieza-nombre,
+.pieza-lejano .pieza-nombre { color: var(--tinta-suave); }
+
+.serie-siguiente {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--linea);
+}
+.serie-siguiente-titulo { font-size: 0.76rem; margin-bottom: 6px; }
+
+.requisitos { list-style: none; padding: 0; margin: 0; }
+.requisito {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 0.76rem;
+  padding: 3px 0;
+}
+.requisito-etiqueta { color: var(--tinta-suave); }
+.requisito-cifra { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.requisito.cumple .requisito-cifra { color: var(--exito); }
+.requisito-ok { font-weight: 700; }
+
 /* El lote: la única celebración de un desbloqueo múltiple. */
 .lote-sellos { text-align: center; }
 .lote-piezas {

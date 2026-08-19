@@ -7,7 +7,9 @@ import CaminoRacha from '../components/CaminoRacha'
 import Cronica from '../components/Cronica'
 import Sello from '../components/Sello'
 import SellosGanados from '../components/SellosGanados'
+import Colecciones from '../components/Colecciones'
 import { pedirMision as pedirMisionRemota, canjearPremio, deshacerMision } from '../lib/acciones'
+import { proyeccionDe } from '../lib/sellos-motor'
 import { Gema, XPBar, Bolsa, Celebracion, Pestana, Talis } from '../components/ui'
 import { talis, progresoDeTalis } from '../lib/talis'
 import { HABILIDADES, habilidad, xpPorHabilidad, rangoDeHabilidad, habilidadDominante } from '../lib/habilidades'
@@ -19,7 +21,7 @@ import { flag } from '../lib/flags'
 import { premiosParaMayores } from '../lib/premios'
 import { semana, etiquetaDeSemana, validadasDe, resumenDeSemana, semanasConDatos } from '../lib/historial'
 
-export default function Home({ family, data, profile, refresh, onSwitchProfile, onParent }) {
+export default function Home({ family, data, profile, refresh, onSwitchProfile, onParent, historial }) {
   const genero = generoDe(profile)
   const [tab, setTab] = useState('misiones')
   const [celeb, setCeleb] = useState(null)
@@ -181,7 +183,7 @@ export default function Home({ family, data, profile, refresh, onSwitchProfile, 
 
       {tab === 'tienda' && <Tienda data={data} profile={profile} ocupado={ocupado} onCanjear={canjear} />}
 
-      {tab === 'progreso' && <Progreso data={data} profile={profile} genero={genero} refresh={refresh} />}
+      {tab === 'progreso' && <Progreso data={data} profile={profile} genero={genero} refresh={refresh} historial={historial} />}
 
       <nav className="tabbar" aria-label="Secciones">
         <Pestana icono="misiones" etiqueta="Misiones" activa={tab === 'misiones'} onClick={() => setTab('misiones')} />
@@ -508,7 +510,7 @@ function Tienda({ data, profile, ocupado, onCanjear }) {
   )
 }
 
-function Progreso({ data, profile, genero, refresh }) {
+function Progreso({ data, profile, genero, refresh, historial }) {
   // El historial va por semanas y no en una lista infinita: una lista que
   // solo crece deja de leerse al mes. Nada se archiva de verdad —los datos
   // siguen en la base—, solo sale de la vista.
@@ -523,6 +525,15 @@ function Progreso({ data, profile, genero, refresh }) {
   // de abajo. Desde que el motor concede sellos, `mias` mezcla los dos
   // vocabularios y contar su tamaño contra 16 daba cifras imposibles.
   const misInsignias = new Set([...mias].filter((code) => insigniaPorCodigo(code)))
+  // La proyección que usa el catálogo para decir cuánto falta. Sale del
+  // historial COMPLETO que trae App; si todavía no ha llegado —o falló—
+  // se cae al lote reciente, que basta para pintar y no para conceder.
+  const proyeccion = proyeccionDe(profile, {
+    completions: historial?.filas || data.completions,
+    challenges: data.challenges,
+    metas: data.goals || [],
+    completa: Boolean(historial?.completa)
+  })
   const progresoTalis = progresoDeTalis(profile, data)
   const porHabilidad = xpPorHabilidad(profile.id, data.completions, data.challenges)
   const dominante = habilidadDominante(porHabilidad)
@@ -625,6 +636,15 @@ function Progreso({ data, profile, genero, refresh }) {
       <Poderes data={data} profile={profile} refresh={refresh} genero={genero} />
 
       <SellosGanados mias={mias} />
+
+      {/* El catálogo entero, plegado. Va detrás de «Tu historia» a
+          propósito: primero lo tuyo y lo que viene ahora, y solo después
+          lo que existe. Al revés, la pantalla abriría por una lista de lo
+          que te falta. */}
+      <details className="ver-catalogo">
+        <summary>Ver el catálogo de sellos</summary>
+        <Colecciones mias={mias} proyeccion={proyeccion} />
+      </details>
 
       {/* El contador cuenta SOLO las dieciséis de esta rejilla.
           `mias` trae todo lo que tiene el perfil, y desde que el motor de

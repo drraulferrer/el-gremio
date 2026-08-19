@@ -21,27 +21,29 @@ function serieDe(sello) {
   return sello.categoria
 }
 
-const NOMBRES = {
-  primeros_encargos: 'Primer encargo',
-  ritmo: (s) => `${s.umbral} días con presencia`,
-  trayectoria: (s) => `${s.umbral} encargos repartidos`,
-  caminos_de_oficio: (s) => `${s.grado} de ${HABILIDADES[s.habilidad]}`,
-  exploracion: 'Nuevos caminos',
-  equilibrio: 'Equilibrio',
-  obra_comun: 'Obra común',
-  regreso_al_taller: 'Regreso al taller',
-  descubrimientos: 'Descubrimiento'
-}
-
-const HABILIDADES = {
-  hogar: 'Hogar', salud: 'Salud', aprendizaje: 'Aprendizaje', amabilidad: 'Amabilidad',
-  responsabilidad: 'Responsabilidad', cooperacion: 'Cooperación', creatividad: 'Creatividad',
-  autonomia: 'Autonomía'
-}
-
+/**
+ * El nombre del sello. Sale del catálogo, que los tiene todos.
+ *
+ * Antes se derivaba de la CATEGORÍA, y eso hacía que las tres piezas de
+ * «Actividades distintas» se llamaran las tres «Nuevos caminos»: tres
+ * cromos con el mismo nombre en la misma fila, indistinguibles.
+ */
 export function nombreDeSello(sello) {
-  const n = NOMBRES[sello.categoria]
-  return typeof n === 'function' ? n(sello) : n || 'Sello'
+  return sello?.nombre || 'Sello'
+}
+
+/**
+ * La cifra exacta de un escalón, cuando la tiene.
+ *
+ * «Dos meses de presencia» y «Un año de jornadas» son nombres narrativos
+ * de 60 y 250 jornadas ACUMULADAS, no de dos meses ni de un año de
+ * calendario. El catálogo obliga a enseñar siempre el número al lado
+ * justamente para no crear esa equivalencia falsa.
+ */
+export function detalleDeSello(sello) {
+  if (sello?.categoria === 'ritmo') return `${sello.umbral} días`
+  if (sello?.categoria === 'trayectoria') return `${sello.umbral} encargos`
+  return null
 }
 
 export default function SellosGanados({ mias }) {

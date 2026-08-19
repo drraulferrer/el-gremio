@@ -293,6 +293,85 @@ export function cumple(proyeccion, regla) {
   return cumpleUmbrales(proyeccion, regla)
 }
 
+// ── Cuánto falta ───────────────────────────────────────────────────
+
+const ETIQUETAS = {
+  aprobadas: 'Encargos',
+  diasActivos: 'Días',
+  semanasActivas: 'Semanas',
+  mesesActivos: 'Meses',
+  habilidadesTocadas: 'Habilidades',
+  familias: 'Actividades',
+  frecuencias: 'Ritmos',
+  obrasCerradas: 'Obras'
+}
+
+const ETIQUETAS_OFICIO = {
+  xp: 'XP',
+  dias: 'Días',
+  semanas: 'Semanas',
+  meses: 'Meses',
+  familias: 'Actividades'
+}
+
+/**
+ * Los requisitos de una regla, con lo que se lleva de cada uno.
+ *
+ * Devuelve una lista, no un porcentaje. Un porcentaje medio sería mentira:
+ * tener el 100 % de la XP y el 0 % de las semanas no es «medio camino»,
+ * porque las semanas no se pueden acelerar. Enseñar las dos cifras deja
+ * ver POR QUÉ falta, que es lo único accionable.
+ *
+ * Vacío para las reglas ocultas —regresos y descubrimientos—: enseñar su
+ * progreso convertiría una sorpresa en una lista de deberes, y en el caso
+ * del regreso además dibujaría una cuenta atrás hacia desaparecer.
+ */
+export function requisitosDe(proyeccion, regla) {
+  if (!regla || regla.regreso || regla.enUnaSemana || regla.enUnMes) return []
+
+  if (regla.habilidad) {
+    const h = proyeccion.habilidades[regla.habilidad] || {}
+    return Object.entries(ETIQUETAS_OFICIO)
+      .filter(([clave]) => regla[clave] !== undefined)
+      .map(([clave, etiqueta]) => ({
+        etiqueta,
+        actual: h[clave] || 0,
+        objetivo: regla[clave],
+        cumple: (h[clave] || 0) >= regla[clave]
+      }))
+  }
+
+  if (regla.equilibrio) {
+    const e = regla.equilibrio
+    const califican = Object.values(proyeccion.habilidades).filter(
+      (h) => h.xp >= e.xp && h.dias >= e.dias && h.familias >= e.familias
+    ).length
+    return [
+      { etiqueta: 'Caminos con base', actual: califican, objetivo: e.habilidades, cumple: califican >= e.habilidades },
+      { etiqueta: 'XP repartida', actual: proyeccion.xpTotalHabilidades, objetivo: e.xpTotal, cumple: proyeccion.xpTotalHabilidades >= e.xpTotal },
+      // Este va al revés: se cumple estando POR DEBAJO. Se enseña en
+      // porcentaje porque «0,42» no dice nada a nadie.
+      {
+        etiqueta: 'Camino dominante',
+        actual: Math.round(proyeccion.concentracion * 100),
+        objetivo: Math.round(e.concentracionMax * 100),
+        sufijo: '%',
+        menorEsMejor: true,
+        cumple: proyeccion.concentracion <= e.concentracionMax
+      }
+    ]
+  }
+
+  return Object.entries(ETIQUETAS)
+    .filter(([clave]) => regla[clave] !== undefined)
+    .map(([clave, etiqueta]) => ({
+      etiqueta,
+      actual: proyeccion[clave] || 0,
+      objetivo: regla[clave],
+      cumple: (proyeccion[clave] || 0) >= regla[clave]
+    }))
+}
+
 /** La familia de reglas de un sello, para saber si exige historial entero. */
 const familiaDeRegla = (regla) =>
   regla.regreso ? 'regreso' : regla.equilibrio ? 'equilibrio' : 'otra'

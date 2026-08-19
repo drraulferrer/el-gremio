@@ -41,6 +41,9 @@ export default function App() {
   // El historial completo para los sellos: se pagina una vez y se va
   // completando. `null` = todavía no se ha traído.
   const historialSellos = useRef(null)
+  // Espejo en estado del historial de arriba, para que Progreso pueda
+  // calcular «cuánto te falta» sin volver a pedirlo.
+  const [historialUI, setHistorialUI] = useState(null)
   // Ojo: el estado se inicializa UNA vez desde localStorage y no se
   // consulta en cada render. Si se leyera cada vez, cerrar el tutorial
   // llamaría a setVerTutorial(false) sobre un false y React no
@@ -260,6 +263,11 @@ export default function App() {
         historialSellos.current = conNuevas(historialSellos.current, d.completions)
       }
       const { filas, completa } = historialSellos.current
+      // El mismo historial que evalúa lo usa la pantalla de Colecciones
+      // para decir cuánto falta. Va a estado —y no se queda solo en el
+      // ref— porque el ref no repinta: sin esto, «te faltan 3 días» se
+      // quedaba congelado hasta recargar la app entera.
+      setHistorialUI(historialSellos.current)
 
       for (const p of activos) {
         const tiene = new Set(d.badges.filter((b) => b.profile_id === p.id).map((b) => b.code))
@@ -476,6 +484,7 @@ export default function App() {
             refresh={recargar}
             onSwitchProfile={cambiarPerfil}
             onParent={() => setPidePin(true)}
+            historial={historialUI}
           />
         ) : (
           <ProfilePicker

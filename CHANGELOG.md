@@ -18,6 +18,43 @@ verdad duele en esta app: que el esquema y el cliente dejen de encajar.
 
 ---
 
+## 2.12.0 · 19 de agosto de 2026
+
+**Ya se puede ver el catálogo entero de sellos.** Progreso estrena «Ver el
+catálogo de sellos»: los 73, agrupados en seis bloques y veinte series,
+cada bloque plegable.
+
+Faltaba, y la pregunta era razonable: la pantalla enseñaba una rejilla de
+«N de 16» —las dieciséis viejas— y los sellos nuevos solo aparecían al
+conseguirlos. Las 73 piezas existían en el motor y no había forma de
+mirarlas desde la app.
+
+Cada serie enseña sus escalones con su estado —conseguido, el siguiente,
+más adelante— y debajo **lo que falta para el siguiente, dato a dato**:
+«Días 20 / 25», «Actividades 3 / 5». No hay porcentaje: tener el 100 % de
+la XP y el 0 % de las semanas no es medio camino, porque las semanas no se
+pueden acelerar. Ver las dos cifras es lo único que explica POR QUÉ falta.
+
+Lo que no lleva progreso: los tres regresos y los tres descubrimientos.
+Enseñar su cuenta convertiría una sorpresa en una lista de deberes, y en
+el caso del regreso dibujaría además una cuenta atrás hacia desaparecer.
+Los siete que aún no se pueden ganar dicen por qué en una frase, que es
+información y no un candado.
+
+**Cada sello estrena nombre propio.** Antes se derivaba de la categoría, y
+por eso las tres piezas de «Actividades distintas» se llamaban las tres
+«Nuevos caminos»: tres cromos indistinguibles en la misma fila. Ahora usan
+los nombres del catálogo —«Caja variada», «Mapa del taller», «Taller sin
+rincones desconocidos»— y hay un test que impide que dos de la misma serie
+vuelvan a compartirlo. Ritmo y Trayectoria enseñan además la cifra exacta
+al lado, porque «Un año de jornadas» son 250 jornadas acumuladas y no un
+año de calendario.
+
+El contador de la rejilla vieja también se corrige: contaba en su
+numerador TODO lo que tiene el perfil, sellos nuevos incluidos, contra un
+denominador de 16. Un perfil con cinco viejas y ocho sellos leía «13 de
+16», y con más de dieciséis sellos habría dicho «20 de 16».
+
 ## 2.11.0 · 19 de agosto de 2026
 
 **Las zonas de la casa, y el modo compañeros de piso.** Las campañas de

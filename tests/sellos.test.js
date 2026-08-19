@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { readdirSync, statSync } from 'node:fs'
 import {
   SELLOS, SELLOS_V1, SELLOS_LEGADO, MATERIALES, GRADOS_OFICIO,
-  selloDeInsignia, selloPorId, INSIGNIAS_CON_SELLO
+  selloDeInsignia, selloPorId, INSIGNIAS_CON_SELLO, BLOQUES, SELLOS_EN_BLOQUES
 } from '../src/lib/sellos'
 import { INSIGNIAS, insigniaPorCodigo } from '../src/lib/insignias'
 import { HABILIDADES } from '../src/lib/habilidades'
@@ -167,5 +167,45 @@ describe('los dos catálogos no se mezclan al contar', () => {
     const viejas = new Set(INSIGNIAS.map((b) => b.code))
     const chocan = SELLOS_V1.filter((s) => viejas.has(s.id)).map((s) => s.id)
     expect(chocan).toEqual([])
+  })
+})
+
+describe('el catálogo se puede recorrer entero', () => {
+  it('los seis bloques contienen las 73, sin dejarse ninguna', () => {
+    // Si un sello no está en ningún bloque, existe en el motor y no hay
+    // forma de verlo en la app: exactamente el estado del que venimos.
+    expect(SELLOS_EN_BLOQUES).toHaveLength(SELLOS_V1.length)
+    const enBloques = new Set(SELLOS_EN_BLOQUES.map((s) => s.id))
+    const fuera = SELLOS_V1.filter((s) => !enBloques.has(s.id)).map((s) => s.id)
+    expect(fuera, 'sellos inalcanzables desde la interfaz').toEqual([])
+  })
+
+  it('ningún bloque repite un sello', () => {
+    const ids = SELLOS_EN_BLOQUES.map((s) => s.id)
+    expect(new Set(ids).size).toBe(ids.length)
+  })
+
+  it('cada sello tiene nombre propio', () => {
+    const sinNombre = SELLOS_V1.filter((s) => !s.nombre).map((s) => s.id)
+    expect(sinNombre).toEqual([])
+  })
+
+  it('dos sellos de la MISMA serie nunca comparten nombre', () => {
+    // El fallo que fija: el nombre se derivaba de la categoría, así que
+    // las tres piezas de «Actividades distintas» se llamaban las tres
+    // «Nuevos caminos». Tres cromos idénticos en la misma fila.
+    for (const bloque of BLOQUES) {
+      for (const serie of bloque.series) {
+        const nombres = serie.sellos.map((s) => s.nombre)
+        expect(new Set(nombres).size, `${serie.nombre} repite nombre: ${nombres.join(', ')}`)
+          .toBe(nombres.length)
+      }
+    }
+  })
+
+  it('ningún nombre se repite en todo el catálogo', () => {
+    const nombres = SELLOS_V1.map((s) => s.nombre)
+    const repetidos = nombres.filter((n, i) => nombres.indexOf(n) !== i)
+    expect(repetidos).toEqual([])
   })
 })

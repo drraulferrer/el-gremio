@@ -40,6 +40,13 @@ const HABILIDADES_OFICIO = [
   'responsabilidad', 'cooperacion', 'creatividad', 'autonomia'
 ]
 
+/** Su nombre en pantalla. Se usa para componer «Maestría de Hogar». */
+const HABILIDAD_NOMBRE = {
+  hogar: 'Hogar', salud: 'Salud', aprendizaje: 'Aprendizaje', amabilidad: 'Amabilidad',
+  responsabilidad: 'Responsabilidad', cooperacion: 'Cooperación', creatividad: 'Creatividad',
+  autonomia: 'Autonomía'
+}
+
 const sello = (id, fichero, categoria, material, extra = {}) => ({
   id,
   categoria,
@@ -71,24 +78,36 @@ const sello = (id, fichero, categoria, material, extra = {}) => ({
 
 const ESCALA_OCHO = ['bronce', 'bronce', 'plata', 'plata', 'plata', 'oro', 'oro', 'legendaria']
 
-const serieDeOcho = (prefijo, categoria, escalones) =>
-  escalones.map(({ umbral, regla }, i) => {
+const serieDeOcho = (prefijo, categoria, escalones, nombres) =>
+  escalones.map(({ umbral, regla, nombre }, i) => {
     const n = String(i + 1).padStart(2, '0')
-    return sello(`${prefijo}_${n}`, `${prefijo}-${n}`, categoria, ESCALA_OCHO[i], { umbral, regla })
+    return sello(`${prefijo}_${n}`, `${prefijo}-${n}`, categoria, ESCALA_OCHO[i],
+      { umbral, regla, nombre: nombre || nombres[i] })
   })
 
 /**
  * Ritmo: días con presencia real, sin exigir que sean seguidos.
  * Un día cuenta UNA vez aunque se hagan diez misiones.
  */
+const NOMBRES_RITMO = [
+  'Tres visitas al taller', 'El taller te reconoce', 'Ritmo en marcha',
+  'Dos meses de presencia', 'Ritmo asentado', 'Un año de jornadas',
+  'Memoria del taller', 'Mil días en el Gremio'
+]
 const RITMO = [3, 10, 25, 60, 120, 250, 500, 1000]
-  .map((d) => ({ umbral: d, regla: { diasActivos: d } }))
+  .map((d, i) => ({ umbral: d, nombre: NOMBRES_RITMO[i], regla: { diasActivos: d } }))
 
 /**
  * Trayectoria: volumen CON dispersión. El número solo nunca basta a
  * partir del segundo escalón, porque si bastara, crear cincuenta misiones
  * fáciles un domingo compraría años de trayectoria.
  */
+const NOMBRES_TRAYECTORIA = [
+  'Primeras herramientas', 'Banco de trabajo', 'Taller en marcha',
+  'Oficio asentado', 'Archivo de quinientas obras', 'Archivo de mil obras',
+  'Gran archivo', 'Obra de una vida cotidiana'
+]
+
 const TRAYECTORIA = [
   { umbral: 10, regla: { aprobadas: 10, diasActivos: 3 } },
   { umbral: 50, regla: { aprobadas: 50, diasActivos: 14, semanasActivas: 3 } },
@@ -117,10 +136,10 @@ const GRADO_REGLA = [
 
 export const SELLOS_V1 = [
   sello('inicio_primer_encargo', 'inicio-primer-encargo', 'primeros_encargos', 'bronce',
-    { regla: { aprobadas: 1 } }),
+    { nombre: 'Primer encargo', regla: { aprobadas: 1 } }),
 
   ...serieDeOcho('ritmo', 'ritmo', RITMO),
-  ...serieDeOcho('trayectoria', 'trayectoria', TRAYECTORIA),
+  ...serieDeOcho('trayectoria', 'trayectoria', TRAYECTORIA, NOMBRES_TRAYECTORIA),
 
   // Ocho caminos × cuatro grados. Se componen en vez de escribirse a
   // mano: 32 literales casi idénticos es el sitio donde se cuela una
@@ -132,7 +151,7 @@ export const SELLOS_V1 = [
         `oficio-${habilidad}-${i + 1}`,
         'caminos_de_oficio',
         MATERIAL_POR_GRADO[i],
-        { habilidad, grado, regla: { habilidad, ...GRADO_REGLA[i] } }
+        { habilidad, grado, nombre: `${grado} de ${HABILIDAD_NOMBRE[habilidad]}`, regla: { habilidad, ...GRADO_REGLA[i] } }
       )
     )
   ),
@@ -140,64 +159,64 @@ export const SELLOS_V1 = [
   // Exploración: valores DISTINTOS. Repetir no amplía nada, y por eso
   // ninguna de estas reglas mira cuántas veces se hizo algo.
   sello('exploracion_4_habilidades', 'exploracion-habilidades-4', 'exploracion', 'plata',
-    { regla: { habilidadesTocadas: 4, diasActivos: 3 } }),
+    { nombre: 'Cuatro caminos abiertos', regla: { habilidadesTocadas: 4, diasActivos: 3 } }),
   sello('exploracion_8_habilidades', 'exploracion-habilidades-8', 'exploracion', 'oro',
-    { regla: { habilidadesTocadas: 8, diasActivos: 8 } }),
+    { nombre: 'Los ocho caminos', regla: { habilidadesTocadas: 8, diasActivos: 8 } }),
   sello('exploracion_5_familias', 'exploracion-familias-5', 'exploracion', 'bronce',
-    { regla: { familias: 5, habilidadesTocadas: 3, diasActivos: 5 } }),
+    { nombre: 'Caja variada', regla: { familias: 5, habilidadesTocadas: 3, diasActivos: 5 } }),
   sello('exploracion_15_familias', 'exploracion-familias-15', 'exploracion', 'plata',
-    { regla: { familias: 15, habilidadesTocadas: 6, semanasActivas: 6 } }),
+    { nombre: 'Mapa del taller', regla: { familias: 15, habilidadesTocadas: 6, semanasActivas: 6 } }),
   sello('exploracion_30_familias', 'exploracion-familias-30', 'exploracion', 'oro',
-    { regla: { familias: 30, habilidadesTocadas: 8, mesesActivos: 6 } }),
+    { nombre: 'Taller sin rincones desconocidos', regla: { familias: 30, habilidadesTocadas: 8, mesesActivos: 6 } }),
   sello('exploracion_4_frecuencias', 'exploracion-frecuencias-4', 'exploracion', 'plata',
-    { regla: { frecuencias: 4, diasActivos: 8, semanasActivas: 4 } }),
+    { nombre: 'Cuatro ritmos de encargo', regla: { frecuencias: 4, diasActivos: 8, semanasActivas: 4 } }),
 
   // Equilibrio: mínimos en varias habilidades y un techo de
   // concentración. No exige barras iguales —una especialidad es legítima—
   // solo que no haya UNA que se lo coma todo.
   sello('equilibrio_4_caminos', 'equilibrio-04', 'equilibrio', 'bronce',
-    { regla: { equilibrio: { habilidades: 4, xp: 100, dias: 3, familias: 2, xpTotal: 500, concentracionMax: 0.60 } } }),
+    { nombre: 'Mesa de cuatro patas', regla: { equilibrio: { habilidades: 4, xp: 100, dias: 3, familias: 2, xpTotal: 500, concentracionMax: 0.60 } } }),
   sello('equilibrio_6_caminos', 'equilibrio-06', 'equilibrio', 'oro-gema',
-    { regla: { equilibrio: { habilidades: 6, xp: 300, dias: 10, familias: 3, xpTotal: 2200, concentracionMax: 0.45 } } }),
+    { nombre: 'Oficio de muchos recursos', regla: { equilibrio: { habilidades: 6, xp: 300, dias: 10, familias: 3, xpTotal: 2200, concentracionMax: 0.45 } } }),
   sello('equilibrio_8_caminos', 'equilibrio-08', 'equilibrio', 'legendaria',
-    { regla: { equilibrio: { habilidades: 8, xp: 700, dias: 25, familias: 4, xpTotal: 6500, concentracionMax: 0.35 } } }),
+    { nombre: 'Rosa de los ocho caminos', regla: { equilibrio: { habilidades: 8, xp: 700, dias: 25, familias: 4, xpTotal: 6500, concentracionMax: 0.35 } } }),
 
   // Autonomía: SIN regla, a propósito. Necesita que alguien declare el
   // nivel de ayuda de cada misión, y ese dato no existe todavía. No se
   // infiere del título ni del volumen: hacer algo cien veces no demuestra
   // hacerlo con menos ayuda. Ver `docs/INSIGNIAS-03-CATALOGO.md` §11.
-  sello('autonomia_transicion_01', 'autonomia-transicion-01', 'autonomia', 'bronce'),
-  sello('autonomia_transicion_02', 'autonomia-transicion-02', 'autonomia', 'plata'),
-  sello('autonomia_transicion_03', 'autonomia-transicion-03', 'autonomia', 'oro'),
-  sello('autonomia_transicion_04', 'autonomia-transicion-04', 'autonomia', 'oro-gema'),
+  sello('autonomia_transicion_01', 'autonomia-transicion-01', 'autonomia', 'bronce', { nombre: 'Una ayuda menos' }),
+  sello('autonomia_transicion_02', 'autonomia-transicion-02', 'autonomia', 'plata', { nombre: 'Ya lo pones en marcha' }),
+  sello('autonomia_transicion_03', 'autonomia-transicion-03', 'autonomia', 'oro', { nombre: 'Herramientas propias' }),
+  sello('autonomia_transicion_04', 'autonomia-transicion-04', 'autonomia', 'oro-gema', { nombre: 'Oficio propio' }),
 
   // Los dos repetibles de temporada tampoco llevan regla: `profile_badges`
   // tiene `unique(profile_id, code)` y no sabe guardar una instancia por
   // temporada. Necesitan el modelo de instancias de INSIGNIAS-05.
-  sello('obra_comun_temporada', 'obra-comun-temporada', 'obra_comun', 'oro-gema'),
-  sello('obra_comun_participante', 'obra-comun-participante', 'obra_comun', 'bronce'),
+  sello('obra_comun_temporada', 'obra-comun-temporada', 'obra_comun', 'oro-gema', { nombre: 'Sello de la temporada' }),
+  sello('obra_comun_participante', 'obra-comun-participante', 'obra_comun', 'bronce', { nombre: 'Formé parte de esta obra' }),
 
-  sello('obra_comun_05', 'obra-comun-05', 'obra_comun', 'plata', { regla: { obrasCerradas: 5 } }),
-  sello('obra_comun_10', 'obra-comun-10', 'obra_comun', 'oro-gema', { regla: { obrasCerradas: 10 } }),
-  sello('obra_comun_25', 'obra-comun-25', 'obra_comun', 'legendaria', { regla: { obrasCerradas: 25 } }),
+  sello('obra_comun_05', 'obra-comun-05', 'obra_comun', 'plata', { nombre: 'Cinco obras en el archivo', regla: { obrasCerradas: 5 } }),
+  sello('obra_comun_10', 'obra-comun-10', 'obra_comun', 'oro-gema', { nombre: 'Diez temporadas de oficio', regla: { obrasCerradas: 10 } }),
+  sello('obra_comun_25', 'obra-comun-25', 'obra_comun', 'legendaria', { nombre: 'Archivo legendario del Gremio', regla: { obrasCerradas: 25 } }),
 
   // Regreso: hace falta historia previa, una pausa REAL y continuidad
   // después. Las tres cosas juntas. Premiar la vuelta sola convertiría
   // desaparecer un mes en una jugada.
   sello('regreso_01', 'regreso-01', 'regreso_al_taller', 'plata',
-    { regla: { regreso: { baseDias: 5, pausaDias: 7, despuesDias: 2, ventanaDias: 7 } } }),
+    { nombre: 'La puerta seguía abierta', regla: { regreso: { baseDias: 5, pausaDias: 7, despuesDias: 2, ventanaDias: 7 } } }),
   sello('regreso_02', 'regreso-02', 'regreso_al_taller', 'oro',
-    { regla: { regreso: { baseDias: 25, baseSemanas: 8, pausaDias: 21, despuesDias: 3, ventanaDias: 14 } } }),
+    { nombre: 'Vuelta al banco de trabajo', regla: { regreso: { baseDias: 25, baseSemanas: 8, pausaDias: 21, despuesDias: 3, ventanaDias: 14 } } }),
   sello('regreso_03', 'regreso-03', 'regreso_al_taller', 'oro-gema',
-    { regla: { regreso: { baseDias: 60, baseMeses: 6, pausaDias: 60, despuesDias: 5, ventanaDias: 21 } } }),
+    { nombre: 'El taller encendido de nuevo', regla: { regreso: { baseDias: 60, baseMeses: 6, pausaDias: 60, despuesDias: 5, ventanaDias: 21 } } }),
 
   sello('descubrimiento_semana_variada', 'descubrimiento-semana-variada', 'descubrimientos', 'descubrimiento',
-    { regla: { enUnaSemana: { habilidades: 4, dias: 3 } } }),
+    { nombre: 'Semana de herramientas variadas', regla: { enUnaSemana: { habilidades: 4, dias: 3 } } }),
   sello('descubrimiento_tres_ritmos', 'descubrimiento-tres-ritmos', 'descubrimientos', 'descubrimiento',
-    { regla: { enUnMes: { frecuencias: ['diario', 'semanal', 'mensual'], dias: 4 } } }),
+    { nombre: 'Compás del taller', regla: { enUnMes: { frecuencias: ['diario', 'semanal', 'mensual'], dias: 4 } } }),
   // Sin regla: necesita banda evolutiva por perfil, que no está en el
   // modelo. `role` no sirve: una función doméstica no es una edad.
-  sello('descubrimiento_varias_generaciones', 'descubrimiento-mesa-compartida', 'descubrimientos', 'descubrimiento')
+  sello('descubrimiento_varias_generaciones', 'descubrimiento-mesa-compartida', 'descubrimientos', 'descubrimiento', { nombre: 'Mesa compartida' })
 ]
 
 // --- Sellos de legado ------------------------------------------------
@@ -295,3 +314,93 @@ export const INSIGNIAS_CON_SELLO = Object.keys(POR_INSIGNIA)
  * porque una insignia dada no se quita.
  */
 export const EVALUABLES = SELLOS_V1.filter((s) => s.regla)
+
+// ------------------------------------------------------------------
+// Las 23 SERIES, agrupadas en seis bloques.
+//
+// El catálogo son 73 piezas, pero nadie navega 73 cosas. Se recorren como
+// series —«Ritmo», «Hogar», «Regreso al taller»— y las series se agrupan
+// en seis bloques que caben en una cabeza. Es la estructura que pide
+// `INSIGNIAS-04` §2.3, y también la razón de que los 32 caminos de oficio
+// se presenten como OCHO caminos de cuatro grados y no como 32 insignias
+// sueltas.
+//
+// El orden es deliberado: primero lo que casi todo el mundo tiene, al
+// final lo excepcional. Abrir por «Obras maestras» sería abrir por lo que
+// no tienes.
+// ------------------------------------------------------------------
+
+const serie = (id, nombre, significado, sellos) => ({ id, nombre, significado, sellos })
+
+export const BLOQUES = [
+  {
+    id: 'camino',
+    nombre: 'Tu camino',
+    significado: 'Cómo empezaste y cuánto llevas andado.',
+    series: [
+      serie('inicio', 'Primer encargo', 'El primero, que solo pasa una vez.',
+        SELLOS_V1.filter((s) => s.categoria === 'primeros_encargos')),
+      serie('ritmo', 'Ritmo', 'Días con presencia. No hace falta que sean seguidos.',
+        SELLOS_V1.filter((s) => s.categoria === 'ritmo')),
+      serie('trayectoria', 'Trayectoria', 'Encargos repartidos en el tiempo, no amontonados.',
+        SELLOS_V1.filter((s) => s.categoria === 'trayectoria'))
+    ]
+  },
+  {
+    id: 'oficios',
+    nombre: 'Los ocho oficios',
+    significado: 'Lo que has aprendido a hacer, camino por camino.',
+    series: HABILIDADES_OFICIO.map((h) =>
+      serie(`oficio_${h}`, HABILIDAD_NOMBRE[h], 'Práctica sostenida, variada y repartida.',
+        SELLOS_V1.filter((s) => s.habilidad === h)))
+  },
+  {
+    id: 'amplitud',
+    nombre: 'Amplitud',
+    significado: 'Lo distinto que has probado y lo repartido que está.',
+    series: [
+      serie('exploracion_habilidades', 'Caminos abiertos', 'Habilidades distintas con experiencia real.',
+        ['exploracion_4_habilidades', 'exploracion_8_habilidades'].map(selloPorId)),
+      serie('exploracion_familias', 'Actividades distintas', 'Cosas diferentes, no la misma repetida.',
+        ['exploracion_5_familias', 'exploracion_15_familias', 'exploracion_30_familias'].map(selloPorId)),
+      serie('exploracion_frecuencias', 'Ritmos de encargo', 'Diario, semanal, mensual y único.',
+        [selloPorId('exploracion_4_frecuencias')]),
+      serie('equilibrio', 'Equilibrio', 'Varios caminos con base, sin que uno se lo coma todo.',
+        SELLOS_V1.filter((s) => s.categoria === 'equilibrio'))
+    ]
+  },
+  {
+    id: 'autonomia',
+    nombre: 'Autonomía',
+    significado: 'Lo que haces con menos ayuda que antes.',
+    series: [
+      serie('autonomia', 'Menos ayuda', 'Necesita que alguien anote cuánta ayuda hizo falta.',
+        SELLOS_V1.filter((s) => s.categoria === 'autonomia'))
+    ]
+  },
+  {
+    id: 'obra_comun',
+    nombre: 'Obra común',
+    significado: 'Lo que el gremio terminó entre todos.',
+    series: [
+      serie('obra_comun_temporada', 'Sellos de temporada', 'Uno por cada meta que el gremio cierra.',
+        ['obra_comun_temporada', 'obra_comun_participante'].map(selloPorId)),
+      serie('obra_comun_acumulada', 'Obras en el archivo', 'Metas cerradas a lo largo de los años.',
+        ['obra_comun_05', 'obra_comun_10', 'obra_comun_25'].map(selloPorId))
+    ]
+  },
+  {
+    id: 'especiales',
+    nombre: 'Capítulos especiales',
+    significado: 'Volver, y lo que aparece sin buscarlo.',
+    series: [
+      serie('regreso', 'Regreso al taller', 'Volver después de una pausa y retomar el ritmo.',
+        SELLOS_V1.filter((s) => s.categoria === 'regreso_al_taller')),
+      serie('descubrimientos', 'Descubrimientos', 'Aparecen solos. No se persiguen.',
+        SELLOS_V1.filter((s) => s.categoria === 'descubrimientos'))
+    ]
+  }
+]
+
+/** Comprobación de que ningún sello se queda fuera de la navegación. */
+export const SELLOS_EN_BLOQUES = BLOQUES.flatMap((b) => b.series.flatMap((s) => s.sellos))

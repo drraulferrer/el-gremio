@@ -108,6 +108,10 @@ export default defineConfig({
     __APP_BUILT_AT__: JSON.stringify(construido),
     __DOMINIO__: JSON.stringify(dominioCanonico())
   },
+  // El puerto sale de PORT si está puesto. Sirve para que dos sesiones de
+  // trabajo puedan levantar la demo a la vez sin pelearse por el 5177;
+  // sin variable, vite elige el suyo de siempre.
+  server: process.env.PORT ? { port: Number(process.env.PORT) } : undefined,
   build: {
     sourcemap: true
   },
