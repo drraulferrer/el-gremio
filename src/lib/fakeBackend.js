@@ -30,7 +30,8 @@ const TABLAS = [
   // Sin esta tabla el recordatorio de avisos del panel revienta en modo
   // demo mientras en producción funciona: la peor combinación, porque la
   // demo es justo donde se prueba.
-  'push_subs'
+  'push_subs',
+  'campanas_limpieza'
 ]
 
 const vacia = () => TABLAS.reduce((acc, t) => ({ ...acc, [t]: [] }), {})
@@ -53,7 +54,7 @@ function especieCoherente(fila) {
 
 const DEFECTOS_TABLA = {
   profiles: { emoji: '🙂', color: '#a78bfa', xp: 0, coins: 0, active: true, gender: 'neutro' },
-  challenges: { emoji: '⭐', xp: 10, coins: 5, frequency: 'diario', active: true, profile_id: null, target_roles: null, skill: null, days: null },
+  challenges: { emoji: '⭐', xp: 10, coins: 5, frequency: 'diario', active: true, profile_id: null, target_roles: null, skill: null, days: null, campana_id: null },
   completions: { status: 'pendiente', resolved_at: null, praise: null },
   rewards: { emoji: '🎁', cost: 50, active: true, tier: 2 },
   redemptions: { status: 'pendiente', resolved_at: null },
@@ -65,7 +66,8 @@ const DEFECTOS_TABLA = {
   families: { timezone: 'Europe/Madrid' },
   push_log: { franja: 'tarde', enviados: 0 },
   plan_diario: { origen: 'patron' },
-  push_subs: { activa: true, fallos: 0, ultimo_ok: null }
+  push_subs: { activa: true, fallos: 0, ultimo_ok: null },
+  campanas_limpieza: { emoji: '🧹', estado: 'activa', cerrada_at: null, activada_por: null }
 }
 
 /** Columnas de fecha que la base rellena sola, por tabla. */
@@ -79,7 +81,8 @@ const SELLOS_TABLA = {
   profile_badges: ['earned_at'],
   power_uses: ['used_at'],
   app_logs: ['ts'],
-  families: ['created_at']
+  families: ['created_at'],
+  campanas_limpieza: ['created_at']
 }
 
 function leer() {
@@ -400,6 +403,156 @@ function rpc(nombre, args = {}) {
     })
     notificar()
     return { data: 'ok', error: null }
+  }
+
+  // Espejo de crear_campana_limpieza (migración 031). Se replican las
+  // reglas, no solo el efecto: sin adulto no se lanza, con una activa no
+  // entra otra, y las tareas fuera de tope rebotan enteras. Un demo más
+  // permisivo que la base da luz verde a lo que va a romperse en casa.
+  if (nombre === 'crear_campana_limpieza') {
+    const quien = db.profiles.find((x) => x.id === args.p_activada_por && x.active !== false)
+    if (!quien) return { data: 'quien_no_existe', error: null }
+    if (quien.role !== 'adulto') return { data: 'no_es_adulto', error: null }
+    if (!['blitz', 'zona', 'profunda'].includes(args.p_tipo)) return { data: 'tipo_invalido', error: null }
+    const dias = Number(args.p_dias)
+    if (!Number.isInteger(dias) || dias < 1 || dias > 30) return { data: 'duracion_invalida', error: null }
+    const titulo = String(args.p_titulo || '').trim()
+    if (titulo.length < 3 || titulo.length > 120) return { data: 'titulo_invalido', error: null }
+    const tareas = args.p_tareas
+    if (!Array.isArray(tareas) || tareas.length < 1 || tareas.length > 40) return { data: 'sin_tareas', error: null }
+    const campanas = db.campanas_limpieza || []
+    if (campanas.some((c) => c.family_id === quien.family_id && c.estado === 'activa')) {
+      return { data: 'ya_hay_activa', error: null }
+    }
+    // Todo o nada, igual que la transacción de Postgres.
+    for (const t of tareas) {
+      const tit = String(t.title || '').trim()
+      if (tit.length < 3 || tit.length > 120) return { data: 'tarea_invalida', error: null }
+      if (!Number.isInteger(t.xp) || t.xp < 1 || t.xp > 60) return { data: 'tarea_invalida', error: null }
+      if (!Number.isInteger(t.coins) || t.coins < 1 || t.coins > 40) return { data: 'tarea_invalida', error: null }
+      const p = db.profiles.find((x) => x.id === t.profile_id)
+      if (!p || p.family_id !== quien.family_id || p.active === false || p.role === 'mascota') {
+        return { data: 'tarea_invalida', error: null }
+      }
+    }
+    const hoy = new Date()
+    const fin = new Date(hoy.getTime() + (dias - 1) * 86400000)
+    const idCampana = uuid()
+    const ahora = new Date().toISOString()
+    const campana = {
+      id: idCampana,
+      family_id: quien.family_id,
+      tipo: args.p_tipo,
+      clave: String(args.p_clave || args.p_tipo).slice(0, 80),
+      titulo,
+      emoji: args.p_emoji || '🧹',
+      empieza: hoy.toLocaleDateString('sv-SE'),
+      termina: fin.toLocaleDateString('sv-SE'),
+      estado: 'activa',
+      activada_por: quien.id,
+      cerrada_at: null,
+      created_at: ahora
+    }
+    const nuevas = tareas.map((t) => ({
+      id: uuid(),
+      family_id: quien.family_id,
+      profile_id: t.profile_id,
+      title: String(t.title).trim(),
+      emoji: t.emoji || '🧹',
+      xp: t.xp,
+      coins: t.coins,
+      frequency: 'unico',
+      skill: 'hogar',
+      target_roles: null,
+      days: null,
+      active: true,
+      campana_id: idCampana,
+      // Igual que el insert normal del demo: toda misión nace con familia
+      // (espejo de tg_challenge_familia, 028).
+      mission_family_id: null,
+      created_at: ahora
+    }))
+    nuevas.forEach((ch) => { ch.mission_family_id = `mf:${ch.id}` })
+    escribir({
+      ...db,
+      campanas_limpieza: [...campanas, campana],
+      challenges: [...db.challenges, ...nuevas]
+    })
+    notificar()
+    return { data: 'ok', error: null }
+  }
+
+  // Espejo de cerrar_campana_limpieza (migración 031). El desenlace lo
+  // decide el estado guardado, no el botón: botín si está completa,
+  // expiración si venció, y 'aun_no' si sigue en plazo.
+  if (nombre === 'cerrar_campana_limpieza') {
+    const campana = (db.campanas_limpieza || []).find((c) => c.id === args.p_campana)
+    if (!campana) return { data: 'no_existe', error: null }
+    const quien = db.profiles.find((x) => x.id === args.p_quien && x.active !== false)
+    if (!quien || quien.family_id !== campana.family_id) return { data: 'quien_no_existe', error: null }
+    if (quien.role !== 'adulto') return { data: 'no_es_adulto', error: null }
+    if (campana.estado !== 'activa') return { data: 'ya_cerrada', error: null }
+
+    const misiones = db.challenges.filter((ch) => ch.campana_id === campana.id)
+    const aprobada = (ch) =>
+      db.completions.some((co) => co.challenge_id === ch.id && co.status === 'aprobado')
+    const completa = misiones.length > 0 && misiones.every(aprobada)
+    const hoy = new Date().toLocaleDateString('sv-SE')
+
+    if (completa) {
+      // La misma cuenta que botinPrevisto: la mitad de lo aprobado por
+      // participante, hacia abajo.
+      const ids = new Set(misiones.map((ch) => ch.id))
+      const ganado = new Map()
+      for (const co of db.completions) {
+        if (co.status !== 'aprobado' || !ids.has(co.challenge_id)) continue
+        ganado.set(co.profile_id, (ganado.get(co.profile_id) || 0) + (co.coins || 0))
+      }
+      const bonuses = [...(db.bonuses || [])]
+      let profiles = db.profiles
+      for (const [profileId, coins] of ganado) {
+        const botin = Math.floor(coins / 2)
+        if (botin <= 0) continue
+        bonuses.push({
+          id: uuid(),
+          family_id: campana.family_id,
+          profile_id: profileId,
+          dia: hoy,
+          tipo: 'limpieza:' + campana.id,
+          coins: botin,
+          motivo: 'Botín de «' + campana.titulo + '»',
+          otorgado_por: quien.id,
+          created_at: new Date().toISOString()
+        })
+        profiles = profiles.map((x) => (x.id === profileId ? { ...x, coins: x.coins + botin } : x))
+      }
+      escribir({
+        ...db,
+        bonuses,
+        profiles,
+        campanas_limpieza: db.campanas_limpieza.map((c) =>
+          c.id === campana.id ? { ...c, estado: 'completada', cerrada_at: new Date().toISOString() } : c
+        )
+      })
+      notificar()
+      return { data: 'ok', error: null }
+    }
+
+    if (hoy > campana.termina) {
+      escribir({
+        ...db,
+        challenges: db.challenges.map((ch) =>
+          ch.campana_id === campana.id && !aprobada(ch) ? { ...ch, active: false } : ch
+        ),
+        campanas_limpieza: db.campanas_limpieza.map((c) =>
+          c.id === campana.id ? { ...c, estado: 'expirada', cerrada_at: new Date().toISOString() } : c
+        )
+      })
+      notificar()
+      return { data: 'expirada', error: null }
+    }
+
+    return { data: 'aun_no', error: null }
   }
 
   // Espejo de spend_power (migración 015). Lo importante que hay que

@@ -106,7 +106,20 @@ describe('monedas que no vienen de misiones', () => {
       { profile_id: 'p', tipo: 'manual', coins: 20 },
       { profile_id: 'j', tipo: 'manual', coins: 50 }
     ]
-    expect(extrasDe(PEQUE, bonuses)).toEqual({ juego: 10, aMano: 20 })
+    expect(extrasDe(PEQUE, bonuses)).toEqual({ juego: 10, aMano: 20, limpieza: 0 })
+  })
+
+  it('el botín de limpieza va aparte, no dentro del juego', () => {
+    // Su tipo es 'limpieza:<id de campaña>' (el patrón de 'racha:N').
+    // Sumado al juego diría que la peque cobró por globos lo que la
+    // familia ganó fregando el baño.
+    const bonuses = [
+      { profile_id: 'p', tipo: 'globos', coins: 5 },
+      { profile_id: 'p', tipo: 'limpieza:c1', coins: 12 },
+      { profile_id: 'p', tipo: 'limpieza:c2', coins: 7 },
+      { profile_id: 'p', tipo: 'racha:3', coins: 5 }
+    ]
+    expect(extrasDe(PEQUE, bonuses)).toEqual({ juego: 10, aMano: 0, limpieza: 19 })
   })
 })
 

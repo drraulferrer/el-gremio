@@ -29,6 +29,11 @@ const DEFECTOS = {
   // esperar a un despliegue; lo ya concedido se queda, que es la regla,
   // pero deja de crecer.
   sellosV2: true,
+  // El modo limpieza: campañas de limpieza que lanza un adulto. Con la
+  // bandera apagada desaparecen el botón del panel y el bloque de los
+  // tableros, pero las misiones ya lanzadas siguen saliendo como únicas
+  // normales: apagarla no le quita a nadie trabajo ya encargado.
+  modoLimpieza: true,
   // Backend simulado en memoria, para ver la app sin Supabase.
   demo: false
 }
@@ -40,6 +45,7 @@ const ENV = {
   luzAmbiental: import.meta.env.VITE_FLAG_LUZ,
   luzEnMovimiento: import.meta.env.VITE_FLAG_LUZ_MOVIMIENTO,
   sellosV2: import.meta.env.VITE_FLAG_SELLOS_V2,
+  modoLimpieza: import.meta.env.VITE_FLAG_MODO_LIMPIEZA,
   demo: import.meta.env.VITE_DEMO
 }
 

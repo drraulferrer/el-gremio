@@ -2,29 +2,30 @@
 
 Documento de continuidad. Si abres una sesión nueva sobre este proyecto,
 lee esto primero: dice dónde está todo, qué está hecho, qué falta y qué
-trampas tiene. Última actualización: **18 de agosto de 2026**, al cierre
-de una sesión larga en la que el sitio **dejó de servirse desde GitHub
-Pages y pasó a Vercel** (§7n), se ejecutaron las tres migraciones que
-faltaban y se construyeron dos funcionalidades enteras: el recordatorio de
-avisos (§7o) y los **perfiles de mascota** (§7p). Y en una sesión corta
-posterior, **las monedas pasaron a llamarse Talis** (§7q).
+trampas tiene. Última actualización: **19 de agosto de 2026**, al cierre
+de la sesión que construyó el **modo limpieza** (§7x): campañas de
+limpieza como misión secundaria, con reloj por tarea y botín de cierre.
+Ese mismo día, en sesiones anteriores, llegaron los sellos de oficio
+(§7u), su motor (§7v) y las migraciones 028-030 (§7w).
 
 Si solo vas a leer un párrafo: la app está **en producción y estable**, en
 elgremioapp.com, servida por **Vercel**, con las cabeceras de seguridad
 que antes no se podían poner y con un cron diario que impide que Supabase
-se pause. **Ya no hay migraciones pendientes.** Lo que queda no es código,
-es uso: activar los avisos en los teléfonos que faltan y mirar el cuadro
-de mando con datos reales. Antes de añadir nada, lee §8.
+se pause. **OJO: hay CUATRO migraciones pendientes de ejecutar —028, 029,
+030 (§7w) y 031 (§7x)— y la 031 va detrás de código YA escrito**: el
+bundle nuevo (2.9.0) no debe publicarse antes de ejecutarla, que es la
+regla del §7e. Antes de añadir nada, lee §8.
 
-**Y lo primero que hay que saber, porque cambió hoy:** publicar ya no es
-`npm run deploy`. Ahora es empujar y después `npm run vercel` (§7n).
+**Y lo primero que hay que saber:** publicar no es `npm run deploy`. Es
+empujar y después `npm run vercel` (§7n), y SIEMPRE con la migración
+ejecutada antes que el bundle.
 
-**Si abres sesión nueva, empieza por §8.** No hay nada a medias: no queda
-ninguna migración pendiente y los **685 tests están en verde**. **Producción sirve la 2.5.3** (`9b826ae`). De la 2.5.2 quedó comprobado que
-`/apple-touch-icon.png`, `/apple-touch-icon-precomposed.png` y
-`/favicon.ico` responden ya con imagen de verdad —antes daban 200 con
-HTML— y que el fichero servido es idéntico al local por SHA-256. Lo que queda es de uso y de producto, no
-código bloqueado.
+**Si abres sesión nueva, empieza por §8 y por §7w-§7x** (lo pendiente).
+Los **799 tests están en verde** y la versión local es la **2.9.0** (sin
+publicar). Producción sirve la 2.8.x anterior; de la 2.5.2 quedó
+comprobado que `/apple-touch-icon.png` y `/favicon.ico` responden con
+imagen de verdad y byte a byte con lo local. Lo que queda es ejecutar la
+tanda de migraciones y publicar, no código a medias.
 
 ---
 
@@ -3131,3 +3132,85 @@ escribieron aquí a propósito: son ~15 tablas y ~20 funciones de PL/pgSQL
 que no se pueden probar contra una base desechable desde este portátil, y
 soltarlas sin probar sobre la base de una familia real es peor que no
 tenerlas.
+
+---
+
+## 7x. El modo limpieza (19 de agosto) · 2.9.0 · **CONSTRUIDO, MIGRACIÓN 031 SIN EJECUTAR**
+
+Campañas de limpieza como misión secundaria, a petición de la familia y
+a partir de un planificador doméstico real. **El diseño completo está en
+`docs/LIMPIEZA.md`**; aquí lo operativo y lo que no hay que deshacer.
+
+### Qué es
+
+Un adulto lanza una «operación» desde Panel → Misiones → 🧹 Modo
+limpieza: un formato (relámpago 15-90 min · zona de la semana · estancia
+a fondo), participantes y reparto sugerido —equilibrado por minutos, la
+peque incluida—, y qué adulto responde. Las tareas nacen como
+`challenges` únicos (`skill 'hogar'`, `campana_id`) y viajan por el
+camino de siempre: tablero → validar con elogio → `resolve_completion`.
+Si la operación se completa entera antes de vencer, botín: la mitad de
+los Talis ganados por cada participante, vía `bonuses` tipo
+`limpieza:<id>`, sin XP. Cada tarea lleva un reloj de «Empezar» según su
+esfuerzo (10/25/40 min) que es ayuda, no examen.
+
+### El estado exacto
+
+- **Código, tests (799) y demo verificados.** El flujo entero se probó
+  en el navegador con `dev:demo`: lanzar, tableros, estrella de la
+  peque, validación, cierre con botín (importes exactos), segunda
+  campaña, reloj corriendo y sobreviviendo a recargas.
+- **La migración 031 NO está ejecutada.** SHA-256 para cotejar:
+
+  ```
+  031  55d1a07d9ff80ce92f888e84e344ed54789042e3a4c52e76a64300e7cc0f3b59
+  ```
+
+  No depende de las 028-030 (solo toca families, profiles, challenges,
+  completions y bonuses), pero la tanda entera 028→031 debería
+  ejecutarse junta y ANTES de publicar el bundle 2.9.0 (§7e).
+- Sin la 031, la app degrada: `loadAll` trae `campanas: []` (bloque
+  degradable), el modo limpieza avisa de qué migración falta al lanzar,
+  y todo lo demás sigue entero.
+
+### Decisiones que no hay que deshacer
+
+- **Los Talis de limpieza doblan-cuadruplican los normales y la XP se
+  queda cerca (tope ×2).** Es la mayor fuente proporcional de Talis del
+  sistema A PROPÓSITO —es el trabajo más grande de la casa— y
+  `tests/limpieza.test.js` fija la promesa y el techo (peor caso ≤ 300
+  Talis por campaña). La XP no se infla porque marca nivel y meta.
+- **Una operación activa por gremio, y solo adultos lanzan y cierran.**
+  Las dos reglas viven en Postgres (`crear_campana_limpieza`,
+  `cerrar_campana_limpieza`), con el doble check del premio a mano y el
+  espejo en `fakeBackend.js`.
+- **El cierre es un botón, no un automatismo** (como la subida de
+  precios): «🎉 Repartir el botín» cuando todo está validado, «Recoger
+  la campaña» cuando venció (pausa lo pendiente, sin botín).
+- **El botín se calcula dos veces** —`botinPrevisto` (cliente) y el SQL—
+  con `floor(sum/2)`. Si se toca un redondeo, se tocan los dos.
+- **La pantalla de la peque no lleva reloj ni bloque de operación**: su
+  tarea sale como una baldosa más. Un toque, estrella, y ya.
+- **El reloj guarda el instante de inicio en localStorage**, nunca un
+  contador (lección de `mantenerPulsado.js`), y agotarse no bloquea.
+- **En SQL se escribe «monedas», nunca «Talis»**: `tests/talis.test.js`
+  vigila `schema.sql` entero, comentarios incluidos. Ya mordió una vez
+  en esta sesión.
+
+### Trampa pagada en esta sesión
+
+La confirmación del cierre se desmontaba antes de verse: cerrar
+refresca, la campaña deja de estar activa y la vista de campaña
+desaparece del modal. El estado `cierre` vive ahora en `ModoLimpieza`
+(el padre) y el botín se resuelve ANTES de refrescar. Si alguien
+refactoriza ese modal, que no lo baje de ahí.
+
+### Dónde está cada cosa
+
+`src/lib/limpieza.js` (catálogo de 15 campañas + reparto + progreso +
+botín) · `src/lib/temporizador.js` (el reloj) · `src/screens/ModoLimpieza.jsx`
+(asistente y seguimiento) · `TareaDeOperacion` en `Home.jsx` (tarjeta con
+reloj) · tintes en `ParentPanel.jsx` (`carta-operacion`) · flag
+`modoLimpieza` · migración `migracion-031-modo-limpieza.sql` + espejo en
+`schema.sql` · tests en `tests/limpieza.test.js` y
+`tests/temporizador.test.js`.

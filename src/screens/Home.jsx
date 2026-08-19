@@ -13,6 +13,9 @@ import { talis, progresoDeTalis } from '../lib/talis'
 import { HABILIDADES, habilidad, xpPorHabilidad, rangoDeHabilidad, habilidadDominante } from '../lib/habilidades'
 import { flex, generoDe } from '../lib/genero'
 import { planDelDia, agruparPorFrecuencia } from '../lib/misiones'
+import { campanaActiva, diasRestantes, esfuerzoDeMision } from '../lib/limpieza'
+import { iniciarTarea, inicioDe, olvidarTarea, restanteDe, textoDeRestante } from '../lib/temporizador'
+import { flag } from '../lib/flags'
 import { premiosParaMayores } from '../lib/premios'
 import { semana, etiquetaDeSemana, validadasDe, resumenDeSemana, semanasConDatos } from '../lib/historial'
 
@@ -209,7 +212,16 @@ function Misiones({ data, profile, ocupado, onPedir, misPendientes, misAprobadas
   const disponibles = planDelDia(profile, data.challenges, data.planDiario, new Date()).filter((ch) =>
     canDo(ch, data.completions, profile.id)
   )
-  const porFrecuencia = agruparPorFrecuencia(disponibles)
+  // Las tareas de la operación de limpieza salen en su propio bloque,
+  // arriba: son un acontecimiento con fecha de fin, no una única más. Con
+  // la bandera apagada (o la campaña cerrada) vuelven al grupo de únicas,
+  // que es donde su frecuencia las pondría: apagar el modo no le quita a
+  // nadie trabajo ya encargado.
+  const operacion = flag('modoLimpieza') ? campanaActiva(data.campanas || []) : null
+  const deOperacion = operacion ? disponibles.filter((ch) => ch.campana_id === operacion.id) : []
+  const porFrecuencia = agruparPorFrecuencia(
+    operacion ? disponibles.filter((ch) => ch.campana_id !== operacion.id) : disponibles
+  )
   const hechasHoy = misAprobadas.filter((c) => c.resolved_at && dayKey(new Date(c.resolved_at)) === hoy)
 
   return (
@@ -261,6 +273,31 @@ function Misiones({ data, profile, ocupado, onPedir, misPendientes, misAprobadas
             )
           })}
         </>
+      )}
+
+      {deOperacion.length > 0 && (
+        <section>
+          <h3 className="titulo-frecuencia">
+            {operacion.emoji} {operacion.titulo}
+            <span className="cuenta-frecuencia">{deOperacion.length}</span>
+          </h3>
+          <div className="fila-separada suave" style={{ margin: '0 4px 8px' }}>
+            <span>Operación de limpieza del gremio</span>
+            <span>{diasRestantes(operacion) === 1 ? 'último día' : `quedan ${diasRestantes(operacion)} días`}</span>
+          </div>
+          <div className="lista-misiones">
+            {deOperacion.map((ch) => (
+              <TareaDeOperacion
+                key={ch.id}
+                reto={ch}
+                genero={genero}
+                ocupado={ocupado}
+                onPedir={onPedir}
+                profileId={profile.id}
+              />
+            ))}
+          </div>
+        </section>
       )}
 
       <div className="titulo-seccion">Misiones disponibles</div>
@@ -338,6 +375,82 @@ function Misiones({ data, profile, ocupado, onPedir, misPendientes, misAprobadas
           ))}
         </div>
       )}
+    </div>
+  )
+}
+
+/**
+ * Una tarea de la operación de limpieza, con su reloj.
+ *
+ * El flujo es el del planificador del que sale el catálogo: se pulsa
+ * «Empezar», el reloj cuenta atrás lo que esa tarea pide según su
+ * esfuerzo, y al terminar se marca. El reloj es una ayuda, no un
+ * requisito: «¡Hecho!» está disponible desde el principio, porque una
+ * tarea hecha sin reloj sigue siendo una tarea hecha.
+ *
+ * Dos detalles que no son opcionales:
+ *  · El restante se CALCULA desde el inicio guardado en el aparato
+ *    (src/lib/temporizador.js); el intervalo de un segundo solo
+ *    repinta. Un contador en memoria se congela en segundo plano y se
+ *    reinicia al recargar, que es la lección de mantenerPulsado.js.
+ *  · Agotarse no bloquea nada: el reloj dice «¡Tiempo!» y la tarea
+ *    sigue igual. Un reloj que castiga convierte la ayuda en examen.
+ */
+function TareaDeOperacion({ reto, genero, ocupado, onPedir, profileId }) {
+  const esf = esfuerzoDeMision(reto)
+  const [inicio, setInicio] = useState(() => inicioDe(profileId, reto.id))
+  const [, setTic] = useState(0)
+
+  const estado = inicio ? restanteDe(inicio, esf.temporizador) : null
+  const corriendo = Boolean(estado && !estado.agotado)
+
+  useEffect(() => {
+    if (!corriendo) return
+    const t = setInterval(() => setTic((n) => n + 1), 1000)
+    return () => clearInterval(t)
+  }, [corriendo])
+
+  function empezar() {
+    setInicio(iniciarTarea(profileId, reto.id))
+  }
+
+  function marcar() {
+    olvidarTarea(profileId, reto.id)
+    onPedir(reto)
+  }
+
+  return (
+    <div className="carta carta-operacion">
+      <div className="fila">
+        <div className="avatar">{reto.emoji}</div>
+        <div className="crece">
+          <strong>{flex(reto.title, genero)}</strong>
+          {/* Aquí los Talis SÍ se enseñan, al revés que en las misiones
+              de siempre: pagar más Talis que nada es justo lo que esta
+              campaña ofrece. */}
+          <div className="suave">
+            +{reto.xp} XP · +<Talis n={reto.coins} /> · {esf.texto}
+          </div>
+        </div>
+      </div>
+      <div className="fila" style={{ marginTop: 10 }}>
+        {!inicio ? (
+          <button className="btn btn-mini crece" onClick={empezar}>
+            ▶ Empezar · {esf.temporizador} min
+          </button>
+        ) : (
+          <span className={'chip chip-reloj crece' + (estado.agotado ? ' agotado' : '')} role="timer">
+            {estado.agotado ? '⏰ ¡Tiempo! Márcala cuando esté' : `⏳ ${textoDeRestante(estado.ms)}`}
+          </span>
+        )}
+        <button
+          className={'btn btn-mini' + (!inicio ? ' btn-fantasma' : '')}
+          disabled={ocupado === reto.id}
+          onClick={marcar}
+        >
+          ¡Hecho!
+        </button>
+      </div>
     </div>
   )
 }

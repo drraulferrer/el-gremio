@@ -70,12 +70,20 @@ export function premiosDe(perfil, redemptions = [], rewards = []) {
   }
 }
 
-/** Talis que NO vienen de una misión: juego de la peque y premios a mano. */
+/**
+ * Talis que NO vienen de una misión: juego de la peque, premios a mano y
+ * botines de limpieza. El botín va aparte y no dentro de «juego»: el tipo
+ * es 'limpieza:<id de campaña>' (el patrón de 'racha:N'), y sumarlo al
+ * juego diría que la peque cobró por globos lo que la familia ganó
+ * fregando el baño.
+ */
 export function extrasDe(perfil, bonuses = []) {
   const mios = bonuses.filter((b) => b.profile_id === perfil.id)
+  const esBotin = (b) => String(b.tipo || '').startsWith('limpieza:')
   return {
-    juego: mios.filter((b) => b.tipo !== 'manual').reduce((t, b) => t + b.coins, 0),
-    aMano: mios.filter((b) => b.tipo === 'manual').reduce((t, b) => t + b.coins, 0)
+    juego: mios.filter((b) => b.tipo !== 'manual' && !esBotin(b)).reduce((t, b) => t + b.coins, 0),
+    aMano: mios.filter((b) => b.tipo === 'manual').reduce((t, b) => t + b.coins, 0),
+    limpieza: mios.filter(esBotin).reduce((t, b) => t + b.coins, 0)
   }
 }
 

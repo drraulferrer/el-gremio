@@ -121,6 +121,7 @@ function FichaPersona({ r, challenges }) {
           <div className="suave" style={{ fontSize: '0.82rem' }}>
             {r.xp} XP · <Talis n={r.monedas} />
             {r.extras.aMano > 0 && ` (${r.extras.aMano} a mano)`}
+            {r.extras.limpieza > 0 && ` (${r.extras.limpieza} de botín)`}
           </div>
         </div>
       </div>

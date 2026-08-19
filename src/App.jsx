@@ -157,7 +157,14 @@ export default function App() {
       // tabla no existe y la app sigue entera menos esta pieza.
       supabase.from('plan_diario').select('*')
         .eq('family_id', fid)
-        .gte('dia', new Date(Date.now() - 2 * 86400000).toISOString().slice(0, 10))
+        .gte('dia', new Date(Date.now() - 2 * 86400000).toISOString().slice(0, 10)),
+      // Las campañas del modo limpieza. En el bloque degradable por lo
+      // mismo que las demás: sin la migración 031 la tabla no existe y
+      // la app sigue entera menos esta pieza.
+      supabase.from('campanas_limpieza').select('*')
+        .eq('family_id', fid)
+        .order('created_at', { ascending: false })
+        .limit(20)
     ])
 
     const fallo = respuestas.slice(0, 7).find((r) => r.error)
@@ -168,7 +175,7 @@ export default function App() {
     }
     setErrorCarga('')
 
-    const [pr, ch, co, rw, rd, gl, bg, bo, pu, pl, pd] = respuestas
+    const [pr, ch, co, rw, rd, gl, bg, bo, pu, pl, pd, cl] = respuestas
     const metas = gl.data || []
     const next = {
       profiles: pr.data || [],
@@ -184,7 +191,8 @@ export default function App() {
       bonuses: bo.error ? [] : bo.data || [],
       powerUses: pu.error ? [] : pu.data || [],
       pushLog: pl.error ? [] : pl.data || [],
-      planDiario: pd.error ? [] : pd.data || []
+      planDiario: pd.error ? [] : pd.data || [],
+      campanas: cl.error ? [] : cl.data || []
     }
     log.debug('datos.cargados', {
       request_id: requestId,
@@ -358,6 +366,7 @@ export default function App() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'challenges', filter: 'family_id=eq.' + family.id }, programarRecarga)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'rewards', filter: 'family_id=eq.' + family.id }, programarRecarga)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'family_goals', filter: 'family_id=eq.' + family.id }, programarRecarga)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'campanas_limpieza', filter: 'family_id=eq.' + family.id }, programarRecarga)
       .subscribe()
 
     const alVolver = () => {

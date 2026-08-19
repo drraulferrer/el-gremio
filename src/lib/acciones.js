@@ -368,6 +368,94 @@ export async function premioAMano({ profileId, monedas, motivo, otorgadoPor }) {
 }
 
 /**
+ * Lanza una campaña del modo limpieza.
+ *
+ * Las reglas (que quien lanza sea adulto, una campaña activa por gremio,
+ * los topes por tarea) se comprueban en `puedeLanzarCampana` antes de
+ * llamar, y OTRA VEZ en Postgres dentro de `crear_campana_limpieza`. La
+ * del cliente da el mensaje decente; la de la base es la que manda.
+ *
+ * Campaña y misiones nacen en la misma transacción: en dos llamadas, un
+ * fallo de red por medio dejaría una campaña vacía o misiones huérfanas.
+ */
+export async function lanzarCampanaLimpieza({ activadaPor, campana, tareas }) {
+  const requestId = nuevoRequestId()
+  const { data, error, mensaje } = await operacion(
+    'limpieza.lanzada.error',
+    () =>
+      supabase.rpc('crear_campana_limpieza', {
+        p_activada_por: activadaPor,
+        p_tipo: campana.tipo,
+        p_clave: campana.clave,
+        p_titulo: campana.titulo,
+        p_emoji: campana.emoji,
+        p_dias: Number(campana.dias) || 1,
+        p_tareas: tareas
+      }),
+    { request_id: requestId, clave: campana.clave, tareas: tareas.length }
+  )
+
+  if (error) {
+    if (error.code === 'PGRST202') {
+      return { ok: false, mensaje: 'Falta ejecutar migracion-031-modo-limpieza.sql en Supabase.' }
+    }
+    return { ok: false, mensaje }
+  }
+
+  const problemas = {
+    quien_no_existe: 'Quien la lanza ya no está activo.',
+    no_es_tuyo: 'Ese perfil no es de este gremio.',
+    no_es_adulto: 'Solo un adulto puede lanzar el modo limpieza.',
+    tipo_invalido: 'Ese formato de campaña no existe.',
+    duracion_invalida: 'Esa duración no vale.',
+    titulo_invalido: 'Ese título no vale.',
+    sin_tareas: 'Una campaña sin tareas no es una campaña.',
+    tarea_invalida: 'Alguna tarea no está bien asignada. Revisa el reparto.',
+    ya_hay_activa: 'Ya hay una operación en marcha. Ciérrala antes de lanzar otra.'
+  }
+  if (problemas[data]) return { ok: false, mensaje: problemas[data] }
+
+  log.info('limpieza.lanzada', { request_id: requestId, clave: campana.clave, tareas: tareas.length })
+  return { ok: true, mensaje: '' }
+}
+
+/**
+ * Cierra una campaña del modo limpieza. El desenlace lo decide la base,
+ * no el botón: 'ok' reparte el botín si está completa, 'expirada' la
+ * recoge sin botín si venció, y 'aun_no' no toca nada. Ni el importe ni
+ * la condición viajan desde aquí, por lo mismo que en `cobrarRacha`: la
+ * pantalla que dibuja el progreso no puede ser la que lo certifique.
+ */
+export async function cerrarCampanaLimpieza({ campanaId, quienId }) {
+  const requestId = nuevoRequestId()
+  const { data, error, mensaje } = await operacion(
+    'limpieza.cerrada.error',
+    () => supabase.rpc('cerrar_campana_limpieza', { p_campana: campanaId, p_quien: quienId }),
+    { request_id: requestId, campana_id: campanaId }
+  )
+
+  if (error) {
+    if (error.code === 'PGRST202') {
+      return { ok: false, resultado: null, mensaje: 'Falta ejecutar migracion-031-modo-limpieza.sql en Supabase.' }
+    }
+    return { ok: false, resultado: null, mensaje }
+  }
+
+  const problemas = {
+    no_existe: 'Esa campaña ya no está.',
+    no_es_tuyo: 'Esa campaña no es de este gremio.',
+    quien_no_existe: 'Quien la cierra ya no está activo.',
+    no_es_adulto: 'Solo un adulto puede cerrar la campaña.',
+    ya_cerrada: 'Esa campaña ya estaba cerrada.',
+    aun_no: 'Todavía quedan tareas y la campaña sigue en plazo.'
+  }
+  if (problemas[data]) return { ok: false, resultado: data, mensaje: problemas[data] }
+
+  log.info('limpieza.cerrada', { request_id: requestId, campana_id: campanaId, resultado: data })
+  return { ok: true, resultado: data, mensaje: '' }
+}
+
+/**
  * Apuntar una misión de la mascota. La hace una persona, la puntúa el
  * animal.
  *

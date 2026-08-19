@@ -314,6 +314,56 @@ create table if not exists public.plan_diario (
 
 create index if not exists idx_plan_diario_dia on public.plan_diario (family_id, dia);
 
+-- ------------------------------------------------------------------
+-- Modo limpieza (migración 031): campañas acotadas de limpieza.
+--
+-- Una campaña es una "operación" que lanza UN ADULTO desde el panel:
+-- un formato del catálogo (relámpago / zona de la semana / estancia a
+-- fondo), unas fechas y un puñado de misiones únicas repartidas entre
+-- quienes participan. Las misiones son `challenges` normales
+-- (frequency 'unico', skill 'hogar') enganchadas por `campana_id`, así
+-- que completar y validar pasan por el mismo camino auditado de
+-- siempre; lo único nuevo es el agrupador y el botín de cierre.
+--
+-- Solo se escribe por `crear_campana_limpieza` y se cierra por
+-- `cerrar_campana_limpieza` (las dos security definer, más abajo):
+-- la regla de «solo adultos» y la de «una activa por gremio» viven
+-- aquí, no en el navegador. El catálogo y el reparto, en
+-- src/lib/limpieza.js.
+-- ------------------------------------------------------------------
+create table if not exists public.campanas_limpieza (
+  id uuid primary key default gen_random_uuid(),
+  family_id uuid not null references public.families(id) on delete cascade,
+  tipo text not null check (tipo in ('blitz','zona','profunda')),
+  -- La clave del catálogo ('zona_cocina', 'blitz_30'…). Informativa: si
+  -- el catálogo cambia, la campaña guardada no cambia con él.
+  clave text not null check (length(clave) between 1 and 80),
+  titulo text not null check (length(titulo) between 3 and 120),
+  emoji text not null default '🧹',
+  empieza date not null,
+  -- Inclusive: el día de fin todavía cuenta. Acotada por construcción:
+  -- una campaña no puede durar más de un mes.
+  termina date not null,
+  estado text not null default 'activa' check (estado in ('activa','completada','expirada')),
+  activada_por uuid references public.profiles(id) on delete set null,
+  cerrada_at timestamptz,
+  created_at timestamptz not null default now(),
+  -- `case`, no `and`: un CHECK que evalúa a NULL no rechaza nada (la
+  -- lección de la 027). Aquí las dos columnas son not null, pero el
+  -- rango se escribe igual de explícito.
+  constraint campanas_fechas_coherentes check (termina >= empieza and termina <= empieza + 30)
+);
+
+create index if not exists idx_campanas_family on public.campanas_limpieza (family_id, created_at desc);
+
+-- El enganche de una misión a su campaña. `restrict`: una campaña con
+-- misiones no se borra, igual que una misión con historial (029). null =
+-- misión normal, que es lo que son todas las que ya existen.
+alter table public.challenges
+  add column if not exists campana_id uuid references public.campanas_limpieza(id) on delete restrict;
+
+create index if not exists idx_challenges_campana on public.challenges (campana_id) where campana_id is not null;
+
 create index if not exists idx_completions_family_status on public.completions (family_id, status);
 create index if not exists idx_completions_profile on public.completions (profile_id, requested_at desc);
 create index if not exists idx_redemptions_family_status on public.redemptions (family_id, status);
@@ -367,6 +417,7 @@ alter table public.redemptions enable row level security;
 alter table public.family_goals enable row level security;
 alter table public.profile_badges enable row level security;
 alter table public.plan_diario enable row level security;
+alter table public.campanas_limpieza enable row level security;
 
 -- Todas van declaradas `to authenticated`. Sin eso Postgres evalúa la
 -- política —y con ella la subconsulta a `families`— también para el rol
@@ -382,7 +433,7 @@ create policy familia_owner on public.families
 do $$
 declare t text;
 begin
-  foreach t in array array['profiles','challenges','completions','rewards','redemptions','family_goals','profile_badges','plan_diario','mission_families']
+  foreach t in array array['profiles','challenges','completions','rewards','redemptions','family_goals','profile_badges','plan_diario','mission_families','campanas_limpieza']
   loop
     execute format('drop policy if exists familia_miembro on public.%I', t);
     execute format($f$
@@ -438,6 +489,10 @@ create trigger tope_goals before insert on public.family_goals
 drop trigger if exists tope_challenges on public.challenges;
 create trigger tope_challenges before insert on public.challenges
   for each row execute function public.tg_tope_filas('600');
+
+drop trigger if exists tope_campanas on public.campanas_limpieza;
+create trigger tope_campanas before insert on public.campanas_limpieza
+  for each row execute function public.tg_tope_filas('60');
 
 -- El plan solo se programa cerca: hoy o mañana. El `unique` limita las
 -- filas por día, pero `dia` es un eje libre y una cuenta podría insertar
@@ -565,6 +620,7 @@ do $$ begin alter publication supabase_realtime add table public.redemptions; ex
 do $$ begin alter publication supabase_realtime add table public.family_goals; exception when duplicate_object then null; end $$;
 do $$ begin alter publication supabase_realtime add table public.profile_badges; exception when duplicate_object then null; end $$;
 do $$ begin alter publication supabase_realtime add table public.plan_diario; exception when duplicate_object then null; end $$;
+do $$ begin alter publication supabase_realtime add table public.campanas_limpieza; exception when duplicate_object then null; end $$;
 
 -- =====================================================================
 -- CAPA DE PRODUCCIÓN
@@ -1022,6 +1078,235 @@ end $fn$;
 
 revoke all on function public.grant_manual_bonus(uuid, integer, text, uuid) from public;
 grant execute on function public.grant_manual_bonus(uuid, integer, text, uuid) to authenticated;
+
+-- ------------------------------------------------------------------
+-- Modo limpieza (migración 031): lanzar y cerrar campañas.
+--
+-- Las dos reglas que hacen que esto sea una función y no dos inserts
+-- desde el navegador:
+--
+--  1. SOLO UN ADULTO lanza y cierra. Igual que el premio a mano: la
+--     comprobación del cliente da el mensaje, esta es la que manda.
+--  2. Campaña y misiones nacen EN LA MISMA TRANSACCIÓN. En dos
+--     llamadas, un fallo de red por medio dejaría una campaña vacía o
+--     misiones huérfanas, que es la misma razón por la que la voz de
+--     mando crea su misión dentro de spend_power.
+-- ------------------------------------------------------------------
+
+-- Lanza una campaña. `p_tareas` es un array JSON de
+--   { profile_id, title, emoji, xp, coins }
+-- con los puntos ya calculados por src/lib/limpieza.js; aquí solo se
+-- comprueba que estén dentro de los topes de cordura, porque un tope
+-- que solo vive en el cliente no es un tope. Devuelve texto:
+--   'ok' · 'quien_no_existe' · 'no_es_tuyo' · 'no_es_adulto' ·
+--   'tipo_invalido' · 'duracion_invalida' · 'titulo_invalido' ·
+--   'sin_tareas' · 'tarea_invalida' · 'ya_hay_activa'
+create or replace function public.crear_campana_limpieza(
+  p_activada_por uuid,
+  p_tipo text,
+  p_clave text,
+  p_titulo text,
+  p_emoji text,
+  p_dias integer,
+  p_tareas jsonb
+)
+returns text
+language plpgsql
+security definer
+set search_path = public
+as $fn$
+declare
+  v_family uuid;
+  v_rol text;
+  v_tz text;
+  v_hoy date;
+  v_campana uuid;
+  t jsonb;
+  v_perfil uuid;
+  v_xp integer;
+  v_coins integer;
+  v_title text;
+  v_familia_perfil uuid;
+  v_rol_perfil text;
+  v_activo boolean;
+begin
+  select family_id, role into v_family, v_rol
+    from public.profiles where id = p_activada_por and active;
+  if v_family is null then return 'quien_no_existe'; end if;
+
+  if not exists (
+    select 1 from public.families f where f.id = v_family and f.owner = auth.uid()
+  ) then
+    return 'no_es_tuyo';
+  end if;
+
+  if v_rol <> 'adulto' then return 'no_es_adulto'; end if;
+
+  if p_tipo is null or p_tipo not in ('blitz','zona','profunda') then return 'tipo_invalido'; end if;
+  if p_dias is null or p_dias < 1 or p_dias > 30 then return 'duracion_invalida'; end if;
+  if p_titulo is null or length(btrim(p_titulo)) < 3 or length(p_titulo) > 120 then return 'titulo_invalido'; end if;
+  if p_tareas is null or jsonb_typeof(p_tareas) <> 'array'
+     or jsonb_array_length(p_tareas) < 1 or jsonb_array_length(p_tareas) > 40 then
+    return 'sin_tareas';
+  end if;
+
+  -- Una operación cada vez: dos campañas solapadas dejan de ser un
+  -- acontecimiento y pasan a ser el tablón de siempre con otro nombre.
+  if exists (
+    select 1 from public.campanas_limpieza c where c.family_id = v_family and c.estado = 'activa'
+  ) then
+    return 'ya_hay_activa';
+  end if;
+
+  -- Se valida TODO antes de escribir NADA: o entra la campaña entera o
+  -- no entra ninguna fila. El `exception` caza un profile_id que no sea
+  -- ni siquiera un uuid.
+  begin
+    for t in select * from jsonb_array_elements(p_tareas) loop
+      v_perfil := (t->>'profile_id')::uuid;
+      v_xp := (t->>'xp')::integer;
+      v_coins := (t->>'coins')::integer;
+      v_title := t->>'title';
+
+      if v_title is null or length(btrim(v_title)) < 3 or length(v_title) > 120 then return 'tarea_invalida'; end if;
+      -- Topes de cordura contra el dedo gordo, no antifraude: una tarea
+      -- no puede pagar más que un premio a mano pequeño.
+      if v_xp is null or v_xp < 1 or v_xp > 60 then return 'tarea_invalida'; end if;
+      if v_coins is null or v_coins < 1 or v_coins > 40 then return 'tarea_invalida'; end if;
+
+      select family_id, role, active into v_familia_perfil, v_rol_perfil, v_activo
+        from public.profiles where id = v_perfil;
+      if v_familia_perfil is distinct from v_family or not coalesce(v_activo, false)
+         or v_rol_perfil = 'mascota' then
+        return 'tarea_invalida';
+      end if;
+    end loop;
+  exception when invalid_text_representation then
+    return 'tarea_invalida';
+  end;
+
+  select timezone into v_tz from public.families where id = v_family;
+  v_hoy := (now() at time zone coalesce(v_tz, 'Europe/Madrid'))::date;
+
+  insert into public.campanas_limpieza (family_id, tipo, clave, titulo, emoji, empieza, termina, activada_por)
+  values (v_family, p_tipo, left(coalesce(nullif(btrim(p_clave), ''), p_tipo), 80), btrim(p_titulo),
+          coalesce(nullif(p_emoji, ''), '🧹'), v_hoy, v_hoy + (p_dias - 1), p_activada_por)
+  returning id into v_campana;
+
+  for t in select * from jsonb_array_elements(p_tareas) loop
+    insert into public.challenges (family_id, profile_id, title, emoji, xp, coins, frequency, skill, campana_id)
+    values (v_family, (t->>'profile_id')::uuid, btrim(t->>'title'),
+            coalesce(nullif(t->>'emoji', ''), '🧹'),
+            (t->>'xp')::integer, (t->>'coins')::integer, 'unico', 'hogar', v_campana);
+  end loop;
+
+  return 'ok';
+end $fn$;
+
+revoke all on function public.crear_campana_limpieza(uuid, text, text, text, text, integer, jsonb) from public;
+grant execute on function public.crear_campana_limpieza(uuid, text, text, text, text, integer, jsonb) to authenticated;
+
+-- Cierra una campaña, y el desenlace lo decide la base, no el botón:
+--
+--  · todo aprobado           → 'ok': botín (la mitad de lo ganado por
+--    cada participante, hacia abajo) y estado 'completada'.
+--  · sin completar y vencida → 'expirada': las misiones sin hacer se
+--    pausan y no hay botín.
+--  · sin completar y en plazo → 'aun_no', y no toca nada.
+--
+-- El botín entra por `bonuses` con tipo 'limpieza:<id de campaña>'
+-- —el mismo patrón que 'racha:N'— y por eso el índice de «uno al día»
+-- no lo estorba aunque el mismo día se cierren dos campañas. Solo
+-- monedas, nada de XP: la misma regla que el premio a mano, y por lo
+-- mismo. Devuelve además 'no_existe' · 'no_es_tuyo' · 'quien_no_existe'
+-- · 'no_es_adulto' · 'ya_cerrada'.
+create or replace function public.cerrar_campana_limpieza(p_campana uuid, p_quien uuid)
+returns text
+language plpgsql
+security definer
+set search_path = public
+as $fn$
+declare
+  v_family uuid;
+  v_estado text;
+  v_titulo text;
+  v_termina date;
+  v_rol text;
+  v_family_quien uuid;
+  v_tz text;
+  v_hoy date;
+  v_total integer;
+  v_hechas integer;
+  r record;
+begin
+  select family_id, estado, titulo, termina into v_family, v_estado, v_titulo, v_termina
+    from public.campanas_limpieza where id = p_campana;
+  if v_family is null then return 'no_existe'; end if;
+
+  if not exists (
+    select 1 from public.families f where f.id = v_family and f.owner = auth.uid()
+  ) then
+    return 'no_es_tuyo';
+  end if;
+
+  select role, family_id into v_rol, v_family_quien
+    from public.profiles where id = p_quien and active;
+  if v_rol is null or v_family_quien is distinct from v_family then return 'quien_no_existe'; end if;
+  if v_rol <> 'adulto' then return 'no_es_adulto'; end if;
+
+  if v_estado <> 'activa' then return 'ya_cerrada'; end if;
+
+  select timezone into v_tz from public.families where id = v_family;
+  v_hoy := (now() at time zone coalesce(v_tz, 'Europe/Madrid'))::date;
+
+  select count(*),
+         count(*) filter (where exists (
+           select 1 from public.completions co
+            where co.challenge_id = ch.id and co.status = 'aprobado'))
+    into v_total, v_hechas
+    from public.challenges ch
+   where ch.campana_id = p_campana;
+
+  if v_total > 0 and v_hechas = v_total then
+    -- La misma cuenta que botinPrevisto en src/lib/limpieza.js: si se
+    -- toca un redondeo, hay que tocar los dos sitios.
+    for r in
+      select co.profile_id, floor(sum(co.coins) / 2.0)::integer as botin
+        from public.completions co
+        join public.challenges ch on ch.id = co.challenge_id
+       where ch.campana_id = p_campana and co.status = 'aprobado'
+       group by co.profile_id
+    loop
+      if r.botin > 0 then
+        insert into public.bonuses (family_id, profile_id, tipo, coins, motivo, otorgado_por, dia)
+        values (v_family, r.profile_id, 'limpieza:' || p_campana::text, r.botin,
+                'Botín de «' || v_titulo || '»', p_quien, v_hoy);
+        update public.profiles set coins = coins + r.botin where id = r.profile_id;
+      end if;
+    end loop;
+
+    update public.campanas_limpieza set estado = 'completada', cerrada_at = now() where id = p_campana;
+    return 'ok';
+  end if;
+
+  if v_hoy > v_termina then
+    -- Lo no hecho se pausa, no se borra: pausada vuelve a la biblioteca
+    -- del panel, y borrarla con historial ni siquiera dejaría (029).
+    update public.challenges ch set active = false
+     where ch.campana_id = p_campana
+       and not exists (
+         select 1 from public.completions co
+          where co.challenge_id = ch.id and co.status = 'aprobado'
+       );
+    update public.campanas_limpieza set estado = 'expirada', cerrada_at = now() where id = p_campana;
+    return 'expirada';
+  end if;
+
+  return 'aun_no';
+end $fn$;
+
+revoke all on function public.cerrar_campana_limpieza(uuid, uuid) from public;
+grant execute on function public.cerrar_campana_limpieza(uuid, uuid) to authenticated;
 
 
 -- ------------------------------------------------------------------

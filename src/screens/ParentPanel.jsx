@@ -50,6 +50,9 @@ import {
 import SelectorEmoji from '../components/SelectorEmoji'
 import { emojiSugerido, GRUPOS_EMOJI_MISION, EMOJIS_MISION } from '../lib/emojis'
 import { talis } from '../lib/talis'
+import { flag } from '../lib/flags'
+import { campanaActiva, esDeOperacion, esfuerzoDeMision } from '../lib/limpieza'
+import ModoLimpieza from './ModoLimpieza'
 
 export default function ParentPanel({ family, data, refresh, refreshFamily, onVerTutorial, onExit }) {
   const [tab, setTab] = useState('pendientes')
@@ -204,7 +207,7 @@ export default function ParentPanel({ family, data, refresh, refreshFamily, onVe
             const p = perfilDe(c.profile_id)
             const ch = retoDe(c.challenge_id)
             return (
-              <div className="carta" key={c.id}>
+              <div className={'carta' + (esDeOperacion(ch) ? ' carta-operacion' : '')} key={c.id}>
                 <div className="fila">
                   <div className="avatar" style={{ borderColor: p?.color }}>{p?.emoji}</div>
                   <div className="crece">
@@ -384,14 +387,20 @@ function TarjetaValidacion({ completion, perfil, reto, completions, onResolver }
     setOcupado(false)
   }
 
+  // Las tareas del modo limpieza se distinguen a la vista: son misión
+  // secundaria con fecha de fin, y en una cola mezclada el adulto tiene
+  // que poder ver de un vistazo qué pertenece a la operación.
+  const deOperacion = esDeOperacion(reto)
+
   return (
-    <div className="carta">
+    <div className={'carta' + (deOperacion ? ' carta-operacion' : '')}>
       <div className="fila" style={{ marginBottom: 10 }}>
         <div className="avatar" style={{ borderColor: perfil?.color }}>{perfil?.emoji}</div>
         <div className="crece">
           <strong>{reto?.emoji} {flex(reto?.title, genero) || 'Misión'}</strong>
           <div className="suave">
             {perfil?.name} · +{completion.xp} XP · +<Talis n={completion.coins} />
+            {deOperacion && <> · 🧹 {esfuerzoDeMision(reto).texto}</>}
             {racha >= 2 && <> · 🔥 {racha + 1} días seguidos</>}
           </div>
         </div>
@@ -673,6 +682,8 @@ const MISION_VACIA = { title: '', emoji: '⭐', xp: 10, coins: 5, frequency: 'di
 function GestionMisiones({ family, data, refresh }) {
   const [editando, setEditando] = useState(null) // null | objeto misión
   const [plantillas, setPlantillas] = useState(false)
+  const [limpieza, setLimpieza] = useState(false)
+  const operacion = campanaActiva(data.campanas || [])
   // Qué persona está desplegada. Solo una a la vez, y ninguna al entrar:
   // la vista de arranque es el resumen de la familia, no el detalle.
   const [abierto, setAbierto] = useState(null)
@@ -792,6 +803,14 @@ function GestionMisiones({ family, data, refresh }) {
       {avisos.map((a, i) => (
         <p className="aviso-carga" key={i} role="status">⚖️ {a.texto}</p>
       ))}
+      {/* El modo limpieza va encima y a lo ancho, como «Programar mañana»
+          en Validar: es un acto de campaña, no una misión más. La pastilla
+          dice si hay una operación en marcha sin tener que abrirlo. */}
+      {flag('modoLimpieza') && (
+        <button className="btn btn-bloque" style={{ marginBottom: 10 }} onClick={() => setLimpieza(true)}>
+          🧹 Modo limpieza{operacion ? ` · ${operacion.emoji} en marcha` : ''}
+        </button>
+      )}
       <div className="fila" style={{ marginBottom: 12 }}>
         <button className="btn btn-mini crece" onClick={() => setEditando({ ...MISION_VACIA })}>+ Nueva misión</button>
         <button className="btn btn-fantasma btn-mini" onClick={() => setPlantillas(true)}>📚 Biblioteca</button>
@@ -824,12 +843,13 @@ function GestionMisiones({ family, data, refresh }) {
                 <span className="cuenta-frecuencia">{b.misiones.length}</span>
               </h4>
               {b.misiones.map((ch) => (
-        <div className="carta" key={ch.id}>
+        <div className={'carta' + (esDeOperacion(ch) ? ' carta-operacion' : '')} key={ch.id}>
           <div className="fila">
             <div className="avatar">{ch.emoji}</div>
             <div className="crece">
               <strong>{flex(ch.title, generoDe(data.profiles.find((p) => p.id === ch.profile_id)))}</strong>
               <div className="suave">
+                {esDeOperacion(ch) && <>🧹 Operación · {esfuerzoDeMision(ch).texto} · </>}
                 {habilidad(ch.skill) && <>{habilidad(ch.skill).emoji} {habilidad(ch.skill).nombre} · </>}
                 +{ch.xp} XP · <Talis n={ch.coins} />
               </div>
@@ -896,7 +916,7 @@ function GestionMisiones({ family, data, refresh }) {
             </span>
           </summary>
           {pausadas.map((ch) => (
-            <div className="carta" key={ch.id} style={{ opacity: 0.72 }}>
+            <div className={'carta' + (esDeOperacion(ch) ? ' carta-operacion' : '')} key={ch.id} style={{ opacity: 0.72 }}>
               <div className="fila">
                 {/* Sin el avatar grande de las listas de arriba: en 375 px,
                     avatar + botón con texto + lápiz dejaban al título
@@ -937,6 +957,10 @@ function GestionMisiones({ family, data, refresh }) {
 
       {plantillas && (
         <Biblioteca family={family} data={data} refresh={refresh} onClose={() => setPlantillas(false)} />
+      )}
+
+      {limpieza && (
+        <ModoLimpieza data={data} refresh={refresh} onClose={() => setLimpieza(false)} />
       )}
     </div>
   )

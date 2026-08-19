@@ -2319,6 +2319,57 @@ code { background: var(--tablero-hondo); padding: 2px 6px; border-radius: 6px; f
   line-height: 1.4;
 }
 
+/* Modo limpieza. La operación se distingue con el teal de «destacar»,
+   nunca con oro: el oro es de lo ya reconocido (XP, Talis, insignias),
+   y una tarea por hacer todavía no ha ganado nada. Tinte sutil, sin
+   borde grueso de un solo lado. */
+.carta-operacion {
+  border-color: rgba(79, 196, 181, 0.35);
+  background: rgba(79, 196, 181, 0.05);
+}
+
+/* Elegir formato o campaña en el modal: la carta entera es el botón,
+   como las sugerencias de elogio. Hereda de .carta el aspecto; esto
+   solo quita lo que un <button> trae de serie. */
+.carta-eleccion {
+  display: block;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.carta-eleccion:active { transform: scale(0.99); }
+
+/* El reloj de una tarea de la operación. Teal mientras corre —es
+   progreso, no reconocimiento— y sin animación ninguna: el número que
+   cambia cada segundo ya es todo el movimiento que hace falta. */
+.chip-reloj {
+  justify-content: center;
+  color: var(--teal);
+  border-color: rgba(79, 196, 181, 0.4);
+  font-variant-numeric: tabular-nums;
+}
+
+.chip-reloj.agotado {
+  color: var(--oro-claro);
+  border-color: #6b5a24;
+}
+
+/* Una fila del reparto: tarea + quién la hace. El select no crece para
+   que el título sea quien manda en el ancho. */
+.fila-reparto {
+  padding: 8px 4px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.fila-reparto select {
+  flex: none;
+  width: auto;
+  max-width: 45%;
+}
+
 /* En el panel: el bloque que se abre al pulsar «Todavía no». */
 .bloque-correccion {
   margin-top: 10px;

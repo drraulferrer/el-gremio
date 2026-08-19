@@ -18,6 +18,43 @@ verdad duele en esta app: que el esquema y el cliente dejen de encajar.
 
 ---
 
+## 2.9.0 · 19 de agosto de 2026
+
+**El modo limpieza: campañas de limpieza como misión secundaria.** Un
+adulto lanza una «operación» desde Panel → Misiones: un formato del
+planificador doméstico (limpieza relámpago por tiempo, la zona de la
+semana, o una estancia a fondo), con las tareas repartidas entre quienes
+participan —la peque incluida, que tiene tareas a su medida en casi
+todas—. Las tareas son misiones únicas normales por dentro (se piden,
+se validan con elogio, pagan por `resolve_completion`), así que no hay
+un segundo camino de puntos que auditar.
+
+Lo que las hace distintas:
+
+- **Toda la XP es de Hogar, y los Talis doblan o cuadruplican los de una
+  misión normal según el esfuerzo.** Es la mayor fuente proporcional de
+  Talis del sistema, a propósito, y hay un test que fija esa promesa. La
+  XP se queda cerca de la normal: el nivel no se compra fregando.
+- **Botín de cierre**: si la operación se completa entera antes de su
+  fecha, cada participante recibe la mitad de sus Talis ganados, por
+  `bonuses` (tipo `limpieza:<id>`, sin XP, el patrón de `racha:N`). Si
+  vence sin completarse, se recoge sin botín y lo pendiente se pausa.
+- **Cada tarea lleva reloj**: «Empezar» arranca una cuenta atrás según
+  el esfuerzo (10/25/40 min), que sobrevive a recargas porque guarda el
+  instante de inicio, no un contador. Es ayuda, no examen: agotarse no
+  bloquea nada y la tarea se puede marcar sin reloj.
+- **En el panel se ven de otro color** (tinte teal) en Validar, Hecho
+  hoy, la lista de Misiones y las pausadas, con su horquilla de minutos.
+- Una sola operación activa por gremio, y solo la lanza y la cierra un
+  adulto: comprobado en el cliente para el mensaje y en Postgres para
+  mandar (`crear_campana_limpieza` / `cerrar_campana_limpieza`).
+
+Necesita la **migración 031** (tabla `campanas_limpieza`,
+`challenges.campana_id` y las dos funciones). Sin ella la app degrada:
+el resto funciona y el modo limpieza avisa de qué falta. Bandera
+`modoLimpieza` para apagarlo sin desplegar; las tareas ya lanzadas
+seguirían saliendo como únicas normales.
+
 ## 2.8.1 · 19 de agosto de 2026
 
 **La tienda enseñaba una moneda distinta de la de la cabecera.** En 2.5.0
