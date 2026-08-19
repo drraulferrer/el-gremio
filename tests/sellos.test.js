@@ -4,7 +4,7 @@ import {
   SELLOS, SELLOS_V1, SELLOS_LEGADO, MATERIALES, GRADOS_OFICIO,
   selloDeInsignia, selloPorId, INSIGNIAS_CON_SELLO
 } from '../src/lib/sellos'
-import { INSIGNIAS } from '../src/lib/insignias'
+import { INSIGNIAS, insigniaPorCodigo } from '../src/lib/insignias'
 import { HABILIDADES } from '../src/lib/habilidades'
 
 const raiz = new URL('../', import.meta.url)
@@ -130,5 +130,42 @@ describe('lo que pesan', () => {
 
   it('son WebP: en PNG esto mismo pesaba trece veces más', () => {
     for (const f of ficheros) expect(f, f).toMatch(/\.webp$/)
+  })
+})
+
+describe('los dos catálogos no se mezclan al contar', () => {
+  // El fallo: la cabecera de la rejilla vieja decía «N de 16» con N
+  // contando TODO lo que tiene el perfil. Desde que el motor concede
+  // sellos, eso incluye los del catálogo v1: cinco viejas y ocho sellos
+  // se leían como «13 de 16», y con más de dieciséis sellos habría dicho
+  // «20 de 16».
+  const badges = [
+    'primera', 'x10', 'x25', 'x50', 'madrugador',
+    'inicio_primer_encargo', 'ritmo_01', 'ritmo_02', 'ritmo_03',
+    'trayectoria_01', 'trayectoria_02', 'oficio_hogar_1', 'exploracion_5_familias'
+  ]
+
+  it('el contador de la rejilla vieja solo cuenta las dieciséis', () => {
+    const mias = new Set(badges)
+    const misInsignias = new Set([...mias].filter((code) => insigniaPorCodigo(code)))
+    expect(mias.size).toBe(13)
+    expect(misInsignias.size).toBe(5)
+    expect(misInsignias.size).toBeLessThanOrEqual(INSIGNIAS.length)
+  })
+
+  it('ni con el catálogo entero se pasa de dieciséis', () => {
+    // La garantía que importa: el numerador no puede superar al
+    // denominador pase lo que pase.
+    const todo = new Set([...INSIGNIAS.map((b) => b.code), ...SELLOS_V1.map((s) => s.id)])
+    const soloViejas = new Set([...todo].filter((code) => insigniaPorCodigo(code)))
+    expect(soloViejas.size).toBe(INSIGNIAS.length)
+  })
+
+  it('los dos vocabularios no comparten ningún código', () => {
+    // Si un sello se llamara igual que una insignia vieja, este filtro
+    // lo contaría en el sitio equivocado y nadie se enteraría.
+    const viejas = new Set(INSIGNIAS.map((b) => b.code))
+    const chocan = SELLOS_V1.filter((s) => viejas.has(s.id)).map((s) => s.id)
+    expect(chocan).toEqual([])
   })
 })

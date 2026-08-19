@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { canDo, dayKey, goalProgress, levelProgress, FREQ_LABEL } from '../lib/supabase'
-import { INSIGNIAS, PODERES, PODERES_LISTOS } from '../lib/insignias'
+import { INSIGNIAS, PODERES, PODERES_LISTOS, insigniaPorCodigo } from '../lib/insignias'
 import { estadoDeTemporada } from '../lib/temporadas'
 import Poderes from '../components/Poderes'
 import CaminoRacha from '../components/CaminoRacha'
@@ -519,6 +519,10 @@ function Progreso({ data, profile, genero, refresh }) {
   const tope = semanasConDatos(data.completions, profile.id)
 
   const mias = new Set(data.badges.filter((b) => b.profile_id === profile.id).map((b) => b.code))
+  // Las que pertenecen al catálogo VIEJO, que es el que dibuja la rejilla
+  // de abajo. Desde que el motor concede sellos, `mias` mezcla los dos
+  // vocabularios y contar su tamaño contra 16 daba cifras imposibles.
+  const misInsignias = new Set([...mias].filter((code) => insigniaPorCodigo(code)))
   const progresoTalis = progresoDeTalis(profile, data)
   const porHabilidad = xpPorHabilidad(profile.id, data.completions, data.challenges)
   const dominante = habilidadDominante(porHabilidad)
@@ -622,7 +626,13 @@ function Progreso({ data, profile, genero, refresh }) {
 
       <SellosGanados mias={mias} />
 
-      <div className="titulo-seccion">Insignias · {mias.size} de {INSIGNIAS.length}</div>
+      {/* El contador cuenta SOLO las dieciséis de esta rejilla.
+          `mias` trae todo lo que tiene el perfil, y desde que el motor de
+          los sellos concede eso incluye los del catálogo v1: un perfil con
+          cinco viejas y ocho sellos leía «13 de 16», y al pasar de
+          dieciséis sellos habría llegado a decir «20 de 16». Los sellos se
+          cuentan arriba, en su propia sección. */}
+      <div className="titulo-seccion">Insignias · {misInsignias.size} de {INSIGNIAS.length}</div>
       <div className="grid-insignias">
         {INSIGNIAS.map((b) => {
           const conseguida = mias.has(b.code)
