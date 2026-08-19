@@ -356,6 +356,16 @@ create table if not exists public.campanas_limpieza (
 
 create index if not exists idx_campanas_family on public.campanas_limpieza (family_id, created_at desc);
 
+-- La regla «una operación activa por gremio» tiene respaldo FÍSICO,
+-- como todos los «solo una vez» del proyecto (idx_bonuses_uno_al_dia y
+-- compañía). Sin esto, dos aparatos lanzando a la vez pasaban los dos
+-- la comprobación de la función y quedaban DOS campañas activas: una
+-- invisible para siempre —campanaActiva() coge la primera— y bloqueando
+-- cualquier lanzamiento nuevo. Lo cazó la revisión de código de la
+-- 2.9.0 antes de ejecutar la migración.
+create unique index if not exists idx_campanas_una_activa
+  on public.campanas_limpieza (family_id) where estado = 'activa';
+
 -- El enganche de una misión a su campaña. `restrict`: una campaña con
 -- misiones no se borra, igual que una misión con historial (029). null =
 -- misión normal, que es lo que son todas las que ya existen.
@@ -557,6 +567,20 @@ declare c public.completions%rowtype;
 begin
   select * into c from public.completions where id = c_id for update;
   if not found then return 'no_existe'; end if;
+
+  -- Una tarea de una operación de limpieza ya COMPLETADA no se deshace
+  -- (migración 031): su botín se repartió contando esta tarea, y
+  -- deshacerla dejaría monedas pagadas por trabajo que la base ya no
+  -- considera hecho. Las de operaciones activas o expiradas se deshacen
+  -- como siempre, que ahí no hay botín que descuadrar.
+  if exists (
+    select 1
+      from public.challenges ch
+      join public.campanas_limpieza ca on ca.id = ch.campana_id
+     where ch.id = c.challenge_id and ca.estado = 'completada'
+  ) then
+    return 'campana_cerrada';
+  end if;
 
   if c.status = 'aprobado' then
     update public.profiles
@@ -1181,17 +1205,26 @@ begin
         return 'tarea_invalida';
       end if;
     end loop;
-  exception when invalid_text_representation then
-    return 'tarea_invalida';
+  exception
+    when invalid_text_representation then return 'tarea_invalida';
+    when numeric_value_out_of_range then return 'tarea_invalida';
   end;
 
   select timezone into v_tz from public.families where id = v_family;
   v_hoy := (now() at time zone coalesce(v_tz, 'Europe/Madrid'))::date;
 
-  insert into public.campanas_limpieza (family_id, tipo, clave, titulo, emoji, empieza, termina, activada_por)
-  values (v_family, p_tipo, left(coalesce(nullif(btrim(p_clave), ''), p_tipo), 80), btrim(p_titulo),
-          coalesce(nullif(p_emoji, ''), '🧹'), v_hoy, v_hoy + (p_dias - 1), p_activada_por)
-  returning id into v_campana;
+  -- La carrera de dos aparatos lanzando a la vez se resuelve AQUÍ: los
+  -- dos pasan la comprobación de arriba y el índice único parcial tumba
+  -- al segundo. Comprobar antes con un select y capturar la violación
+  -- es el mismo par que usa grant_daily_bonus con su tope diario.
+  begin
+    insert into public.campanas_limpieza (family_id, tipo, clave, titulo, emoji, empieza, termina, activada_por)
+    values (v_family, p_tipo, left(coalesce(nullif(btrim(p_clave), ''), p_tipo), 80), btrim(p_titulo),
+            coalesce(nullif(p_emoji, ''), '🧹'), v_hoy, v_hoy + (p_dias - 1), p_activada_por)
+    returning id into v_campana;
+  exception when unique_violation then
+    return 'ya_hay_activa';
+  end;
 
   for t in select * from jsonb_array_elements(p_tareas) loop
     insert into public.challenges (family_id, profile_id, title, emoji, xp, coins, frequency, skill, campana_id)
@@ -1270,22 +1303,30 @@ begin
   if v_total > 0 and v_hechas = v_total then
     -- La misma cuenta que botinPrevisto en src/lib/limpieza.js: si se
     -- toca un redondeo, hay que tocar los dos sitios.
-    for r in
-      select co.profile_id, floor(sum(co.coins) / 2.0)::integer as botin
-        from public.completions co
-        join public.challenges ch on ch.id = co.challenge_id
-       where ch.campana_id = p_campana and co.status = 'aprobado'
-       group by co.profile_id
-    loop
-      if r.botin > 0 then
-        insert into public.bonuses (family_id, profile_id, tipo, coins, motivo, otorgado_por, dia)
-        values (v_family, r.profile_id, 'limpieza:' || p_campana::text, r.botin,
-                'Botín de «' || v_titulo || '»', p_quien, v_hoy);
-        update public.profiles set coins = coins + r.botin where id = r.profile_id;
-      end if;
-    end loop;
+    begin
+      for r in
+        select co.profile_id, floor(sum(co.coins) / 2.0)::integer as botin
+          from public.completions co
+          join public.challenges ch on ch.id = co.challenge_id
+         where ch.campana_id = p_campana and co.status = 'aprobado'
+         group by co.profile_id
+      loop
+        if r.botin > 0 then
+          insert into public.bonuses (family_id, profile_id, tipo, coins, motivo, otorgado_por, dia)
+          values (v_family, r.profile_id, 'limpieza:' || p_campana::text, r.botin,
+                  'Botín de «' || v_titulo || '»', p_quien, v_hoy);
+          update public.profiles set coins = coins + r.botin where id = r.profile_id;
+        end if;
+      end loop;
 
-    update public.campanas_limpieza set estado = 'completada', cerrada_at = now() where id = p_campana;
+      update public.campanas_limpieza set estado = 'completada', cerrada_at = now() where id = p_campana;
+    exception when unique_violation then
+      -- Dos adultos cerrando a la vez: el índice de «uno al día» de
+      -- bonuses tumba al segundo al pagar el mismo botín, y su
+      -- transacción entera se deshace —monedas incluidas—. El primero
+      -- ya cerró: esto es un 'ya_cerrada' con otra cara, no un fallo.
+      return 'ya_cerrada';
+    end;
     return 'ok';
   end if;
 

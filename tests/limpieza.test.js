@@ -1,4 +1,5 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, beforeEach } from 'vitest'
+import { crearClienteDemo } from '../src/lib/fakeBackend'
 import {
   ESFUERZO,
   BOTIN_FACTOR,
@@ -304,5 +305,82 @@ describe('leer una campaña en marcha', () => {
     expect(diasRestantes(campana, new Date(2026, 7, 19))).toBe(3)
     expect(diasRestantes(campana, new Date(2026, 7, 21))).toBe(1)
     expect(diasRestantes(campana, new Date(2026, 7, 25))).toBe(0)
+  })
+})
+
+describe('las reglas de la 031, comprobadas en el espejo del demo', () => {
+  // El backend simulado persiste en localStorage, que en Node no existe.
+  // Un doble en memoria basta: lo que se prueba es qué acepta y qué
+  // rechaza, no dónde lo guarda. Mismo patrón que mascotas.test.
+  beforeEach(() => {
+    const memoria = new Map()
+    globalThis.localStorage = {
+      getItem: (k) => (memoria.has(k) ? memoria.get(k) : null),
+      setItem: (k, v) => memoria.set(k, String(v)),
+      removeItem: (k) => memoria.delete(k)
+    }
+  })
+
+  function sembrar(demo, { estadoCampana }) {
+    return (async () => {
+      await demo.from('families').insert([{ id: 'f1', name: 'Prueba' }])
+      await demo.from('profiles').insert([
+        { id: 'a1', family_id: 'f1', name: 'Adulta', role: 'adulto', species: null },
+        { id: 'j1', family_id: 'f1', name: 'Junior', role: 'junior', species: null }
+      ])
+      await demo.from('campanas_limpieza').insert([
+        { id: 'c1', family_id: 'f1', tipo: 'blitz', clave: 'blitz_15', titulo: 'ZZ operación', empieza: '2026-08-19', termina: '2026-08-19', estado: estadoCampana }
+      ])
+      await demo.from('challenges').insert([
+        { id: 'ch1', family_id: 'f1', profile_id: 'j1', title: 'ZZ tarea', frequency: 'unico', skill: 'hogar', xp: 15, coins: 16, campana_id: 'c1' }
+      ])
+      await demo.from('completions').insert([
+        { id: 'co1', family_id: 'f1', challenge_id: 'ch1', profile_id: 'j1', status: 'aprobado', xp: 15, coins: 16, resolved_at: new Date().toISOString() }
+      ])
+    })()
+  }
+
+  it('una tarea de operación COMPLETADA no se deshace: el botín ya contó con ella', async () => {
+    const demo = crearClienteDemo()
+    await sembrar(demo, { estadoCampana: 'completada' })
+    const { data } = await demo.rpc('undo_completion', { c_id: 'co1' })
+    expect(data).toBe('campana_cerrada')
+  })
+
+  it('con la operación todavía activa, deshacer funciona como siempre', async () => {
+    const demo = crearClienteDemo()
+    await sembrar(demo, { estadoCampana: 'activa' })
+    const { data } = await demo.rpc('undo_completion', { c_id: 'co1' })
+    expect(data).toBe('ok')
+  })
+
+  it('el demo no deja lanzar con otra operación en marcha, igual que Postgres', async () => {
+    const demo = crearClienteDemo()
+    await sembrar(demo, { estadoCampana: 'activa' })
+    const { data } = await demo.rpc('crear_campana_limpieza', {
+      p_activada_por: 'a1',
+      p_tipo: 'blitz',
+      p_clave: 'blitz_15',
+      p_titulo: 'ZZ segunda',
+      p_emoji: '🧹',
+      p_dias: 1,
+      p_tareas: [{ profile_id: 'j1', title: 'ZZ tarea 2', emoji: '🧹', xp: 15, coins: 16 }]
+    })
+    expect(data).toBe('ya_hay_activa')
+  })
+
+  it('y solo un adulto lanza, también en demo', async () => {
+    const demo = crearClienteDemo()
+    await sembrar(demo, { estadoCampana: 'completada' })
+    const { data } = await demo.rpc('crear_campana_limpieza', {
+      p_activada_por: 'j1',
+      p_tipo: 'blitz',
+      p_clave: 'blitz_15',
+      p_titulo: 'ZZ de la junior',
+      p_emoji: '🧹',
+      p_dias: 1,
+      p_tareas: [{ profile_id: 'j1', title: 'ZZ tarea 3', emoji: '🧹', xp: 15, coins: 16 }]
+    })
+    expect(data).toBe('no_es_adulto')
   })
 })

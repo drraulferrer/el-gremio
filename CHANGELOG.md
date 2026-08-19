@@ -50,10 +50,19 @@ Lo que las hace distintas:
   mandar (`crear_campana_limpieza` / `cerrar_campana_limpieza`).
 
 Necesita la **migración 031** (tabla `campanas_limpieza`,
-`challenges.campana_id` y las dos funciones). Sin ella la app degrada:
-el resto funciona y el modo limpieza avisa de qué falta. Bandera
-`modoLimpieza` para apagarlo sin desplegar; las tareas ya lanzadas
-seguirían saliendo como únicas normales.
+`challenges.campana_id`, las dos funciones y un `undo_completion` que
+aprende de campañas). Sin ella la app degrada: el resto funciona y el
+modo limpieza avisa de qué falta. Bandera `modoLimpieza` para apagarlo
+sin desplegar; las tareas ya lanzadas seguirían saliendo como únicas
+normales.
+
+Antes de ejecutar nada pasó una revisión adversarial que dejó cuatro
+arreglos: índice único parcial para «una activa por gremio» (dos
+aparatos lanzando a la vez dejaban una campaña invisible bloqueando el
+gremio), doble cierre concurrente → 'ya_cerrada' en vez de error crudo,
+deshacer una tarea de una operación ya completada rebota con mensaje
+(el botín ya contó con ella), y el tope por tarea aguanta valores
+desorbitados sin reventar.
 
 ## 2.8.1 · 19 de agosto de 2026
 

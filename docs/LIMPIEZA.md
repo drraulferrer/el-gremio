@@ -71,8 +71,18 @@ redondeo hay que tocar los dos.
 - **Solo un adulto lanza y cierra.** Cliente para el mensaje
   (`puedeLanzarCampana`), Postgres para mandar: el mismo doble check que
   `grant_manual_bonus`.
-- **Una operación activa por gremio.** Dos solapadas dejan de ser un
-  acontecimiento.
+- **Una operación activa por gremio, con respaldo físico**: el índice
+  único parcial `idx_campanas_una_activa` (family_id where estado =
+  'activa'), porque dos aparatos lanzando a la vez pasan los dos el
+  `not exists`. La función captura la `unique_violation` y responde
+  'ya_hay_activa'.
+- **Deshacer respeta el botín**: `undo_completion` rechaza con
+  'campana_cerrada' una tarea de una operación COMPLETADA — su botín ya
+  se repartió contándola. Activas y expiradas se deshacen como siempre.
+- **El doble cierre concurrente responde 'ya_cerrada'**, no un error
+  crudo: el índice de «uno al día» de `bonuses` tumba al segundo y su
+  transacción entera se revierte; el modal refresca también al fallar
+  para pasar a contar la verdad.
 - **Campaña y misiones nacen en la misma transacción**
   (`crear_campana_limpieza`), como la voz de mando: en dos llamadas, un
   fallo de red deja una campaña vacía.

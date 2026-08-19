@@ -170,6 +170,12 @@ export async function deshacerMision(id) {
   }
 
   if (data === 'no_existe') return { ok: false, mensaje: 'Esa misión ya no está.' }
+  if (data === 'campana_cerrada') {
+    return {
+      ok: false,
+      mensaje: 'Esa tarea es de una operación de limpieza ya cerrada: su botín ya se repartió y no se puede deshacer.'
+    }
+  }
 
   log.info('mision.deshecha', { request_id: requestId, completion_id: id })
   return { ok: true, mensaje: '' }

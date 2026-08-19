@@ -694,6 +694,15 @@ function rpc(nombre, args = {}) {
   if (nombre === 'undo_completion') {
     const c = db.completions.find((x) => x.id === args.c_id)
     if (!c) return { data: 'no_existe', error: null }
+    // Espejo del guardarraíl de la 031: una tarea de una operación de
+    // limpieza ya COMPLETADA no se deshace, porque su botín se repartió
+    // contándola. Sin este espejo, en demo se podría deshacer lo que en
+    // producción rebota, que es la trampa clásica del §7.
+    const reto = db.challenges.find((ch) => ch.id === c.challenge_id)
+    if (reto?.campana_id) {
+      const campana = (db.campanas_limpieza || []).find((x) => x.id === reto.campana_id)
+      if (campana?.estado === 'completada') return { data: 'campana_cerrada', error: null }
+    }
     const profiles =
       c.status === 'aprobado'
         ? db.profiles.map((p) =>

@@ -45,6 +45,16 @@ create table if not exists public.campanas_limpieza (
 
 create index if not exists idx_campanas_family on public.campanas_limpieza (family_id, created_at desc);
 
+-- La regla «una operación activa por gremio» tiene respaldo FÍSICO,
+-- como todos los «solo una vez» del proyecto (idx_bonuses_uno_al_dia y
+-- compañía). Sin esto, dos aparatos lanzando a la vez pasaban los dos
+-- la comprobación de la función y quedaban DOS campañas activas: una
+-- invisible para siempre —campanaActiva() coge la primera— y bloqueando
+-- cualquier lanzamiento nuevo. Lo cazó la revisión de código de la
+-- 2.9.0 antes de ejecutar esta migración.
+create unique index if not exists idx_campanas_una_activa
+  on public.campanas_limpieza (family_id) where estado = 'activa';
+
 -- 2. El enganche en challenges --------------------------------------
 -- `restrict`: una campaña con misiones no se borra, igual que una
 -- misión con historial (029). null = misión normal, que es lo que son
@@ -156,17 +166,26 @@ begin
         return 'tarea_invalida';
       end if;
     end loop;
-  exception when invalid_text_representation then
-    return 'tarea_invalida';
+  exception
+    when invalid_text_representation then return 'tarea_invalida';
+    when numeric_value_out_of_range then return 'tarea_invalida';
   end;
 
   select timezone into v_tz from public.families where id = v_family;
   v_hoy := (now() at time zone coalesce(v_tz, 'Europe/Madrid'))::date;
 
-  insert into public.campanas_limpieza (family_id, tipo, clave, titulo, emoji, empieza, termina, activada_por)
-  values (v_family, p_tipo, left(coalesce(nullif(btrim(p_clave), ''), p_tipo), 80), btrim(p_titulo),
-          coalesce(nullif(p_emoji, ''), '🧹'), v_hoy, v_hoy + (p_dias - 1), p_activada_por)
-  returning id into v_campana;
+  -- La carrera de dos aparatos lanzando a la vez se resuelve AQUÍ: los
+  -- dos pasan la comprobación de arriba y el índice único parcial tumba
+  -- al segundo. Comprobar antes con un select y capturar la violación
+  -- es el mismo par que usa grant_daily_bonus con su tope diario.
+  begin
+    insert into public.campanas_limpieza (family_id, tipo, clave, titulo, emoji, empieza, termina, activada_por)
+    values (v_family, p_tipo, left(coalesce(nullif(btrim(p_clave), ''), p_tipo), 80), btrim(p_titulo),
+            coalesce(nullif(p_emoji, ''), '🧹'), v_hoy, v_hoy + (p_dias - 1), p_activada_por)
+    returning id into v_campana;
+  exception when unique_violation then
+    return 'ya_hay_activa';
+  end;
 
   for t in select * from jsonb_array_elements(p_tareas) loop
     insert into public.challenges (family_id, profile_id, title, emoji, xp, coins, frequency, skill, campana_id)
@@ -237,22 +256,30 @@ begin
    where ch.campana_id = p_campana;
 
   if v_total > 0 and v_hechas = v_total then
-    for r in
-      select co.profile_id, floor(sum(co.coins) / 2.0)::integer as botin
-        from public.completions co
-        join public.challenges ch on ch.id = co.challenge_id
-       where ch.campana_id = p_campana and co.status = 'aprobado'
-       group by co.profile_id
-    loop
-      if r.botin > 0 then
-        insert into public.bonuses (family_id, profile_id, tipo, coins, motivo, otorgado_por, dia)
-        values (v_family, r.profile_id, 'limpieza:' || p_campana::text, r.botin,
-                'Botín de «' || v_titulo || '»', p_quien, v_hoy);
-        update public.profiles set coins = coins + r.botin where id = r.profile_id;
-      end if;
-    end loop;
+    begin
+      for r in
+        select co.profile_id, floor(sum(co.coins) / 2.0)::integer as botin
+          from public.completions co
+          join public.challenges ch on ch.id = co.challenge_id
+         where ch.campana_id = p_campana and co.status = 'aprobado'
+         group by co.profile_id
+      loop
+        if r.botin > 0 then
+          insert into public.bonuses (family_id, profile_id, tipo, coins, motivo, otorgado_por, dia)
+          values (v_family, r.profile_id, 'limpieza:' || p_campana::text, r.botin,
+                  'Botín de «' || v_titulo || '»', p_quien, v_hoy);
+          update public.profiles set coins = coins + r.botin where id = r.profile_id;
+        end if;
+      end loop;
 
-    update public.campanas_limpieza set estado = 'completada', cerrada_at = now() where id = p_campana;
+      update public.campanas_limpieza set estado = 'completada', cerrada_at = now() where id = p_campana;
+    exception when unique_violation then
+      -- Dos adultos cerrando a la vez: el índice de «uno al día» de
+      -- bonuses tumba al segundo al pagar el mismo botín, y su
+      -- transacción entera se deshace —monedas incluidas—. El primero
+      -- ya cerró: esto es un 'ya_cerrada' con otra cara, no un fallo.
+      return 'ya_cerrada';
+    end;
     return 'ok';
   end if;
 
@@ -275,8 +302,46 @@ end $fn$;
 revoke all on function public.cerrar_campana_limpieza(uuid, uuid) from public;
 grant execute on function public.cerrar_campana_limpieza(uuid, uuid) to authenticated;
 
+-- 6. undo_completion aprende de las campañas -------------------------
+-- Una tarea de una operación ya COMPLETADA no se deshace: su botín se
+-- repartió contando esta tarea, y deshacerla dejaría monedas pagadas
+-- por trabajo que la base ya no considera hecho. Las de operaciones
+-- activas o expiradas se deshacen como siempre, que ahí no hay botín
+-- que descuadrar. Es el mismo cuerpo de la migración 006 más ese
+-- guardarraíl; el cliente traduce 'campana_cerrada'.
+
+create or replace function public.undo_completion(c_id uuid)
+returns text
+language plpgsql
+security invoker
+as $$
+declare c public.completions%rowtype;
+begin
+  select * into c from public.completions where id = c_id for update;
+  if not found then return 'no_existe'; end if;
+
+  if exists (
+    select 1
+      from public.challenges ch
+      join public.campanas_limpieza ca on ca.id = ch.campana_id
+     where ch.id = c.challenge_id and ca.estado = 'completada'
+  ) then
+    return 'campana_cerrada';
+  end if;
+
+  if c.status = 'aprobado' then
+    update public.profiles
+      set xp = greatest(0, xp - c.xp),
+          coins = greatest(0, coins - c.coins)
+      where id = c.profile_id;
+  end if;
+
+  delete from public.completions where id = c_id;
+  return 'ok';
+end $$;
+
 -- ------------------------------------------------------------------
--- COMPROBACIÓN (pégala entera después de ejecutar; los seis a 1)
+-- COMPROBACIÓN (pégala entera después de ejecutar; los ocho a 1)
 -- ------------------------------------------------------------------
 -- select
 --   (select count(*) from information_schema.tables
@@ -287,10 +352,15 @@ grant execute on function public.cerrar_campana_limpieza(uuid, uuid) to authenti
 --     where schemaname='public' and tablename='campanas_limpieza' and policyname='familia_miembro') as rls,
 --   (select count(*) from pg_trigger
 --     where tgname='tope_campanas' and not tgisinternal) as tope,
+--   (select count(*) from pg_indexes
+--     where schemaname='public' and indexname='idx_campanas_una_activa') as una_activa,
 --   (select count(*) from pg_proc p join pg_namespace n on n.oid=p.pronamespace
 --     where n.nspname='public' and p.proname='crear_campana_limpieza') as crear,
 --   (select count(*) from pg_proc p join pg_namespace n on n.oid=p.pronamespace
---     where n.nspname='public' and p.proname='cerrar_campana_limpieza') as cerrar;
+--     where n.nspname='public' and p.proname='cerrar_campana_limpieza') as cerrar,
+--   (select count(*) from pg_proc p join pg_namespace n on n.oid=p.pronamespace
+--     where n.nspname='public' and p.proname='undo_completion'
+--       and p.prosrc like '%campana_cerrada%') as deshacer;
 --
 -- Y que las reglas MUERDEN de verdad. No escribe nada que se quede:
 -- espera dos rechazos (23514) y los deshace pase lo que pase:
@@ -311,6 +381,29 @@ grant execute on function public.cerrar_campana_limpieza(uuid, uuid) to authenti
 --     raise exception 'MAL: acepto una campaña que termina antes de empezar';
 --   exception when check_violation then null;
 --   end;
+-- end $v$;
+--
+-- Y que «una activa por gremio» muerde FÍSICAMENTE (espera un 23505 en
+-- la segunda). Limpia lo suyo pase lo que pase:
+--
+-- do $v$
+-- declare fam uuid; primera uuid;
+-- begin
+--   select id into fam from public.families limit 1;
+--   begin
+--     insert into public.campanas_limpieza (family_id, tipo, clave, titulo, empieza, termina)
+--     values (fam, 'blitz', 'zz', 'ZZ prueba única', current_date, current_date)
+--     returning id into primera;
+--   exception when unique_violation then
+--     return;  -- ya había una activa de verdad: la regla queda demostrada igual
+--   end;
+--   begin
+--     insert into public.campanas_limpieza (family_id, tipo, clave, titulo, empieza, termina)
+--     values (fam, 'zona', 'zz2', 'ZZ prueba doble', current_date, current_date);
+--     raise exception 'MAL: acepto dos campañas activas a la vez';
+--   exception when unique_violation then null;
+--   end;
+--   delete from public.campanas_limpieza where id = primera;
 -- end $v$;
 --
 -- Y desde fuera, sin sesión (los dos como siempre):

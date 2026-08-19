@@ -3156,14 +3156,25 @@ esfuerzo (10/25/40 min) que es ayuda, no examen.
 
 ### El estado exacto
 
-- **Código, tests (799) y demo verificados.** El flujo entero se probó
+- **Código, tests (803) y demo verificados.** El flujo entero se probó
   en el navegador con `dev:demo`: lanzar, tableros, estrella de la
   peque, validación, cierre con botín (importes exactos), segunda
-  campaña, reloj corriendo y sobreviviendo a recargas.
+  campaña, reloj corriendo y sobreviviendo a recargas, y el guardarraíl
+  de deshacer tras el botín.
+- **Pasó revisión de código adversarial** (1 HIGH y 2 MEDIUM, los
+  cuatro arreglados antes de ejecutar nada): índice único parcial
+  `idx_campanas_una_activa` que respalda físicamente «una activa por
+  gremio» —sin él, dos aparatos lanzando a la vez dejaban una campaña
+  activa INVISIBLE bloqueando el gremio—, `unique_violation` capturada
+  en lanzar y en cerrar (doble cierre concurrente → 'ya_cerrada', el
+  dinero ya estaba a salvo por el índice de bonuses), y
+  `undo_completion` rechaza con 'campana_cerrada' deshacer una tarea de
+  una operación COMPLETADA, que dejaba el botín pagado por trabajo
+  desaparecido.
 - **La migración 031 NO está ejecutada.** SHA-256 para cotejar:
 
   ```
-  031  55d1a07d9ff80ce92f888e84e344ed54789042e3a4c52e76a64300e7cc0f3b59
+  031  faa50ec90800c4a21853f68ab0954212c4d5b73303341dfa014ee6042ad736e5
   ```
 
   No depende de las 028-030 (solo toca families, profiles, challenges,

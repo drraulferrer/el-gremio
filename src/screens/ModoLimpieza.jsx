@@ -329,6 +329,11 @@ function CampanaEnMarcha({ campana, data, refresh, onCerrada }) {
     setCerrando(false)
     if (!ok) {
       setFallo(mensaje || 'No se pudo cerrar la operación.')
+      // Se refresca TAMBIÉN al fallar: si otro adulto cerró un segundo
+      // antes desde su móvil, la respuesta es 'ya_cerrada' y lo honesto
+      // es que esta pantalla pase a contar la verdad, no quedarse
+      // enseñando una campaña que ya no existe.
+      await refresh()
       return
     }
     // El botín se resuelve AHORA, antes de refrescar: con los datos
