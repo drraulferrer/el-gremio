@@ -120,6 +120,16 @@ create trigger tg_completion_snapshot
 create or replace function public.tg_completion_snapshot_inmutable()
 returns trigger language plpgsql as $$
 begin
+  -- La PRIMERA escritura se permite: es el backfill del paso 4 (o una
+  -- reparación) poniendo contexto donde no lo había. Sin esta rama, el
+  -- backfill chocaba contra este mismo trigger y la migración no se
+  -- podía ejecutar NUNCA: en una base nueva no salta (cero filas que
+  -- rellenar), así que el fallo solo apareció contra la base real, el
+  -- 19-ago. La puerta no se puede reabrir: quitar `snapshot_quality`
+  -- una vez puesto cae en la comprobación de abajo.
+  if old.snapshot_quality is null then
+    return new;
+  end if;
   if new.snapshot_title is distinct from old.snapshot_title
      or new.snapshot_skill is distinct from old.snapshot_skill
      or new.snapshot_frequency is distinct from old.snapshot_frequency

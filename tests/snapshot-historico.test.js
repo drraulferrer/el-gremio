@@ -202,25 +202,29 @@ describe('borrar una misión con historia', () => {
   // El botón decía «¿Borrar … y su historial?» y hacía eso. Con la clave
   // en `restrict` ya no puede, y la app tiene que ofrecer lo que quien
   // pulsa quería de verdad: que deje de salir.
+  // El cliente entra INYECTADO, nunca parcheando el export real: sin
+  // credenciales (el caso de CI) ese export es null, y `null.from = …`
+  // hacía que estos cuatro tests pasaran en local y reventaran en CI.
   it('sin historia, se borra y ya está', async () => {
     const { borrarORetirar } = await import('../src/lib/retirarMision')
-    const { supabase } = await import('../src/lib/supabase')
-    supabase.from = () => ({ delete: () => ({ eq: async () => ({ error: null }) }) })
-    const r = await borrarORetirar({ id: 'r1', title: 'Recién creada' }, { confirmar: () => true })
+    const cliente = { from: () => ({ delete: () => ({ eq: async () => ({ error: null }) }) }) }
+    const r = await borrarORetirar({ id: 'r1', title: 'Recién creada' }, { confirmar: () => true, cliente })
     expect(r.resultado).toBe('borrada')
   })
 
   it('con historia, se ofrece retirarla y se retira', async () => {
     const { borrarORetirar } = await import('../src/lib/retirarMision')
-    const { supabase } = await import('../src/lib/supabase')
     let actualizado = null
-    supabase.from = () => ({
-      delete: () => ({ eq: async () => ({ error: { code: '23503' } }) }),
-      update: (cambio) => { actualizado = cambio; return { eq: async () => ({ error: null }) } }
-    })
+    const cliente = {
+      from: () => ({
+        delete: () => ({ eq: async () => ({ error: { code: '23503' } }) }),
+        update: (cambio) => { actualizado = cambio; return { eq: async () => ({ error: null }) } }
+      })
+    }
     const preguntas = []
     const r = await borrarORetirar({ id: 'r1', title: 'Hacer la cama' }, {
-      confirmar: (texto) => { preguntas.push(texto); return true }
+      confirmar: (texto) => { preguntas.push(texto); return true },
+      cliente
     })
     expect(r.resultado).toBe('retirada')
     expect(actualizado).toEqual({ active: false })
@@ -229,14 +233,16 @@ describe('borrar una misión con historia', () => {
 
   it('si dice que no al retirar, no se toca nada', async () => {
     const { borrarORetirar } = await import('../src/lib/retirarMision')
-    const { supabase } = await import('../src/lib/supabase')
     let toco = false
-    supabase.from = () => ({
-      delete: () => ({ eq: async () => ({ error: { code: '23503' } }) }),
-      update: () => { toco = true; return { eq: async () => ({ error: null }) } }
-    })
+    const cliente = {
+      from: () => ({
+        delete: () => ({ eq: async () => ({ error: { code: '23503' } }) }),
+        update: () => { toco = true; return { eq: async () => ({ error: null }) } }
+      })
+    }
     const r = await borrarORetirar({ id: 'r1', title: 'X' }, {
-      confirmar: (t) => !/se conserva/.test(t)
+      confirmar: (t) => !/se conserva/.test(t),
+      cliente
     })
     expect(r.resultado).toBe('cancelado')
     expect(toco).toBe(false)
@@ -244,9 +250,10 @@ describe('borrar una misión con historia', () => {
 
   it('un error que NO es de clave ajena se propaga tal cual', async () => {
     const { borrarORetirar } = await import('../src/lib/retirarMision')
-    const { supabase } = await import('../src/lib/supabase')
-    supabase.from = () => ({ delete: () => ({ eq: async () => ({ error: { code: '42501', message: 'sin permiso' } }) }) })
-    const r = await borrarORetirar({ id: 'r1', title: 'X' }, { confirmar: () => true })
+    const cliente = {
+      from: () => ({ delete: () => ({ eq: async () => ({ error: { code: '42501', message: 'sin permiso' } }) }) })
+    }
+    const r = await borrarORetirar({ id: 'r1', title: 'X' }, { confirmar: () => true, cliente })
     expect(r.resultado).toBeNull()
     expect(r.error.code).toBe('42501')
   })

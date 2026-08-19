@@ -28,15 +28,21 @@ const TIENE_HISTORIA = '23503'
  *   'borrada'   → no tenía historia y ya no existe
  *   'retirada'  → tenía historia; deja de aparecer y se conserva
  *   'cancelado' → la persona dijo que no
+ *
+ * `cliente` se inyecta como `confirmar`, y no es cosmética de tests: sin
+ * credenciales el export `supabase` es null, y los tests que le
+ * parcheaban `.from` encima pasaban en local (donde hay .env) y
+ * reventaban en CI (donde no lo hay). Con la inyección, el doble entra
+ * por la puerta.
  */
-export async function borrarORetirar(mision, { confirmar = window.confirm } = {}) {
+export async function borrarORetirar(mision, { confirmar = window.confirm, cliente = supabase } = {}) {
   const titulo = mision.titulo || mision.title || 'esta misión'
 
   if (!confirmar(`¿Borrar "${titulo}"?`)) {
     return { resultado: 'cancelado', error: null }
   }
 
-  const { error } = await supabase.from('challenges').delete().eq('id', mision.id)
+  const { error } = await cliente.from('challenges').delete().eq('id', mision.id)
   if (!error) return { resultado: 'borrada', error: null }
 
   if (error.code !== TIENE_HISTORIA) return { resultado: null, error }
@@ -47,7 +53,7 @@ export async function borrarORetirar(mision, { confirmar = window.confirm } = {}
   )
   if (!seguir) return { resultado: 'cancelado', error: null }
 
-  const { error: fallo } = await supabase
+  const { error: fallo } = await cliente
     .from('challenges')
     .update({ active: false })
     .eq('id', mision.id)
