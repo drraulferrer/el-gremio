@@ -2902,3 +2902,62 @@ a Supabase y service worker activo.
 portátil sigue siendo el de todos los días —es más rápido y se ve lo que
 pasa—; Actions es para cuando ese portátil no está. Los dos ejecutan el
 MISMO script, así que no pueden separarse.
+
+---
+
+## 7u. Los sellos de oficio (19 de agosto) · 2.6.0 · EN PRODUCCIÓN
+
+Las insignias dejan de ser emoji. Hay **80 piezas** en
+`public/assets/insignias/`: las 73 del catálogo v1 que describen
+`docs/INSIGNIAS-01..06` y 7 de legado. La receta de generación y las
+reglas visuales están en `docs/GUIA-ASSETS.md`; aquí solo lo que hay que
+saber para no deshacerlo.
+
+### Qué es esto y qué NO es
+
+Es **solo la capa visual**. El motor sigue siendo el de las 16 insignias
+de `src/lib/insignias.js`: no se concede nada nuevo, no se evalúa ninguna
+condición del catálogo v1, no hay tabla nueva y la economía no se toca.
+
+`src/lib/sellos.js` es el catálogo de imágenes y el mapa `código de
+insignia viva → sello`. Las 57 piezas que aún no tienen regla están ahí
+declaradas, esperando al motor. El motor v2 —evaluación en servidor,
+migraciones 017-024, las vistas Ahora/Colecciones/Historia, celebraciones
+agrupadas, la bandeja de la peque— es el plan de 16 PRs de
+`INSIGNIAS-06-PLAN-IMPLEMENTACION.md` y **no está empezado**.
+
+### Las cuatro cosas que costaron un intento cada una
+
+1. **El material ES la escala, y por eso dos insignias visibles a la vez
+   no pueden compartir metal.** `x10` y `x25` cogían peldaños contiguos de
+   Trayectoria (01 y 02), los dos en bronce, y en la rejilla parecían la
+   misma insignia repetida. Ahora se saltan: 01/03/06 → bronce, plata,
+   oro. Lo fija `tests/sellos.test.js` y no es cosmético: si el escalón no
+   se ve, no hay escalón.
+
+2. **El estado no puede vivir solo en el color.** `bloqueada` era
+   `opacity:.38 + grayscale(1)` sobre la tarjeta ENTERA, lo que dejaba el
+   texto en ~1,9:1. Ahora se atenúa solo la imagen, el texto va a opacidad
+   completa (6,05:1) y el estado se dice además con palabras
+   («Conseguida» / «Aún no»). Bajar ese texto aunque sea al 72 % lo deja
+   en 3,8:1 y AA pide 4,5:1: **no se vuelve a atenuar**.
+
+3. **El peso.** 80 PNG a resolución nativa son 206 MB. En WebP a 192 px
+   son 976 KB. El tope de `public/assets` (700 KB) defiende la CARGA
+   INICIAL y estas piezas no son eso —bajan en diferido, dentro de una
+   pestaña—, así que tienen presupuesto propio en `tests/sellos.test.js`
+   (20 KB por pieza, 1,2 MB el conjunto). `estetica.test.js` ahora filtra
+   solo ficheros: sin eso, `readFileSync` sobre la carpeta reventaba.
+
+4. **El recorte del fondo.** Ver `docs/GUIA-ASSETS.md`: la clave por
+   distancia euclídea al magenta deja aureola rosa en los sellos con halo;
+   hay que clasificar por tono (`min(R,B) − G`). Y el CDN que sirve las
+   imágenes generadas devuelve 403 al User-Agent por defecto de Python.
+
+### Verificado en el navegador
+
+Con `npm run dev:demo`, sembrando la demo desde la consola
+(`localStorage.gremio_demo_db`) con 8 insignias conseguidas y 8 sin
+conseguir: rejilla a 375 px sin scroll horizontal, sellos a 64 px (40 px
+en la fila de poderes), 19 imágenes cargando, `aria-hidden` en la imagen y
+el estado en texto, contrastes medidos en la propia página.
