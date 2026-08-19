@@ -293,7 +293,14 @@ export default function ParentPanel({ family, data, refresh, refreshFamily, onVe
 
       {tab === 'cuadro' && <Cuadro data={data} />}
       {tab === 'peque' && <ModoPeque family={family} data={data} refresh={refresh} onCeleb={setCeleb} />}
-      {tab === 'misiones' && <GestionMisiones family={family} data={data} refresh={refresh} />}
+      {tab === 'misiones' && (
+        <GestionMisiones
+          family={family}
+          data={data}
+          refresh={refresh}
+          onIrACasa={() => { setSeccionAjustes('casa'); setTab('ajustes') }}
+        />
+      )}
       {tab === 'premios' && <GestionPremios family={family} data={data} refresh={refresh} />}
       {tab === 'meta' && <GestionMeta family={family} data={data} refresh={refresh} />}
       {tab === 'ajustes' && (
@@ -679,7 +686,7 @@ function ModoPeque({ family, data, refresh, onCeleb }) {
 
 const MISION_VACIA = { title: '', emoji: '⭐', xp: 10, coins: 5, frequency: 'diario', profile_id: null, target_roles: null, skill: 'responsabilidad', days: null, active: true }
 
-function GestionMisiones({ family, data, refresh }) {
+function GestionMisiones({ family, data, refresh, onIrACasa }) {
   const [editando, setEditando] = useState(null) // null | objeto misión
   const [plantillas, setPlantillas] = useState(false)
   const [limpieza, setLimpieza] = useState(false)
@@ -962,7 +969,12 @@ function GestionMisiones({ family, data, refresh }) {
       )}
 
       {limpieza && (
-        <ModoLimpieza data={data} refresh={refresh} onClose={() => setLimpieza(false)} />
+        <ModoLimpieza
+          data={data}
+          refresh={refresh}
+          onClose={() => setLimpieza(false)}
+          onIrACasa={() => { setLimpieza(false); onIrACasa?.() }}
+        />
       )}
     </div>
   )

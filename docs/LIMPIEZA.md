@@ -26,9 +26,31 @@ Del planificador, adaptados a esta casa:
 
 | Formato | Qué es | Dura |
 |---|---|---|
-| `blitz` — Limpieza relámpago | Un rato corto todos a la vez: 15, 30, 60 o 90 min | hoy |
-| `zona` — Zona de la semana | Una de las 5 zonas rotativas (entrada/comedor, cocina, baños/colada, dormitorios, sala) | 7 días |
-| `profunda` — Limpieza profunda | Una estancia a fondo (cocina, baño, dormitorio, sala, cuarto de juegos, entrada) | 3 días |
+| `blitz` — Limpieza relámpago | Un rato corto todos a la vez: 15, 30, 60 o 90 min (catálogo fijo) | hoy |
+| `zona` — Zona de la semana | Una zona de VUESTRA casa, con su plantilla de tareas | 7 días |
+| `profunda` — Limpieza profunda | Una zona de vuestra casa, a fondo | 3 días |
+
+## Las zonas de la casa (2.11.0)
+
+Desde la 2.11.0 las campañas de zona y profunda limpian el mapa de CADA
+casa (`zonas_casa`, migración 032; lógica y plantillas en
+`src/lib/zonas.js`). Cada zona = nombre de esta casa + una PLANTILLA
+(cocina, baño, dormitorio, salón, entrada, lavadero, juegos, exterior o
+genérica) con dos listas de tareas: `semanal` y `fondo`. Se siembran en
+el setup con la pregunta de la vivienda y se editan en ⚙️ → Casa.
+
+Decisiones que sostienen esto:
+
+- **Las plantas no se modelan**: solo ponen nombre («Baño de arriba»).
+- **Sin zonas guardadas, nada se rompe**: `zonasDeLaCasa` cae a las de
+  siempre (virtuales) y ⚙️ → Casa las adopta con un botón.
+- **Modo compañeros de piso** (`families.tipo_gremio = 'piso'`): todo el
+  mundo es adulto, cada conviviente tiene SU habitación (zona privada
+  con `dueno`) y las campañas sobre ella se le sugieren enteras. El
+  dueño ES el tipo: con dueño, privada; sin dueño, común.
+- **Los roles aptos son un suelo, no un club** (`tareaApta` con
+  jerarquía): una tarea «de peque» la hace cualquiera con más años; lo
+  de adultos sigue cerrado hacia abajo.
 
 Cada tarea lleva **roles aptos** —lo que implica químicos, horno,
 altura o cuchillas es solo de personas adultas, el criterio de «Casa a

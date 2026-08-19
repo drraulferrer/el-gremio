@@ -3278,3 +3278,76 @@ primera visita tras `npm install`/lockfile nuevo hace que Vite
 re-optimice dependencias y RECARGUE la página un par de veces; en esas
 recargas el asistente pierde su estado y parece un bug de la app. No lo
 es: en cuanto Vite se asienta, el modal aguanta entero.
+
+---
+
+## 7y. Las zonas de la casa y el modo piso (19 de agosto, noche) · 2.11.0 · **MIGRACIÓN 032**
+
+Lo pidió la familia al ver el modo limpieza: las zonas y las estancias
+tienen que ser LAS DE CADA CASA, y tiene que existir un gremio de
+convivientes que no son familia. Detalle de diseño en `docs/LIMPIEZA.md`.
+
+### Qué es
+
+- **`zonas_casa` (032)**: el mapa del modo limpieza. Cada zona tiene el
+  NOMBRE de esta casa y una PLANTILLA (cocina, baño, dormitorio, salón,
+  entrada, lavadero, juegos, exterior o genérica) que dice qué tareas
+  trae su limpieza, en dos listas: `semanal` (zona de la semana, 7 días)
+  y `fondo` (profunda, 3 días). Viven en `src/lib/zonas.js`; el catálogo
+  de `limpieza.js` se queda solo con los blitz.
+- **El setup pregunta la vivienda** (paso «¿Cómo es la casa?»): baños,
+  dormitorios, ¿más de una planta?, extras. UNA pantalla compositora que
+  genera la lista y la enseña editable ahí mismo —la edición es la
+  confirmación—. Se puede saltar.
+- **`families.tipo_gremio`** ('familia'|'piso'): el paso «¿Quiénes
+  formáis el gremio?». En un piso todo el mundo es adulto, no se
+  preguntan dormitorios (cada conviviente recibe SU habitación, privada
+  y con dueño) y las campañas de una habitación se sugieren enteras a
+  esa persona.
+- **⚙️ → Casa**: añadir, renombrar, quitar zonas, cambiar su clase y su
+  dueño después del setup. Un gremio sin zonas adopta las de siempre
+  con un botón.
+
+### Decisiones que no hay que deshacer
+
+- **LAS PLANTAS NO SE MODELAN.** Un chalet no necesita una entidad
+  «planta»: necesita que sus dos baños se llamen «de arriba» y «de
+  abajo». La planta solo decide NOMBRES en la generación
+  (`nombresRepetidos`), igual que el patrón semanal evitó modelar
+  semanas. Si alguien añade una tabla de plantas, que relea esto.
+- **Sin zonas guardadas no se pierde nada**: `zonasDeLaCasa` cae a
+  `ZONAS_POR_DEFECTO` (virtuales) y el modo limpieza va como antes de
+  la 032. El botón de ⚙️ → Casa las persiste cuando alguien las adopta.
+- **Los roles aptos son un SUELO, no un club** (`tareaApta` con
+  jerarquía peque < junior < adulto): una tarea «de peque» la puede
+  hacer cualquiera con más años. Sin esto, en un piso de adultos las
+  tareas suaves de un dormitorio quedaban sin nadie apto. Lo de solo
+  adultos sigue cerrado hacia abajo.
+- **El dueño de una zona ES su tipo**: con dueño es privada, sin dueño
+  común. En ⚙️ → Casa es UN desplegable, no dos controles que puedan
+  contradecirse. Y en el setup del piso, `dueno` viaja como ÍNDICE del
+  miembro (los perfiles no existen aún) y Onboarding lo traduce a id
+  tras el insert, con el mismo casado por posición de las misiones.
+- **`zonas_casa` se escribe directo con RLS** (como challenges y
+  rewards), sin RPC: no toca economía ni necesita regla de adulto
+  aparte —vive detrás del PIN—.
+
+### El estado
+
+Verificado en demo de punta a punta: alta de piso (11 pasos, «Baño de
+arriba/abajo» al marcar dos plantas, habitación por conviviente con su
+dueño, zona añadida a mano), asistente listando las zonas reales, la
+habitación de Ana sugerida ENTERA a Ana, y ⚙️ → Casa renombrando con
+persistencia. 829 tests.
+
+SHA-256 de la migración (cotejar antes de Run, método §2):
+
+```
+032  c1de40cfbe585abb291b79558ee384deddec9daa7f17308f1990fde6a8b2ac6c
+```
+
+### La trampa del trayecto
+
+`tests/talis.test.js` vigila que `schema.sql` no diga «Talis» NI en
+comentarios; ya mordió dos veces. Y las tablas nuevas siguen sin
+heredar el grant de `anon` (§7w): la 032 lo lleva explícito.

@@ -5,11 +5,11 @@ import Icono from '../components/Icono'
 import SelectorEmoji from '../components/SelectorEmoji'
 import { GRUPOS_EMOJI_MISION } from '../lib/emojis'
 import { lanzarCampanaLimpieza, cerrarCampanaLimpieza } from '../lib/acciones'
+import { zonasDeLaCasa, campanaDeZona, plantillaDe } from '../lib/zonas'
 import {
   TIPOS,
   ESFUERZO,
   campanasDeTipo,
-  campanaDeCatalogo,
   tareaApta,
   repartoSugerido,
   tareasParaLanzar,
@@ -38,7 +38,7 @@ import {
 // solo mientras nadie mira deja de serlo.
 // --------------------------------------------------------------
 
-export default function ModoLimpieza({ data, refresh, onClose }) {
+export default function ModoLimpieza({ data, refresh, onClose, onIrACasa }) {
   const activa = campanaActiva(data.campanas || [])
   // El desenlace del cierre vive AQUÍ y no en la vista de la campaña:
   // cerrar refresca los datos, con el refresco la campaña deja de estar
@@ -53,7 +53,7 @@ export default function ModoLimpieza({ data, refresh, onClose }) {
       ) : activa ? (
         <CampanaEnMarcha campana={activa} data={data} refresh={refresh} onCerrada={setCierre} />
       ) : (
-        <LanzarCampana data={data} refresh={refresh} />
+        <LanzarCampana data={data} refresh={refresh} onIrACasa={onIrACasa} />
       )}
     </Modal>
   )
@@ -110,12 +110,14 @@ function SelectorDeAdulto({ adultos, valor, onCambiar }) {
   )
 }
 
-function LanzarCampana({ data, refresh }) {
+function LanzarCampana({ data, refresh, onIrACasa }) {
   const gente = perfilesActivos(data.profiles).filter((p) => p.role !== 'mascota')
   const adultos = gente.filter((p) => p.role === 'adulto')
 
   const [tipo, setTipo] = useState(null)
-  const [clave, setClave] = useState(null)
+  // La campaña elegida, YA construida: del catálogo si es un blitz, o
+  // levantada sobre una zona de la casa si es de zona o profunda.
+  const [camp, setCamp] = useState(null)
   // Quién participa. Por defecto, toda la casa: la peque incluida, que
   // para eso tiene tareas propias en el catálogo.
   const [participantes, setParticipantes] = useState(() => new Set(gente.map((p) => p.id)))
@@ -130,7 +132,6 @@ function LanzarCampana({ data, refresh }) {
   const [lanzando, setLanzando] = useState(false)
   const [fallo, setFallo] = useState('')
 
-  const camp = clave ? campanaDeCatalogo(clave) : null
   const grupo = gente.filter((p) => participantes.has(p.id))
   const filas = camp ? tareasParaLanzar(tareas, gente) : []
 
@@ -140,9 +141,14 @@ function LanzarCampana({ data, refresh }) {
   }
 
   function elegirCampana(c) {
-    setClave(c.clave)
+    setCamp(c)
     setEditando(null)
-    setTareas(repartir(c.tareas, gente.filter((p) => participantes.has(p.id))))
+    const quienes = gente.filter((p) => participantes.has(p.id))
+    // La habitación de alguien es SUYA: si participa, sus tareas se le
+    // sugieren enteras. Lo demás —y su cuarto si no participa— se
+    // reparte entre el grupo como siempre.
+    const dueno = c.zona?.dueno ? quienes.find((p) => p.id === c.zona.dueno) : null
+    setTareas(repartir(c.tareas, dueno ? [dueno] : quienes))
   }
 
   function alternarParticipante(id) {
@@ -218,24 +224,52 @@ function LanzarCampana({ data, refresh }) {
     )
   }
 
-  // Paso 2: la campaña concreta de ese formato.
+  // Paso 2: la campaña concreta. Los blitz salen del catálogo; las de
+  // zona y las profundas se levantan sobre LAS ZONAS DE ESTA CASA.
   if (!camp) {
+    const nombreDe = (id) => data.profiles.find((p) => p.id === id)?.name
     return (
       <div>
         <button className="btn btn-fantasma btn-mini" onClick={() => setTipo(null)}>‹ Formato</button>
-        {campanasDeTipo(tipo).map((c) => (
-          <button key={c.clave} type="button" className="carta carta-eleccion" onClick={() => elegirCampana(c)}>
-            <div className="fila">
-              <div className="avatar">{c.emoji}</div>
-              <div className="crece">
-                <strong>{c.titulo}</strong>
-                <div className="suave">
-                  {c.tareas.length} tareas · {c.dias === 1 ? 'para hoy' : `${c.dias} días`}
+
+        {tipo === 'blitz'
+          ? campanasDeTipo('blitz').map((c) => (
+            <button key={c.clave} type="button" className="carta carta-eleccion" onClick={() => elegirCampana(c)}>
+              <div className="fila">
+                <div className="avatar">{c.emoji}</div>
+                <div className="crece">
+                  <strong>{c.titulo}</strong>
+                  <div className="suave">
+                    {c.tareas.length} tareas · {c.dias === 1 ? 'para hoy' : `${c.dias} días`}
+                  </div>
                 </div>
               </div>
-            </div>
+            </button>
+          ))
+          : zonasDeLaCasa(data).map((z) => {
+            const c = campanaDeZona(z, tipo === 'profunda' ? 'fondo' : 'semanal')
+            return (
+              <button key={c.clave} type="button" className="carta carta-eleccion" onClick={() => elegirCampana(c)}>
+                <div className="fila">
+                  <div className="avatar">{z.emoji}</div>
+                  <div className="crece">
+                    <strong>{z.nombre}</strong>
+                    <div className="suave">
+                      {c.tareas.length} tareas · {c.dias} días
+                      {z.tipo === 'privada' && nombreDe(z.dueno) && <> · la habitación de {nombreDe(z.dueno)}</>}
+                      {z.plantilla === 'generica' && <> · {plantillaDe(z).nombre.toLocaleLowerCase('es')}</>}
+                    </div>
+                  </div>
+                </div>
+              </button>
+            )
+          })}
+
+        {tipo !== 'blitz' && onIrACasa && (
+          <button className="btn btn-fantasma btn-mini btn-bloque" style={{ marginTop: 8 }} onClick={onIrACasa}>
+            🏠 Editar las zonas de la casa
           </button>
-        ))}
+        )}
       </div>
     )
   }
@@ -245,7 +279,7 @@ function LanzarCampana({ data, refresh }) {
 
   return (
     <div>
-      <button className="btn btn-fantasma btn-mini" onClick={() => setClave(null)}>‹ Elegir otra</button>
+      <button className="btn btn-fantasma btn-mini" onClick={() => setCamp(null)}>‹ Elegir otra</button>
       <div className="fila" style={{ margin: '10px 0 4px' }}>
         <span style={{ fontSize: '1.4rem' }}>{camp.emoji}</span>
         <strong className="crece">{camp.titulo}</strong>

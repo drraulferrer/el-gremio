@@ -18,6 +18,34 @@ verdad duele en esta app: que el esquema y el cliente dejen de encajar.
 
 ---
 
+## 2.11.0 · 19 de agosto de 2026
+
+**Las zonas de la casa, y el modo compañeros de piso.** Las campañas de
+zona y de limpieza profunda dejan de limpiar la casa del catálogo y
+pasan a limpiar LA VUESTRA: cada gremio tiene su mapa de zonas
+(`zonas_casa`, migración 032), que se siembra en el setup con una
+pregunta sobre la vivienda —cuántos baños, cuántos dormitorios, si hay
+más de una planta, qué extras— y se edita cuando la casa cambie desde
+⚙️ → Casa: añadir, renombrar o quitar. Las plantas no se guardan como
+dato: solo ponen nombre («Baño de arriba», «Baño de abajo»). Cada zona
+lleva una CLASE (cocina, baño, dormitorio… u «otra zona» para la
+buhardilla que ningún catálogo conoce) que decide qué tareas trae su
+limpieza.
+
+Y el setup pregunta ahora **quiénes formáis el gremio**: una familia,
+o **compañeros de piso**. En un piso todo el mundo es adulto, no se
+preguntan dormitorios —cada conviviente recibe SU habitación, con
+dueño— y las campañas sobre una habitación se sugieren enteras a esa
+persona. Las zonas comunes se reparten como siempre.
+
+De regalo, un arreglo de concepto: los roles aptos de una tarea son un
+SUELO de capacidad, no un club. Una tarea «de peque» la puede hacer
+cualquiera con más años; lo de adultos sigue siendo solo de adultos.
+
+Sin zonas guardadas (un gremio anterior, o quien saltó la pregunta),
+el modo limpieza usa las de siempre y desde ⚙️ → Casa se adoptan con un
+botón. Necesita la **migración 032**; sin ella todo degrada con aviso.
+
 ## 2.10.0 · 19 de agosto de 2026
 
 **Las tareas del modo limpieza se personalizan al lanzar.** El catálogo

@@ -31,7 +31,8 @@ const TABLAS = [
   // demo mientras en producción funciona: la peor combinación, porque la
   // demo es justo donde se prueba.
   'push_subs',
-  'campanas_limpieza'
+  'campanas_limpieza',
+  'zonas_casa'
 ]
 
 const vacia = () => TABLAS.reduce((acc, t) => ({ ...acc, [t]: [] }), {})
@@ -63,11 +64,12 @@ const DEFECTOS_TABLA = {
   app_logs: { datos: {} },
   bonuses: { tipo: 'globos', coins: 5 },
   power_uses: { target_id: null, nota: null },
-  families: { timezone: 'Europe/Madrid' },
+  families: { timezone: 'Europe/Madrid', tipo_gremio: 'familia' },
   push_log: { franja: 'tarde', enviados: 0 },
   plan_diario: { origen: 'patron' },
   push_subs: { activa: true, fallos: 0, ultimo_ok: null },
-  campanas_limpieza: { emoji: '🧹', estado: 'activa', cerrada_at: null, activada_por: null }
+  campanas_limpieza: { emoji: '🧹', estado: 'activa', cerrada_at: null, activada_por: null },
+  zonas_casa: { emoji: '🚪', plantilla: 'generica', tipo: 'comun', dueno: null, orden: 0 }
 }
 
 /** Columnas de fecha que la base rellena sola, por tabla. */
@@ -82,7 +84,8 @@ const SELLOS_TABLA = {
   power_uses: ['used_at'],
   app_logs: ['ts'],
   families: ['created_at'],
-  campanas_limpieza: ['created_at']
+  campanas_limpieza: ['created_at'],
+  zonas_casa: ['created_at']
 }
 
 function leer() {

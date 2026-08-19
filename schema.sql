@@ -26,6 +26,11 @@ create table if not exists public.families (
   -- es la verdad, y esa es la consulta que los encuentra.
   legal_version text,
   legal_at timestamptz,
+  -- Migración 032. Qué clase de gremio es: 'familia' (lo de siempre) o
+  -- 'piso' (convivientes que no son familia). No cambia ninguna regla de
+  -- puntos ni de validación: cambia el setup (una habitación privada por
+  -- conviviente) y cómo se leen las zonas de la casa.
+  tipo_gremio text not null default 'familia' check (tipo_gremio in ('familia','piso')),
   created_at timestamptz not null default now()
 );
 
@@ -374,6 +379,48 @@ alter table public.challenges
 
 create index if not exists idx_challenges_campana on public.challenges (campana_id) where campana_id is not null;
 
+-- ------------------------------------------------------------------
+-- Las zonas de la casa (migración 032): el mapa del modo limpieza.
+--
+-- Cada gremio tiene SUS zonas —cocina, los baños que tenga, la
+-- buhardilla que ningún catálogo conoce— y de ellas salen las campañas
+-- de zona y de limpieza profunda. Se siembran en el setup con la
+-- pregunta de la vivienda y se editan en ⚙️ → Casa. Sin filas, el modo
+-- limpieza cae a las zonas por defecto de src/lib/zonas.js: un gremio
+-- anterior a esta migración no pierde nada.
+--
+-- `plantilla` dice QUÉ SE LIMPIA ahí (las tareas salen de ella);
+-- `nombre` es cómo lo llama esta casa. Las plantas de un chalet no se
+-- modelan: solo ponen nombre («Baño de arriba»), igual que el patrón
+-- semanal evitó modelar semanas.
+--
+-- `tipo` 'privada' + `dueno` es la habitación de cada conviviente en el
+-- modo piso (families.tipo_gremio). Sin CHECK que los ate: un dueño
+-- retirado deja la zona sin dueño y eso es un estado legítimo que la
+-- interfaz enseña, no un error que la base deba impedir.
+-- ------------------------------------------------------------------
+create table if not exists public.zonas_casa (
+  id uuid primary key default gen_random_uuid(),
+  family_id uuid not null references public.families(id) on delete cascade,
+  nombre text not null check (length(btrim(nombre)) between 2 and 60),
+  emoji text not null default '🚪',
+  plantilla text not null default 'generica' check (plantilla in (
+    'cocina','bano','dormitorio','salon','entrada','lavadero','juegos','exterior','generica'
+  )),
+  tipo text not null default 'comun' check (tipo in ('comun','privada')),
+  dueno uuid references public.profiles(id) on delete set null,
+  orden smallint not null default 0,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists idx_zonas_family on public.zonas_casa (family_id, orden);
+
+-- Las tablas nuevas ya no heredan los grants de siempre (lección de la
+-- 028, §7w del arranque): sin esto, la lectura anónima da 401 en vez del
+-- `[]` del RLS, y las comprobaciones externas mienten.
+grant select on public.zonas_casa to anon;
+grant select, insert, update, delete on public.zonas_casa to authenticated;
+
 create index if not exists idx_completions_family_status on public.completions (family_id, status);
 create index if not exists idx_completions_profile on public.completions (profile_id, requested_at desc);
 create index if not exists idx_redemptions_family_status on public.redemptions (family_id, status);
@@ -428,6 +475,7 @@ alter table public.family_goals enable row level security;
 alter table public.profile_badges enable row level security;
 alter table public.plan_diario enable row level security;
 alter table public.campanas_limpieza enable row level security;
+alter table public.zonas_casa enable row level security;
 
 -- Todas van declaradas `to authenticated`. Sin eso Postgres evalúa la
 -- política —y con ella la subconsulta a `families`— también para el rol
@@ -443,7 +491,7 @@ create policy familia_owner on public.families
 do $$
 declare t text;
 begin
-  foreach t in array array['profiles','challenges','completions','rewards','redemptions','family_goals','profile_badges','plan_diario','mission_families','campanas_limpieza']
+  foreach t in array array['profiles','challenges','completions','rewards','redemptions','family_goals','profile_badges','plan_diario','mission_families','campanas_limpieza','zonas_casa']
   loop
     execute format('drop policy if exists familia_miembro on public.%I', t);
     execute format($f$
@@ -503,6 +551,10 @@ create trigger tope_challenges before insert on public.challenges
 drop trigger if exists tope_campanas on public.campanas_limpieza;
 create trigger tope_campanas before insert on public.campanas_limpieza
   for each row execute function public.tg_tope_filas('60');
+
+drop trigger if exists tope_zonas on public.zonas_casa;
+create trigger tope_zonas before insert on public.zonas_casa
+  for each row execute function public.tg_tope_filas('40');
 
 -- El plan solo se programa cerca: hoy o mañana. El `unique` limita las
 -- filas por día, pero `dia` es un eje libre y una cuenta podría insertar
@@ -645,6 +697,7 @@ do $$ begin alter publication supabase_realtime add table public.family_goals; e
 do $$ begin alter publication supabase_realtime add table public.profile_badges; exception when duplicate_object then null; end $$;
 do $$ begin alter publication supabase_realtime add table public.plan_diario; exception when duplicate_object then null; end $$;
 do $$ begin alter publication supabase_realtime add table public.campanas_limpieza; exception when duplicate_object then null; end $$;
+do $$ begin alter publication supabase_realtime add table public.zonas_casa; exception when duplicate_object then null; end $$;
 
 -- =====================================================================
 -- CAPA DE PRODUCCIÓN

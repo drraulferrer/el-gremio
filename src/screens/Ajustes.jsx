@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import Miembros from './Miembros'
+import Casa from './Casa'
 import Seguridad from './Seguridad'
 import Dispositivos from './Dispositivos'
 import Datos from './Datos'
@@ -12,6 +13,7 @@ import Estado from './Estado'
 // pestañas los rótulos ya no caben en un móvil.
 const SECCIONES = [
   { id: 'miembros', etiqueta: '👥 Miembros' },
+  { id: 'casa', etiqueta: '🏠 Casa' },
   { id: 'pin', etiqueta: '🔑 PIN' },
   { id: 'dispositivos', etiqueta: '📱 Dispositivos' },
   { id: 'datos', etiqueta: '🗂️ Datos' },
@@ -43,6 +45,7 @@ export default function Ajustes({ family, data, refresh, refreshFamily, onVerTut
       </div>
 
       {seccion === 'miembros' && <Miembros family={family} data={data} refresh={refresh} />}
+      {seccion === 'casa' && <Casa family={family} data={data} refresh={refresh} />}
       {seccion === 'pin' && <Seguridad family={family} onCambiado={refreshFamily} />}
       {seccion === 'dispositivos' && <Dispositivos />}
       {seccion === 'datos' && <Datos family={family} onCambiada={refreshFamily} />}

@@ -36,6 +36,7 @@
 
 import { DEFAULTS_ROL } from './tareas'
 import { dayKey } from './supabase'
+import { PLANTILLAS_ZONA } from './zonas'
 
 // ------------------------------------------------------------------
 // Esfuerzo: el planificador dimensiona por minutos, y de los minutos
@@ -80,17 +81,20 @@ export function minutosDe(tarea) {
 //   zona     → la zona de la semana, estilo rotativo (7 días)
 //   profunda → una estancia a fondo, cabe en un fin de semana (3 días)
 //
+// Desde la 2.11.0, AQUÍ solo viven los blitz: las campañas de zona y
+// de limpieza profunda salen de LAS ZONAS DE CADA CASA (src/lib/zonas.js,
+// tabla `zonas_casa`), que es donde están sus plantillas de tareas. El
+// asistente construye la campaña con `campanaDeZona(zona, modo)` y este
+// módulo la lanza igual que una del catálogo: mismo objeto, mismo camino.
+//
 // Cada tarea lleva título (infinitivo o sustantivo; sin marcas de
 // género, porque ninguna habla de quien la hace), emoji, roles aptos y
-// esfuerzo. `a` es la acción en infinitivo cuando el título es un
-// sustantivo, igual que en tareas.js: la usan las frases de elogio.
-//
-// Los roles no son una sugerencia estética: lo que lleva químicos,
-// horno, altura o cuchillas es SOLO de personas adultas, el mismo
-// criterio del bloque «Casa a fondo» del catálogo general. Y la peque
-// tiene tareas de verdad en casi todas las campañas: a los tres años
-// participar es el premio, y una operación familiar donde ella no tiene
-// baldosa es una fiesta a la que no la han invitado.
+// esfuerzo. Los roles no son una sugerencia estética: lo que lleva
+// químicos, horno, altura o cuchillas es SOLO de personas adultas, el
+// mismo criterio del bloque «Casa a fondo» del catálogo general. Y la
+// peque tiene tareas de verdad casi siempre: a los tres años participar
+// es el premio, y una operación familiar donde ella no tiene baldosa es
+// una fiesta a la que no la han invitado.
 // ------------------------------------------------------------------
 
 export const TIPOS = [
@@ -104,13 +108,13 @@ export const TIPOS = [
     id: 'zona',
     nombre: 'Zona de la semana',
     emoji: '🗺️',
-    desc: 'Una zona de la casa cada vez, con una semana para completarla. Cinco zonas para rotar.'
+    desc: 'Una zona de VUESTRA casa cada vez, con una semana para completarla. Las zonas se editan en ⚙️ → Casa.'
   },
   {
     id: 'profunda',
     nombre: 'Limpieza profunda',
     emoji: '🧽',
-    desc: 'Una estancia a fondo, con tres días de margen. Lo gordo es de personas adultas.'
+    desc: 'Una estancia de vuestra casa a fondo, con tres días de margen. Lo gordo es de personas adultas.'
   }
 ]
 
@@ -190,209 +194,6 @@ export const CAMPANAS = [
     ]
   },
 
-  // ------------------------------ zonas ----------------------------
-  {
-    clave: 'zona_entrada',
-    tipo: 'zona',
-    titulo: 'Zona 1 · Entrada y comedor',
-    emoji: '🚪',
-    dias: 7,
-    tareas: [
-      { t: 'Sacudir el felpudo', e: '🚪', roles: TODOS, esf: 'rapida' },
-      { t: 'Organizar zapatos y abrigos', e: '🥾', roles: ['peque', 'junior'], esf: 'rapida' },
-      { t: 'Limpiar la puerta y la manija', e: '🚪', roles: ['junior'], esf: 'rapida' },
-      { t: 'Quitar el polvo de la entrada', e: '🪶', roles: ['peque', 'junior'], esf: 'rapida' },
-      { t: 'Limpiar la mesa y las sillas del comedor', e: '🪑', roles: MAYORES, esf: 'media' },
-      { t: 'Barrer y fregar la entrada y el comedor', e: '🧹', roles: MAYORES, esf: 'media' },
-      { t: 'Limpiar espejos y cristales', e: '🪞', roles: MAYORES, esf: 'rapida' },
-      { t: 'Quitar las telarañas de las esquinas altas', e: '🕸️', roles: ADULTO, esf: 'rapida' }
-    ]
-  },
-  {
-    clave: 'zona_cocina',
-    tipo: 'zona',
-    titulo: 'Zona 2 · Cocina',
-    emoji: '🍳',
-    dias: 7,
-    tareas: [
-      { t: 'Limpiar los electrodomésticos por fuera', e: '🍞', roles: ['junior'], esf: 'rapida' },
-      { t: 'Limpiar y desinfectar las encimeras', e: '🧴', roles: ADULTO, esf: 'rapida' },
-      { t: 'Fregar el fregadero y el grifo', e: '🚰', roles: MAYORES, esf: 'rapida' },
-      { t: 'Ordenar la despensa', e: '🥫', roles: MAYORES, esf: 'media' },
-      { t: 'Retirar los productos caducados', e: '🗓️', roles: ADULTO, esf: 'rapida' },
-      { t: 'Limpiar el microondas por dentro', e: '♨️', roles: ADULTO, esf: 'rapida' },
-      { t: 'Repasar el frigorífico y sus huecos', e: '🧊', roles: ADULTO, esf: 'media' },
-      { t: 'Barrer y fregar el suelo de la cocina', e: '🧹', roles: MAYORES, esf: 'media' },
-      { t: 'Emparejar los táperes con sus tapas', e: '🥡', roles: ['peque'], esf: 'rapida' }
-    ]
-  },
-  {
-    clave: 'zona_banos',
-    tipo: 'zona',
-    titulo: 'Zona 3 · Baños y colada',
-    emoji: '🛁',
-    dias: 7,
-    tareas: [
-      { t: 'Limpiar los espejos del baño', e: '🪞', roles: ['junior'], esf: 'rapida' },
-      { t: 'Limpiar el inodoro, la bañera y el lavabo', e: '🚽', roles: ADULTO, esf: 'media' },
-      { t: 'Fregar el suelo del baño', e: '🧹', roles: MAYORES, esf: 'rapida' },
-      { t: 'Reponer el papel higiénico', e: '🧻', roles: ['peque'], esf: 'rapida' },
-      { t: 'Cambiar toallas y alfombrillas', e: '🧺', roles: ['peque', 'junior'], esf: 'rapida' },
-      { t: 'Vaciar la papelera del baño', e: '🗑️', roles: ['peque', 'junior'], esf: 'rapida' },
-      { t: 'Poner y tender una lavadora', e: '🌊', roles: MAYORES, esf: 'media' },
-      { t: 'Doblar y repartir la ropa limpia', e: '👕', roles: TODOS, esf: 'media' }
-    ]
-  },
-  {
-    clave: 'zona_dormitorios',
-    tipo: 'zona',
-    titulo: 'Zona 4 · Dormitorios y armarios',
-    emoji: '🛏️',
-    dias: 7,
-    tareas: [
-      { t: 'Cambiar las sábanas', e: '🛏️', roles: MAYORES, esf: 'media' },
-      { t: 'Quitar el polvo de los muebles', e: '🪶', roles: ['peque', 'junior'], esf: 'rapida' },
-      { t: 'Despejar mesitas y cómodas', e: '🕯️', roles: ['peque', 'junior'], esf: 'rapida' },
-      { t: 'Ordenar cajones y armario', e: '🗄️', roles: ['junior'], esf: 'media' },
-      { t: 'Guardar la ropa que quedó fuera', e: '👚', roles: ['peque', 'junior'], esf: 'rapida' },
-      { t: 'Aspirar y fregar el suelo', e: '🌀', roles: ADULTO, esf: 'media' },
-      { t: 'Limpiar los espejos', e: '🪞', roles: ['junior'], esf: 'rapida' },
-      { t: 'Rescatar lo que vive debajo de la cama', e: '🔦', roles: ['peque', 'junior'], esf: 'rapida' }
-    ]
-  },
-  {
-    clave: 'zona_salon',
-    tipo: 'zona',
-    titulo: 'Zona 5 · Sala de estar',
-    emoji: '🛋️',
-    dias: 7,
-    tareas: [
-      { t: 'Recoger juguetes y libros del salón', e: '🧸', roles: ['peque'], esf: 'rapida' },
-      { t: 'Quitar el polvo de estantes y marcos', e: '🖼️', roles: ['junior'], esf: 'rapida' },
-      { t: 'Limpiar pantallas y mandos', e: '📺', roles: ['junior'], esf: 'rapida' },
-      { t: 'Aspirar el sofá y debajo de los cojines', e: '🛋️', roles: ADULTO, esf: 'media' },
-      { t: 'Sacudir las alfombras', e: '🧶', roles: MAYORES, esf: 'media' },
-      { t: 'Aspirar y fregar el suelo del salón', e: '🌀', roles: MAYORES, esf: 'media' },
-      { t: 'Ordenar cables y cargadores', e: '🔌', roles: ['junior'], esf: 'rapida' },
-      { t: 'Colocar cojines y mantas', e: '🛋️', roles: ['peque'], esf: 'rapida' }
-    ]
-  },
-
-  // ---------------------------- profundas --------------------------
-  {
-    clave: 'profunda_cocina',
-    tipo: 'profunda',
-    titulo: 'La cocina a fondo',
-    emoji: '🍳',
-    dias: 3,
-    tareas: [
-      { t: 'Vaciar y limpiar los armarios por dentro', e: '🗄️', roles: ADULTO, esf: 'intensa' },
-      { t: 'Limpiar el frigorífico y el congelador a fondo', e: '🧊', roles: ADULTO, esf: 'intensa' },
-      { t: 'Limpiar el horno', e: '♨️', roles: ADULTO, esf: 'intensa' },
-      { t: 'Limpiar el microondas por dentro y por fuera', e: '📦', roles: ADULTO, esf: 'media' },
-      { t: 'Limpiar los pequeños electrodomésticos', e: '🍞', roles: ['junior'], esf: 'media' },
-      { t: 'Fregar el fregadero y los grifos a fondo', e: '🚰', roles: ADULTO, esf: 'media' },
-      { t: 'Barrer a fondo esquinas y debajo de los muebles', e: '🧹', roles: ADULTO, esf: 'media' },
-      { t: 'Fregar el suelo de la cocina', e: '🪣', roles: MAYORES, esf: 'media' },
-      { t: 'Limpiar el cubo de basura por dentro y por fuera', e: '🗑️', roles: ADULTO, esf: 'media' },
-      { t: 'Ordenar los cajones de la cocina', e: '🥄', roles: ['junior'], esf: 'media' },
-      { t: 'Retirar esponjas viejas y reponer los paños', e: '🧽', roles: ['peque', 'junior'], esf: 'rapida' }
-    ]
-  },
-  {
-    clave: 'profunda_bano',
-    tipo: 'profunda',
-    titulo: 'El baño a fondo',
-    emoji: '🛁',
-    dias: 3,
-    tareas: [
-      { t: 'Vaciar estantes y retirar los productos caducados', e: '🧴', roles: ADULTO, esf: 'media' },
-      { t: 'Limpiar la mampara o la cortina de la ducha', e: '🚿', roles: ADULTO, esf: 'intensa' },
-      { t: 'Fregar azulejos y juntas', e: '🧱', roles: ADULTO, esf: 'intensa' },
-      { t: 'Limpiar el inodoro completo, tanque y base', e: '🚽', roles: ADULTO, esf: 'media' },
-      { t: 'Fregar el lavabo y el grifo con cepillo', e: '🪥', roles: ADULTO, esf: 'media' },
-      { t: 'Limpiar los espejos', e: '🪞', roles: ['junior'], esf: 'rapida' },
-      { t: 'Lavar alfombrillas y cortinas', e: '🧺', roles: ['junior'], esf: 'media' },
-      { t: 'Fregar el suelo a fondo, esquinas incluidas', e: '🪣', roles: ADULTO, esf: 'media' },
-      { t: 'Limpiar la rejilla de ventilación', e: '💨', roles: ADULTO, esf: 'media' },
-      { t: 'Reponer papel y jabón', e: '🧼', roles: ['peque'], esf: 'rapida' }
-    ]
-  },
-  {
-    clave: 'profunda_dormitorio',
-    tipo: 'profunda',
-    titulo: 'El dormitorio a fondo',
-    emoji: '🛏️',
-    dias: 3,
-    tareas: [
-      { t: 'Lavar toda la ropa de cama y el protector', e: '🛏️', roles: ADULTO, esf: 'media' },
-      { t: 'Voltear el colchón', e: '🔄', roles: ADULTO, esf: 'media' },
-      { t: 'Quitar el polvo en alto y limpiar las lámparas', e: '💡', roles: ADULTO, esf: 'media' },
-      { t: 'Vaciar el armario, revisar y separar para donar', e: '🧥', roles: ADULTO, esf: 'intensa' },
-      { t: 'Ordenar los cajones', e: '🗄️', roles: ['junior'], esf: 'media' },
-      { t: 'Limpiar debajo de la cama', e: '🔦', roles: ['junior'], esf: 'media' },
-      { t: 'Limpiar ventanas y espejos', e: '🪟', roles: ['junior'], esf: 'media' },
-      { t: 'Aspirar a fondo, alfombras incluidas', e: '🌀', roles: ADULTO, esf: 'media' },
-      { t: 'Guardar la ropa de otra temporada', e: '📦', roles: ADULTO, esf: 'media' },
-      { t: 'Llevar juguetes y cuentos a su sitio', e: '🧸', roles: ['peque'], esf: 'rapida' }
-    ]
-  },
-  {
-    clave: 'profunda_salon',
-    tipo: 'profunda',
-    titulo: 'La sala a fondo',
-    emoji: '🛋️',
-    dias: 3,
-    tareas: [
-      { t: 'Quitar polvo y telarañas de techos y lámparas', e: '💡', roles: ADULTO, esf: 'media' },
-      { t: 'Aspirar los sofás y debajo de los cojines', e: '🛋️', roles: ADULTO, esf: 'media' },
-      { t: 'Mover los muebles y limpiar debajo', e: '🪑', roles: ADULTO, esf: 'intensa' },
-      { t: 'Limpiar pantallas y aparatos electrónicos', e: '📺', roles: ['junior'], esf: 'media' },
-      { t: 'Ordenar cables y mandos', e: '🔌', roles: ['junior'], esf: 'rapida' },
-      { t: 'Vaciar, limpiar y reordenar las estanterías', e: '📚', roles: MAYORES, esf: 'media' },
-      { t: 'Lavar cojines y mantas', e: '🧺', roles: ADULTO, esf: 'media' },
-      { t: 'Limpiar los cristales', e: '🪟', roles: ADULTO, esf: 'media' },
-      { t: 'Fregar el suelo y sacudir las alfombras', e: '🪣', roles: ADULTO, esf: 'intensa' },
-      { t: 'Retirar revistas y papeles viejos', e: '📰', roles: ['junior'], esf: 'rapida' },
-      { t: 'Sacudir decoraciones y marcos de fotos', e: '🖼️', roles: ['peque', 'junior'], esf: 'rapida' }
-    ]
-  },
-  {
-    clave: 'profunda_juegos',
-    tipo: 'profunda',
-    titulo: 'El cuarto de juegos a fondo',
-    emoji: '🧸',
-    dias: 3,
-    tareas: [
-      { t: 'Clasificar juguetes: guardar, donar o retirar', e: '🧮', roles: MAYORES, esf: 'intensa' },
-      { t: 'Lavar los juguetes de plástico', e: '🦆', roles: ['peque', 'junior'], esf: 'media' },
-      { t: 'Meter los peluches a lavar', e: '🧸', roles: ['junior'], esf: 'media' },
-      { t: 'Ordenar libros y juegos de mesa', e: '📚', roles: ['peque', 'junior'], esf: 'media' },
-      { t: 'Limpiar las estanterías', e: '🪶', roles: ['junior'], esf: 'media' },
-      { t: 'Limpiar mesas y sillas', e: '🪑', roles: ['peque', 'junior'], esf: 'rapida' },
-      { t: 'Limpiar las paredes con huellas', e: '🖐️', roles: ADULTO, esf: 'media' },
-      { t: 'Aspirar y fregar el suelo', e: '🌀', roles: ADULTO, esf: 'media' },
-      { t: 'Revisar las manualidades y retirar lo seco', e: '✂️', roles: ['junior'], esf: 'media' }
-    ]
-  },
-  {
-    clave: 'profunda_entrada',
-    tipo: 'profunda',
-    titulo: 'La entrada a fondo',
-    emoji: '🚪',
-    dias: 3,
-    tareas: [
-      { t: 'Despejar la entrada y clasificar qué se queda', e: '📦', roles: ADULTO, esf: 'media' },
-      { t: 'Vaciar y limpiar el zapatero', e: '🥾', roles: ['junior'], esf: 'media' },
-      { t: 'Limpiar la puerta principal y la manija', e: '🚪', roles: ['junior'], esf: 'rapida' },
-      { t: 'Limpiar paredes e interruptores', e: '🖐️', roles: ADULTO, esf: 'media' },
-      { t: 'Sacudir y lavar los felpudos', e: '🧶', roles: ['peque', 'junior'], esf: 'rapida' },
-      { t: 'Barrer y fregar esquinas y debajo de los muebles', e: '🧹', roles: ADULTO, esf: 'media' },
-      { t: 'Limpiar espejos y cristales de la entrada', e: '🪞', roles: ['junior'], esf: 'rapida' },
-      { t: 'Ordenar el paragüero y los bancos', e: '☂️', roles: ['peque', 'junior'], esf: 'rapida' },
-      { t: 'Limpiar las lámparas de la entrada', e: '💡', roles: ADULTO, esf: 'media' }
-    ]
-  }
 ]
 
 /** Las campañas de un formato, en el orden del catálogo. */
@@ -420,7 +221,12 @@ export function esDeOperacion(reto) {
 // Y 'media' como red final: un reloj aproximado sigue siendo mejor que
 // ningún reloj.
 const ESFUERZO_POR_TITULO = new Map(
-  CAMPANAS.flatMap((c) => c.tareas).map((t) => [t.t, t.esf])
+  [
+    ...CAMPANAS.flatMap((c) => c.tareas),
+    // Las tareas de zona y de fondo viven en las plantillas desde la
+    // 2.11.0; sus títulos siguen siendo canon para el reloj.
+    ...Object.values(PLANTILLAS_ZONA).flatMap((p) => [...p.semanal, ...p.fondo])
+  ].map((t) => [t.t, t.esf])
 )
 
 /** El esfuerzo de una misión de campaña. `rol` afina la vía por puntos. */
@@ -493,9 +299,22 @@ export function puedeLanzarCampana({ quienId, perfiles = [], campanas = [] }) {
   return null
 }
 
-/** ¿Esta tarea la puede hacer este perfil? Las mascotas nunca limpian. */
+/**
+ * ¿Esta tarea la puede hacer este perfil? Las mascotas nunca limpian.
+ *
+ * Los roles de una tarea son un SUELO de capacidad, no un club: una
+ * tarea «de peque» la puede hacer cualquiera con más años, y lo que es
+ * «solo de adultos» (químicos, horno, altura) sigue siéndolo. Sin esta
+ * jerarquía, en un piso de convivientes —donde todo el mundo es
+ * adulto— las tareas suaves de un dormitorio quedaban sin nadie apto,
+ * que es leer la lista al revés de como se escribió.
+ */
+const RANGO_ROL = { peque: 0, junior: 1, adulto: 2 }
+
 export function tareaApta(tarea, perfil) {
-  return Boolean(perfil) && perfil.role !== 'mascota' && tarea.roles.includes(perfil.role)
+  const rango = RANGO_ROL[perfil?.role]
+  if (rango === undefined) return false
+  return tarea.roles.some((rol) => RANGO_ROL[rol] <= rango)
 }
 
 /**

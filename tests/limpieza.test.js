@@ -57,10 +57,13 @@ describe('el catálogo', () => {
     }
   })
 
-  it('los tres formatos tienen campañas: relámpago, zona y profunda', () => {
+  it('el catálogo fijo son los blitz; zona y profunda salen de las zonas de cada casa', () => {
     expect(campanasDeTipo('blitz').length).toBeGreaterThanOrEqual(3)
-    expect(campanasDeTipo('zona').length).toBe(5)
-    expect(campanasDeTipo('profunda').length).toBeGreaterThanOrEqual(5)
+    // Desde la 2.11.0 esas dos viven en las plantillas de src/lib/zonas.js
+    // (ver tests/zonas.test.js): aquí no debe quedar ninguna fija.
+    expect(campanasDeTipo('zona')).toEqual([])
+    expect(campanasDeTipo('profunda')).toEqual([])
+    expect(TIPOS.map((t) => t.id)).toEqual(['blitz', 'zona', 'profunda'])
   })
 
   it('ningún título necesita marca de género: ninguna tarea habla de quien la hace', () => {
@@ -77,17 +80,16 @@ describe('el catálogo', () => {
     expect(conPeque.length).toBeGreaterThanOrEqual(CAMPANAS.length - 3)
   })
 
-  it('lo peligroso —químicos, horno, altura— es solo de personas adultas', () => {
-    const peligrosas = ['Limpiar el horno', 'Fregar azulejos y juntas', 'Quitar las telarañas de las esquinas altas']
-    for (const titulo of peligrosas) {
-      const tarea = CAMPANAS.flatMap((c) => c.tareas).find((t) => t.t === titulo)
-      expect(tarea, titulo).toBeTruthy()
-      expect(tarea.roles, titulo).toEqual(['adulto'])
-    }
+  it('lo peligroso de los blitz —químicos en el baño— es solo de personas adultas', () => {
+    // El grueso de tareas peligrosas vive en las plantillas de zona
+    // (tests/zonas.test.js); esta es la del catálogo blitz.
+    const tarea = CAMPANAS.flatMap((c) => c.tareas).find((t) => t.t === 'Limpiar las superficies del baño')
+    expect(tarea).toBeTruthy()
+    expect(tarea.roles).toEqual(['adulto'])
   })
 
   it('campanaDeCatalogo encuentra por clave y devuelve null para lo inventado', () => {
-    expect(campanaDeCatalogo('zona_cocina')?.tipo).toBe('zona')
+    expect(campanaDeCatalogo('blitz_30')?.tipo).toBe('blitz')
     expect(campanaDeCatalogo('no_existe')).toBe(null)
   })
 })
