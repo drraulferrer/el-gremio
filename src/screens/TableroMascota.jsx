@@ -26,7 +26,7 @@ import { useState } from 'react'
 import { misionesDe } from '../lib/misiones'
 import { apuntarMisionDeMascota } from '../lib/acciones'
 import { premiosParaPerfil, catalogoDe } from '../lib/mascotas'
-import { Gema, XPBar } from '../components/ui'
+import { Gema, XPBar, Talis } from '../components/ui'
 
 const ESPECIE = { perro: '🐕', gato: '🐈' }
 
@@ -67,7 +67,7 @@ export default function TableroMascota({ family, data, mascota, quien, refresh }
           <div className="avatar" style={{ borderColor: mascota.color }}>{mascota.emoji}</div>
           <div className="crece">
             <strong>{mascota.name}</strong>
-            <div className="suave">{ESPECIE[mascota.species]} · {mascota.coins} 🪙</div>
+            <div className="suave">{ESPECIE[mascota.species]} · <Talis n={mascota.coins} /></div>
           </div>
           <Gema xp={mascota.xp} color={mascota.color} mini />
         </div>
@@ -93,7 +93,7 @@ export default function TableroMascota({ family, data, mascota, quien, refresh }
               <div className="crece">
                 <strong>{reto.emoji} {reto.title}</strong>
                 <div className="suave">
-                  +{reto.xp} XP · {reto.coins} 🪙
+                  +{reto.xp} XP · <Talis n={reto.coins} />
                   {truco && ' · truco, 5 minutos y mejor otro día que más rato'}
                   {adulto && ' · lo hace o supervisa un adulto'}
                 </div>
@@ -116,7 +116,7 @@ export default function TableroMascota({ family, data, mascota, quien, refresh }
         <div className="carta" key={p.id}>
           <div className="fila-separada">
             <strong>{p.emoji} {p.title}</strong>
-            <span className={mascota.coins >= p.cost ? '' : 'suave'}>{p.cost} 🪙</span>
+            <span className={mascota.coins >= p.cost ? '' : 'suave'}><Talis n={p.cost} /></span>
           </div>
         </div>
       ))}

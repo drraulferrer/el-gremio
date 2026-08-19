@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { levelProgress, hashPin } from '../lib/supabase'
 import Icono from './Icono'
-import { BOLSA, talis } from '../lib/talis'
+import { BOLSA, TALIS, talis } from '../lib/talis'
 
 /**
  * Pestaña de la barra inferior. Icono + rótulo siempre: una barra de solo
@@ -64,6 +64,31 @@ export function Bolsa({ n }) {
     <span className="bolsa" aria-label={`${BOLSA}: ${talis(n)}`}>
       <img src="/assets/talis.png" alt="" className="ficha-talis" />
       {n}
+    </span>
+  )
+}
+
+/**
+ * Una cantidad de Talis en medio de cualquier texto: precios de la
+ * tienda, resúmenes, importes del panel.
+ *
+ * En 2.5.0 la ficha grabada solo llegó a la Bolsa de la cabecera, y el
+ * emoji 🪙 se quedó en los otros veinte sitios donde aparece un importe
+ * —la tienda entre ellos—. Cada plataforma lo dibuja distinto, así que
+ * la misma app enseñaba dos monedas diferentes en la misma pantalla.
+ *
+ * La ficha se mide en `em`, no en píxeles: aquí va dentro de texto de
+ * 0,78 rem tanto como de 1 rem, y a 18 px fijos se comía la línea.
+ *
+ * Para un lector de pantalla esto dice «120 Talis», que es más de lo que
+ * decía el emoji: 🪙 se leía como «moneda», justo el marco que el
+ * vocabulario de `talis.js` lleva desde la 2.4.0 evitando.
+ */
+export function Talis({ n, children }) {
+  return (
+    <span className="importe-talis">
+      {n !== undefined ? Number(n || 0).toLocaleString('es-ES') : children}
+      <img src="/assets/talis.png" alt={TALIS} className="ficha-linea" />
     </span>
   )
 }

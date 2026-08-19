@@ -18,6 +18,7 @@ import { useEffect, useRef, useState } from 'react'
 import { caminoDe, rachaActual, enRiesgo, hitosPorCobrar, siguienteHito } from '../lib/rachas'
 import { cobrarRacha } from '../lib/acciones'
 import { diasNeutros } from '../lib/misiones'
+import { Talis } from './ui'
 
 export default function CaminoRacha({ data, profile, refresh }) {
   const salvados = (data.powerUses || [])
@@ -113,7 +114,7 @@ export default function CaminoRacha({ data, profile, refresh }) {
               <div className="crece">
                 <div className="fila-separada">
                   <strong>{h.nombre}</strong>
-                  <span className="suave">{h.dias} días · {h.monedas} 🪙</span>
+                  <span className="suave">{h.dias} días · <Talis n={h.monedas} /></span>
                 </div>
                 {h.estado === 'siguiente' && (
                   <>

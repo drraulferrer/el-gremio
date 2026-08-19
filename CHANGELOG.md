@@ -18,6 +18,33 @@ verdad duele en esta app: que el esquema y el cliente dejen de encajar.
 
 ---
 
+## 2.8.1 · 19 de agosto de 2026
+
+**La tienda enseñaba una moneda distinta de la de la cabecera.** En 2.5.0
+la ficha grabada llegó a la Bolsa y el emoji 🪙 se quedó en los otros
+veinte sitios donde sale un importe: la tienda, el resumen semanal, el
+tablero de la mascota, el camino de rachas, los miembros, el panel y el
+cuadro de mando. La misma pantalla mostraba dos monedas.
+
+Ahora hay un componente `<Talis n={...} />` y lo usan todos. La ficha se
+mide en `em` y no en píxeles, porque aparece lo mismo en texto de 0,72 rem
+que de 1 rem y a 18 px fijos rompía la línea.
+
+De paso mejora lo que oye un lector de pantalla: donde decía «120 moneda»
+ahora dice «120 Talis», que es el vocabulario que la 2.4.0 estableció.
+
+Dos cosas más:
+
+- **La diapositiva del tutorial sobre los Talis enseña la pieza real.** Es
+  la primera vez que una familia ve un Talis, y era justo donde el emoji
+  del sistema dibujaba algo distinto de lo que sale después.
+- **Se retira `conFicha()`**, que devolvía `🪙 45 Talis`. No la llamaba
+  nadie salvo su propio test, y era una trampa: nombre atractivo, emoji
+  dentro. Para texto plano queda `talis(n)`.
+
+Un test recorre `src/` y falla si el emoji vuelve a colarse en cualquier
+fichero fuera de un comentario.
+
 ## 2.8.0 · 19 de agosto de 2026
 
 **El pasado deja de poder reescribirse.** Migraciones 028, 029 y 030, con

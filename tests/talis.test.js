@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest'
-import { readFileSync } from 'node:fs'
+import { readFileSync, readdirSync } from 'node:fs'
+import * as modulo from '../src/lib/talis'
 import {
-  TALIS, BOLSA, CASA, LEMA, talis, conFicha,
+  TALIS, BOLSA, CASA, LEMA, talis,
   FRAGMENTOS, fragmentosDesbloqueados, ultimoFragmento,
   progresoDeTalis, queFaltaPara, fragmentosNuevos
 } from '../src/lib/talis'
@@ -22,8 +23,11 @@ describe('el nombre', () => {
     }
   })
 
-  it('la ficha va delante, no detrás', () => {
-    expect(conFicha(45)).toBe('🪙 45 Talis')
+  it('ya no hay ninguna función que devuelva el emoji de moneda', () => {
+    // `conFicha` devolvía «🪙 45 Talis» y no la usaba nadie. Se quitó en
+    // la 2.8.1 porque era una trampa: nombre atractivo, emoji dentro, y
+    // el importe con ficha se pinta con <Talis /> desde 2.8.1.
+    expect(modulo.conFicha).toBeUndefined()
   })
 
   it('el vocabulario del gremio es el del canon', () => {
@@ -179,5 +183,37 @@ describe('los fragmentos sin leer', () => {
   it('leer el primero no marca los que se abren después', () => {
     const ids = fragmentosNuevos({ ganados: 100 }, ['primer-talis']).map((f) => f.id)
     expect(ids).toEqual(['el-valor'])
+  })
+})
+
+describe('la ficha del Talis es una sola en toda la app', () => {
+  // En 2.5.0 la pieza grabada llegó a la Bolsa de la cabecera y el emoji
+  // se quedó en los otros veinte sitios donde sale un importe. Resultado:
+  // la tienda enseñaba una moneda y la cabecera otra, en la misma
+  // pantalla. Este test existe para que no vuelva a pasar en silencio.
+  const dir = new URL('../src/', import.meta.url)
+
+  const ficheros = []
+  const recorrer = (carpeta) => {
+    for (const entrada of readdirSync(carpeta, { withFileTypes: true })) {
+      const ruta = new URL(entrada.name + (entrada.isDirectory() ? '/' : ''), carpeta)
+      if (entrada.isDirectory()) recorrer(ruta)
+      else if (/\.jsx?$/.test(entrada.name)) ficheros.push(ruta)
+    }
+  }
+  recorrer(dir)
+
+  it('ningún importe usa el emoji de moneda', () => {
+    const culpables = []
+    for (const f of ficheros) {
+      const texto = readFileSync(f, 'utf8')
+      // Se ignoran los comentarios: los de `ui.jsx` y `talis.js` cuentan
+      // precisamente esta historia y necesitan nombrar el emoji.
+      const sinComentarios = texto
+        .replace(/\/\*[\s\S]*?\*\//g, '')
+        .replace(/^\s*\/\/.*$/gm, '')
+      if (sinComentarios.includes('🪙')) culpables.push(f.pathname.split('/src/')[1])
+    }
+    expect(culpables, `usan el emoji en vez de la ficha: ${culpables.join(', ')}`).toEqual([])
   })
 })

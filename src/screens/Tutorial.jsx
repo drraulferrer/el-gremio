@@ -140,7 +140,10 @@ const PASOS_PORQUE = [
   },
   {
     id: 'andamio',
-    emoji: '🪙',
+    // La pieza grabada y no el emoji: esta es la primera vez que una
+    // familia ve un Talis, y con 🪙 cada plataforma dibujaba una moneda
+    // distinta de la que luego sale en la Bolsa y en la tienda.
+    imagen: '/assets/talis.png',
     titulo: 'Los Talis son un andamio',
     cuerpo: (
       <>
@@ -327,7 +330,7 @@ const PASOS_MAPA = [
         <div className="carta">
           <strong>🎁 Premios · 🏰 Meta</strong>
           <div className="suave">
-            La tienda y el objetivo común. En Premios está también «🪙 Talis a mano», para algo excepcional
+            La tienda y el objetivo común. En Premios está también «Talis a mano», para algo excepcional
             que no cabía en el catálogo: suma Talis sin dar XP, pide motivo y guarda qué adulto lo concedió.
             Y al cerrar una meta, el panel ofrece subir los precios un 30 % para la temporada nueva.
           </div>
@@ -421,7 +424,9 @@ export default function Tutorial({ modo = 'todo', onCerrar }) {
       </div>
 
       <div className="tutorial-cuerpo" key={paso.id}>
-        <span className="tutorial-emoji">{paso.emoji}</span>
+        {paso.imagen
+          ? <img src={paso.imagen} alt="" className="tutorial-pieza" />
+          : <span className="tutorial-emoji">{paso.emoji}</span>}
         <h1 className="tutorial-titulo">{paso.titulo}</h1>
         <div className="tutorial-texto">{paso.cuerpo}</div>
       </div>

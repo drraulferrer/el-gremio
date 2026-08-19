@@ -1760,6 +1760,10 @@ code { background: var(--tablero-hondo); padding: 2px 6px; border-radius: 6px; f
 }
 
 .tutorial-emoji { font-size: 3.2rem; display: block; line-height: 1; }
+/* Una diapositiva puede traer una pieza de la guía en vez de un emoji.
+   Se mide igual que el emoji al que sustituye para que el salto entre
+   diapositivas no mueva el título. */
+.tutorial-pieza { width: 3.2rem; height: 3.2rem; display: block; object-fit: contain; }
 
 .tutorial-titulo {
   font-size: 1.9rem;
@@ -1780,6 +1784,7 @@ code { background: var(--tablero-hondo); padding: 2px 6px; border-radius: 6px; f
 @media (min-width: 760px) {
   .tutorial-titulo { font-size: 2.3rem; }
   .tutorial-emoji { font-size: 4rem; }
+  .tutorial-pieza { width: 4rem; height: 4rem; }
 }
 
 /* Barra de "mantén pulsado para deshacer" sobre una baldosa ya hecha.
@@ -3036,4 +3041,24 @@ button.kid-avatar.latiendo { animation: latido-aviso 2.6s var(--ease-salida) inf
   height: 18px;
   flex: none;
   object-fit: contain;
+}
+
+/* La misma ficha, pero dentro de una frase. Se mide en `em` porque
+   aparece en texto de 0,72 rem y de 1 rem, y a 18 px fijos rompía la
+   línea en el texto pequeño. El `gap` la separa de la cifra sin tener
+   que meter un espacio en el JSX, que se pierde al formatear. */
+.importe-talis {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28em;
+  white-space: nowrap;
+}
+.ficha-linea {
+  width: 1.15em;
+  height: 1.15em;
+  flex: none;
+  object-fit: contain;
+  /* La cifra y la ficha se alinean por su centro óptico, no por la línea
+     base: sin esto la ficha queda colgando bajo el número. */
+  vertical-align: -0.15em;
 }

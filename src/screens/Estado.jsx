@@ -5,6 +5,8 @@ import { todasLasFlags, setFlag } from '../lib/flags'
 import { resumenErrores } from '../lib/monitoring'
 import { vaciar } from '../lib/log'
 import { diagnosticoEconomia, veredicto, SUPUESTOS } from '../lib/economia'
+import { Talis } from '../components/ui'
+import { talis } from '../lib/talis'
 
 // ------------------------------------------------------------------
 // Estado del sistema, dentro del panel parental.
@@ -119,7 +121,7 @@ export default function Estado({ family, data }) {
           <div className="fila-separada" key={x.perfil.id} style={{ padding: '5px 0' }}>
             <span>{x.perfil.emoji} {x.perfil.name}</span>
             <span className="suave">
-              {x.misiones} misiones · {x.monedasDia.toFixed(0)} 🪙/día · {x.xpDia.toFixed(0)} XP/día
+              {x.misiones} misiones · <Talis n={Number(x.monedasDia.toFixed(0))} />/día · {x.xpDia.toFixed(0)} XP/día
             </span>
           </div>
         ))}
@@ -138,7 +140,7 @@ export default function Estado({ family, data }) {
             <div className="suave" style={{ marginTop: 4 }}>
               {n.premios === 0
                 ? 'Sin premios activos de este nivel.'
-                : `${n.premios} premios, ${Math.round(n.precioMedio)} 🪙 de media · se consigue cada ${n.diasMin.toFixed(0)}-${n.diasMax.toFixed(0)} días (objetivo: ${n.objetivo})`}
+                : `${n.premios} premios, ${talis(Math.round(n.precioMedio))} de media · se consigue cada ${n.diasMin.toFixed(0)}-${n.diasMax.toFixed(0)} días (objetivo: ${n.objetivo})`}
             </div>
           </div>
         )

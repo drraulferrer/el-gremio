@@ -13,7 +13,7 @@ import {
 import { log } from '../lib/log'
 import { ESPECIES, EMOJI_DE_ESPECIE, catalogoDe, premiosDe, filaDeMision, filaDePremio } from '../lib/mascotas'
 import { GENEROS, flex, generoDe } from '../lib/genero'
-import { Modal, Gema } from '../components/ui'
+import { Modal, Gema, Talis } from '../components/ui'
 import Icono from '../components/Icono'
 
 // ------------------------------------------------------------------
@@ -176,7 +176,7 @@ export default function Miembros({ family, data, refresh }) {
             <div className="crece">
               <strong>{p.name}</strong>
               <div className="suave">
-                {flex(ROLE_LABEL[p.role], generoDe(p))} · {p.xp} XP · {p.coins} 🪙
+                {flex(ROLE_LABEL[p.role], generoDe(p))} · {p.xp} XP · <Talis n={p.coins} />
               </div>
             </div>
             <Gema xp={p.xp} color={p.color} mini />

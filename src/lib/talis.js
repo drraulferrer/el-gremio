@@ -50,10 +50,16 @@ export function talis(n) {
   return `${Number(n || 0).toLocaleString('es-ES')} ${TALIS}`
 }
 
-/** Lo mismo, con la ficha delante. Para saldos y precios en la interfaz. */
-export function conFicha(n) {
-  return `🪙 ${talis(n)}`
-}
+// Aquí vivía `conFicha(n)`, que devolvía `🪙 45 Talis`. Se retira en la
+// 2.8.1 por dos motivos a la vez: no la llamaba nadie —solo su propio
+// test— y dejaba el emoji escrito en una función con nombre atractivo,
+// así que el próximo que buscara «cómo se pinta un importe» habría
+// reintroducido justo el problema que esa versión venía a arreglar.
+//
+// Un importe con ficha se pinta con el componente `<Talis n={...} />` de
+// `components/ui.jsx`, que usa la pieza grabada. Para texto plano —una
+// plantilla, un aviso, un `aria-label`— está `talis(n)`, que devuelve
+// «45 Talis» y no necesita ninguna imagen.
 
 // ------------------------------------------------------------------
 // La historia, que no se cuenta entera de golpe.

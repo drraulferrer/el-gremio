@@ -25,7 +25,7 @@ import { borrarORetirar } from '../lib/retirarMision'
 import { habilidad, HABILIDADES } from '../lib/habilidades'
 import { sugerenciasDeElogio, rachaDeMision, sugerenciasDeCorreccion, correccionValida } from '../lib/elogio'
 import { flex, generoDe } from '../lib/genero'
-import { Modal, Celebracion, Pestana } from '../components/ui'
+import { Modal, Celebracion, Pestana, Talis } from '../components/ui'
 import Icono from '../components/Icono'
 import Ajustes from './Ajustes'
 import AvisoPush from './AvisoPush'
@@ -49,6 +49,7 @@ import {
 } from '../lib/misiones'
 import SelectorEmoji from '../components/SelectorEmoji'
 import { emojiSugerido, GRUPOS_EMOJI_MISION, EMOJIS_MISION } from '../lib/emojis'
+import { talis } from '../lib/talis'
 
 export default function ParentPanel({ family, data, refresh, refreshFamily, onVerTutorial, onExit }) {
   const [tab, setTab] = useState('pendientes')
@@ -185,14 +186,14 @@ export default function ParentPanel({ family, data, refresh, refreshFamily, onVe
                   <div className="avatar" style={{ borderColor: p?.color }}>{p?.emoji}</div>
                   <div className="crece">
                     <strong>{rw?.emoji} {rw?.title || 'Premio'}</strong>
-                    <div className="suave">{p?.name} · {r.cost} 🪙</div>
+                    <div className="suave">{p?.name} · <Talis n={r.cost} /></div>
                   </div>
                 </div>
                 <div className="fila">
                   <button className="btn btn-exito btn-mini crece" onClick={() => resolverCanje(r.id, 'entregado')}>
                     <Icono nombre="premio" tamano={19} /> Entregado
                   </button>
-                  <button className="btn btn-fantasma btn-mini" onClick={() => resolverCanje(r.id, 'cancelado')}>Devolver 🪙</button>
+                  <button className="btn btn-fantasma btn-mini" onClick={() => resolverCanje(r.id, 'cancelado')}>Devolver Talis</button>
                 </div>
               </div>
             )
@@ -208,7 +209,7 @@ export default function ParentPanel({ family, data, refresh, refreshFamily, onVe
                   <div className="avatar" style={{ borderColor: p?.color }}>{p?.emoji}</div>
                   <div className="crece">
                     <strong>{ch?.emoji} {flex(ch?.title, generoDe(p)) || 'Misión'}</strong>
-                    <div className="suave">{p?.name} · +{c.xp} XP · +{c.coins} 🪙</div>
+                    <div className="suave">{p?.name} · +{c.xp} XP · +<Talis n={c.coins} /></div>
                   </div>
                   <button
                     className="btn btn-fantasma btn-mini"
@@ -390,7 +391,7 @@ function TarjetaValidacion({ completion, perfil, reto, completions, onResolver }
         <div className="crece">
           <strong>{reto?.emoji} {flex(reto?.title, genero) || 'Misión'}</strong>
           <div className="suave">
-            {perfil?.name} · +{completion.xp} XP · +{completion.coins} 🪙
+            {perfil?.name} · +{completion.xp} XP · +<Talis n={completion.coins} />
             {racha >= 2 && <> · 🔥 {racha + 1} días seguidos</>}
           </div>
         </div>
@@ -830,7 +831,7 @@ function GestionMisiones({ family, data, refresh }) {
               <strong>{flex(ch.title, generoDe(data.profiles.find((p) => p.id === ch.profile_id)))}</strong>
               <div className="suave">
                 {habilidad(ch.skill) && <>{habilidad(ch.skill).emoji} {habilidad(ch.skill).nombre} · </>}
-                +{ch.xp} XP · {ch.coins} 🪙
+                +{ch.xp} XP · <Talis n={ch.coins} />
               </div>
               {/* La tira solo sale cuando hay patrón: dibujar siete puntos
                   llenos en todas las misiones sería repetir «todos los
@@ -905,7 +906,7 @@ function GestionMisiones({ family, data, refresh }) {
                 <div className="crece">
                   <strong>{ch.emoji} {flex(ch.title, generoDe(data.profiles.find((p) => p.id === ch.profile_id)))}</strong>
                   <div className="suave">
-                    {destinoTexto(ch)} · +{ch.xp} XP · {ch.coins} 🪙
+                    {destinoTexto(ch)} · +{ch.xp} XP · <Talis n={ch.coins} />
                   </div>
                 </div>
                 {/* Sin `crece`: el que tiene que ensanchar es el título.
@@ -989,7 +990,7 @@ function FormMision({ mision, perfiles, onGuardar, onBorrar, onClose }) {
           <input type="number" min="0" value={m.xp} onChange={(e) => set({ xp: e.target.value })} />
         </div>
         <div className="campo crece">
-          <label>Talis 🪙</label>
+          <label>Talis</label>
           <input type="number" min="0" value={m.coins} onChange={(e) => set({ coins: e.target.value })} />
         </div>
       </div>
@@ -1535,7 +1536,7 @@ function GestionPremios({ family, data, refresh }) {
             no cabía en el catálogo. Una pestaña más para algo que se usa
             una vez al mes sería una pestaña que nadie abre. */}
         <button className="btn btn-fantasma btn-mini crece" onClick={() => setAMano(!aMano)}>
-          🪙 Talis a mano
+          <img src="/assets/talis.png" alt="" className="ficha-linea" /> Talis a mano
         </button>
       </div>
 
@@ -1545,7 +1546,7 @@ function GestionPremios({ family, data, refresh }) {
         <p className="aviso-carga" role="status">
           ✨ {masBarato === null
             ? 'No hay ningún premio que la junior pueda alcanzar.'
-            : `El premio más barato cuesta ${masBarato} 🪙: ${diasDelPrimero} días de la junior.`}{' '}
+            : `El premio más barato cuesta ${talis(masBarato)}: ${diasDelPrimero} días de la junior.`}{' '}
           Los primeros días no llega a nada, y son los que deciden si esto se sigue usando.
           <button className="btn btn-mini" style={{ marginLeft: 8 }} onClick={() => setArranque(true)}>
             Ver premios de arranque
@@ -1574,7 +1575,7 @@ function GestionPremios({ family, data, refresh }) {
             <div className="avatar">{r.emoji}</div>
             <div className="crece">
               <strong>{r.title}</strong>
-              <div className="suave">{r.cost} 🪙</div>
+              <div className="suave"><Talis n={r.cost} /></div>
             </div>
             <button className="btn-icono" onClick={() => alternar(r)} aria-label={r.active ? 'Pausar' : 'Activar'}>
               <Icono nombre={r.active ? 'pausar' : 'reanudar'} />
@@ -1641,7 +1642,7 @@ function PremiosDeArranque({ family, data, refresh, onClose }) {
       ? [{
           clave: 'peque',
           titulo: 'Para la peque',
-          pie: `Por debajo de ${TECHO_PEQUE} 🪙, que es lo único que le sale a ella en su tienda.`,
+          pie: `Por debajo de ${talis(TECHO_PEQUE)}, que es lo único que le sale a ella en su tienda.`,
           premios: PREMIOS_DE_LA_PEQUE
         }]
       : [])
@@ -1718,7 +1719,7 @@ function PremiosDeArranque({ family, data, refresh, onClose }) {
                 />
                 <span style={{ fontSize: '1.2rem' }}>{p.emoji}</span>
                 <span className="crece">{p.title}</span>
-                <span className="chip">{ya ? 'ya está' : `${p.cost} 🪙`}</span>
+                <span className="chip">{ya ? 'ya está' : <Talis n={p.cost} />}</span>
               </label>
             )
           })}
@@ -1765,7 +1766,7 @@ function FormPremio({ premio, onGuardar, onBorrar }) {
         />
       </div>
       <div className="campo">
-        <label>Precio en Talis 🪙</label>
+        <label>Precio en Talis</label>
         <input type="number" min="1" value={r.cost} onChange={(e) => set({ cost: e.target.value })} />
       </div>
       <button className="btn btn-bloque" disabled={!r.title.trim()} onClick={() => onGuardar(r)}>Guardar</button>
@@ -2016,7 +2017,7 @@ function PremioAMano({ data, onHecho, onCerrar }) {
           </select>
         </div>
         <div className="campo crece">
-          <label>Talis 🪙</label>
+          <label>Talis</label>
           <input
             type="number"
             min="1"

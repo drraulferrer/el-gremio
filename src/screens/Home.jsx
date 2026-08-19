@@ -8,7 +8,7 @@ import Cronica from '../components/Cronica'
 import Sello from '../components/Sello'
 import SellosGanados from '../components/SellosGanados'
 import { pedirMision as pedirMisionRemota, canjearPremio, deshacerMision } from '../lib/acciones'
-import { Gema, XPBar, Bolsa, Celebracion, Pestana } from '../components/ui'
+import { Gema, XPBar, Bolsa, Celebracion, Pestana, Talis } from '../components/ui'
 import { talis, progresoDeTalis } from '../lib/talis'
 import { HABILIDADES, habilidad, xpPorHabilidad, rangoDeHabilidad, habilidadDominante } from '../lib/habilidades'
 import { flex, generoDe } from '../lib/genero'
@@ -362,7 +362,7 @@ function Tienda({ data, profile, ocupado, onCanjear }) {
             <div className="avatar">{r.emoji}</div>
             <div className="crece">
               <strong>{r.title}</strong>
-              <div className="suave">{r.cost} 🪙</div>
+              <div className="suave"><Talis n={r.cost} /></div>
             </div>
             <button
               className="btn btn-mini"
@@ -481,7 +481,7 @@ function Progreso({ data, profile, genero, refresh }) {
         ) : (
           <>
             <div className="suave" style={{ marginBottom: 10 }}>
-              {resumen.misiones} {resumen.misiones === 1 ? 'misión' : 'misiones'} · {resumen.xp} XP · {resumen.monedas} 🪙
+              {resumen.misiones} {resumen.misiones === 1 ? 'misión' : 'misiones'} · {resumen.xp} XP · <Talis n={resumen.monedas} />
             </div>
             {validadas.map((c) => {
               const ch = data.challenges.find((x) => x.id === c.challenge_id)

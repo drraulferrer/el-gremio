@@ -18,6 +18,7 @@ import { perfilesActivos } from '../lib/miembros'
 import { flex, generoDe } from '../lib/genero'
 import { estadoDeTemporada } from '../lib/temporadas'
 import { ROLE_LABEL } from '../lib/supabase'
+import { Talis } from '../components/ui'
 
 const DIA_MS = 86400000
 
@@ -118,7 +119,7 @@ function FichaPersona({ r, challenges }) {
             <span className="suave">{flex(ROLE_LABEL[p.role], genero)} · nivel {r.nivel}</span>
           </div>
           <div className="suave" style={{ fontSize: '0.82rem' }}>
-            {r.xp} XP · {r.monedas} 🪙
+            {r.xp} XP · <Talis n={r.monedas} />
             {r.extras.aMano > 0 && ` (${r.extras.aMano} a mano)`}
           </div>
         </div>
