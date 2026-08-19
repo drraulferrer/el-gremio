@@ -11,21 +11,19 @@ Ese mismo día, en sesiones anteriores, llegaron los sellos de oficio
 Si solo vas a leer un párrafo: la app está **en producción y estable**, en
 elgremioapp.com, servida por **Vercel**, con las cabeceras de seguridad
 que antes no se podían poner y con un cron diario que impide que Supabase
-se pause. **OJO: hay CUATRO migraciones pendientes de ejecutar —028, 029,
-030 (§7w) y 031 (§7x)— y la 031 va detrás de código YA escrito**: el
-bundle nuevo (2.9.0) no debe publicarse antes de ejecutarla, que es la
-regla del §7e. Antes de añadir nada, lee §8.
+se pause. **Las migraciones 028-031 se ejecutaron el 19-ago por la
+tarde** (métodos y comprobaciones en §7w-§7x) y el bundle 2.9.0 está
+publicado: las piezas van a la vez otra vez. El modo limpieza (§7x) está
+VIVO de punta a punta. Antes de añadir nada, lee §8.
 
 **Y lo primero que hay que saber:** publicar no es `npm run deploy`. Es
 empujar y después `npm run vercel` (§7n), y SIEMPRE con la migración
 ejecutada antes que el bundle.
 
-**Si abres sesión nueva, empieza por §8 y por §7w-§7x** (lo pendiente).
-Los **799 tests están en verde** y la versión local es la **2.9.0** (sin
-publicar). Producción sirve la 2.8.x anterior; de la 2.5.2 quedó
-comprobado que `/apple-touch-icon.png` y `/favicon.ico` responden con
-imagen de verdad y byte a byte con lo local. Lo que queda es ejecutar la
-tanda de migraciones y publicar, no código a medias.
+**Si abres sesión nueva, empieza por §8.** Los **803 tests y el CI están
+en verde** (el CI estuvo roto unas horas por un test que parcheaba el
+cliente nulo; arreglado en `ed0a311` con inyección). Producción sirve la
+**2.9.0**. Lo que queda es de uso, no código a medias.
 
 ---
 
@@ -3041,11 +3039,31 @@ familias de misión. `coleccionista` tampoco, que era el fallo.
 
 ---
 
-## 7w. Las migraciones 028–030 (19 de agosto) · 2.8.0 · **PENDIENTES DE EJECUTAR**
+## 7w. Las migraciones 028–030 (19 de agosto) · 2.8.0 · **EJECUTADAS EL 19-AGO POR LA TARDE**
 
-> **El código está desplegado; el SQL NO.** La app funciona igual mientras
-> tanto —degrada sola, ver «la ventana» más abajo— pero los agujeros que
-> estas migraciones cierran siguen abiertos hasta que alguien las corra.
+> Ejecutadas y comprobadas las tres, en orden, con el método del repo
+> (traer por hash de commit + cotejar SHA-256). **La 029 NO se pudo
+> ejecutar tal y como estaba escrita**: su trigger de inmutabilidad
+> (`tg_completion_snapshot_inmutable`) rechazaba también la PRIMERA
+> escritura del snapshot, que es justo lo que hace su propio backfill
+> dos pasos después. En una base nueva no salta (cero filas que
+> rellenar), así que build, tests y demo lo dieron por bueno; contra la
+> base real reventó con P0001 y la transacción entera se revirtió, que
+> es lo que tenía que pasar. Arreglado en `ed0a311` (la primera
+> escritura se permite; la puerta no se reabre porque quitar
+> `snapshot_quality` cae en la comprobación de siempre) y ejecutada a la
+> segunda: backfill completo, `snapshot_quality is null` = 0 filas. El
+> SHA bueno de la 029 es ahora
+> `b8323dba3a0fcd3afa4f5dace647c37a79935cc831de659ac1b407c9903fea9e`.
+>
+> **Y una trampa nueva de Supabase que salió aquí:** las tablas nuevas
+> **ya no nacen con grant para `anon`** (las de antes de agosto sí lo
+> tienen). A `authenticated` no le falta nada —la app no se entera—,
+> pero la comprobación externa de siempre («la lectura anónima da
+> `[]`») devuelve **401** en vez de `[]` hasta que se añade
+> `grant select ... to anon`. Hecho a mano para `mission_families` y
+> `campanas_limpieza` el 19-ago; si una migración futura crea tabla,
+> que lleve su grant.
 
 ### Qué cierran
 
@@ -3135,7 +3153,7 @@ tenerlas.
 
 ---
 
-## 7x. El modo limpieza (19 de agosto) · 2.9.0 · **CONSTRUIDO, MIGRACIÓN 031 SIN EJECUTAR**
+## 7x. El modo limpieza (19 de agosto) · 2.9.0 · **EN PRODUCCIÓN, DE PUNTA A PUNTA**
 
 Campañas de limpieza como misión secundaria, a petición de la familia y
 a partir de un planificador doméstico real. **El diseño completo está en
@@ -3171,18 +3189,19 @@ esfuerzo (10/25/40 min) que es ayuda, no examen.
   `undo_completion` rechaza con 'campana_cerrada' deshacer una tarea de
   una operación COMPLETADA, que dejaba el botín pagado por trabajo
   desaparecido.
-- **La migración 031 NO está ejecutada.** SHA-256 para cotejar:
-
-  ```
-  031  faa50ec90800c4a21853f68ab0954212c4d5b73303341dfa014ee6042ad736e5
-  ```
-
-  No depende de las 028-030 (solo toca families, profiles, challenges,
-  completions y bonuses), pero la tanda entera 028→031 debería
-  ejecutarse junta y ANTES de publicar el bundle 2.9.0 (§7e).
-- Sin la 031, la app degrada: `loadAll` trae `campanas: []` (bloque
-  degradable), el modo limpieza avisa de qué migración falta al lanzar,
-  y todo lo demás sigue entero.
+- **La migración 031 se ejecutó el 19-ago por la tarde** (SHA cotejado
+  `faa50ec90800c4a21853f68ab0954212c4d5b73303341dfa014ee6042ad736e5`),
+  tras las 028-030 y con TODO comprobado: los ocho contadores a 1, los
+  bloques adversariales rebotando como deben (tipo inventado y fechas
+  al revés → 23514; dos activas a la vez → 23505 por el índice único),
+  la lectura anónima devolviendo `[]` y el health en verde con el
+  bundle 2.9.0 delante. Las piezas van a la vez: el modo limpieza está
+  vivo de punta a punta.
+- El orden del día quedó torcido y conviene contarlo: el bundle 2.9.0
+  se publicó ANTES de migrar (la ventana del §7e otra vez, esta vez sin
+  romper nada porque los degradados aguantaron). Las migraciones se
+  ejecutaron después desde el navegador, con el bug de la 029 por medio
+  (§7w).
 
 ### Decisiones que no hay que deshacer
 
