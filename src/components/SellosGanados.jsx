@@ -46,7 +46,7 @@ export function detalleDeSello(sello) {
   return null
 }
 
-export default function SellosGanados({ mias }) {
+export default function SellosGanados({ mias, onAbrir }) {
   const conseguidos = SELLOS_V1.filter((s) => mias.has(s.id))
   if (!conseguidos.length) return null
 
@@ -74,8 +74,10 @@ export default function SellosGanados({ mias }) {
       <ul className="grid-sellos">
         {conseguidos.map((s) => (
           <li className="sello-ficha" key={s.id}>
-            <Sello code={s.id} nombre={nombreDeSello(s)} conseguida tamano={56} />
-            <span className="sello-ficha-nombre">{nombreDeSello(s)}</span>
+            <button className="pieza-boton" onClick={() => onAbrir(s.id)}>
+              <Sello code={s.id} nombre={nombreDeSello(s)} conseguida tamano={56} />
+              <span className="sello-ficha-nombre">{nombreDeSello(s)}</span>
+            </button>
           </li>
         ))}
       </ul>

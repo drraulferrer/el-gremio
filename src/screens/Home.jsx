@@ -8,6 +8,7 @@ import Cronica from '../components/Cronica'
 import Sello from '../components/Sello'
 import SellosGanados from '../components/SellosGanados'
 import Colecciones from '../components/Colecciones'
+import SelloDetalle, { tieneDetalle } from '../components/SelloDetalle'
 import { pedirMision as pedirMisionRemota, canjearPremio, deshacerMision } from '../lib/acciones'
 import { proyeccionDe } from '../lib/sellos-motor'
 import { Gema, XPBar, Bolsa, Celebracion, Pestana, Talis } from '../components/ui'
@@ -515,6 +516,9 @@ function Progreso({ data, profile, genero, refresh, historial }) {
   // solo crece deja de leerse al mes. Nada se archiva de verdad —los datos
   // siguen en la base—, solo sale de la vista.
   const [atras, setAtras] = useState(0)
+  // El sello abierto a pantalla completa. Guarda el CÓDIGO y no el objeto
+  // para que sirva igual con los del catálogo nuevo y con las dieciséis.
+  const [abierto, setAbierto] = useState(null)
   const rango = semana(new Date(), atras)
   const validadas = validadasDe(data.completions, profile.id, rango)
   const resumen = resumenDeSemana(validadas)
@@ -635,7 +639,7 @@ function Progreso({ data, profile, genero, refresh, historial }) {
 
       <Poderes data={data} profile={profile} refresh={refresh} genero={genero} />
 
-      <SellosGanados mias={mias} />
+      <SellosGanados mias={mias} onAbrir={setAbierto} />
 
       {/* El catálogo entero, plegado. Va detrás de «Tu historia» a
           propósito: primero lo tuyo y lo que viene ahora, y solo después
@@ -643,7 +647,7 @@ function Progreso({ data, profile, genero, refresh, historial }) {
           que te falta. */}
       <details className="ver-catalogo">
         <summary>Ver el catálogo de sellos</summary>
-        <Colecciones mias={mias} proyeccion={proyeccion} />
+        <Colecciones mias={mias} proyeccion={proyeccion} onAbrir={setAbierto} />
       </details>
 
       {/* El contador cuenta SOLO las dieciséis de esta rejilla.
@@ -658,7 +662,13 @@ function Progreso({ data, profile, genero, refresh, historial }) {
           const conseguida = mias.has(b.code)
           return (
           <div className={'insignia' + (conseguida ? '' : ' bloqueada')} key={b.code}>
-            <Sello code={b.code} nombre={flex(b.name, genero)} conseguida={conseguida} />
+            {conseguida && tieneDetalle(b.code) ? (
+              <button className="pieza-boton" onClick={() => setAbierto(b.code)}>
+                <Sello code={b.code} nombre={flex(b.name, genero)} conseguida />
+              </button>
+            ) : (
+              <Sello code={b.code} nombre={flex(b.name, genero)} conseguida={conseguida} />
+            )}
             <span className="ins-nombre">{flex(b.name, genero)}</span>
             {/* El estado va en TEXTO, no solo en el gris del sello: quien
                 no distingue bien el color —o mira el móvil al sol— tiene
@@ -682,6 +692,15 @@ function Progreso({ data, profile, genero, refresh, historial }) {
           explica por qué esas no se compran, y esa frase solo significa
           algo cuando ya tienes la rejilla de arriba delante. */}
       <Cronica profile={profile} progreso={progresoTalis} />
+
+      {abierto && (
+        <SelloDetalle
+          code={abierto}
+          concesion={data.badges.find((b) => b.profile_id === profile.id && b.code === abierto)}
+          genero={genero}
+          onClose={() => setAbierto(null)}
+        />
+      )}
     </div>
   )
 }

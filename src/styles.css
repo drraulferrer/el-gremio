@@ -1219,6 +1219,126 @@ input:focus, select:focus, button:focus-visible {
 .requisito.cumple .requisito-cifra { color: var(--exito); }
 .requisito-ok { font-weight: 700; }
 
+
+/* ------------------------------------------------------------------
+   La ficha de un sello, a pantalla completa.
+   ------------------------------------------------------------------ */
+
+/* Una pieza pulsable no puede parecer un botón de formulario: es el
+   sello, y el sello ya se ve. El botón solo aporta el área táctil y el
+   foco. */
+.pieza-boton {
+  background: none;
+  border: 0;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  display: block;
+  width: 100%;
+  text-align: center;
+}
+.pieza-boton:focus-visible { outline: 2px solid var(--teal); outline-offset: 3px; border-radius: var(--radio-s); }
+
+/* Un secreto sin conseguir: se ve que ESTÁ, no cuál es. */
+.pieza-oculta .sello { filter: grayscale(1) brightness(0.35) contrast(0.6); opacity: 0.55; }
+.pieza-oculta .pieza-nombre { font-style: italic; color: var(--tinta-suave); }
+
+.detalle-fondo {
+  align-items: flex-start;
+  overflow-y: auto;
+  padding: 0;
+  animation: detalle-entra var(--t-medio) var(--ease-salida);
+}
+
+.detalle-sello {
+  background: var(--tablero);
+  border: 1px solid var(--linea);
+  border-radius: var(--radio);
+  padding: 28px 20px 20px;
+  margin: auto;
+  width: min(560px, 100%);
+  min-height: 100%;
+  text-align: center;
+  position: relative;
+}
+@media (min-width: 600px) {
+  .detalle-sello { min-height: 0; margin: 24px auto; }
+}
+
+.detalle-cerrar {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  border: 1px solid var(--linea);
+  background: var(--carta);
+  color: var(--tinta);
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.detalle-cerrar:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+
+/* El sello crece desde pequeño: es la pieza que se acaba de tocar,
+   llegando a su tamaño de verdad. Solo transform y opacity. */
+.detalle-pieza { animation: sello-crece 420ms var(--ease-salida) both; }
+.detalle-pieza .sello { margin: 0 auto; }
+
+.detalle-nombre { font-size: 1.5rem; margin: 14px 0 0; }
+.detalle-cifra { color: var(--tinta-suave); margin: 4px 0 0; font-variant-numeric: tabular-nums; }
+
+.detalle-bloque { text-align: left; margin-top: 22px; }
+.detalle-epigrafe {
+  font-family: var(--cuerpo);
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
+  color: var(--tinta-suave);
+  margin: 0 0 6px;
+}
+.detalle-fecha { margin: 0 0 8px; font-size: 0.9rem; }
+.detalle-condicion { margin: 0; padding-left: 18px; font-size: 0.88rem; }
+.detalle-condicion li { margin-bottom: 3px; }
+.detalle-nota { font-size: 0.86rem; color: var(--oro-claro); margin-top: 8px; }
+
+/* El lore va en otra voz: cursiva, filete dorado y aire alrededor. Se
+   distingue de lo que es información sin necesidad de un rótulo. */
+.detalle-lore {
+  margin: 22px 0 0;
+  padding: 14px 16px;
+  border-left: 2px solid var(--oro-hondo);
+  background: var(--carta);
+  border-radius: 0 var(--radio-s) var(--radio-s) 0;
+  font-family: var(--display);
+  font-style: italic;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  text-align: left;
+}
+
+.detalle-implica { margin-bottom: 22px; }
+.detalle-poder { color: var(--oro-claro); font-weight: 700; margin-top: 8px; }
+.detalle-sin-economia { font-size: 0.84rem; margin-top: 8px; }
+
+@keyframes detalle-entra {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes sello-crece {
+  from { opacity: 0; transform: scale(0.35); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* Movimiento reducido: la información es la misma, sin viaje. No se
+   ralentiza la animación —se quita—, que es lo que pide la preferencia. */
+@media (prefers-reduced-motion: reduce) {
+  .detalle-fondo, .detalle-pieza { animation: none; }
+}
+
 /* El lote: la única celebración de un desbloqueo múltiple. */
 .lote-sellos { text-align: center; }
 .lote-piezas {

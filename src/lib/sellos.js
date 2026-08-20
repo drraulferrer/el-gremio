@@ -211,12 +211,12 @@ export const SELLOS_V1 = [
     { nombre: 'El taller encendido de nuevo', regla: { regreso: { baseDias: 60, baseMeses: 6, pausaDias: 60, despuesDias: 5, ventanaDias: 21 } } }),
 
   sello('descubrimiento_semana_variada', 'descubrimiento-semana-variada', 'descubrimientos', 'descubrimiento',
-    { nombre: 'Semana de herramientas variadas', regla: { enUnaSemana: { habilidades: 4, dias: 3 } } }),
+    { nombre: 'Semana de herramientas variadas', visibilidad: 'secret', regla: { enUnaSemana: { habilidades: 4, dias: 3 } } }),
   sello('descubrimiento_tres_ritmos', 'descubrimiento-tres-ritmos', 'descubrimientos', 'descubrimiento',
-    { nombre: 'Compás del taller', regla: { enUnMes: { frecuencias: ['diario', 'semanal', 'mensual'], dias: 4 } } }),
+    { nombre: 'Compás del taller', visibilidad: 'secret', regla: { enUnMes: { frecuencias: ['diario', 'semanal', 'mensual'], dias: 4 } } }),
   // Sin regla: necesita banda evolutiva por perfil, que no está en el
   // modelo. `role` no sirve: una función doméstica no es una edad.
-  sello('descubrimiento_varias_generaciones', 'descubrimiento-mesa-compartida', 'descubrimientos', 'descubrimiento', { nombre: 'Mesa compartida' })
+  sello('descubrimiento_varias_generaciones', 'descubrimiento-mesa-compartida', 'descubrimientos', 'descubrimiento', { nombre: 'Mesa compartida', visibilidad: 'secret' })
 ]
 
 // --- Sellos de legado ------------------------------------------------
@@ -279,6 +279,23 @@ const POR_INSIGNIA = {
 /** El sello de una insignia viva, o `null` si no lo tiene. */
 export function selloDeInsignia(code) {
   return POR_ID.get(POR_INSIGNIA[code]) || null
+}
+
+/**
+ * ¿Este sello se esconde hasta conseguirlo?
+ *
+ * Los tres descubrimientos son sorpresas: no se persiguen, aparecen. Si
+ * el catálogo enseñara su nombre —«Semana de herramientas variadas»— ya
+ * estaría contando la mitad de la condición, y una sorpresa explicada
+ * deja de serlo. Se ven como silueta: se sabe QUE existen y cuántos
+ * quedan, que es lo que pedía poder ver el catálogo entero, pero no cuál
+ * es cada uno.
+ *
+ * Nada más del catálogo es secreto, y eso es deliberado: un objetivo que
+ * de verdad se espera que alguien persiga tiene que estar a la vista.
+ */
+export function esSecreto(sello) {
+  return sello?.visibilidad === 'secret'
 }
 
 /** El sello por su propio id dentro del catálogo. */

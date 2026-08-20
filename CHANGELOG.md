@@ -18,6 +18,36 @@ verdad duele en esta app: que el esquema y el cliente dejen de encajar.
 
 ---
 
+## 2.13.0 · 20 de agosto de 2026
+
+**Cada sello conseguido se puede abrir y cuenta de dónde sale.** Al
+tocarlo, la pieza crece a pantalla completa y responde cuatro preguntas en
+el orden en que la gente las hace: por qué la tienes, qué significa, la
+misma idea contada desde el Gremio, y qué implica tenerla.
+
+El «por qué» se compone de la REGLA, no de un texto escrito a mano: si
+mañana cambia un umbral del catálogo, la frase cambia con él. Un texto
+fijo seguiría prometiendo el viejo. Y lleva la fecha: «La conseguiste el
+14 de julio de 2026».
+
+**«Qué implica» no puede mentir, y hay un test que lo vigila.** Un sello no
+da Talis, ni XP, ni ventaja, así que ninguno de los 73 puede decir
+«desbloquea» o «te da»: la prueba falla si alguno lo intenta. Lo que sí
+dice, en voz alta, es que no da nada de eso —porque esa es la promesa del
+sistema, no una carencia—. Las cuatro viejas que sí dan un poder lo
+anuncian aparte, y ese anuncio se compone de la definición real: si un
+comodín pasara de un uso a dos, la línea cambiaría sola.
+
+**Los tres descubrimientos pasan a siluetas.** Se ve que están y cuántos
+quedan —el catálogo sigue completo— pero no cuál es cada uno: enseñar
+«Semana de herramientas variadas» ya contaba media condición, y una
+sorpresa explicada deja de serlo. Nada más del catálogo es secreto, y eso
+es deliberado: un objetivo que se espera que alguien persiga tiene que
+estar a la vista.
+
+De paso, cada sello estrena su nombre del catálogo también en la ficha, y
+Ritmo y Trayectoria enseñan la cifra exacta al lado del nombre narrativo.
+
 ## 2.12.0 · 19 de agosto de 2026
 
 **Ya se puede ver el catálogo entero de sellos.** Progreso estrena «Ver el

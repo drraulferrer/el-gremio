@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import Sello from './Sello'
-import { BLOQUES } from '../lib/sellos'
+import { BLOQUES, esSecreto } from '../lib/sellos'
 import { requisitosDe } from '../lib/sellos-motor'
 import { nombreDeSello, detalleDeSello } from './SellosGanados'
 
@@ -71,7 +71,7 @@ function Requisitos({ lista }) {
   )
 }
 
-function Serie({ serie, mias, proyeccion }) {
+function Serie({ serie, mias, proyeccion, onAbrir }) {
   const conseguidos = serie.sellos.filter((s) => mias.has(s.id)).length
   const siguiente = serie.sellos.find(
     (s, i) => estadoDe(s, i, serie.sellos, mias) === 'siguiente'
@@ -88,20 +88,34 @@ function Serie({ serie, mias, proyeccion }) {
       <ol className="serie-piezas">
         {serie.sellos.map((s, i) => {
           const estado = estadoDe(s, i, serie.sellos, mias)
+          const conseguido = estado === 'conseguido'
+          // Un secreto sin conseguir se ve, pero no se lee: se sabe que
+          // está y no cuál es. Enseñar «Semana de herramientas variadas»
+          // ya contaría media condición, y una sorpresa explicada deja de
+          // serlo.
+          const oculto = esSecreto(s) && !conseguido
+          const etiqueta = oculto ? 'Por descubrir' : nombreDeSello(s)
+
           return (
-            <li key={s.id} className={`pieza pieza-${estado}`}>
-              <Sello
-                code={s.id}
-                nombre={nombreDeSello(s)}
-                conseguida={estado === 'conseguido'}
-                tamano={44}
-              />
-              {/* El nombre completo va aquí y no en un tooltip: en un
-                  móvil no hay hover, y un dato que solo existe al pasar
-                  el ratón no existe. */}
-              <span className="pieza-nombre">{nombreDeSello(s)}</span>
-              {detalleDeSello(s) && <span className="pieza-cifra">{detalleDeSello(s)}</span>}
-              <span className="pieza-estado">{TEXTO_ESTADO[estado]}</span>
+            <li key={s.id} className={`pieza pieza-${estado}${oculto ? ' pieza-oculta' : ''}`}>
+              {conseguido ? (
+                <button className="pieza-boton" onClick={() => onAbrir(s.id)}>
+                  <Sello code={s.id} nombre={etiqueta} conseguida tamano={44} />
+                  <span className="pieza-nombre">{etiqueta}</span>
+                  {detalleDeSello(s) && <span className="pieza-cifra">{detalleDeSello(s)}</span>}
+                  <span className="pieza-estado">{TEXTO_ESTADO[estado]}</span>
+                </button>
+              ) : (
+                <>
+                  <Sello code={s.id} nombre={etiqueta} tamano={44} />
+                  {/* El nombre completo va aquí y no en un tooltip: en un
+                      móvil no hay hover, y un dato que solo existe al
+                      pasar el ratón no existe. */}
+                  <span className="pieza-nombre">{etiqueta}</span>
+                  {!oculto && detalleDeSello(s) && <span className="pieza-cifra">{detalleDeSello(s)}</span>}
+                  <span className="pieza-estado">{oculto ? 'Secreto' : TEXTO_ESTADO[estado]}</span>
+                </>
+              )}
             </li>
           )
         })}
@@ -109,7 +123,7 @@ function Serie({ serie, mias, proyeccion }) {
 
       {siguiente && (
         <div className="serie-siguiente">
-          {siguiente.regla && requisitosDe(proyeccion, siguiente.regla).length > 0 ? (
+          {siguiente.regla && !esSecreto(siguiente) && requisitosDe(proyeccion, siguiente.regla).length > 0 ? (
             <>
               <div className="serie-siguiente-titulo">
                 Para «{nombreDeSello(siguiente)}» te falta:
@@ -135,7 +149,7 @@ function Serie({ serie, mias, proyeccion }) {
   )
 }
 
-function Bloque({ bloque, mias, proyeccion, abierto, onAlternar }) {
+function Bloque({ bloque, mias, proyeccion, abierto, onAlternar, onAbrir }) {
   const total = bloque.series.reduce((n, s) => n + s.sellos.length, 0)
   const conseguidos = bloque.series.reduce(
     (n, s) => n + s.sellos.filter((x) => mias.has(x.id)).length, 0
@@ -159,7 +173,7 @@ function Bloque({ bloque, mias, proyeccion, abierto, onAlternar }) {
       {abierto && (
         <ul className="lista-series">
           {bloque.series.map((s) => (
-            <Serie key={s.id} serie={s} mias={mias} proyeccion={proyeccion} />
+            <Serie key={s.id} serie={s} mias={mias} proyeccion={proyeccion} onAbrir={onAbrir} />
           ))}
         </ul>
       )}
@@ -167,7 +181,7 @@ function Bloque({ bloque, mias, proyeccion, abierto, onAlternar }) {
   )
 }
 
-export default function Colecciones({ mias, proyeccion }) {
+export default function Colecciones({ mias, proyeccion, onAbrir }) {
   const [abiertos, setAbiertos] = useState(() => new Set(['camino']))
 
   const alternar = (id) => setAbiertos((prev) => {
@@ -202,6 +216,7 @@ export default function Colecciones({ mias, proyeccion }) {
           proyeccion={proyeccion}
           abierto={abiertos.has(b.id)}
           onAlternar={() => alternar(b.id)}
+          onAbrir={onAbrir}
         />
       ))}
     </div>
