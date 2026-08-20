@@ -109,7 +109,7 @@ export default function LoteDeSellos({ codigos = [], genero = 'neutro', onClose 
           en el tiempo. No se gastan y no se pierden.
         </p>
 
-        <button ref={cerrar} className="btn-primario ancho" onClick={onClose}>
+        <button ref={cerrar} className="btn btn-bloque" onClick={onClose}>
           Seguir
         </button>
       </div>

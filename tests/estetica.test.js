@@ -195,3 +195,36 @@ describe('el icono de la app instalada', () => {
     expect(sw).not.toMatch(/icon\.svg/)
   })
 })
+
+describe('las clases que se usan existen en la hoja', () => {
+  // El fallo que fija: la ficha de un sello se escribió con
+  // `className="btn btn-primario ancho"`, y NI `btn-primario` NI `ancho`
+  // existen —las reales son `btn` y `btn-bloque`—. El botón salía sin
+  // ancho ni estilo y quedaba medio fuera de la pantalla. Nada falló al
+  // compilar: una clase inventada es HTML válido.
+  const componentes = []
+  const recorrer = (carpeta) => {
+    for (const entrada of readdirSync(carpeta, { withFileTypes: true })) {
+      const ruta = new URL(entrada.name + (entrada.isDirectory() ? '/' : ''), carpeta)
+      if (entrada.isDirectory()) recorrer(ruta)
+      else if (entrada.name.endsWith('.jsx')) componentes.push(ruta)
+    }
+  }
+  recorrer(new URL('src/', raiz))
+
+  it('ninguna clase de botón está inventada', () => {
+    const huerfanas = new Set()
+    for (const f of componentes) {
+      const texto = readFileSync(f, 'utf8')
+      for (const m of texto.matchAll(/className="([^"{}]+)"/g)) {
+        for (const clase of m[1].split(/\s+/).filter(Boolean)) {
+          // Solo las de botón: son las que llevan el aspecto y el ancho,
+          // y donde inventarse una se nota tarde y en un móvil.
+          if (!clase.startsWith('btn')) continue
+          if (!new RegExp(`\\.${clase}[\\s,{:.]`).test(css)) huerfanas.add(clase)
+        }
+      }
+    }
+    expect([...huerfanas], `clases sin definir en styles.css: ${[...huerfanas].join(', ')}`).toEqual([])
+  })
+})

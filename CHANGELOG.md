@@ -18,6 +18,29 @@ verdad duele en esta app: que el esquema y el cliente dejen de encajar.
 
 ---
 
+## 2.13.1 · 20 de agosto de 2026
+
+**El aspa y el botón de cerrar de la ficha se salían de la pantalla.** Dos
+fallos distintos, los dos míos y los dos del mismo despiste:
+
+- La ficha anulaba con `padding: 0` el relleno del velo, que es justo el
+  que respeta las áreas seguras del aparato. Sin él, el aspa se iba a la
+  esquina física de la pantalla —debajo de la muesca o de la esquina
+  redondeada— y el botón de abajo quedaba pegado al borde y tapado por la
+  barra de pestañas, que flota fija por encima.
+- El botón se escribió con `className="btn btn-primario ancho"` y **ni
+  `btn-primario` ni `ancho` existen** en la hoja. Las reales son `btn` y
+  `btn-bloque`. Una clase inventada es HTML perfectamente válido: no falla
+  al compilar, no avisa en consola, y el botón sale sin ancho ni aspecto.
+
+Ahora el aspa va pegada al panel con `sticky` —sigue a la vista al bajar
+por una ficha larga— y abajo hay hueco para el indicador de inicio y la
+tabbar. Medido en pantalla: 31 px de aire y nada tapando el botón.
+
+Un test recorre los componentes y falla si alguna clase `btn-*` usada en
+el JSX no está definida en `styles.css`. Comprobado reintroduciendo el
+fallo a propósito: lo caza.
+
 ## 2.13.0 · 20 de agosto de 2026
 
 **Cada sello conseguido se puede abrir y cuenta de dónde sale.** Al

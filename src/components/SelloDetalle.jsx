@@ -115,7 +115,7 @@ export default function SelloDetalle({ code, concesion, genero = 'neutro', onClo
           )}
         </section>
 
-        <button className="btn btn-primario ancho" onClick={onClose}>Cerrar</button>
+        <button className="btn btn-bloque" onClick={onClose}>Cerrar</button>
       </div>
     </div>
   )
