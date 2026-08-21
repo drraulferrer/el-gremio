@@ -61,7 +61,9 @@ const DEFECTOS_TABLA = {
   rewards: { emoji: '🎁', cost: 50, active: true, tier: 2 },
   redemptions: { status: 'pendiente', resolved_at: null },
   family_goals: { emoji: '🏆', target_xp: 1000, achieved: false, achieved_at: null },
-  profile_badges: {},
+  // `instance_key` con su '' por defecto, igual que en la 030: sin él,
+  // la demo dedupe por un juego de claves distinto al de la base.
+  profile_badges: { instance_key: '' },
   app_logs: { datos: {} },
   bonuses: { tipo: 'globos', coins: 5 },
   power_uses: { target_id: null, nota: null },

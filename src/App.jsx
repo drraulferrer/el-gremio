@@ -294,9 +294,16 @@ export default function App() {
     let puestas = 0
 
     if (normales.length) {
+      // Las TRES columnas del índice único, no dos. La 030 cambió
+      // `(profile_id, code)` por `(profile_id, code, instance_key)` para
+      // que un sello pueda repetirse por temporada, y este `onConflict`
+      // se quedó pidiendo el índice viejo: Postgres responde 42P10, la
+      // fila entera se cae y NO se concede nada. `instance_key` no viaja
+      // en la fila —la base pone su '' por defecto antes de resolver el
+      // conflicto—, pero el destino del conflicto sí tiene que nombrarla.
       const { error } = await supabase
         .from('profile_badges')
-        .upsert(normales, { onConflict: 'profile_id,code', ignoreDuplicates: true })
+        .upsert(normales, { onConflict: 'profile_id,code,instance_key', ignoreDuplicates: true })
       if (error) capturar(error, { origen: 'otorgarInsignias' })
       else puestas += normales.length
     }

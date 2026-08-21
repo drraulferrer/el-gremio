@@ -1889,7 +1889,9 @@ function GestionMeta({ family, data, refresh }) {
     const filas = activos.map((p) => ({ family_id: family.id, profile_id: p.id, code: 'gremio' }))
     const insignias = await supabase
       .from('profile_badges')
-      .upsert(filas, { onConflict: 'profile_id,code', ignoreDuplicates: true })
+      // Las tres columnas del índice de la 030; con dos, 42P10 y la
+      // insignia 🏰 no se reparte. Ver App.jsx, mismo caso.
+      .upsert(filas, { onConflict: 'profile_id,code,instance_key', ignoreDuplicates: true })
     if (insignias.error) setFallo(mensajeDeError(insignias.error))
 
     // «Mano derecha» cambia de dueño con cada meta. Primero se retira la

@@ -18,6 +18,42 @@ verdad duele en esta app: que el esquema y el cliente dejen de encajar.
 
 ---
 
+## 2.15.1 · 22 de agosto de 2026
+
+**Tres días sin conceder ni un sello, y nadie se enteró.** La migración
+030 cambió el índice único de `profile_badges` de `(profile_id, code)` a
+`(profile_id, code, instance_key)` —para que un sello pueda repetirse por
+temporada—, y dos `upsert` se quedaron pidiendo el índice viejo:
+`App.jsx`, que es por donde se conceden TODOS los sellos normales, y el
+cierre de meta del panel, que reparte la insignia 🏰.
+
+Postgres contesta `42P10` («there is no unique or exclusion constraint
+matching the ON CONFLICT specification») y **se cae la fila entera**. El
+código capturaba el error y seguía, así que la app se veía bien: ni un
+sello nuevo desde el 19-ago, y 68 → 80 → 147 errores al día en
+`app_logs` porque cada carga lo reintenta. El último sello concedido era
+del 19 de agosto.
+
+Se descubrió leyendo los registros para otra cosa. Nadie los miraba: son
+1.650 líneas en siete días que hasta hoy no había abierto nadie.
+
+Lo que se ha hecho, por orden de importancia:
+
+- **El arreglo**, que son dos cadenas de texto: el `onConflict` nombra las
+  tres columnas. `instance_key` no viaja en la fila —la base pone su `''`
+  antes de resolver el conflicto—, pero el destino sí tiene que nombrarla.
+- **`tests/upserts.test.js`**, que cruza cada `onConflict` del cliente con
+  los índices únicos de `schema.sql` y falla si no encaja ninguno.
+  Comprobado reintroduciendo el fallo a propósito: lo caza, y el mensaje
+  dice qué índices hay de verdad. Ni el build ni los tipos podían ver
+  esto: la incoherencia era entre una cadena y un índice.
+- **La demo deja de ser más permisiva que la base**: `profile_badges`
+  hereda ahora el `instance_key: ''` por defecto. En demo el fallo NO se
+  reproducía, que es la peor combinación posible.
+
+Al abrir la app, la familia recibirá de golpe los sellos de estos tres
+días: el motor recalcula desde el historial y concede lo que falte.
+
 ## 2.15.0 · 22 de agosto de 2026
 
 **La tienda ya no sale salteada.** Los premios llegaban de la base por

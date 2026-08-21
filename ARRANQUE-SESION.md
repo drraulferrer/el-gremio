@@ -3488,3 +3488,35 @@ Verificado en demo con los 11 premios del gremio de pruebas: 325, 325,
 350, 450, 480, 505, 505 de menos a más; al invertir, los dos 325 y los dos
 505 conservan su orden interno; la preferencia aguanta el cambio de
 pestaña. 878 tests.
+
+---
+
+## 7ab. El sello que no se concedía (22 de agosto) · 2.15.1 · SIN MIGRACIÓN
+
+**El fallo más caro de este proyecto hasta la fecha, medido en días
+vivo: tres.** Y no lo encontró nadie mirando la app, sino una consulta a
+`app_logs` hecha para otra cosa.
+
+`onConflict: 'profile_id,code'` contra un índice que la 030 había
+convertido en `(profile_id, code, instance_key)`. Postgres: `42P10`, fila
+entera al suelo. `App.jsx` captura el error y sigue, así que la app se
+veía perfecta mientras el motor de sellos no concedía NADA desde el
+19-ago. Los errores crecían (68 → 80 → 147 al día) porque se reintenta en
+cada carga.
+
+Tres lecciones, y las tres valen para el próximo cambio de esquema:
+
+1. **Un `onConflict` es una dependencia del esquema escrita en una
+   cadena de texto.** Cambiar un índice único en una migración obliga a
+   buscar todos los `upsert` de esa tabla. Ahora lo vigila
+   `tests/upserts.test.js`.
+2. **Capturar el error y seguir convierte un fallo en un silencio.** Aquí
+   estaba bien no tumbar la app, pero nadie miraba dónde caía el aviso.
+3. **La demo era más permisiva que la base** y por eso no reprodujo nada:
+   el backend simulado no tiene índices. Ya lleva el `instance_key: ''`
+   por defecto, pero la lección de fondo es que la demo no puede ser la
+   única verificación de algo que depende de una restricción de Postgres.
+
+Y la meta-lección, que es la que importa: **1.650 líneas de registro en
+siete días y ningún sitio donde mirarlas.** El panel de uso (§7ac, en
+marcha) nace de aquí.
