@@ -35,6 +35,12 @@ export function mensajeDeError(error) {
   if (/column .*active.* does not exist/i.test(texto)) {
     return 'Falta ejecutar migracion-003-miembros.sql en el SQL Editor de Supabase.'
   }
+  // La 033 llega con el bundle que trae el botón de contar fallos. Si se
+  // publica antes de ejecutarla, el primer informe se pierde con un
+  // «schema cache» que no dice nada; esto dice exactamente qué falta.
+  if (/informes_fallo/i.test(texto) && /does not exist|schema cache/i.test(texto)) {
+    return 'Falta ejecutar migracion-033-informes-de-fallo.sql en el SQL Editor de Supabase.'
+  }
   if (/Failed to fetch|NetworkError|ERR_INTERNET/i.test(texto)) {
     return 'Sin conexión con el gremio. Comprueba la red e inténtalo otra vez.'
   }

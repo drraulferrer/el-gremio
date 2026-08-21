@@ -421,6 +421,34 @@ create index if not exists idx_zonas_family on public.zonas_casa (family_id, ord
 grant select on public.zonas_casa to anon;
 grant select, insert, update, delete on public.zonas_casa to authenticated;
 
+-- ------------------------------------------------------------------
+-- El buzón de fallos (migración 033).
+--
+-- Lo que escribe la familia cuando algo va mal, con la versión, la
+-- pantalla y las huellas que `monitoring.js` ya tenía en memoria. No es
+-- un sistema de tickets: es una libreta, y `estado` solo existe para
+-- tachar lo ya arreglado.
+-- ------------------------------------------------------------------
+create table if not exists public.informes_fallo (
+  id uuid primary key default gen_random_uuid(),
+  family_id uuid not null references public.families(id) on delete cascade,
+  profile_id uuid references public.profiles(id) on delete set null,
+  texto text not null check (length(btrim(texto)) between 4 and 1000),
+  pantalla text check (pantalla is null or length(pantalla) <= 40),
+  -- `version_app` y no `release`: `app_logs.release` ya escuece por
+  -- llamarse como una palabra de SQL; no hay motivo para repetirlo.
+  version_app text check (version_app is null or length(version_app) <= 60),
+  agente text check (agente is null or length(agente) <= 200),
+  huellas jsonb not null default '[]'::jsonb,
+  estado text not null default 'nuevo' check (estado in ('nuevo','visto','arreglado','descartado')),
+  created_at timestamptz not null default now()
+);
+
+create index if not exists idx_informes_family on public.informes_fallo (family_id, created_at desc);
+
+grant select on public.informes_fallo to anon;
+grant select, insert, update, delete on public.informes_fallo to authenticated;
+
 create index if not exists idx_completions_family_status on public.completions (family_id, status);
 create index if not exists idx_completions_profile on public.completions (profile_id, requested_at desc);
 create index if not exists idx_redemptions_family_status on public.redemptions (family_id, status);
@@ -476,6 +504,7 @@ alter table public.profile_badges enable row level security;
 alter table public.plan_diario enable row level security;
 alter table public.campanas_limpieza enable row level security;
 alter table public.zonas_casa enable row level security;
+alter table public.informes_fallo enable row level security;
 
 -- Todas van declaradas `to authenticated`. Sin eso Postgres evalúa la
 -- política —y con ella la subconsulta a `families`— también para el rol
@@ -491,7 +520,7 @@ create policy familia_owner on public.families
 do $$
 declare t text;
 begin
-  foreach t in array array['profiles','challenges','completions','rewards','redemptions','family_goals','profile_badges','plan_diario','mission_families','campanas_limpieza','zonas_casa']
+  foreach t in array array['profiles','challenges','completions','rewards','redemptions','family_goals','profile_badges','plan_diario','mission_families','campanas_limpieza','zonas_casa','informes_fallo']
   loop
     execute format('drop policy if exists familia_miembro on public.%I', t);
     execute format($f$
@@ -555,6 +584,11 @@ create trigger tope_campanas before insert on public.campanas_limpieza
 drop trigger if exists tope_zonas on public.zonas_casa;
 create trigger tope_zonas before insert on public.zonas_casa
   for each row execute function public.tg_tope_filas('40');
+
+-- Un buzón sin tope es un sitio donde meter 100.000 filas gratis.
+drop trigger if exists tope_informes on public.informes_fallo;
+create trigger tope_informes before insert on public.informes_fallo
+  for each row execute function public.tg_tope_filas('200');
 
 -- El plan solo se programa cerca: hoy o mañana. El `unique` limita las
 -- filas por día, pero `dia` es un eje libre y una cuenta podría insertar

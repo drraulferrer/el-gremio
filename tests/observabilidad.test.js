@@ -72,6 +72,16 @@ describe('mensajes de error para la interfaz', () => {
     expect(mensajeDeError({ message: 'Failed to fetch' })).toMatch(/Sin conexión/)
   })
 
+  // Publicar el bundle antes que la migración es el error de despliegue
+  // más fácil de cometer aquí, y el que peor se diagnostica: PostgREST
+  // contesta «schema cache» y quien lo lee no sabe qué hacer con eso.
+  it('dice qué migración falta cuando la tabla del buzón no está', () => {
+    const mensaje = mensajeDeError({
+      message: "Could not find the table 'public.informes_fallo' in the schema cache"
+    })
+    expect(mensaje).toMatch(/migracion-033/)
+  })
+
   it('no inventa nada cuando no reconoce el error', () => {
     expect(mensajeDeError({ message: 'otra cosa rara' })).toBe('otra cosa rara')
     expect(mensajeDeError(null)).toBe('')

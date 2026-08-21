@@ -20,6 +20,12 @@ VIVO de punta a punta. Antes de añadir nada, lee §8.
 empujar y después `npm run vercel` (§7n), y SIEMPRE con la migración
 ejecutada antes que el bundle.
 
+**Lo segundo, al 21-ago:** hay una migración **033 SIN EJECUTAR** (§7z, el
+buzón de fallos). El bundle 2.14.0 no debe publicarse antes que ella. Y
+desde la 2.14.0 hay un sitio nuevo que mirar cada pocos días: la tabla
+`informes_fallo`, que es donde la familia cuenta lo que va mal (RUNBOOK
+§3b).
+
 **Si abres sesión nueva, empieza por §8.** Los **803 tests y el CI están
 en verde** (el CI estuvo roto unas horas por un test que parcheaba el
 cliente nulo; arreglado en `ed0a311` con inyección). Producción sirve la
@@ -3351,3 +3357,75 @@ SHA-256 de la migración (cotejar antes de Run, método §2):
 `tests/talis.test.js` vigila que `schema.sql` no diga «Talis» NI en
 comentarios; ya mordió dos veces. Y las tablas nuevas siguen sin
 heredar el grant de `anon` (§7w): la 032 lo lleva explícito.
+
+---
+
+## 7z. El buzón de fallos (21 de agosto) · 2.14.0 · **MIGRACIÓN 033 PENDIENTE DE EJECUTAR**
+
+### Qué es
+
+La tabla `informes_fallo` y dos puertas para escribir en ella: «Algo va
+mal · contarlo» en el selector de perfiles, y «Contar qué estabas
+haciendo» en la pantalla de tropiezo (`ErrorBoundary`).
+
+### Por qué, que es lo que no se deduce del código
+
+`monitoring.js` recogía huellas de error desde el primer día y **nadie las
+leyó nunca**: se quedaban en el navegador de quien sufría el fallo. Y la
+pantalla de tropiezo decía «el fallo ya ha quedado registrado», que quería
+decir «en la consola de este móvil». El agujero no era de captura, era de
+transporte. Esto es el transporte.
+
+### Decisiones que no hay que deshacer
+
+- **La entrada NO va detrás del PIN.** Quien se tropieza con un fallo casi
+  siempre es quien no tiene el PIN. Está en el selector, a un toque de
+  «Cambiar» desde cualquier tablero.
+- **La peque no la ve.** Su pantalla son dibujos; un botón de texto ahí es
+  un botón que se pulsa por jugar.
+- **Se dice qué se manda, en la propia hoja y antes de mandarlo.** Texto,
+  versión, pantalla, agente recortado y las tres huellas más repetidas.
+  Nada más. `tests/fallos.test.js` fija la lista de campos EXACTA: el día
+  que alguien añada uno, la prueba lo dice en voz alta.
+- **Al fallar el envío no se borra lo escrito.** El fallo más común es
+  quedarse sin red, y se arregla solo en un minuto.
+- **El envío busca el gremio por su cuenta si no se lo dan.** La pantalla
+  de tropiezo puede no haber cargado nada, y es justo donde más falta hace
+  poder contarlo.
+- **Sin realtime, a propósito**: nadie escucha ese buzón desde la app.
+- **Sin `maybeSingle()`**: el backend simulado no lo tiene, y una demo que
+  no puede hacer lo que hace producción es peor que no tenerla.
+
+### Cómo se lee (esto es lo que se usa de verdad)
+
+RUNBOOK §3b. En corto:
+
+```sql
+select created_at, texto, pantalla, version_app, huellas
+  from public.informes_fallo
+ where estado = 'nuevo'
+ order by created_at desc;
+```
+
+### El estado
+
+Verificado en demo de punta a punta, las dos puertas: desde el selector
+(fila con `pantalla='selector'`, versión y agente recortado) y desde la
+pantalla de tropiezo (`pantalla='tropiezo'`, con el `family_id` resuelto
+solo). Inyectando dos errores iguales por `window.onerror`, el informe
+viaja con `[{huella:'TypeError: …', veces:2}]`, que era el objetivo entero
+de la función. 870 tests.
+
+SHA-256 de la migración (cotejar antes de Run, método §2):
+
+```
+033  5f27201fe7e7983ffc43ddad3ceae18cb4b7b563cb49aa2a3548110506839adb
+```
+
+### La trampa de este trayecto
+
+**Publicar el bundle antes que la migración.** Si pasa, el primer informe
+muere con un «schema cache» que no dice nada; por eso `mensajeDeError`
+traduce ese caso exacto a «Falta ejecutar migracion-033…», con su test en
+`tests/observabilidad.test.js`. Aun así: **primero la 033, después
+`npm run vercel`.**

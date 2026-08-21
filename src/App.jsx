@@ -18,6 +18,7 @@ import NuevaClave from './screens/NuevaClave'
 import { esRecuperacion } from './lib/acceso'
 import Onboarding from './screens/Onboarding'
 import ProfilePicker from './screens/ProfilePicker'
+import ReportarFallo from './screens/ReportarFallo'
 import Home from './screens/Home'
 import KidHome from './screens/KidHome'
 import ParentPanel from './screens/ParentPanel'
@@ -50,6 +51,10 @@ export default function App() {
   // re-renderizaría: la pantalla se quedaría pegada para siempre.
   const [verTutorial, setVerTutorial] = useState(() => (tutorialPendiente() ? 'todo' : null))
   const [parentMode, setParentMode] = useState(false)
+  // La hoja de «algo va mal». Vive aquí y no dentro del selector para que
+  // sobreviva a que el selector se recargue por realtime mientras alguien
+  // está escribiendo: perder lo escrito es perder el informe.
+  const [contandoFallo, setContandoFallo] = useState(false)
   // Viene del enlace del correo. Se mira la URL ya en el primer render
   // además de escuchar el evento: supabase-js consume el hash al arrancar
   // y puede avisar antes de que esto esté escuchando.
@@ -495,6 +500,16 @@ export default function App() {
             profiles={perfilesActivos(data.profiles).filter((p) => p.role !== 'mascota')}
             onPick={elegirPerfil}
             onParent={() => setPidePin(true)}
+            onReportar={() => setContandoFallo(true)}
+          />
+        )}
+
+        {contandoFallo && (
+          <ReportarFallo
+            pantalla="selector"
+            familyId={family.id}
+            profileId={profile?.id || null}
+            onClose={() => setContandoFallo(false)}
           />
         )}
 

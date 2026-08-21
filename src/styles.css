@@ -393,6 +393,12 @@ button { font-family: inherit; }
   color: var(--tinta-suave);
   font-size: 0.9rem;
   text-decoration: none;
+  /* Vale igual para un <a> que para un <button>: contar un fallo es una
+     acción y no un destino, así que ahí tiene que ser un botón de verdad
+     —y sin esto el navegador le pinta su fondo gris de serie. */
+  background: none;
+  border: 0;
+  cursor: pointer;
   border-bottom: 1px solid rgba(255, 255, 255, 0.18);
   padding: 12px 4px;
   transition: color 0.18s ease, border-color 0.18s ease;
@@ -802,7 +808,7 @@ button { font-family: inherit; }
 .campo { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; text-align: left; }
 .campo label { font-size: 0.82rem; font-weight: 700; color: var(--tinta-suave); }
 
-input, select {
+input, select, textarea {
   background: var(--tablero-hondo);
   border: 1.5px solid var(--linea);
   border-radius: var(--radio-s);
@@ -813,9 +819,18 @@ input, select {
   width: 100%;
 }
 
+/* El único `textarea` de la app es el de contar un fallo. Se puede
+   estirar a lo alto y no a lo ancho: a lo ancho rompe la hoja del modal
+   en un móvil, y ahí es justo donde se escriben los fallos. */
+textarea {
+  resize: vertical;
+  min-height: 108px;
+  line-height: 1.45;
+}
+
 /* El foco va en teal, no en oro: es cromo, no un logro. Sobre el índigo
    nuevo (#141428) el teal da 6,9:1, de sobra para el anillo de foco. */
-input:focus, select:focus, button:focus-visible {
+input:focus, select:focus, textarea:focus, button:focus-visible {
   outline: 2px solid var(--teal);
   outline-offset: 2px;
 }

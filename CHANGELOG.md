@@ -18,6 +18,45 @@ verdad duele en esta app: que el esquema y el cliente dejen de encajar.
 
 ---
 
+## 2.14.0 · 21 de agosto de 2026
+
+**Contar que algo va mal, desde dentro de la app.** Hasta hoy un fallo
+visto un domingo por la tarde llegaba —si llegaba— de viva voz y tres días
+después, sin versión, sin pantalla y sin lo que decía la consola.
+`monitoring.js` recogía las huellas de cada error desde el primer día,
+pero se quedaban en el navegador de quien lo sufría: nadie las leyó nunca.
+
+Ahora hay dos puertas y las dos llevan al mismo sitio:
+
+- **«Algo va mal · contarlo»** en el selector de perfiles. Vive ahí y no
+  detrás del PIN a propósito: quien se tropieza con un fallo suele ser
+  justo quien NO tiene el PIN, y esa pantalla está a un toque de «Cambiar»
+  desde cualquier tablero.
+- **«Contar qué estabas haciendo»** en la pantalla de tropiezo. Esa
+  pantalla decía «el fallo ya ha quedado registrado», que significaba «en
+  la consola de este móvil», que es tanto como decir en ninguna parte.
+
+Lo que se manda es lo que escribe la persona **más** la versión, la
+pantalla, el agente recortado y las tres huellas de error más repetidas.
+Nada más: ni capturas, ni datos de otras pantallas. Y se dice en la propia
+hoja, debajo del campo, antes de mandar nada.
+
+Detalles que no se ven pero deciden si esto sirve:
+
+- **Si falla el envío no se borra lo escrito.** El motivo más común de
+  fallo es quedarse sin red, y se arregla solo en un minuto; un formulario
+  que se vacía al fallar es la forma más segura de que nadie lo reintente.
+- **La pantalla de tropiezo no tiene datos cargados**, así que el envío
+  busca el gremio por su cuenta en vez de recibirlo. Justo ahí es donde
+  más falta hace poder contarlo.
+- **Nadie mira este buzón desde la app** y por eso la tabla no va por
+  realtime. Se lee con una consulta, y está escrita en el RUNBOOK §3b.
+- Migración **033**, con RLS por gremio, grant explícito de `anon` (la
+  lección de la 028) y tope de 200 informes por gremio.
+
+La peque no lo ve: su pantalla son dibujos, y un botón de texto ahí es un
+botón que se pulsa por jugar.
+
 ## 2.13.2 · 21 de agosto de 2026
 
 **Dos frases que no decían la verdad.** Ninguna rompía nada; las dos

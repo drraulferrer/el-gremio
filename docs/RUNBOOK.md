@@ -87,6 +87,34 @@ mismo fallo con distintos ids cuente como uno) y lleva la frecuencia.
 
 El proveedor externo está **preparado y apagado**.
 
+### 3b. El buzón de fallos: lo que cuenta la familia
+
+Desde la 2.14.0 hay un camino que antes no existía: `informes_fallo`
+(migración 033). Lo que ve el usuario es «Algo va mal · contarlo» en el
+selector de perfiles, y «Contar qué estabas haciendo» en la pantalla de
+tropiezo. Lo que llega es el texto MÁS las huellas que `monitoring.js`
+tenía en memoria en ese momento: eso es lo que convierte «no va» en algo
+diagnosticable.
+
+Leerlo es una consulta, y conviene hacerla cada pocos días:
+
+```sql
+select created_at, texto, pantalla, version_app, huellas
+  from public.informes_fallo
+ where estado = 'nuevo'
+ order by created_at desc;
+```
+
+Y al arreglar uno, tacharlo para que la lista no crezca sin fin:
+
+```sql
+update public.informes_fallo set estado = 'arreglado' where id = '…';
+```
+
+No hay aviso de que ha entrado uno: nadie mira este buzón desde la app, y
+suscribirlo por realtime sería pagar por algo que nadie escucha. Se mira
+a mano, como el `salud_diaria` de abajo.
+
 **¿Hace falta encenderlo? A la escala de hoy, no.** `salud_diaria`
 (migración 023) ya da el recuento diario de errores de TODAS las familias
 —corre como `security definer`, así que no la para el RLS— y `app_logs`
