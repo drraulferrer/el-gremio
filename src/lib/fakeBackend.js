@@ -174,6 +174,16 @@ class Consulta {
     return this
   }
 
+  // `in` existe porque la pantalla de Estado pide los registros de dos
+  // niveles a la vez. Sin esto, la llamada revienta con «this.in is not
+  // a function» SOLO en demo: producción funciona y la demo miente
+  // diciendo que no hay errores, que es la peor combinación posible y
+  // ya pasó una vez con `grant_manual_bonus`.
+  in(columna, valores) {
+    this.conjuntos = [...(this.conjuntos || []), { columna, valores: [...valores] }]
+    return this
+  }
+
   // Solo lo básico que usa la app (la carga del plan filtra por fecha
   // mínima). Comparar cadenas ISO 'YYYY-MM-DD' con >= funciona porque el
   // orden lexicográfico coincide con el cronológico.
@@ -220,7 +230,8 @@ class Consulta {
 
   coincide(fila) {
     return this.filtros.every((f) => fila[f.columna] === f.valor) &&
-      this.rangos.every((r) => (fila[r.columna] ?? '') >= r.valor)
+      this.rangos.every((r) => (fila[r.columna] ?? '') >= r.valor) &&
+      (this.conjuntos || []).every((c) => c.valores.includes(fila[c.columna]))
   }
 
   ejecutar() {

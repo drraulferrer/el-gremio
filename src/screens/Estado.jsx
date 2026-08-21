@@ -3,6 +3,7 @@ import { supabase, modoDemo, mensajeDeError } from '../lib/supabase'
 import { VERSION, COMMIT, BUILT_AT, RELEASE } from '../lib/version'
 import { todasLasFlags, setFlag } from '../lib/flags'
 import { resumenErrores } from '../lib/monitoring'
+import { agruparErrores, tituloDeErrores } from '../lib/registro'
 import { vaciar } from '../lib/log'
 import { diagnosticoEconomia, veredicto, SUPUESTOS } from '../lib/economia'
 import { Talis } from '../components/ui'
@@ -22,6 +23,10 @@ export default function Estado({ family, data }) {
   const [salud, setSalud] = useState({ estado: 'comprobando' })
   const [flags, setFlags] = useState(() => todasLasFlags())
   const [errores, setErrores] = useState([])
+  const [falloRegistro, setFalloRegistro] = useState('')
+  // Qué contarle a quien pulsa «enviar y recargar». Sin esto el botón
+  // hacía su trabajo en silencio y se leía como que no hacía nada.
+  const [envio, setEnvio] = useState('')
 
   async function comprobar() {
     setSalud({ estado: 'comprobando' })
@@ -31,14 +36,23 @@ export default function Estado({ family, data }) {
     else setSalud({ estado: 'ok', detalle: res, ms: Date.now() - inicio })
   }
 
+  // El filtro por nivel va en la CONSULTA y no después de traerla.
+  // Estaba al revés: se pedían las 20 últimas líneas de todos los
+  // niveles y luego se quedaba con las de error. Con 171 líneas de
+  // `debug` y 78 de `info` en dos días, esas 20 se llenaban de ruido y
+  // el panel enseñaba dos errores de los 228 que había, o ninguno.
+  // Un filtro después de un `limit` no filtra: recorta.
   async function cargarErrores() {
-    const { data: filas } = await supabase
+    const { data: filas, error } = await supabase
       .from('app_logs')
       .select('*')
       .eq('family_id', family.id)
+      .in('nivel', ['error', 'warn'])
       .order('ts', { ascending: false })
-      .limit(20)
-    setErrores((filas || []).filter((f) => f.nivel === 'error' || f.nivel === 'warn'))
+      .limit(200)
+    if (error) setFalloRegistro(mensajeDeError(error))
+    else setFalloRegistro('')
+    setErrores(filas || [])
   }
 
   useEffect(() => {
@@ -52,6 +66,7 @@ export default function Estado({ family, data }) {
     : null
 
   const enMemoria = resumenErrores()
+  const grupos = agruparErrores(errores)
   const eco = diagnosticoEconomia(data)
 
   return (
@@ -199,7 +214,12 @@ export default function Estado({ family, data }) {
       </div>
 
       <div className="titulo-seccion">Últimos avisos y errores</div>
-      {errores.length === 0 && enMemoria.length === 0 && <div className="vacio">Ni un error registrado. Buena señal.</div>}
+      {falloRegistro && <p className="error-texto" role="alert">{falloRegistro}</p>}
+      {errores.length === 0 && enMemoria.length === 0 ? (
+        <div className="vacio">Ni un error registrado. Buena señal.</div>
+      ) : (
+        <p className="suave" style={{ margin: '0 4px 8px' }}>{tituloDeErrores(grupos)}</p>
+      )}
 
       {enMemoria.length > 0 && (
         <div className="carta">
@@ -213,28 +233,62 @@ export default function Estado({ family, data }) {
         </div>
       )}
 
-      {errores.map((e) => (
-        <div className="carta" key={e.id}>
+      {/* Agrupado por huella. Antes cada fila decía «error.capturado», que
+          es el nombre que llevan TODOS los errores de la app: la lista
+          repetía siete veces «ha fallado algo» y no decía nunca qué. */}
+      {grupos.map((g) => (
+        <div className="carta" key={g.huella}>
           <div className="fila-separada">
-            <strong style={{ fontSize: '0.95rem' }}>{e.evento}</strong>
-            <span className={'chip ' + (e.nivel === 'error' ? 'chip-pendiente' : '')}>{e.nivel}</span>
+            <strong className="huella-error">{g.huella}</strong>
+            <span className={'chip ' + (g.nivel === 'error' ? 'chip-pendiente' : '')}>
+              {g.veces > 1 ? `×${g.veces}` : g.nivel}
+            </span>
           </div>
           <div className="suave">
-            {new Date(e.ts).toLocaleString('es-ES')} · {e.release || '—'} · petición {e.request_id || '—'}
+            {g.ultima ? `Última vez: ${new Date(g.ultima).toLocaleString('es-ES')}` : 'Sin fecha'}
+            {g.veces > 1 && g.primera && g.primera !== g.ultima
+              ? ` · desde ${new Date(g.primera).toLocaleDateString('es-ES')}`
+              : ''}
           </div>
+          <div className="suave">
+            {g.origen ? `En ${g.origen}` : 'Origen sin identificar'}
+            {g.codigo ? ` · Postgres ${g.codigo}` : ''}
+            {g.releases.length ? ` · ${g.releases.join(', ')}` : ''}
+          </div>
+          {/* Fichero, línea y columna vacíos = el navegador oculta el
+              error de un script de otro origen. Casi siempre una
+              extensión, y no se puede diagnosticar: decirlo ahorra la
+              tarde de buscarlo en código propio. */}
+          {g.ajeno && (
+            <div className="suave">De fuera de la app (casi siempre una extensión del navegador). No se puede diagnosticar.</div>
+          )}
         </div>
       ))}
 
+      {/* El botón hacía exactamente esto y no decía nada, así que se leía
+          como roto: si no había cola pendiente —el caso normal, porque se
+          vacía sola cada pocos segundos— la pantalla se quedaba igual. */}
       <button
         className="btn btn-fantasma btn-bloque"
         style={{ marginTop: 12 }}
+        disabled={envio === 'enviando'}
         onClick={async () => {
+          setEnvio('enviando')
+          const antes = errores.length
           await vaciar()
           await cargarErrores()
+          setEnvio(String(antes))
         }}
       >
-        Enviar logs pendientes y recargar
+        {envio === 'enviando' ? 'Enviando…' : 'Enviar lo pendiente y recargar'}
       </button>
+      {envio && envio !== 'enviando' && (
+        <p className="suave" role="status" style={{ margin: '8px 4px 0' }}>
+          {errores.length > Number(envio)
+            ? `Enviado. ${errores.length - Number(envio)} línea(s) nueva(s).`
+            : 'No había nada pendiente: el registro ya estaba al día.'}
+        </p>
+      )}
 
       <p className="suave" style={{ margin: '12px 4px 0' }}>
         Release {RELEASE} · {data.profiles.length} perfiles · {data.challenges.length} misiones

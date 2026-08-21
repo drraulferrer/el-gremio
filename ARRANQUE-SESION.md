@@ -3542,3 +3542,30 @@ esta casa el reconocimiento se lee, antes de comprometer el esquema.
 
 La 034 solo entra en F2. Hay **cuatro preguntas abiertas al final del
 documento** que no puede decidir quien escriba el código.
+
+
+---
+
+## 7ad. El panel que no decía qué fallaba (22 de agosto) · 2.16.0
+
+Continuación directa de §7ab. Si el fallo de los sellos estuvo tres días
+vivo no fue solo porque el `onConflict` estuviera mal: fue porque **el
+sitio donde había que verlo no lo enseñaba**.
+
+Lo que se arregló en `src/screens/Estado.jsx` y `src/lib/registro.js`:
+
+- La lista pintaba `evento`, que vale lo mismo para todos los errores.
+  Ahora pinta la **huella**, el `origen`, el código de Postgres y en qué
+  versiones ha aparecido (si sale en dos, sobrevivió a un despliegue).
+- **Agrupado por huella, con `×N`**, «desde» y «última vez». Sin agrupar,
+  lo grave se entierra bajo lo repetido.
+- El filtro de nivel **iba después del `limit`**: se pedían 20 líneas de
+  cualquier nivel y luego se quedaba con los errores. Con el ruido de
+  `debug` e `info`, el panel enseñaba dos de 228. Ahora `.in('nivel',
+  ['error','warn'])` en la consulta, y 200 filas.
+- El botón de enviar y recargar **dice lo que ha hecho**.
+- `fakeBackend` no tenía `.in()`. Añadido, con la lección de siempre: una
+  demo menos capaz que la base miente en la dirección peor.
+
+`tests/registro.test.js` (14 pruebas) fija el comportamiento con la fila
+REAL que guardó producción el 21-ago a las 22:21.

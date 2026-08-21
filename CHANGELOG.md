@@ -18,6 +18,47 @@ verdad duele en esta app: que el esquema y el cliente dejen de encajar.
 
 ---
 
+## 2.16.0 · 22 de agosto de 2026
+
+**El panel de errores decía siete veces «ha fallado algo» y nunca decía
+qué.** Cada fila enseñaba el nombre del evento —`error.capturado`, que es
+el mismo para TODOS los errores de la app—, la hora, la versión y una
+«petición —» vacía. La huella, el código de Postgres y el origen estaban
+guardados en `datos` y no se pintaban. Por eso el fallo de los sellos
+pudo estar tres días delante de los ojos de cualquiera.
+
+Tres cosas, y las tres son la misma:
+
+- **Se lee el mensaje, no el nombre del evento.** Ahora cada tarjeta
+  empieza por lo que falló: «there is no unique or exclusion constraint…
+  · En otorgarInsignias · Postgres 42P10 · 2.15.0+796376b».
+- **Lo repetido se agrupa y se cuenta.** 294 líneas iguales eran 294
+  tarjetas que enterraban lo demás; ahora es una con `×294`, desde cuándo
+  y cuándo fue la última. Y una frase arriba: «2 fallos distintos, 295
+  veces».
+- **Se marca lo que no es nuestro.** Un «Script error.» sin fichero ni
+  línea viene de fuera —una extensión, casi siempre— y no se puede
+  diagnosticar. Decirlo ahorra la tarde de buscarlo en código propio.
+
+**El filtro estaba después del `limit`, que es no filtrar: recortar.** La
+consulta pedía las 20 últimas líneas de TODOS los niveles y luego se
+quedaba con las de error. Con 171 líneas de `debug` y 78 de `info` en dos
+días, esas 20 se llenaban de ruido y el panel enseñaba dos errores de los
+228 que había. Ahora el nivel va en la consulta y se traen 200.
+
+**El botón sí hacía algo; lo que no hacía era decirlo.** «Enviar lo
+pendiente y recargar» vacía la cola de registro, pero esa cola se vacía
+sola cada pocos segundos, así que casi siempre no había nada que enviar y
+la pantalla se quedaba idéntica. Ahora contesta: «Enviado. 3 líneas
+nuevas» o «No había nada pendiente: el registro ya estaba al día».
+
+**Y el backend simulado se había quedado corto otra vez.** No tenía
+`.in()`, así que la consulta nueva reventaba **solo en demo** —producción
+bien, demo diciendo que no hay errores—, que es exactamente la
+combinación que este proyecto ya se prometió no repetir. Se descubrió
+porque el panel nuevo, en la demo, enseñó su propio fallo:
+`TypeError: …eq(...).in is not a function ×2`.
+
 ## 2.15.1 · 22 de agosto de 2026
 
 **Tres días sin conceder ni un sello, y nadie se enteró.** La migración

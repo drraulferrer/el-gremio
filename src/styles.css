@@ -850,6 +850,16 @@ input:focus, select:focus, textarea:focus, button:focus-visible {
 
 .error-texto { color: var(--peligro); font-weight: 700; font-size: 0.9rem; }
 
+/* La huella de un error no es prosa: son rutas, identificadores y
+   llamadas encadenadas sin un solo espacio donde partir. Sin esto, una
+   sola línea como `supabase.from(...).select(...).eq(...).in` saca la
+   tarjeta entera de la pantalla del móvil. */
+.huella-error {
+  overflow-wrap: anywhere;
+  font-size: 0.95rem;
+  line-height: 1.35;
+}
+
 /* La casilla de aceptación del alta. La caja de toque es la etiqueta
    entera, no el cuadradito de 16 px: en un móvil, acertarle a ese
    cuadrado es justo la clase de fricción que hace abandonar el registro
