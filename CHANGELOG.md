@@ -18,6 +18,34 @@ verdad duele en esta app: que el esquema y el cliente dejen de encajar.
 
 ---
 
+## 2.15.0 · 22 de agosto de 2026
+
+**La tienda ya no sale salteada.** Los premios llegaban de la base por
+`created_at` —el orden en que alguien los escribió—, que para quien mira
+la tienda es ningún orden: 505, 325, 900, 480. Comparar «¿qué me llega
+antes?» obligaba a leer la lista entera y hacer la cuenta de cabeza.
+
+Ahora salen **de menos a más por defecto**, y hay un botón arriba a la
+derecha para darle la vuelta («↑ Más barato» / «↓ Más caro»).
+
+- **El defecto no es estético.** Lo que decide si esto se sigue usando son
+  los primeros días, y en los primeros días lo único accionable es lo más
+  barato. Ponerlo delante es poner delante lo que se puede tocar.
+- **La preferencia se guarda en el dispositivo**, no en el perfil: es una
+  manía de quien mira. Sin eso se perdía al cambiar de pestaña, porque la
+  tienda se vuelve a montar cada vez que se toca «Tienda».
+- **Los empates se rompen por título y siempre en el mismo sentido.** Dos
+  premios de 505 que se intercambien el sitio al invertir el orden se leen
+  como un fallo, no como un orden.
+- **El botón no sale con un solo premio**: un botón que no cambia nada
+  visible se lee como que está roto.
+- **El panel parental también ordena por precio**, sin botón: quien edita
+  premios los compara con los de su banda, y esa comparación es siempre de
+  menos a más.
+
+La tienda de la peque ya ordenaba así desde el primer día
+(`premiosParaPeque`); esto le da a la de los mayores lo que ella tenía.
+
 ## 2.14.0 · 21 de agosto de 2026
 
 **Contar que algo va mal, desde dentro de la app.** Hasta hoy un fallo

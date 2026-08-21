@@ -19,7 +19,7 @@ import { planDelDia, agruparPorFrecuencia } from '../lib/misiones'
 import { campanaActiva, diasRestantes, esfuerzoDeMision } from '../lib/limpieza'
 import { iniciarTarea, inicioDe, olvidarTarea, restanteDe, textoDeRestante } from '../lib/temporizador'
 import { flag } from '../lib/flags'
-import { premiosParaMayores } from '../lib/premios'
+import { premiosParaMayores, ordenarPorPrecio, leerOrdenTienda, alternarOrdenTienda, ORDEN_TIENDA } from '../lib/premios'
 import { semana, etiquetaDeSemana, validadasDe, resumenDeSemana, semanasConDatos } from '../lib/historial'
 
 export default function Home({ family, data, profile, refresh, onSwitchProfile, onParent, historial }) {
@@ -462,16 +462,39 @@ function TareaDeOperacion({ reto, genero, ocupado, onPedir, profileId, rol }) {
 }
 
 function Tienda({ data, profile, ocupado, onCanjear }) {
+  // El sentido vive en el dispositivo y no en el perfil: es una manía de
+  // quien mira, no un dato del gremio, y sobrevive a cambiar de pestaña
+  // —esta pantalla se vuelve a montar cada vez que se toca «Tienda»—.
+  const [orden, setOrden] = useState(() => leerOrdenTienda())
+
   // Los premios por debajo del techo de la peque son SUYOS y no salen
   // aquí: cuestan quince o veinte Talis porque ella gana cinco al día,
   // y en esta tienda serían gratis.
-  const premios = premiosParaMayores(data.rewards)
+  const premios = ordenarPorPrecio(premiosParaMayores(data.rewards), orden)
   const misCanjes = data.redemptions.filter((r) => r.profile_id === profile.id && r.status === 'pendiente')
   const premioDe = (id) => data.rewards.find((r) => r.id === id)
+  const barato = orden === ORDEN_TIENDA.BARATO
 
   return (
     <div>
-      <div className="titulo-seccion">Tienda del gremio</div>
+      <div className="fila-separada">
+        <div className="titulo-seccion">Tienda del gremio</div>
+        {/* Con un premio no hay nada que ordenar, y un botón que no hace
+            nada visible se lee como que está roto. */}
+        {premios.length > 1 && (
+          <button
+            className="btn btn-fantasma btn-mini"
+            onClick={() => setOrden(alternarOrdenTienda(orden))}
+            aria-label={
+              barato
+                ? 'Ordenado de más barato a más caro. Tocar para ponerlo al revés.'
+                : 'Ordenado de más caro a más barato. Tocar para ponerlo al revés.'
+            }
+          >
+            {barato ? '↑ Más barato' : '↓ Más caro'}
+          </button>
+        )}
+      </div>
       {premios.length === 0 && (
         <div className="vacio">La tienda está vacía. Los premios se crean en el panel parental.</div>
       )}

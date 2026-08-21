@@ -20,6 +20,10 @@ import {
   estrellasDe,
   estrellasQueCuesta,
   premiosParaPeque,
+  ordenarPorPrecio,
+  leerOrdenTienda,
+  alternarOrdenTienda,
+  ORDEN_TIENDA,
   TECHO_PEQUE
 } from '../src/lib/premios'
 import { metaDelPlan } from '../src/lib/setup'
@@ -300,5 +304,86 @@ describe('techos de producción', () => {
     const familia = techoFamiliar(['adulto', 'junior'])
     const suma = techoDe('adulto').maximo.xpDia + techoDe('junior').maximo.xpDia
     expect(familia.maximo.xpDia).toBeCloseTo(suma, 1)
+  })
+})
+
+// ------------------------------------------------------------------
+// El orden de la tienda (2.15.0). Los premios llegaban por `created_at`,
+// que para quien mira la tienda es ningún orden: los precios salían
+// salteados y comparar «¿qué me llega antes?» obligaba a leer la lista
+// entera.
+// ------------------------------------------------------------------
+describe('el orden de la tienda', () => {
+  const TIENDA = [
+    { id: 'a', title: 'Cine', cost: 900, active: true },
+    { id: 'b', title: 'Helado', cost: 325, active: true },
+    { id: 'c', title: 'Peli', cost: 480, active: true },
+    { id: 'd', title: 'Bici', cost: 1620, active: true }
+  ]
+
+  function almacenFalso(inicial = {}) {
+    const datos = { ...inicial }
+    return {
+      getItem: (k) => (k in datos ? datos[k] : null),
+      setItem: (k, v) => { datos[k] = String(v) },
+      ver: () => ({ ...datos })
+    }
+  }
+
+  it('por defecto, lo más barato delante: es lo único accionable los primeros días', () => {
+    expect(ordenarPorPrecio(TIENDA).map((p) => p.id)).toEqual(['b', 'c', 'a', 'd'])
+  })
+
+  it('del revés cuando se pide', () => {
+    expect(ordenarPorPrecio(TIENDA, ORDEN_TIENDA.CARO).map((p) => p.id)).toEqual(['d', 'a', 'c', 'b'])
+  })
+
+  it('no toca la lista que recibe: `data.rewards` es estado compartido', () => {
+    const original = [...TIENDA]
+    ordenarPorPrecio(TIENDA, ORDEN_TIENDA.CARO)
+    expect(TIENDA).toEqual(original)
+  })
+
+  // Dos premios del mismo precio que se intercambian el sitio al invertir
+  // el orden se leen como un fallo, no como un orden.
+  it('el empate se rompe por título y siempre en el mismo sentido', () => {
+    const empate = [
+      { id: 'z', title: 'Zoo', cost: 480 },
+      { id: 'm', title: 'Museo', cost: 480 },
+      { id: 'c', title: 'Cena', cost: 480 }
+    ]
+    expect(ordenarPorPrecio(empate).map((p) => p.id)).toEqual(['c', 'm', 'z'])
+    expect(ordenarPorPrecio(empate, ORDEN_TIENDA.CARO).map((p) => p.id)).toEqual(['c', 'm', 'z'])
+  })
+
+  it('sin premios, o con uno, no rompe', () => {
+    expect(ordenarPorPrecio()).toEqual([])
+    expect(ordenarPorPrecio([{ id: 'x', title: 'Solo', cost: 10 }]).map((p) => p.id)).toEqual(['x'])
+  })
+
+  it('la preferencia se guarda por dispositivo y arranca en lo barato', () => {
+    const almacen = almacenFalso()
+    expect(leerOrdenTienda(almacen)).toBe(ORDEN_TIENDA.BARATO)
+
+    expect(alternarOrdenTienda(ORDEN_TIENDA.BARATO, almacen)).toBe(ORDEN_TIENDA.CARO)
+    expect(leerOrdenTienda(almacen)).toBe(ORDEN_TIENDA.CARO)
+
+    expect(alternarOrdenTienda(ORDEN_TIENDA.CARO, almacen)).toBe(ORDEN_TIENDA.BARATO)
+    expect(leerOrdenTienda(almacen)).toBe(ORDEN_TIENDA.BARATO)
+  })
+
+  it('un valor raro guardado no deja la tienda en un orden imposible', () => {
+    expect(leerOrdenTienda(almacenFalso({ gremio_orden_tienda: 'lo-que-sea' }))).toBe(ORDEN_TIENDA.BARATO)
+  })
+
+  // Safari en privado tira al escribir. Perder la preferencia es
+  // aceptable; que la tienda no dibuje, no.
+  it('un almacén que revienta no tumba la tienda', () => {
+    const roto = {
+      getItem: () => { throw new Error('sin almacenamiento') },
+      setItem: () => { throw new Error('sin almacenamiento') }
+    }
+    expect(leerOrdenTienda(roto)).toBe(ORDEN_TIENDA.BARATO)
+    expect(alternarOrdenTienda(ORDEN_TIENDA.BARATO, roto)).toBe(ORDEN_TIENDA.CARO)
   })
 })

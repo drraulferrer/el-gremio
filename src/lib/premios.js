@@ -239,3 +239,64 @@ export function nivelDePremio(coste) {
   if (coste <= NIVELES[2].coste[1]) return 2
   return 3
 }
+
+// ------------------------------------------------------------------
+// El orden de la tienda.
+//
+// Los premios llegan de la base por `created_at`, que es el orden en que
+// alguien los escribió: para quien mira la tienda eso es ningún orden, y
+// los precios salen salteados. Comparar «¿qué me llega antes?» obligaba a
+// leer la lista entera y hacer la cuenta de cabeza.
+//
+// Por defecto, de menos a más. No es una preferencia estética: lo que
+// decide si esta app se sigue usando son los primeros días, y en los
+// primeros días lo único accionable es lo más barato (ver el andamio de
+// arriba). Que aparezca primero es poner delante lo que se puede tocar.
+//
+// La tienda de la peque ya ordenaba así desde el principio
+// (`premiosParaPeque`); esto le da a la de los mayores lo que ella tenía.
+// ------------------------------------------------------------------
+
+export const ORDEN_TIENDA = { BARATO: 'barato', CARO: 'caro' }
+
+const CLAVE_ORDEN = 'gremio_orden_tienda'
+
+/**
+ * Copia ordenada por precio. Nunca toca el array que recibe: la lista de
+ * premios viene de `data.rewards`, que es estado compartido.
+ *
+ * El empate se rompe por título y SIEMPRE en el mismo sentido, aunque el
+ * precio vaya al revés. Dos premios de 480 Talis que se intercambien el
+ * sitio al invertir el orden se leen como un fallo, no como un orden.
+ */
+export function ordenarPorPrecio(premios = [], sentido = ORDEN_TIENDA.BARATO) {
+  const signo = sentido === ORDEN_TIENDA.CARO ? -1 : 1
+  return [...premios].sort((a, b) => {
+    if (a.cost === b.cost) {
+      return String(a.title || '').localeCompare(String(b.title || ''), 'es')
+    }
+    return (a.cost - b.cost) * signo
+  })
+}
+
+/** El sentido elegido en ESTE dispositivo. Por defecto, lo barato delante. */
+export function leerOrdenTienda(almacen = localStorage) {
+  try {
+    return almacen.getItem(CLAVE_ORDEN) === ORDEN_TIENDA.CARO ? ORDEN_TIENDA.CARO : ORDEN_TIENDA.BARATO
+  } catch {
+    // Un navegador sin almacenamiento se queda con el orden de siempre,
+    // que es el bueno: perder la preferencia no puede romper la tienda.
+    return ORDEN_TIENDA.BARATO
+  }
+}
+
+/** Devuelve el sentido contrario y lo deja guardado. */
+export function alternarOrdenTienda(sentido, almacen = localStorage) {
+  const siguiente = sentido === ORDEN_TIENDA.BARATO ? ORDEN_TIENDA.CARO : ORDEN_TIENDA.BARATO
+  try {
+    almacen.setItem(CLAVE_ORDEN, siguiente)
+  } catch {
+    // Igual que arriba: se pierde entre sesiones, no en esta.
+  }
+  return siguiente
+}

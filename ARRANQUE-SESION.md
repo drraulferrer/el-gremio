@@ -3459,3 +3459,32 @@ muere con un «schema cache» que no dice nada; por eso `mensajeDeError`
 traduce ese caso exacto a «Falta ejecutar migracion-033…», con su test en
 `tests/observabilidad.test.js`. Aun así: **primero la 033, después
 `npm run vercel`.**
+
+---
+
+## 7aa. El orden de la tienda (22 de agosto) · 2.15.0 · SIN MIGRACIÓN
+
+Los premios se pintaban en el orden de `created_at` que trae la consulta
+de `App.jsx`, así que los precios salían salteados. Ahora
+`ordenarPorPrecio()` (en `src/lib/premios.js`) los pone de menos a más, y
+la tienda lleva un botón para invertirlo.
+
+Lo que hay que saber si se toca:
+
+- **`ordenarPorPrecio` NO muta**: recibe `data.rewards`, que es estado
+  compartido de App. Devuelve copia.
+- **El empate se rompe por título en el MISMO sentido en las dos
+  direcciones**, a propósito. Hay test.
+- **La preferencia vive en `localStorage` (`gremio_orden_tienda`)** con el
+  patrón de `latido.js`: almacén inyectable y `try/catch`, porque Safari
+  en privado tira al escribir. Perder la preferencia es aceptable; que la
+  tienda no dibuje, no.
+- `premiosParaMayores` sigue **solo filtrando**: quien quiera orden, que
+  lo pida. `premiosParaPeque` ya ordenaba de menos a más desde el primer
+  día y no se ha tocado.
+- El panel parental ordena igual, sin botón.
+
+Verificado en demo con los 11 premios del gremio de pruebas: 325, 325,
+350, 450, 480, 505, 505 de menos a más; al invertir, los dos 325 y los dos
+505 conservan su orden interno; la preferencia aguanta el cambio de
+pestaña. 878 tests.

@@ -16,6 +16,7 @@ import {
   TECHO_PEQUE,
   NIVELES,
   PREMIOS_DE_ARRANQUE,
+  ordenarPorPrecio,
   premiosDeArranqueQueFaltan
 } from '../lib/premios'
 import { PREMIOS_DE_LA_PEQUE } from '../lib/setup'
@@ -1607,7 +1608,10 @@ function GestionPremios({ family, data, refresh }) {
         <div className="vacio">Sin premios todavía. Funcionan mejor los tangibles: un plan, un privilegio, una salida.</div>
       )}
 
-      {data.rewards.map((r) => (
+      {/* Por precio, igual que la tienda que ve la familia. Aquí no hay
+          botón para invertirlo: quien edita premios los compara con los de
+          su banda, y esa comparación es siempre de menos a más. */}
+      {ordenarPorPrecio(data.rewards).map((r) => (
         <div className="carta" key={r.id} style={{ opacity: r.active ? 1 : 0.5 }}>
           <div className="fila">
             <div className="avatar">{r.emoji}</div>
