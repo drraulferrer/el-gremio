@@ -3520,3 +3520,25 @@ Tres lecciones, y las tres valen para el próximo cambio de esquema:
 Y la meta-lección, que es la que importa: **1.650 líneas de registro en
 siete días y ningún sitio donde mirarlas.** El panel de uso (§7ac, en
 marcha) nace de aquí.
+
+---
+
+## 7ac. Spec de reconocimientos (22 de agosto) · SIN IMPLEMENTAR
+
+`docs/RECONOCIMIENTOS.md`. Petición del autor: «evolucionar hacia un
+sistema completo de reconocimientos, no solo recompensas».
+
+El diagnóstico, en una línea: **todo lo que la app reconoce baja de
+arriba abajo o lo dicta el motor**; no hay una sola pieza horizontal.
+Nadie puede reconocer a nadie salvo el adulto que valida, a los adultos
+no los reconoce nunca nadie, y el elogio —que se guarda bien en
+`completions.praise`— deja de verse cuando rueda la semana.
+
+Cinco piezas (Muro, Gracias entre iguales, lo espontáneo, Retrato, y
+sacar el elogio de la tienda), ocho decisiones cerradas —la primera:
+**un reconocimiento no da ni cuesta Talis ni XP**— y tres fases, con F1
+(el Muro) **sin migración**, a propósito: es la prueba barata de que en
+esta casa el reconocimiento se lee, antes de comprometer el esquema.
+
+La 034 solo entra en F2. Hay **cuatro preguntas abiertas al final del
+documento** que no puede decidir quien escriba el código.
