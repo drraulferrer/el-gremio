@@ -120,3 +120,28 @@ export function tituloDeErrores(grupos = []) {
     ? `${distintos}, ${total}. ${ajenos} de fuera de la app.`
     : `${distintos}, ${total}.`
 }
+
+/**
+ * Parte los grupos en «sigue pasando» y «ya no pasa en esta versión».
+ *
+ * El criterio es lo único que se puede afirmar sin inventar: si un fallo
+ * NO ha aparecido en la versión que está corriendo ahora mismo, no ha
+ * vuelto a pasar desde que se desplegó. No dice «arreglado» —eso no lo
+ * sabe nadie desde aquí— y por eso la etiqueta tampoco lo dice.
+ *
+ * Hace falta porque el panel, después de arreglar algo, sigue enseñando
+ * las 199 veces que pasó antes: sin separarlas, un fallo muerto se lee
+ * igual de alarmante que uno vivo, y el que de verdad importa queda
+ * enterrado debajo.
+ */
+export function partirPorVersion(grupos = [], releaseActual = '') {
+  const sigue = []
+  const pasado = []
+  for (const g of grupos) {
+    // Sin versiones registradas no se puede afirmar nada: se queda arriba,
+    // que es el lado seguro.
+    const visto = !releaseActual || g.releases.length === 0 || g.releases.includes(releaseActual)
+    ;(visto ? sigue : pasado).push(g)
+  }
+  return { sigue, pasado }
+}

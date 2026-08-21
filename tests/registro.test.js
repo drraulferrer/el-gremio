@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { resumenDeFila, agruparErrores, tituloDeErrores } from '../src/lib/registro'
+import { resumenDeFila, agruparErrores, tituloDeErrores, partirPorVersion } from '../src/lib/registro'
 
 // La fila real que guardó producción el 21-ago a las 22:21, recortada.
 // El panel la enseñaba como «error.capturado · 2.15.0+796376b · petición
@@ -131,5 +131,27 @@ describe('la frase de la cabecera', () => {
   it('separa lo que no es de la app', () => {
     const grupos = agruparErrores([fila({}, { huella: 'A' }), fila({}, { huella: 'B', ajeno: true })])
     expect(tituloDeErrores(grupos)).toMatch(/1 de fuera de la app/)
+  })
+})
+
+describe('lo que sigue pasando y lo que ya no', () => {
+  const grupos = agruparErrores([
+    fila({ release: '2.15.0' }, { huella: 'muerto' }),
+    fila({ release: '2.14.0' }, { huella: 'muerto' }),
+    fila({ release: '2.16.0' }, { huella: 'vivo' })
+  ])
+
+  it('lo que no ha aparecido en la versión de ahora se aparta', () => {
+    const { sigue, pasado } = partirPorVersion(grupos, '2.16.0')
+    expect(sigue.map((g) => g.huella)).toEqual(['vivo'])
+    expect(pasado.map((g) => g.huella)).toEqual(['muerto'])
+  })
+
+  // Lo dudoso se queda arriba: es peor esconder un fallo vivo que enseñar
+  // uno muerto de más.
+  it('sin versión conocida, arriba', () => {
+    const sinVersion = agruparErrores([fila({ release: null }, { huella: 'X' })])
+    expect(partirPorVersion(sinVersion, '2.16.0').sigue).toHaveLength(1)
+    expect(partirPorVersion(grupos, '').pasado).toHaveLength(0)
   })
 })

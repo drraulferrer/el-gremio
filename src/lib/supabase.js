@@ -44,6 +44,13 @@ export function mensajeDeError(error) {
   if (/Failed to fetch|NetworkError|ERR_INTERNET/i.test(texto)) {
     return 'Sin conexión con el gremio. Comprueba la red e inténtalo otra vez.'
   }
+  // PGRST303: el reloj del aparato va por delante del servidor, así que
+  // el testigo de sesión parece emitido en el futuro y se rechaza. No es
+  // un fallo de la app ni de la cuenta, y el mensaje crudo («JWT issued
+  // at future») no le dice a nadie qué tiene que tocar.
+  if (/JWT issued at future|PGRST303/i.test(texto)) {
+    return 'La hora de este aparato va adelantada respecto al servidor. Pon la fecha y la hora en automático y vuelve a entrar.'
+  }
   return texto
 }
 

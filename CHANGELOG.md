@@ -18,6 +18,25 @@ verdad duele en esta app: que el esquema y el cliente dejen de encajar.
 
 ---
 
+## 2.16.1 · 22 de agosto de 2026
+
+**Un fallo ya arreglado seguía leyéndose como un fallo vivo.** El panel
+enseñaba las 199 veces que falló el `onConflict` con la misma cara que un
+error de hace un minuto, y el que importaba quedaba enterrado debajo.
+
+Ahora se parten en dos: arriba lo que **ha aparecido en la versión que
+corre ahora mismo**, y debajo, apagado, lo que no. La etiqueta dice
+exactamente lo que se puede afirmar —«sin repetirse en 2.16.1»— y no
+«arreglado», que eso no lo sabe la app. Lo dudoso (un fallo sin versión
+registrada) se queda arriba: esconder uno vivo es peor que enseñar uno
+muerto de más.
+
+**Y «JWT issued at future» deja de salir en crudo.** Es PGRST303: el
+reloj del aparato va por delante del servidor y el testigo de sesión
+parece emitido en el futuro. Ahora dice qué hacer: *«La hora de este
+aparato va adelantada respecto al servidor. Pon la fecha y la hora en
+automático y vuelve a entrar»*.
+
 ## 2.16.0 · 22 de agosto de 2026
 
 **El panel de errores decía siete veces «ha fallado algo» y nunca decía

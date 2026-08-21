@@ -3,7 +3,7 @@ import { supabase, modoDemo, mensajeDeError } from '../lib/supabase'
 import { VERSION, COMMIT, BUILT_AT, RELEASE } from '../lib/version'
 import { todasLasFlags, setFlag } from '../lib/flags'
 import { resumenErrores } from '../lib/monitoring'
-import { agruparErrores, tituloDeErrores } from '../lib/registro'
+import { agruparErrores, tituloDeErrores, partirPorVersion } from '../lib/registro'
 import { vaciar } from '../lib/log'
 import { diagnosticoEconomia, veredicto, SUPUESTOS } from '../lib/economia'
 import { Talis } from '../components/ui'
@@ -67,6 +67,10 @@ export default function Estado({ family, data }) {
 
   const enMemoria = resumenErrores()
   const grupos = agruparErrores(errores)
+  // Lo que no ha vuelto a aparecer en la versión que corre ahora se baja
+  // al final: un fallo ya arreglado sigue teniendo sus 199 líneas, y sin
+  // separarlo entierra al que sí importa.
+  const { sigue, pasado } = partirPorVersion(grupos, RELEASE)
   const eco = diagnosticoEconomia(data)
 
   return (
@@ -218,7 +222,11 @@ export default function Estado({ family, data }) {
       {errores.length === 0 && enMemoria.length === 0 ? (
         <div className="vacio">Ni un error registrado. Buena señal.</div>
       ) : (
-        <p className="suave" style={{ margin: '0 4px 8px' }}>{tituloDeErrores(grupos)}</p>
+        <p className="suave" style={{ margin: '0 4px 8px' }}>
+          {/* Con la lista de arriba vacía, «ni un error» sonaría a que no
+              hay nada, y justo debajo hay una pila de fallos viejos. */}
+          {sigue.length === 0 ? `Nada nuevo desde que corre la ${VERSION}.` : tituloDeErrores(sigue)}
+        </p>
       )}
 
       {enMemoria.length > 0 && (
@@ -236,7 +244,7 @@ export default function Estado({ family, data }) {
       {/* Agrupado por huella. Antes cada fila decía «error.capturado», que
           es el nombre que llevan TODOS los errores de la app: la lista
           repetía siete veces «ha fallado algo» y no decía nunca qué. */}
-      {grupos.map((g) => (
+      {sigue.map((g) => (
         <div className="carta" key={g.huella}>
           <div className="fila-separada">
             <strong className="huella-error">{g.huella}</strong>
@@ -264,6 +272,29 @@ export default function Estado({ family, data }) {
           )}
         </div>
       ))}
+
+      {pasado.length > 0 && (
+        <>
+          <div className="titulo-seccion">Sin repetirse en {VERSION}</div>
+          {pasado.map((g) => (
+            <div className="carta" key={g.huella} style={{ opacity: 0.6 }}>
+              <div className="fila-separada">
+                <strong className="huella-error">{g.huella}</strong>
+                <span className="chip">×{g.veces}</span>
+              </div>
+              <div className="suave">
+                {g.ultima ? `Última vez: ${new Date(g.ultima).toLocaleString('es-ES')}` : 'Sin fecha'}
+                {g.origen ? ` · en ${g.origen}` : ''}
+                {g.codigo ? ` · Postgres ${g.codigo}` : ''}
+              </div>
+              <div className="suave">
+                No ha vuelto a pasar desde que corre esta versión. Se queda aquí hasta que el
+                registro caduque, por si vuelve.
+              </div>
+            </div>
+          ))}
+        </>
+      )}
 
       {/* El botón hacía exactamente esto y no decía nada, así que se leía
           como roto: si no había cola pendiente —el caso normal, porque se
