@@ -314,7 +314,7 @@ em{font-style:normal;color:var(--oro-claro)}
 .et-mal{color:var(--coral)}
 .et-bien{color:var(--verde)}
 
-/* --- Las dos monedas ----------------------------------------------- */
+/* --- Los dos saldos ------------------------------------------------- */
 .divisa{padding:var(--s3);border-top:3px solid var(--c)}
 .divisa h4{font-family:var(--display);font-weight:500;font-size:1.25rem;color:var(--c);margin-bottom:.4rem}
 .divisa>p{font-size:.9rem;color:var(--tinta-2);margin:0}
@@ -438,8 +438,8 @@ tbody tr:last-child td{border-bottom:0}
 tbody tr.nuestro{background:rgba(245,184,65,.07)}
 tbody tr.nuestro td:first-child{color:var(--oro-claro);font-weight:700}
 td:first-child{font-weight:700;white-space:nowrap}
-.moneda{color:var(--coral)}
-.no-moneda{color:var(--verde)}
+.dinero{color:var(--coral)}
+.no-dinero{color:var(--verde)}
 
 /* --- Principios / referencias -------------------------------------- */
 .principio{padding:var(--s3);display:flex;flex-direction:column;gap:.35rem}
@@ -553,7 +553,7 @@ blockquote cite{display:block;margin-top:1rem;font-style:normal;font-size:.78rem
     <p class="entradilla" style="margin-top:var(--s3)">
       En casa somos cuatro: dos adultos, una junior de once años y una peque de tres.
       La app convierte la vida doméstica en un gremio con misiones, experiencia,
-      monedas, premios reales y una meta común. Aquí cuento qué hace, cómo está montada
+      Talis, recompensas reales y una meta común. Aquí cuento qué hace, cómo está montada
       y por qué tomé cada decisión.
     </p>
 
@@ -583,7 +583,7 @@ blockquote cite{display:block;margin-top:1rem;font-style:normal;font-size:.78rem
     <p>
       Hay un segundo problema, mejor documentado: la recompensa externa tiene un efecto
       pequeño cuando actúa sola. Ayuda a <em>arrancar</em> una conducta poco frecuente,
-      pero estorba si acaba siendo el único motivo. Si todo depende de las monedas, el
+      pero estorba si acaba siendo el único motivo. Si todo depende de la recompensa, el
       sistema termina compitiendo con la motivación que quería crear.
     </p>
     <p>
@@ -631,6 +631,104 @@ blockquote cite{display:block;margin-top:1rem;font-style:normal;font-size:.78rem
   </div>
 </section>
 
+<section class="rev" data-acto="Qué es">
+  <div class="col">
+    <p class="ceja">El nombre</p>
+    <h2>Un Talis no es un pago</h2>
+    <p>
+      Durante los primeros meses la divisa del juego se llamó <em>monedas</em>, y ese
+      nombre trabajaba en contra del resto del diseño. Una moneda dice, sin necesidad de
+      añadir nada, <strong>te pago por hacer esto</strong>. Es exactamente el marco que
+      la app lleva desde el primer día intentando no instalar.
+    </p>
+    <p>
+      Así que la divisa cambió de nombre. Se llama <strong>Talis</strong>, y no es una
+      moneda: es una <strong>ficha de reconocimiento</strong>. La mecánica es idéntica
+      —se gana validando misiones y se gasta en la tienda—, pero lo que se cuenta al
+      ganarla no. Un Talis no mide lo que vale una misión. Marca que alguien ha
+      contribuido al Gremio.
+    </p>
+  </div>
+
+  <div class="carta ancho" style="padding:var(--s4);margin-top:var(--s4)">
+    <p style="font-style:italic;color:var(--tinta-2);margin:0">
+      Cuenta la tradición del Gremio que, cuando los talleres crecieron y los encargos
+      se volvieron demasiados, los maestros necesitaron una forma sencilla de reconocer
+      a quien sostenía la comunidad. No todo eran grandes obras: había que preparar
+      herramientas, mantener el taller, cargar materiales, enseñar a otros. Y todo eso
+      mantenía vivo al Gremio. Por eso empezaron a entregar pequeñas piezas marcadas con
+      el sello de la casa. Cada una significaba una sola cosa —<em>este miembro ha
+      cumplido</em>— y las llamaron <strong>Talis</strong>. Los maestros viejos insistían
+      en una regla: el Talis no vale por el metal del que está hecho, sino por aquello
+      que hiciste para ganarlo.
+    </p>
+  </div>
+
+  <div class="col" style="margin-top:var(--s4)">
+    <p>
+      La leyenda es inventada. Lo que no lo es son los gremios europeos de los que toma
+      prestado: asociaciones de oficio que entre los siglos XII y XVIII regulaban la
+      formación, sostenían la progresión de aprendiz a oficial y a maestro, y usaban
+      sellos corporativos para autenticar lo suyo. De ahí salen las cuatro cosas que un
+      Talis representa a la vez.
+    </p>
+  </div>
+
+  <div class="rejilla g4 ancho">
+    <div class="carta principio"><h4>Contribución</h4><p>Has hecho algo que le sirve a la gente con la que vives.</p></div>
+    <div class="carta principio"><h4>Esfuerzo</h4><p>Le has dedicado tiempo o atención a un encargo concreto.</p></div>
+    <div class="carta principio"><h4>Competencia</h4><p>Cada misión cumplida es una ocasión de hacerlo mejor o más solo.</p></div>
+    <div class="carta principio"><h4>Confianza</h4><p>El Gremio va dejando que asumas encargos que antes no eran tuyos.</p></div>
+  </div>
+
+  <div class="col" style="margin-top:var(--s5)">
+    <p class="ceja">La regla que lo sostiene</p>
+    <h3 style="font-size:1.5rem;margin-bottom:var(--s2)">Los Talis se ganan; las insignias se merecen</h3>
+    <p>
+      Es la distinción que impide que todo esto acabe siendo una economía de puntos. Los
+      Talis son fungibles: entran, salen y se cambian por recompensas. Las insignias no
+      se compran con ninguna cantidad, ni con la maestría que representan.
+    </p>
+  </div>
+
+  <div class="rejilla g2 ancho">
+    <div class="carta divisa" style="--c:#f5b841">
+      <h4>Talis</h4>
+      <p>Se ganan y se gastan. Reconocen una contribución concreta.</p>
+      <dl>
+        <dt>El camino</dt><dd>Misiones → Talis → recompensas</dd>
+        <dt>Qué compran</dt><dd>Lo que haya en la Casa de Recompensas</dd>
+      </dl>
+    </div>
+    <div class="carta divisa" style="--c:#c9a0ff">
+      <h4>Insignias</h4>
+      <p>Permanentes. Cuentan quién estás llegando a ser, no qué has hecho hoy.</p>
+      <dl>
+        <dt>El camino</dt><dd>Trayectoria → hitos → insignias</dd>
+        <dt>Qué compran</dt><dd>Nada: no están a la venta</dd>
+      </dl>
+    </div>
+  </div>
+
+  <div class="col" style="margin-top:var(--s4)">
+    <p class="pie">
+      <strong>Nota de rigor.</strong> Los Talis son ficción. Ningún gremio medieval pagó
+      a nadie con Talis, y en ninguna pantalla de la app se dice lo contrario. Lo que
+      está tomado de la historia es el material del que sale el imaginario —el
+      aprendizaje por oficio, la progresión hacia la maestría, la obra maestra como
+      prueba, los sellos corporativos—, no el objeto. La separación importa: permite
+      usar un imaginario históricamente rico sin fabricar una historia falsa por el
+      camino.
+    </p>
+    <p class="pie">
+      La historia tampoco se cuenta entera de golpe. Se abre por fragmentos, y cada uno
+      llega cuando quien lo lee ya ha vivido lo que cuenta: el primero al ganar el
+      primer Talis, el último cuando ya tiene insignias y puede entender por qué esas no
+      se compran.
+    </p>
+  </div>
+</section>
+
 <!-- ==================== ACTO II · CÓMO FUNCIONA ==================== -->
 
 <section class="rev" data-acto="Cómo funciona">
@@ -648,7 +746,7 @@ blockquote cite{display:block;margin-top:1rem;font-style:normal;font-size:.78rem
   <div class="bucle ancho">
     <div class="paso">
       <h4>Pedir la misión</h4>
-      <p>Cada quien marca en su dispositivo lo que ha hecho y lo envía a revisión. La XP y las monedas quedan fijadas con el valor de ese momento.</p>
+      <p>Cada quien marca en su dispositivo lo que ha hecho y lo envía a revisión. La XP y los Talis quedan fijados con el valor de ese momento.</p>
       <span class="paso-quien">Quien la hace</span>
     </div>
     <div class="paso">
@@ -658,7 +756,7 @@ blockquote cite{display:block;margin-top:1rem;font-style:normal;font-size:.78rem
     </div>
     <div class="paso">
       <h4>Abonar</h4>
-      <p>Postgres cierra la revisión y abona XP y monedas en una sola operación. La XP nunca se gasta; las monedas sí.</p>
+      <p>Postgres cierra la revisión y abona XP y Talis en una sola operación. La XP nunca se gasta; los Talis sí.</p>
       <span class="paso-quien">La base de datos</span>
     </div>
     <div class="paso">
@@ -756,10 +854,11 @@ blockquote cite{display:block;margin-top:1rem;font-style:normal;font-size:.78rem
       </dl>
     </div>
     <div class="carta divisa" style="--c:#f5b841">
-      <h4>Monedas</h4>
+      <h4>Talis</h4>
       <p>Se ganan igual y se gastan en la tienda. Son el andamio, no el motor.</p>
       <dl>
-        <dt>Para qué sirven</dt><dd>Canjear premios reales de los tres niveles</dd>
+        <dt>Qué son</dt><dd>Fichas de reconocimiento, no un pago por tarea</dd>
+        <dt>Para qué sirven</dt><dd>Canjear recompensas reales de los tres niveles</dd>
         <dt>Se pueden dar a mano</dt><dd>Por algo excepcional, con motivo obligatorio y sin abonar experiencia</dd>
         <dt>Al cerrar temporada</dt><dd>Los precios suben un 30&nbsp;%, así que valen menos que antes</dd>
       </dl>
@@ -806,17 +905,17 @@ blockquote cite{display:block;margin-top:1rem;font-style:normal;font-size:.78rem
 
   <div class="rejilla g3 ancho">
     <div class="carta principio">
-      <h4>Peque · 10 XP y 5 monedas</h4>
-      <p>Recibe la estrella al momento. Sus monedas se dibujan como estrellas y su
+      <h4>Peque · 10 XP y 5 Talis</h4>
+      <p>Recibe la estrella al momento. Sus Talis se dibujan como estrellas y su
       tienda filtra por precio, no por nivel.</p>
     </div>
     <div class="carta principio">
-      <h4>Junior · 15 XP y 8 monedas</h4>
+      <h4>Junior · 15 XP y 8 Talis</h4>
       <p>La que más gana por misión. A quien más le cuesta sostener el hábito, más
       reconocimiento por sostenerlo.</p>
     </div>
     <div class="carta principio">
-      <h4>Adulto · 10 XP y 5 monedas</h4>
+      <h4>Adulto · 10 XP y 5 Talis</h4>
       <p>Puntúa bajo en tareas triviales a propósito: si los adultos inflaran su
       aportación, la meta compartida la cerrarían ellos solos.</p>
     </div>
@@ -827,7 +926,7 @@ blockquote cite{display:block;margin-top:1rem;font-style:normal;font-size:.78rem
       Sobre esos valores se aplica el supuesto que ordena la economía: una
       <strong>adherencia del 60&nbsp;%</strong>. Nadie completa el tablón entero todos
       los días, y el sistema no debería estar calculado para que haga falta. Con esa
-      adherencia, una persona adulta gana unos <strong>48 puntos y 24 monedas al
+      adherencia, una persona adulta gana unos <strong>48 puntos y 24 Talis al
       día</strong>, y la junior unos 72 y 38.
     </p>
     <p class="pie">
@@ -1023,7 +1122,7 @@ blockquote cite{display:block;margin-top:1rem;font-style:normal;font-size:.78rem
       La barra verde es el catálogo actual medido con el mismo modelo:
       <strong>14,9 · 28,8 · 45,9 y 60,0 días</strong> frente a los 15 · 30 · 45 · 60
       previstos. La cercanía no es casual: los precios se calculan desde los objetivos.
-      Con una tasa de referencia de 28,8 monedas al día, un premio a quince días sale por
+      Con una tasa de referencia de 28,8 Talis al día, un premio a quince días sale por
       432, con una banda de ±25&nbsp;%.
     </p>
     <p>
@@ -1031,7 +1130,7 @@ blockquote cite{display:block;margin-top:1rem;font-style:normal;font-size:.78rem
       gana. Bajar el abono habría hecho menos gratificante el tablón para corregir un
       problema de la tienda. Más tarde, la familia amplió el presupuesto diario de cinco
       a ocho misiones y los precios subieron con él un 60&nbsp;%. Si entran un
-      60&nbsp;% más de monedas al día, un premio mensual debe costar también un
+      60&nbsp;% más de Talis al día, un premio mensual debe costar también un
       60&nbsp;% más para conservar la cadencia.
     </p>
     <p class="pie">
@@ -1096,7 +1195,7 @@ blockquote cite{display:block;margin-top:1rem;font-style:normal;font-size:.78rem
 
   <div class="col" style="margin-top:var(--s3)">
     <p class="pie">
-      Las monedas y la experiencia van por separado a propósito: la XP solo sube y nunca
+      Los Talis y la experiencia van por separado a propósito: la XP solo sube y nunca
       se gasta, así que canjear un premio no se siente nunca como perder progreso.
     </p>
   </div>
@@ -1114,7 +1213,7 @@ blockquote cite{display:block;margin-top:1rem;font-style:normal;font-size:.78rem
     <p>
       Su pantalla usa otro lenguaje visual: papel crema, colores saturados y bordes
       gruesos frente al tablero nocturno. La intención es que reconozca su espacio nada
-      más encender el aparato. No hay cifras —las monedas se dibujan como estrellas— y
+      más encender el aparato. No hay cifras —los Talis se dibujan como estrellas— y
       se mantienen dos reglas: el tarro <strong>no</strong> se vacía cada noche aunque
       el contador de la cabecera sí; y los premios que todavía no alcanza
       <strong>siguen visibles, pero apagados</strong>. Ver lo que viene ayuda a esperar.
@@ -1149,6 +1248,89 @@ blockquote cite{display:block;margin-top:1rem;font-style:normal;font-size:.78rem
       medio. El gesto usa un temporizador, no el reloj de animación del navegador. Con
       la pestaña en segundo plano, ese reloj se congela y el gesto podía quedarse a
       medias.
+    </p>
+  </div>
+</section>
+
+<section class="rev" data-acto="Cómo funciona">
+  <div class="col">
+    <p class="ceja">El miembro que no juega</p>
+    <h2>El perro también entra en el gremio, y rompe la regla principal</h2>
+    <p>
+      Un perro o un gato pueden tener perfil propio, con sus misiones y sus premios.
+      No entran en la app —no eligen perfil, no pulsan nada, no reciben avisos—: sus
+      misiones las apunta una persona desde el panel. Lo interesante no es que estén,
+      sino que <strong>obligaron a contradecir el mecanismo central de la app</strong>.
+    </p>
+    <p>
+      Esta app premia la constancia diaria. La racha es su columna vertebral. Pero
+      cuando se buscó literatura para justificar las misiones de adiestramiento,
+      apareció esto: los perros entrenados <strong>una o dos veces por semana aprenden
+      mejor</strong> que los entrenados a diario, y una sesión al día es mejor que tres
+      seguidas. Los de una sesión diaria necesitaron entre cinco y ocho sesiones para
+      aprender la tarea; los de varias al día, entre seis y doce.
+    </p>
+    <p>
+      Aplicar la racha al adiestramiento habría empujado a la familia justo hacia lo
+      menos eficaz, con la app dando palmadas por el camino. Así que las misiones de
+      mascota están partidas en dos, y la diferencia no es cosmética:
+    </p>
+  </div>
+
+  <div class="peque-par ancho">
+    <div class="pantalla p-noche">
+      <span class="et">Trucos · días alternos</span>
+      <div class="mision-fila"><span>🎯</span> Clicker, 5 minutos <b>L · X · V</b></div>
+      <div class="mision-fila"><span>🐕</span> Practicar la llamada <b>L · X · V</b></div>
+      <div class="mision-fila"><span>✋</span> Dejarse tocar patas <b>L · X · V</b></div>
+      <div class="tarro" style="color:var(--tinta-3);font-size:.8rem;letter-spacing:0">
+        Espaciados a propósito. Mejor corta y otro día que larga y seguida.
+      </div>
+    </div>
+    <div class="pantalla p-noche">
+      <span class="et">Hábitos · todos los días</span>
+      <div class="mision-fila"><span>👃</span> Paseo de olfateo <b>cada día</b></div>
+      <div class="mision-fila"><span>💧</span> Agua limpia <b>cada día</b></div>
+      <div class="mision-fila"><span>🧹</span> Arenero limpio <b>cada día</b></div>
+      <div class="tarro" style="color:var(--tinta-3);font-size:.8rem;letter-spacing:0">
+        Aquí la constancia no es una técnica: es una necesidad del animal.
+      </div>
+    </div>
+  </div>
+
+  <div class="col" style="margin-top:var(--s3)">
+    <p>
+      La otra cosa que cambió al leer la evidencia fueron los premios del gato. Medidas
+      sus preferencias entre cuatro categorías, <strong>la mitad de los gatos elige
+      interacción social con una persona</strong> por delante de la comida, que se
+      queda en algo más de un tercio. De modo que el premio de un gato no es una
+      chuche: son diez minutos de caña sin que nadie mire el móvil. Encaja, sin haberlo
+      buscado, con la regla que esta app ya tenía: los premios que mejor sostienen un
+      hábito son los que dan tiempo y autonomía, no cosas.
+    </p>
+    <p>
+      Hay una regla más, y esta no se negocia: <strong>ninguna misión puede ser
+      correctiva</strong>. Nada de regañar, ni de tirones, ni de «enseñar quién manda».
+      Las asociaciones veterinarias de comportamiento recomiendan métodos basados en
+      recompensa para todo el adiestramiento, incluidos los casos difíciles, y no hay
+      evidencia de que lo aversivo funcione mejor en ningún contexto; sí de que daña el
+      bienestar del animal y el vínculo con quien lo cuida. Una app que sugiriera una
+      sola misión aversiva estaría enseñando a una familia a hacerle daño a su perro
+      con la coartada de un sistema de puntos. Hay una prueba automática que revisa el
+      catálogo entero y falla si aparece esa clase de lenguaje.
+    </p>
+    <p>
+      El XP que gana la mascota es suyo: quien la cepilla no se lleva puntos por
+      hacerlo. Pero <strong>ese XP sí suma a la meta compartida del gremio</strong>,
+      porque el trabajo es de la casa y la meta es de todos. Cuidar al perro no es un
+      juego paralelo: cuenta para el mismo sitio que lo demás.
+    </p>
+    <p class="pie">
+      Sobre lo que sí se sabe de niños y animales, conviene no exagerar: implicarse en
+      el cuidado se asocia a más empatía, pero los estudios son correlacionales y el
+      efecto depende más de la calidad del vínculo y del grado de implicación real que
+      de tener un animal en casa. Tener perro no hace empático a nadie. Cuidarlo de
+      verdad, quizá.
     </p>
   </div>
 </section>
@@ -1256,7 +1438,7 @@ blockquote cite{display:block;margin-top:1rem;font-style:normal;font-size:.78rem
       <div class="ref-bloque"><span class="et">Qué aporta</span>
         <p>Las recompensas por sí solas producen un efecto pequeño. Funcionan mejor como iniciadores del hábito y combinadas con otras estrategias.</p></div>
       <div class="ref-bloque ref-aterriza"><span class="et">Dónde aterriza</span>
-        <p>Las monedas son un andamio, no el motor. La tienda prioriza premios de autonomía y el sistema invita a retirar la recompensa cuando el hábito se sostiene.</p></div>
+        <p>Los Talis son un andamio, no el motor: reconocen la contribución en lugar de pagarla. La Casa de Recompensas prioriza premios de autonomía y el sistema invita a retirar la recompensa cuando el hábito se sostiene.</p></div>
     </div>
 
     <div class="carta ref">
@@ -1346,17 +1528,17 @@ blockquote cite{display:block;margin-top:1rem;font-style:normal;font-size:.78rem
       </thead>
       <tbody>
         <tr>
-          <td><a href="https://busykid.com/busykid-features/">BusyKid</a></td><td>Tareas y paga</td><td class="moneda">Paga real en tarjeta Visa</td>
+          <td><a href="https://busykid.com/busykid-features/">BusyKid</a></td><td>Tareas y paga</td><td class="dinero">Paga real en tarjeta Visa</td>
           <td>Une tareas por edad con una paga que se reparte entre gastar, ahorrar y compartir.</td>
-          <td>Aquí las misiones no se convierten en dinero y las monedas solo sirven dentro del juego.</td>
+          <td>Aquí las misiones no se convierten en dinero y los Talis solo sirven dentro del juego.</td>
         </tr>
         <tr>
-          <td><a href="https://greenlight.com/chores-control">Greenlight</a></td><td>Banca familiar</td><td class="moneda">Paga, ahorro e inversión</td>
+          <td><a href="https://greenlight.com/chores-control">Greenlight</a></td><td>Banca familiar</td><td class="dinero">Paga, ahorro e inversión</td>
           <td>Combina tareas recurrentes, trabajos puntuales, revisión parental, rachas y pagos flexibles.</td>
           <td>Su núcleo es aprender a manejar dinero; aquí el núcleo es entrenar habilidades familiares.</td>
         </tr>
         <tr>
-          <td><a href="https://www.homeyapp.net/manual/">Homey</a></td><td>Responsabilidades y trabajos</td><td class="moneda">Paga y objetivos de ahorro</td>
+          <td><a href="https://www.homeyapp.net/manual/">Homey</a></td><td>Responsabilidades y trabajos</td><td class="dinero">Paga y objetivos de ahorro</td>
           <td>Distingue entre responsabilidades para desbloquear la paga y trabajos que abonan dinero.</td>
           <td>La revisión sirve para acompañar con un elogio, no para autorizar un pago.</td>
         </tr>
@@ -1376,7 +1558,7 @@ blockquote cite{display:block;margin-top:1rem;font-style:normal;font-size:.78rem
           <td>Su clasificación familiar es justo el tipo de comparación que aquí se evitó entre hermanas.</td>
         </tr>
         <tr class="nuestro">
-          <td>El Gremio</td><td>Habilidades</td><td class="no-moneda">Elogio específico + planes</td>
+          <td>El Gremio</td><td>Habilidades</td><td class="no-dinero">Elogio específico + planes</td>
           <td>Ocho competencias, elogio como control primario, meta cooperativa y economía derivada de un modelo con tests.</td>
           <td>No busca ser banca familiar ni gestor de limpieza: está hecho para una casa concreta, cuatro personas y cuatro dispositivos.</td>
         </tr>
@@ -1513,7 +1695,7 @@ blockquote cite{display:block;margin-top:1rem;font-style:normal;font-size:.78rem
       caja.querySelectorAll('.elogio').forEach(function (o) { o.disabled = true; o.style.opacity = '.35'; });
       b.style.opacity = '1';
       b.style.background = 'rgba(110,231,160,.24)';
-      b.querySelector('small').textContent = 'Validada · +15 XP · +8 monedas · elogio enviado';
+      b.querySelector('small').textContent = 'Validada · +15 XP · +8 Talis · elogio enviado';
     });
   });
 })();

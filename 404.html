@@ -51,20 +51,32 @@
     " />
     <!-- Que una dirección de recuperación no viaje entera al salir del sitio. -->
     <meta name="referrer" content="strict-origin-when-cross-origin" />
-    <meta name="theme-color" content="#1e2140" />
+    <meta name="theme-color" content="#141428" />
     <meta name="description" content="Misiones, XP, monedas y premios reales para toda la familia." />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="El Gremio" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <link rel="manifest" href="/manifest.webmanifest" />
-    <link rel="icon" href="/icon.svg" type="image/svg+xml" />
-    <link rel="apple-touch-icon" href="/icon.svg" />
+    <link rel="icon" href="/favicon.ico" sizes="48x48" />
+    <link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192" />
+    <!-- Dos cosas que hay que saber antes de tocar esto, y que costaron
+         dos intentos:
+
+         1. PNG y no SVG: iOS NO admite SVG en apple-touch-icon.
+         2. El fichero tiene que existir además en /apple-touch-icon.png y
+            en /apple-touch-icon-precomposed.png. iOS sondea esas rutas ÉL
+            SOLO, sin leer estas etiquetas, y el rewrite catch-all de
+            vercel.json le devolvía index.html con un 200. iOS daba el 200
+            por bueno, no podía decodificarlo y pintaba una letra «E» en
+            vez del emblema. En Vercel el fichero estático gana al
+            rewrite, así que con el fichero puesto el sondeo acierta. -->
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:ital,wght@0,400;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=Baloo+2:wght@500;600;700&display=swap" rel="stylesheet" />
     <title>El Gremio</title>
-    <script type="module" crossorigin src="/assets/index-4TrnWKM6.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/index-BZU7gYib.css">
+    <script type="module" crossorigin src="/assets/index-D1QbPoyH.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-Dn8qmak8.css">
   </head>
   <body>
     <div id="root"></div>
