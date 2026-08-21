@@ -18,6 +18,31 @@ verdad duele en esta app: que el esquema y el cliente dejen de encajar.
 
 ---
 
+## 2.13.2 · 21 de agosto de 2026
+
+**Dos frases que no decían la verdad.** Ninguna rompía nada; las dos
+contaban mal lo que estaba pasando.
+
+- **«1 estrellas guardadas».** Los dos `aria-label` de la pantalla de la
+  peque escribían el plural a pelo. Ahí el texto visible son dibujos, así
+  que ese rótulo es TODO lo que oye quien navega con lector de pantalla:
+  es la única frase de esa pantalla que se lee en voz alta, y era la única
+  que estaba mal escrita. El resto de la app ya distinguía («Te falta 1
+  Talis» / «Te faltan 100»). El ayudante vivía suelto y privado dentro de
+  `sellos-lore.js`, donde nadie más podía usarlo; ahora es `lib/plural.js`
+  con sus tests, y `sellos-lore` gasta el compartido.
+
+- **El botón de cerrar la meta gritaba «¡Conseguida!» yendo por el 0,1 %.**
+  Verde, a ancho completo y con confeti en el texto, dijeras 10 XP o
+  12.950. Cerrar la meta lo sigue decidiendo un adulto y no el contador
+  —una noche de pizza no espera a un número—, pero por debajo del objetivo
+  el botón ahora se llama «Cerrar la meta y empezar otra» y va en discreto,
+  y el aviso dice con cuánto se está cerrando. Detrás hay tres cosas que no
+  se deshacen: la temporada, la insignia 🏰 y la subida de precios.
+
+Verificado en el navegador con `dev:demo`, las dos ramas: a 20/12.950 sale
+el botón discreto; forzando la meta a 10/10 vuelve el verde con el 🎉.
+
 ## 2.13.1 · 20 de agosto de 2026
 
 **El aspa y el botón de cerrar de la ficha se salían de la pantalla.** Dos

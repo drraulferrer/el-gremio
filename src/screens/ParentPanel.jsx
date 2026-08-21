@@ -1829,6 +1829,12 @@ function GestionMeta({ family, data, refresh }) {
     setForm(emojiAMano ? { ...form, title } : { ...form, title, emoji: emojiSugerido(title, '🏆') })
   }
   const progreso = goalProgress(goal, data.completions)
+  // Cerrar la meta lo decide un adulto, no el contador: se puede dar por
+  // buena antes de tiempo (una noche de pizza no espera a un número). Pero
+  // el botón no puede gritar «¡Conseguida!» yendo por la décima parte,
+  // porque lo que cierra son tres cosas que no se deshacen: la temporada,
+  // la insignia 🏰 y la subida de precios de la tienda.
+  const lograda = Boolean(goal) && progreso >= goal.target_xp
 
   async function guardar() {
     const fila = {
@@ -1856,7 +1862,11 @@ function GestionMeta({ family, data, refresh }) {
    * la meta, que es otro contador. Ver src/lib/temporadas.js.
    */
   async function conseguida() {
-    if (!window.confirm('¿Marcar la meta como conseguida? Todo el gremio recibirá la insignia 🏰.')) return
+    const aviso = lograda
+      ? '¿Marcar la meta como conseguida? Todo el gremio recibirá la insignia 🏰.'
+      : `¿Cerrar la meta con ${progreso} de ${goal.target_xp} XP? Se da por conseguida igualmente: ` +
+        'todo el gremio recibe la insignia 🏰 y la barra vuelve a empezar.'
+    if (!window.confirm(aviso)) return
 
     const activos = perfilesActivos(data.profiles)
     // Se calcula ANTES de cerrar: al marcarla lograda deja de ser la meta
@@ -1952,8 +1962,12 @@ function GestionMeta({ family, data, refresh }) {
             <div className="xpbar-fill" style={{ width: Math.min(100, Math.round((100 * progreso) / goal.target_xp)) + '%' }} />
             <div className="xpbar-pips"><span /><span /><span /><span /><span /></div>
           </div>
-          <button className="btn btn-exito btn-bloque" style={{ marginTop: 10 }} onClick={conseguida}>
-            🎉 ¡Conseguida! Cerrar y celebrar
+          <button
+            className={'btn btn-bloque ' + (lograda ? 'btn-exito' : 'btn-fantasma')}
+            style={{ marginTop: 10 }}
+            onClick={conseguida}
+          >
+            {lograda ? '🎉 ¡Conseguida! Cerrar y celebrar' : 'Cerrar la meta y empezar otra'}
           </button>
         </div>
       )}

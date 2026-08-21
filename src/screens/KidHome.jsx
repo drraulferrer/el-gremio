@@ -13,6 +13,7 @@ import { estadoDelJuego, siguientePremio, esDeHoy, juegoDelDia, diaCompleto, cla
 import Juego from './JuegosPeque'
 import FichaPeque from './FichaPeque'
 import { debeLatir, leerLatido, contarApertura, sellarPrimeraVez } from '../lib/latido'
+import { plural } from '../lib/plural'
 
 // ------------------------------------------------------------------
 // Pantalla de la peque (3 años).
@@ -189,7 +190,7 @@ export default function KidHome({ family, data, profile, refresh, onSalir }) {
         </button>
         <div className="crece">
           <h1 className="kid-nombre">{profile.name}</h1>
-          <div className="kid-estrellas" aria-label={`${estrellasHoy} estrellas hoy`}>
+          <div className="kid-estrellas" aria-label={`${plural(estrellasHoy, 'estrella', 'estrellas')} hoy`}>
             {[0, 1, 2, 3, 4].map((i) => (
               <span key={i} className={'kid-estrella' + (i < estrellasHoy ? ' llena' : '')}>★</span>
             ))}
@@ -294,7 +295,7 @@ function BaldosaPeque({ reto, disponible, ocupado, onPulsar, onDeshacer, genero 
 function Tarro({ estrellas, onAbrir }) {
   const dibujadas = Math.min(estrellas, 12)
   return (
-    <button className="kid-tarro" onClick={onAbrir} aria-label={`Tu tarro: ${estrellas} estrellas guardadas`}>
+    <button className="kid-tarro" onClick={onAbrir} aria-label={`Tu tarro: ${plural(estrellas, 'estrella guardada', 'estrellas guardadas')}`}>
       <span className="kid-tarro-cristal">
         {Array.from({ length: dibujadas }, (_, i) => (
           <span key={i} className="kid-tarro-estrella" style={{ '--i': i }}>★</span>

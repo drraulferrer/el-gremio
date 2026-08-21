@@ -1,4 +1,5 @@
 import { insigniaPorCodigo, PODERES, PODERES_LISTOS } from './insignias'
+import { plural } from './plural'
 
 // ------------------------------------------------------------------
 // Lo que cuenta un sello cuando lo abres.
@@ -227,8 +228,6 @@ const HABILIDAD_NOMBRE = {
   responsabilidad: 'Responsabilidad', cooperacion: 'Cooperación', creatividad: 'Creatividad',
   autonomia: 'Autonomía'
 }
-
-const plural = (n, uno, varios) => `${n} ${n === 1 ? uno : varios}`
 
 const FRASES = {
   aprobadas: (n) => plural(n, 'encargo aprobado', 'encargos aprobados'),
