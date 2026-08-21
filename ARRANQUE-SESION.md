@@ -20,11 +20,10 @@ VIVO de punta a punta. Antes de añadir nada, lee §8.
 empujar y después `npm run vercel` (§7n), y SIEMPRE con la migración
 ejecutada antes que el bundle.
 
-**Lo segundo, al 21-ago:** hay una migración **033 SIN EJECUTAR** (§7z, el
-buzón de fallos). El bundle 2.14.0 no debe publicarse antes que ella. Y
-desde la 2.14.0 hay un sitio nuevo que mirar cada pocos días: la tabla
-`informes_fallo`, que es donde la familia cuenta lo que va mal (RUNBOOK
-§3b).
+**Lo segundo, al 21-ago:** la migración **033 está EJECUTADA y la 2.14.0
+publicada** (§7z, el buzón de fallos), en ese orden. Desde ahora hay un
+sitio nuevo que mirar cada pocos días: la tabla `informes_fallo`, que es
+donde la familia cuenta lo que va mal (RUNBOOK §3b).
 
 **Si abres sesión nueva, empieza por §8.** Los **803 tests y el CI están
 en verde** (el CI estuvo roto unas horas por un test que parcheaba el
@@ -3360,7 +3359,7 @@ heredar el grant de `anon` (§7w): la 032 lo lleva explícito.
 
 ---
 
-## 7z. El buzón de fallos (21 de agosto) · 2.14.0 · **MIGRACIÓN 033 PENDIENTE DE EJECUTAR**
+## 7z. El buzón de fallos (21 de agosto) · 2.14.0 · **EN PRODUCCIÓN, MIGRACIÓN 033 EJECUTADA**
 
 ### Qué es
 
@@ -3421,6 +3420,37 @@ SHA-256 de la migración (cotejar antes de Run, método §2):
 ```
 033  5f27201fe7e7983ffc43ddad3ceae18cb4b7b563cb49aa2a3548110506839adb
 ```
+
+### Cómo se ejecutó la 033 (y por qué importa para la próxima)
+
+**No hizo falta el SQL Editor.** El CLI de `supabase` de esta máquina está
+autenticado, y eso abre un camino que no estaba escrito en ningún sitio:
+
+```bash
+supabase db query --linked --project-ref chfbrawsoulfiywiqhpe -f migracion-033-informes-de-fallo.sql
+```
+
+Ojo con dos cosas: `--project-ref` **exige** `--linked` (solo, da
+`LegacyDbQueryMutuallyExclusiveFlagsError`), y el mismo comando sirve para
+comprobar sin tocar nada, que es como se descubrió que la 033 no se había
+aplicado pese a darla por hecha:
+
+```bash
+supabase db query --linked --project-ref chfbrawsoulfiywiqhpe \
+  "select count(*) from information_schema.tables where table_name='informes_fallo';"
+```
+
+**La lección, que es la cara:** una migración no está ejecutada porque
+alguien lo diga, sino cuando los contadores lo dicen. Aquí se dio por
+ejecutada, y las dos comprobaciones externas devolvieron `PGRST205` —con
+`zonas_casa` respondiendo 200 al lado, que fue lo que descartó que fuera
+la clave o el proyecto—. Comprobar ANTES de publicar costó un minuto;
+publicar sin comprobar habría costado el primer informe de la familia.
+
+Ejecutada y verificada el 21-ago a las 21:26: los cinco contadores a 1,
+los tres `check` mordiendo sin dejar filas, RLS aguantando desde fuera
+(200 y `[]`), la tabla existiendo (400 a una columna inventada) y la
+escritura anónima rechazada con 401.
 
 ### La trampa de este trayecto
 
