@@ -20,11 +20,18 @@ import { campanaActiva, diasRestantes, esfuerzoDeMision } from '../lib/limpieza'
 import { iniciarTarea, inicioDe, olvidarTarea, restanteDe, textoDeRestante } from '../lib/temporizador'
 import { flag } from '../lib/flags'
 import { premiosParaMayores, ordenarPorPrecio, leerOrdenTienda, alternarOrdenTienda, ORDEN_TIENDA } from '../lib/premios'
+import { elogiosDe, hayNuevo, leerVisita, sellarVisita } from '../lib/muro'
+import Muro from '../components/Muro'
 import { semana, etiquetaDeSemana, validadasDe, resumenDeSemana, semanasConDatos } from '../lib/historial'
 
 export default function Home({ family, data, profile, refresh, onSwitchProfile, onParent, historial }) {
   const genero = generoDe(profile)
   const [tab, setTab] = useState('misiones')
+  // El Muro: lo que le han dicho a esta persona. Se calcula aquí porque
+  // el punto de la pestaña lo necesita, y se sella al entrar en Progreso.
+  const elogios = elogiosDe(data.completions, profile.id)
+  const [visto, setVisto] = useState(() => leerVisita(profile.id))
+  const muroNuevo = hayNuevo(elogios, visto)
   const [celeb, setCeleb] = useState(null)
   const [ocupado, setOcupado] = useState(null)
   const [aviso, setAviso] = useState('')
@@ -184,12 +191,35 @@ export default function Home({ family, data, profile, refresh, onSwitchProfile, 
 
       {tab === 'tienda' && <Tienda data={data} profile={profile} ocupado={ocupado} onCanjear={canjear} />}
 
-      {tab === 'progreso' && <Progreso data={data} profile={profile} genero={genero} refresh={refresh} historial={historial} />}
+      {tab === 'progreso' && (
+        <Progreso
+          data={data}
+          profile={profile}
+          genero={genero}
+          refresh={refresh}
+          historial={historial}
+          elogios={elogios}
+          alVerMuro={() => {
+            // Se sella con la fecha de la ÚLTIMA frase y no con «ahora»:
+            // si llega una mientras está leyendo, seguirá siendo nueva.
+            const ultima = elogios[0]?.ts
+            if (!ultima || ultima === visto) return
+            sellarVisita(profile.id, ultima)
+            setVisto(ultima)
+          }}
+        />
+      )}
 
       <nav className="tabbar" aria-label="Secciones">
         <Pestana icono="misiones" etiqueta="Misiones" activa={tab === 'misiones'} onClick={() => setTab('misiones')} />
         <Pestana icono="tienda" etiqueta="Tienda" activa={tab === 'tienda'} onClick={() => setTab('tienda')} />
-        <Pestana icono="insignias" etiqueta="Progreso" activa={tab === 'progreso'} onClick={() => setTab('progreso')} />
+        <Pestana
+          icono="insignias"
+          etiqueta="Progreso"
+          activa={tab === 'progreso'}
+          punto={muroNuevo}
+          onClick={() => setTab('progreso')}
+        />
         <Pestana icono="perfiles" etiqueta="Cambiar" onClick={onSwitchProfile} />
         <Pestana icono="candado" etiqueta="Panel" onClick={onParent} />
       </nav>
@@ -534,7 +564,9 @@ function Tienda({ data, profile, ocupado, onCanjear }) {
   )
 }
 
-function Progreso({ data, profile, genero, refresh, historial }) {
+function Progreso({ data, profile, genero, refresh, historial, elogios = [], alVerMuro }) {
+  // Al abrir la pestaña se da por visto: es el gesto que apaga el punto.
+  useEffect(() => { alVerMuro?.() }, []) // eslint-disable-line react-hooks/exhaustive-deps
   // El historial va por semanas y no en una lista infinita: una lista que
   // solo crece deja de leerse al mes. Nada se archiva de verdad —los datos
   // siguen en la base—, solo sale de la vista.
@@ -659,6 +691,13 @@ function Progreso({ data, profile, genero, refresh, historial }) {
           </>
         )}
       </div>
+
+      {/* Va detrás del historial de la semana y delante de todo lo demás:
+          arriba está lo que HAS HECHO, y esto es lo que te han DICHO. Las
+          frases ya existían desde el primer día —se escriben al validar—,
+          pero vivían colgadas de su semana y desaparecían al rodar. */}
+      <div className="titulo-seccion">Lo que te han dicho</div>
+      <Muro elogios={elogios} challenges={data.challenges} genero={genero} />
 
       <Poderes data={data} profile={profile} refresh={refresh} genero={genero} />
 

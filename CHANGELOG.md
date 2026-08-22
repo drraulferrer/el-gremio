@@ -18,6 +18,41 @@ verdad duele en esta app: que el esquema y el cliente dejen de encajar.
 
 ---
 
+## 2.19.0 · 22 de agosto de 2026
+
+**El Muro: todo lo bueno que te han dicho, junto y sin caducar.** Es la
+F1 de `docs/RECONOCIMIENTOS.md` y no ha hecho falta ni un dato nuevo: los
+elogios se escriben al validar desde el primer día y se guardan en
+`completions.praise`. Lo único que hacía la app era **dejar de
+enseñarlos** —el historial va por semanas y al rodar la semana
+desaparecían de la vista—, así que nadie podía leer de una vez lo que le
+habían dicho.
+
+- **En Progreso**, sección «Lo que te han dicho»: cada frase con el
+  encargo del que salió y su fecha. Las 30 últimas, y un botón para las
+  anteriores; no caduca nada.
+- **En la ficha de la peque**, antes que sus premios a propósito: lo que
+  le han dicho pesa más que lo que se ha llevado. Manda el dibujo del
+  encargo y la frase va pequeña debajo, para el adulto que pase y se la
+  lea en voz alta, que es la versión buena de esto.
+- **Cómo se entera alguien de que hay algo nuevo**, ya que esto no manda
+  avisos push: un **punto sin número** en la pestaña de Progreso, y para
+  la peque, su avatar latiendo —el aviso que ya entiende—. Se apaga al
+  abrirlo, y se sella con la fecha de la última frase y no con «ahora»:
+  si llega una mientras está leyendo, seguirá siendo nueva.
+- **Sin contadores en ninguna parte.** Ni en el muro, ni en la pestaña, ni
+  al lado de ningún nombre: un número de frases recibidas convierte esto
+  en un marcador, que es el ranking que la app no tiene a propósito.
+- Lo rechazado no entra: un elogio escrito en una validación que luego se
+  corrigió no es un elogio, es un accidente.
+
+**Lo que este muro todavía no puede decir: quién lo dijo.** `completions`
+guarda `resolved_at` y `praise` pero **no guarda quién validó**, así que
+una frase no se puede firmar. Se enseña con su encargo y su fecha, que es
+lo que hay. La firma llega con los gracias de la F2 —esos sí tienen
+remitente— y, si se quiere firmar también los elogios, la columna
+`resolved_by` entra en la migración 034 y desde ese día quedan firmados.
+
 ## 2.18.0 · 22 de agosto de 2026
 
 **La tablet de la peque ya no depende de que un adulto se acuerde.** El

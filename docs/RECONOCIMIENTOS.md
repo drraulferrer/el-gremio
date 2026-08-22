@@ -1,7 +1,7 @@
 # Reconocimientos
 
-**Estado: SPEC, sin implementar.** Escrita el 22 de agosto de 2026.
-Nada de este documento está en producción todavía.
+**Estado: F1 EN PRODUCCIÓN desde la 2.19.0 (22-ago).** F2 y F3 sin
+empezar. Las cuatro decisiones de §10 están cerradas.
 
 De qué va: El Gremio sabe **recompensar** y apenas sabe **reconocer**.
 Son cosas distintas y hoy la app solo tiene una de las dos montada de
@@ -140,7 +140,11 @@ avatar late la próxima vez que entra (§10.1).
 
 **Reglas:**
 - Orden inverso, lo último arriba.
-- Se ve **quién lo dijo** y **cuándo**.
+- Se ve **quién lo dijo** y **cuándo**. ⚠️ **Corregido al implementar:**
+  `completions` no guarda quién validó, así que un elogio no se puede
+  firmar. En la F1 se enseña con su encargo y su fecha. La firma llega
+  con los gracias de la F2, que sí tienen remitente; si se quiere firmar
+  también los elogios, `resolved_by` entra en la migración 034.
 - La propia persona ve el suyo entero. El resto del gremio también: esto
   no es un diario privado, es memoria común.
 - Sin contadores a la vista. Un número al lado convierte el muro en
@@ -277,7 +281,7 @@ misma regla que ya cumple el buzón de fallos.
 
 | Fase | Qué | Migración | Por qué en este orden |
 |---|---|---|---|
-| **F1** | P1 · El Muro | **No** | Valor inmediato con datos que ya existen. Si el muro se lee, el resto tiene sentido; si no se lee, hay que replantear antes de escribir una tabla |
+| ~~**F1**~~ | ~~P1 · El Muro~~ · **HECHA** (2.19.0) | **No** | Valor inmediato con datos que ya existen. Si el muro se lee, el resto tiene sentido; si no se lee, hay que replantear antes de escribir una tabla |
 | **F2** | P2 · Gracias (con la variante de la peque). **En modo piso, también P3** (§10.4) | 034 | El corazón de la spec |
 | **F3** | P3 · Lo espontáneo + P4 · Retrato + P5 · Sacar el elogio de la tienda | No | Pulido y coherencia |
 

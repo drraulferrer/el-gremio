@@ -3417,3 +3417,50 @@ button.kid-avatar.latiendo { animation: latido-aviso 2.6s var(--ease-salida) inf
      base: sin esto la ficha queda colgando bajo el número. */
   vertical-align: -0.15em;
 }
+
+/* ------------------------------------------------------------------
+   El Muro (F1 de reconocimientos).
+
+   La frase manda y por eso va en el cuerpo grande y en cursiva; el
+   encargo y la fecha quedan debajo, en gris, porque son la nota al pie
+   de algo que alguien dijo. Sin números por ninguna parte: un contador
+   al lado convertiría esto en un marcador.
+   ------------------------------------------------------------------ */
+.muro-frase { padding: 13px 15px; }
+.muro-texto {
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.45;
+  font-style: italic;
+  color: var(--tinta);
+}
+.muro-fecha {
+  margin: 6px 0 0;
+  font-size: 0.78rem;
+  color: var(--tinta-suave);
+}
+
+/* La versión de la peque: manda el dibujo del encargo, la frase va
+   pequeña al lado para el adulto que pase. */
+.muro-peque { display: flex; flex-direction: column; gap: 10px; }
+.muro-peque-frase {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(255, 255, 255, 0.55);
+  border: 2px solid rgba(60, 40, 20, 0.12);
+  border-radius: 16px;
+  padding: 10px 12px;
+}
+.muro-peque-emoji { font-size: 2rem; line-height: 1; }
+.muro-peque-texto {
+  margin: 0;
+  font-size: 0.92rem;
+  line-height: 1.35;
+  color: #3a2a18;
+}
+.muro-peque .muro-fecha { color: #6b5943; }
+
+/* El aviso sin número: mismo sitio y mismo color que el contador, pero
+   sin cifra, porque lo que anuncia no se cuenta. */
+.tab-punto { min-width: 9px; width: 9px; height: 9px; padding: 0; }

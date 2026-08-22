@@ -22,6 +22,8 @@ import Icono from '../components/Icono'
 import { semanaEnCasillas, resumenDePersona } from '../lib/resumen'
 import { goalProgress } from '../lib/supabase'
 import { flex } from '../lib/genero'
+import { elogiosDe } from '../lib/muro'
+import Muro from '../components/Muro'
 
 // Tope de la fila de estrellas: cuarenta estrellas dibujadas no se
 // cuentan, se convierten en textura. A partir de aquí se resume.
@@ -91,6 +93,12 @@ export default function FichaPeque({ data, profile, genero, onCerrar }) {
             </div>
           </>
         )}
+
+        {/* Antes que los premios a propósito: lo que le han dicho pesa
+            más que lo que se ha llevado, y en su pantalla el orden ES la
+            jerarquía. La frase va pequeña, para el adulto que pase. */}
+        <p className="kid-ficha-rotulo">Lo que me han dicho</p>
+        <Muro elogios={elogiosDe(data.completions, profile.id)} challenges={data.challenges} formato="peque" />
 
         <p className="kid-ficha-rotulo">Mis premios</p>
         {mios.length === 0 ? (

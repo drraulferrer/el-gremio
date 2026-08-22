@@ -8,17 +8,25 @@ import { BOLSA, TALIS, talis } from '../lib/talis'
  * iconos obliga a adivinar, y el estado activo se marca con fondo, color
  * y pastilla, nunca solo con color.
  */
-export function Pestana({ icono, etiqueta, activa = false, onClick, aviso }) {
+export function Pestana({ icono, etiqueta, activa = false, onClick, aviso, punto = false }) {
+  // `punto` es un aviso SIN número, y existe por una regla de producto: lo
+  // que hay detrás son reconocimientos recibidos, y esos no se cuentan en
+  // ninguna pantalla (§10.1 de docs/RECONOCIMIENTOS.md). Un número ahí
+  // convertiría el muro en un marcador.
+  const etiquetaLeida = aviso
+    ? `${etiqueta}, ${aviso} pendientes`
+    : punto ? `${etiqueta}, hay algo nuevo` : etiqueta
   return (
     <button
       className={'tab' + (activa ? ' activa' : '')}
       onClick={onClick}
       aria-current={activa ? 'page' : undefined}
-      aria-label={aviso ? `${etiqueta}, ${aviso} pendientes` : etiqueta}
+      aria-label={etiquetaLeida}
     >
       <Icono nombre={icono} className="tab-icono" />
       <span className="tab-etiqueta">{etiqueta}</span>
       {aviso > 0 && <span className="tab-aviso" aria-hidden="true">{aviso}</span>}
+      {!aviso && punto && <span className="tab-aviso tab-punto" aria-hidden="true" />}
     </button>
   )
 }

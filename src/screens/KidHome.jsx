@@ -14,6 +14,7 @@ import Juego from './JuegosPeque'
 import FichaPeque from './FichaPeque'
 import { debeLatir, leerLatido, contarApertura, sellarPrimeraVez } from '../lib/latido'
 import { useRecargarAlVolver } from '../lib/actualizacion'
+import { elogiosDe, hayNuevo, leerVisita, sellarVisita } from '../lib/muro'
 import { plural } from '../lib/plural'
 
 // ------------------------------------------------------------------
@@ -50,9 +51,18 @@ export default function KidHome({ family, data, profile, refresh, onSalir }) {
     sellarPrimeraVez(profile.id)
   }, [profile.id])
 
+  // Dos motivos distintos para que su avatar lata, y el segundo es nuevo:
+  // que le hayan dicho algo desde la última vez que abrió su ficha. Ella
+  // no puede recibir un aviso escrito, así que el aviso es el latido.
+  const susElogios = elogiosDe(data.completions, profile.id)
+  const [muroNuevo, setMuroNuevo] = useState(() => hayNuevo(susElogios, leerVisita(profile.id)))
+
   function abrirFicha() {
     const aperturas = contarApertura(profile.id)
     setLatido(debeLatir({ ...leerLatido(profile.id), aperturas }))
+    const ultima = susElogios[0]?.ts
+    if (ultima) sellarVisita(profile.id, ultima)
+    setMuroNuevo(false)
     setVerFicha(true)
   }
 
@@ -188,7 +198,7 @@ export default function KidHome({ family, data, profile, refresh, onSalir }) {
 
       <header className="kid-cabecera">
         <button
-          className={'kid-avatar' + (latido ? ' latiendo' : '')}
+          className={'kid-avatar' + (latido || muroNuevo ? ' latiendo' : '')}
           style={{ background: profile.color }}
           onClick={abrirFicha}
           aria-label={`Ver lo que ha hecho ${profile.name}`}

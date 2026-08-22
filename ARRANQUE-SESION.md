@@ -3604,3 +3604,31 @@ se intentó, porque si tras recargar seguimos en el bundle viejo es que el
 navegador sirve su caché y recargar otra vez es un bucle con una niña de
 tres años delante. La línea `version.recarga_automatica` se vacía a la
 base ANTES de recargar; si no, se iría con la página.
+
+---
+
+## 7af. El Muro (22 de agosto) · 2.19.0 · F1 de reconocimientos · SIN MIGRACIÓN
+
+Primera pieza de `docs/RECONOCIMIENTOS.md`. `src/lib/muro.js` +
+`src/components/Muro.jsx`, enganchados en Progreso (adultos y junior) y
+en `FichaPeque` (ella).
+
+Lo que hay que saber si se toca:
+
+- **No hay dato nuevo.** Sale entero de `completions.praise`, que se
+  escribe al validar desde el primer día. La app lo tenía y solo lo
+  enseñaba dentro de su semana.
+- **Solo lo aprobado.** Un elogio de una validación corregida después a
+  «rechazado» no cuenta. Hay test.
+- **La visita se sella con la fecha de la última frase**, no con `now()`:
+  si llega una mientras alguien lee, sigue siendo nueva. Vive en
+  `localStorage` por perfil (`gremio_muro_visto_<id>`), como la Crónica:
+  es marca de un aparato, no dato del gremio.
+- **El aviso no lleva número** (`Pestana punto`), y no es estética: los
+  reconocimientos recibidos no se cuentan en ninguna pantalla (§10.1 de
+  la spec). Para la peque el aviso es el latido de su avatar.
+- **Un elogio no se puede firmar**: `completions` no guarda quién validó.
+  Si se quiere, `resolved_by` va en la 034 y firma de ahí en adelante.
+
+Siguiente: F2 (los gracias entre iguales), que ya sí pide la migración
+034. Y ojo al alcance doble de §10.4: en modo piso, la F2 incluye P3.
