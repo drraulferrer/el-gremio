@@ -459,8 +459,8 @@ grant select, insert, update, delete on public.informes_fallo to authenticated;
 -- la peque: una cara y una estrella, sin texto).
 --
 -- No hay ninguna columna de recompensa y es deliberado: un reconocimiento
--- no da Talis ni XP. Que la columna no exista es más fuerte que acordarse
--- de no usarla.
+-- no da monedas ni XP. Que la columna no exista es más fuerte que
+-- acordarse de no usarla.
 -- ------------------------------------------------------------------
 create table if not exists public.reconocimientos (
   id uuid primary key default gen_random_uuid(),
