@@ -18,6 +18,38 @@ verdad duele en esta app: que el esquema y el cliente dejen de encajar.
 
 ---
 
+## 2.18.0 · 22 de agosto de 2026
+
+**La tablet de la peque ya no depende de que un adulto se acuerde.** El
+aviso de versión nueva de la 2.17.0 no le sirve a ella —no sabe leer—, y
+su tablet es justo el aparato con más papeletas para quedarse días
+abierto en el mueble del salón corriendo una versión de la semana pasada.
+
+Ahí la app **sí se recarga sola**, y solo en el único momento en que
+hacerlo no le quita nada: **al volver de segundo plano después de un buen
+rato**. Si la pantalla estuvo escondida dos minutos, no había ningún dedo
+encima.
+
+Tres cosas la frenan, y las tres tienen su prueba:
+
+- **Algo a medias**: un juego, una celebración, una estrella viajando a la
+  base. Recargar ahí le quitaría algo que ya era suyo.
+- **Poco rato escondida** (menos de dos minutos): pudo ser un aviso del
+  sistema tapando la pantalla mientras ella jugaba.
+- **Haberlo intentado ya para ese mismo commit.** Este es el guardia que
+  importa: si tras recargar seguimos en el bundle viejo, el navegador está
+  sirviendo su caché y volver a recargar sería un bucle infinito con una
+  niña de tres años delante. Se apunta en `localStorage` qué versión se
+  buscaba y no se reintenta.
+
+Y deja una línea en el registro (`version.recarga_automatica`) **antes**
+de recargar —vaciando la cola a propósito—, porque si no, la única prueba
+de que esto ocurrió se iría con la página.
+
+Verificado en el navegador simulando el ciclo entero: se va a segundo
+plano, vuelve tres minutos después, recarga sola y apunta el commit; al
+repetir el ciclo con el mismo commit, ya no recarga.
+
 ## 2.17.0 · 22 de agosto de 2026
 
 **La app no se enteraba nunca de que estaba vieja.** El 21 de agosto a

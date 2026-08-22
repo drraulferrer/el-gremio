@@ -3595,8 +3595,12 @@ Lo que hay que respetar si se toca:
   min en periódico. Mirar más a menudo no aporta —los despliegues son a
   mano y espaciados— y gasta batería y datos de alguien.
 
-Queda pendiente, y es deliberado: **la tablet de la peque no muestra el
-aviso**. Si se queda días abierta, depende de que un adulto salga al
-selector. Si eso resulta ser un problema real, la salida no es un cartel
-en su pantalla sino recargar al volver de segundo plano, y eso hay que
-pensarlo con cuidado.
+**Resuelto en la 2.18.0** lo que aquí quedaba pendiente: la tablet de la
+peque no muestra el aviso, pero **se recarga sola al volver de segundo
+plano** (`useRecargarAlVolver`, enganchado en `KidHome`). Tres guardias:
+nada a medias (`celebrando`, `jugando`, `fiesta`, `ocupado`), dos minutos
+mínimos escondida, y —el que importa— no reintentar para un commit que ya
+se intentó, porque si tras recargar seguimos en el bundle viejo es que el
+navegador sirve su caché y recargar otra vez es un bucle con una niña de
+tres años delante. La línea `version.recarga_automatica` se vacía a la
+base ANTES de recargar; si no, se iría con la página.

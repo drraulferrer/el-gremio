@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { COMMIT } from './version'
-import { log } from './log'
+import { log, vaciar } from './log'
 
 // ------------------------------------------------------------------
 // Enterarse de que la app está vieja.
@@ -110,4 +110,104 @@ export function useVersionNueva() {
   }, [])
 
   return nueva
+}
+
+// ------------------------------------------------------------------
+// La tablet de la peque: recargar al volver de segundo plano.
+//
+// Su pantalla no lleva el cartel —no sabe leer— y una tablet que se queda
+// días en el mueble del salón es justo el aparato con más probabilidad de
+// correr una versión de la semana pasada. Aquí sí se recarga sola, pero
+// solo en el único momento en que hacerlo no le quita nada: **cuando la
+// app acaba de volver de segundo plano después de un buen rato**. Si
+// estuvo escondida dos minutos, no había ningún dedo encima.
+//
+// Las tres cosas que impiden la recarga, y por qué:
+//
+//   · Que haya algo a medias (un juego, una celebración, una estrella
+//     viajando a la base). Recargar ahí le quita algo que ya era suyo.
+//   · Que haya estado escondida poco rato: pudo ser un aviso del sistema
+//     tapando la pantalla mientras ella jugaba.
+//   · Que YA se recargara buscando ese mismo commit. Si tras recargar
+//     seguimos en el bundle viejo, el navegador está sirviendo su caché y
+//     volver a recargar es un bucle infinito con la niña delante.
+// ------------------------------------------------------------------
+
+export const OCULTA_MINIMA = 2 * 60 * 1000
+const CLAVE_INTENTO = 'gremio_recarga_intentada'
+
+export function debeRecargar({
+  ocultaMs = 0,
+  versionNueva = false,
+  listo = true,
+  commitPublicado = null,
+  yaIntentadoPara = null
+} = {}) {
+  if (!versionNueva || !listo) return false
+  if (ocultaMs < OCULTA_MINIMA) return false
+  if (commitPublicado && yaIntentadoPara === commitPublicado) return false
+  return true
+}
+
+export function leerIntento(almacen = localStorage) {
+  try {
+    return almacen.getItem(CLAVE_INTENTO)
+  } catch {
+    return null
+  }
+}
+
+export function apuntarIntento(commitPublicado, almacen = localStorage) {
+  try {
+    almacen.setItem(CLAVE_INTENTO, String(commitPublicado))
+  } catch {
+    // Sin almacenamiento no hay memoria del intento y, por tanto, no hay
+    // guardia contra el bucle: por eso `debeRecargar` exige que el commit
+    // publicado se conozca, y aquí se falla en silencio y ya está.
+  }
+}
+
+/**
+ * Recarga la pantalla de la peque al volver de segundo plano si hay
+ * versión nueva. `listo` es una función: la evalúa en el momento de
+ * decidir, no cuando se montó el efecto.
+ */
+export function useRecargarAlVolver(listo = () => true) {
+  const ocultaDesde = useRef(0)
+
+  useEffect(() => {
+    async function alCambiar() {
+      if (document.visibilityState === 'hidden') {
+        ocultaDesde.current = Date.now()
+        return
+      }
+      const ocultaMs = ocultaDesde.current ? Date.now() - ocultaDesde.current : 0
+      ocultaDesde.current = 0
+      if (ocultaMs < OCULTA_MINIMA || !listo()) return
+
+      const publicado = await consultarPublicado()
+      const decision = debeRecargar({
+        ocultaMs,
+        versionNueva: hayVersionNueva(publicado),
+        listo: listo(),
+        commitPublicado: publicado?.commit || null,
+        yaIntentadoPara: leerIntento()
+      })
+      if (!decision) return
+
+      apuntarIntento(publicado.commit)
+      log.info('version.recarga_automatica', {
+        corriendo: COMMIT,
+        publicada: publicado.commit,
+        oculta_s: Math.round(ocultaMs / 1000)
+      })
+      // Se vacía la cola ANTES de recargar: si no, esa línea —la única
+      // prueba de que esto ocurrió— se va con la página.
+      await vaciar()
+      window.location.reload()
+    }
+
+    document.addEventListener('visibilitychange', alCambiar)
+    return () => document.removeEventListener('visibilitychange', alCambiar)
+  }, [listo])
 }

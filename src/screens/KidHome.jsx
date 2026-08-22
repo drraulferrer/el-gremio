@@ -13,6 +13,7 @@ import { estadoDelJuego, siguientePremio, esDeHoy, juegoDelDia, diaCompleto, cla
 import Juego from './JuegosPeque'
 import FichaPeque from './FichaPeque'
 import { debeLatir, leerLatido, contarApertura, sellarPrimeraVez } from '../lib/latido'
+import { useRecargarAlVolver } from '../lib/actualizacion'
 import { plural } from '../lib/plural'
 
 // ------------------------------------------------------------------
@@ -127,6 +128,12 @@ export default function KidHome({ family, data, profile, refresh, onSalir }) {
     setFiesta(true)
     log.info('peque.dia_completo', { profile_id: profile.id, misiones: misiones.length })
   }, [completo, profile.id, hoy]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Su pantalla no lleva el cartel de «versión nueva» —no sabe leer—, así
+  // que aquí la app sí se recarga sola, y solo cuando volver de segundo
+  // plano garantiza que no había ningún dedo encima. `useCallback` no:
+  // basta con que la función lea el estado de este render.
+  useRecargarAlVolver(() => !celebrando && !jugando && !fiesta && !ocupado)
 
   async function terminarJuego() {
     setJugando(false)
