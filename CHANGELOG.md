@@ -18,6 +18,41 @@ verdad duele en esta app: que el esquema y el cliente dejen de encajar.
 
 ---
 
+## 2.21.0 · 22 de agosto de 2026
+
+**F3 y última de `docs/RECONOCIMIENTOS.md`.** Tres piezas y ninguna
+migración: el sistema de reconocimientos queda entero.
+
+**Lo que nadie pidió, también en familia.** El tipo `espontaneo` estaba
+desde la 2.20.0 pero solo lo ofrecía el modo piso. Ahora, al dar las
+gracias, hay un botón —«✨ Fue algo que nadie le pidió»— que cambia lo que
+se manda: no cuelga de ningún encargo y en el muro llega marcado. **No es
+lo mismo y por eso se distingue**: reconocer un encargo es decir «bien
+hecho»; esto es decir «me di cuenta», que es exactamente lo que no tenía
+sitio en la app. En un piso sigue viniendo de serie.
+
+**El Retrato: quién has sido esta semana.** Una frase en Progreso, encima
+del muro: «Esta semana el gremio te ha visto sobre todo en Responsabilidad
+y Hogar». Se calcula, no se guarda. Existe porque los sellos dan identidad
+a largo plazo —73 piezas, meses de camino— y no contestan la pregunta
+corta, que es la que uno se hace el domingo.
+
+- Nunca más de dos habilidades: con tres deja de ser un retrato y pasa a
+  ser un inventario.
+- Manda el contexto **congelado** de cada completación: si mañana una
+  misión cambia de habilidad, la semana pasada no cambia con ella.
+- Y si además le han dicho algo, lo añade —«Y alguien se ha acordado de
+  decírtelo»— **sin una sola cifra**: contar lo recibido es el marcador
+  que prohíbe §10.1.
+
+**El elogio sale de la tienda.** Estaba en el catálogo a 325: ocho o nueve
+días de la junior para que alguien dijera en voz alta algo bueno de ella.
+El motivo de retirarlo no es el precio, es que **el reconocimiento no se
+compra** — y desde la 2.20.0 hay un sitio donde se dice gratis. Ningún
+gremio llegó a crearlo, así que no hubo nada que migrar; queda un test que
+falla si alguien vuelve a poner a la venta un elogio, un gracias o un
+reconocimiento.
+
 ## 2.20.0 · 22 de agosto de 2026
 
 **Los gracias: el primer canal horizontal de la app.** F2 de

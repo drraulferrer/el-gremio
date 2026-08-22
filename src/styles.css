@@ -3497,3 +3497,21 @@ button.kid-avatar.latiendo { animation: latido-aviso 2.6s var(--ease-salida) inf
   bottom: -3px;
   font-size: 1.05rem;
 }
+
+/* El retrato de la semana. Va en el cuerpo grande y en oro suave: es una
+   frase sobre ti, no un dato más de la pantalla. */
+.retrato {
+  margin: 0 4px 10px;
+  font-size: 0.95rem;
+  line-height: 1.45;
+  color: var(--tinta);
+}
+
+/* Lo que nadie pidió, marcado. No es lo mismo que un gracias por un
+   encargo: aquello dice «bien hecho», esto dice «me di cuenta». */
+.chip-espontaneo {
+  margin-top: 8px;
+  display: inline-block;
+  background: rgba(110, 231, 160, 0.16);
+  border-color: rgba(110, 231, 160, 0.4);
+}

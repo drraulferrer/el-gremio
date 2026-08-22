@@ -32,8 +32,13 @@ export default function DarGracias({ family, data, profile, genero = 'neutro', o
   const [enviando, setEnviando] = useState(false)
   const [fallo, setFallo] = useState('')
   const [listo, setListo] = useState(false)
+  // Lo que NADIE pidió. En un piso viene marcado de serie porque ahí es la
+  // pieza principal (§10.4); en una familia es una opción, y existe
+  // porque el catálogo de misiones no cubre la carga que no se ve.
+  const [espontaneo, setEspontaneo] = useState(false)
 
   const esPiso = family.tipo_gremio === 'piso'
+  const sinEncargo = espontaneo || esPiso
   const gente = aQuienPuedoDar(data.profiles, profile.id)
   const quedan = quedanHoy(data.reconocimientos, profile.id, dayKey(new Date(), family.timezone))
   const sugerencias = aQuien ? hechosDe(aQuien.id, data) : []
@@ -123,6 +128,7 @@ export default function DarGracias({ family, data, profile, genero = 'neutro', o
               style={{ marginBottom: 8, textAlign: 'left' }}
               onClick={() => {
                 setHecho(h)
+                setEspontaneo(false)
                 setTexto(`Gracias por ${(flex(h.titulo, genero) || 'lo de antes').toLowerCase()}.`)
               }}
             >
@@ -132,15 +138,30 @@ export default function DarGracias({ family, data, profile, genero = 'neutro', o
         </>
       )}
 
+      {/* La opción que hace visible lo invisible. En familia va detrás de
+          los encargos porque lo normal es reconocer algo que se hizo; en
+          un piso va de serie, que allí lo que se reparte mal es justo lo
+          que nadie apuntó. */}
+      {!esPiso && (
+        <button
+          className={'btn btn-bloque btn-mini ' + (espontaneo ? '' : 'btn-fantasma')}
+          style={{ marginTop: 4 }}
+          aria-pressed={espontaneo}
+          onClick={() => { setEspontaneo(!espontaneo); setHecho(null) }}
+        >
+          ✨ Fue algo que nadie le pidió
+        </button>
+      )}
+
       <div className="campo" style={{ marginTop: 8 }}>
         <label htmlFor="gracias-texto">
-          {esPiso ? 'Algo que nadie te pidió y aun así hizo' : 'O escríbelo tú'}
+          {sinEncargo ? 'Algo que nadie le pidió y aun así hizo' : 'O escríbelo tú'}
         </label>
         <textarea
           id="gracias-texto"
           value={texto}
           maxLength={TEXTO_MAXIMO}
-          placeholder={esPiso
+          placeholder={sinEncargo
             ? 'Repusiste el papel sin que nadie dijera nada.'
             : 'Gracias por acordarte de la mochila.'}
           onChange={(e) => { setTexto(e.target.value); setHecho(null) }}
@@ -152,7 +173,7 @@ export default function DarGracias({ family, data, profile, genero = 'neutro', o
       <button
         className="btn btn-bloque"
         disabled={!revision.ok || enviando}
-        onClick={() => mandar(esPiso && !hecho ? 'espontaneo' : 'gracias')}
+        onClick={() => mandar(sinEncargo && !hecho ? 'espontaneo' : 'gracias')}
       >
         {enviando ? 'Mandando…' : 'Decírselo'}
       </button>

@@ -22,6 +22,7 @@ import { flag } from '../lib/flags'
 import { premiosParaMayores, ordenarPorPrecio, leerOrdenTienda, alternarOrdenTienda, ORDEN_TIENDA } from '../lib/premios'
 import { muroDe, hayNuevo, leerVisita, sellarVisita } from '../lib/muro'
 import DarGracias from './DarGracias'
+import { retratoDe } from '../lib/retrato'
 import Muro from '../components/Muro'
 import { semana, etiquetaDeSemana, validadasDe, resumenDeSemana, semanasConDatos } from '../lib/historial'
 
@@ -711,6 +712,13 @@ function Progreso({ data, profile, genero, refresh, historial, elogios = [], alV
           frases ya existían desde el primer día —se escriben al validar—,
           pero vivían colgadas de su semana y desaparecían al rodar. */}
       <div className="titulo-seccion">Lo que te han dicho</div>
+
+      {/* El retrato de la semana: se calcula, no se guarda. Los sellos dan
+          identidad a largo plazo y no contestan la pregunta corta —«¿en
+          qué he andado yo estos días?»—, que es la que uno se hace el
+          domingo. Sin cifras de lo recibido: §10.1. */}
+      <p className="retrato" role="status">{retratoDe(profile.id, data).frase}</p>
+
       <Muro elogios={elogios} challenges={data.challenges} genero={genero} />
 
       {/* Dar vive junto a recibir a propósito: quien acaba de leer lo que

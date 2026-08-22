@@ -3666,3 +3666,30 @@ lo enseñe con la cara del remitente.
 Pendiente de mirar en uso: en la tablet, la fila de «dar las gracias»
 queda por debajo de sus cinco misiones y hay que bajar para verla. Es
 deliberado —sus misiones van primero— pero si nadie la encuentra, sube.
+
+---
+
+## 7ah. F3 de reconocimientos (22 de agosto) · 2.21.0 · SIN MIGRACIÓN
+
+Cierra `docs/RECONOCIMIENTOS.md` entera. Tres piezas:
+
+- **`espontaneo` en familia**, con un botón en `DarGracias` que quita el
+  encargo de la ecuación y marca la frase en el muro. En piso sigue de
+  serie.
+- **`src/lib/retrato.js`**: la frase de la semana, calculada y no
+  guardada. Lee `snapshot_skill` (contexto congelado) y no cuenta NUNCA
+  lo recibido: solo dice si alguien se acordó, sin cifra. Es §10.1
+  aplicada, y hay un test que comprueba que la frase no contiene dígitos.
+- **El elogio fuera del catálogo de premios**, con un test que falla si
+  vuelve a aparecer algo que venda reconocimiento.
+
+Lo que queda del sistema entero no es código. Son los criterios de §8 de
+la spec, y el que de verdad importa: **que en la primera semana haya al
+menos un reconocimiento dado por alguien que no sea adulto, y al menos
+uno dirigido a un adulto**. Si eso no pasa, se habrá construido otro
+canal de arriba abajo con nombre nuevo. Se comprueba así:
+
+```sql
+select tipo, count(*), count(distinct de_profile) as personas
+  from public.reconocimientos group by tipo;
+```

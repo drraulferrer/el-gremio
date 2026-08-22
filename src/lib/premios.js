@@ -55,7 +55,14 @@ export const NIVELES = {
 export const CATALOGO_PREMIOS = [
   // Nivel 1 · decidir. La que más evidencia tiene y la más barata de
   // sostener: no cuesta dinero y no se agota.
-  { title: 'Elogio específico delante de la familia', emoji: '📣', cost: 325, tier: 1 },
+  //
+  // Aquí vivía «Elogio específico delante de la familia», a 325: ocho o
+  // nueve días de la junior para que alguien dijera en voz alta algo
+  // bueno de ella. Se retiró en la 2.21.0 (F3 de RECONOCIMIENTOS.md).
+  // El motivo no es el precio: es que **el reconocimiento no se compra**.
+  // Un elogio con etiqueta deja de ser un elogio y pasa a ser un
+  // artículo, y desde la 2.20.0 hay un sitio donde se dice gratis.
+  // Ningún gremio llegó a crearlo, así que no hay nada que migrar.
   { title: 'Tiempo de calidad', emoji: '💛', cost: 480, tier: 1 },
   { title: 'Elegir una actividad', emoji: '🗓️', cost: 480, tier: 1 },
   { title: 'Elegir un juego', emoji: '🎲', cost: 350, tier: 1 },

@@ -76,6 +76,10 @@ export default function Muro({ elogios = [], challenges = [], genero = 'neutro',
             ) : (
               <p className="muro-texto">“{e.texto}”</p>
             )}
+            {/* Se marca porque NO es lo mismo: reconocer un encargo es
+                decir «bien hecho»; esto es decir «me di cuenta», que es
+                justo lo que no tenía sitio en la app. */}
+            {e.tipo === 'espontaneo' && <span className="chip chip-espontaneo">✨ Nadie te lo pidió</span>}
             <p className="muro-fecha">
               {/* La firma primero cuando la hay: quién lo dijo pesa más
                   que de qué encargo salió. Los elogios de validación no

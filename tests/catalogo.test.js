@@ -48,7 +48,7 @@ const FUENTE = {
 }
 
 const PREMIOS_FUENTE = {
-  1: ['Elogio específico delante de la familia', 'Tiempo de calidad', 'Elegir una actividad', 'Elegir un juego',
+  1: ['Tiempo de calidad', 'Elegir una actividad', 'Elegir un juego',
     'Elegir el cuento', 'Elegir la música del coche', 'Elegir la película', 'Elegir el desayuno del domingo',
     'Elegir la excursión', 'Elegir el menú del viernes'],
   2: ['Cocinar juntos', 'Dormir en un fuerte de mantas', 'Noche de juegos', 'Picnic', 'Cine', 'Helado',
@@ -106,4 +106,14 @@ describe('el catálogo de premios respeta la lista', () => {
       expect(mios).toEqual(PREMIOS_FUENTE[nivel])
     })
   }
+})
+
+// ------------------------------------------------------------------
+// La tienda no vende reconocimiento (F3 · RECONOCIMIENTOS.md §4/P5).
+// ------------------------------------------------------------------
+describe('lo que la tienda NO puede vender', () => {
+  it('ningún premio es un elogio, un gracias ni un reconocimiento', () => {
+    const sospechosos = CATALOGO_PREMIOS.filter((p) => /elogio|gracias|reconocimiento/i.test(p.title))
+    expect(sospechosos.map((p) => p.title)).toEqual([])
+  })
 })
