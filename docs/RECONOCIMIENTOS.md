@@ -93,10 +93,11 @@ cambia aquí, no en el código.
    que lo da ni al que lo recibe. Pagar por reconocer lo convierte en
    trabajo y desplaza el motivo (es el mismo argumento por el que un
    sello no da ventaja, §13.1 de INSIGNIAS-01).
-2. **Sin ranking, nunca.** No existe «quién recibe más». Se puede contar
-   lo que **yo he dado** —anima a dar y no compara a nadie—; lo recibido
-   no se cuenta en público jamás. Es la misma regla que ya prohíbe el
-   ranking entre miembros.
+2. **Sin ranking, nunca, y sin contadores de recibidos.** No existe
+   «quién recibe más» ni ningún número de reconocimientos recibidos en
+   ninguna pantalla (ver §10.1, que lo afina). Se puede contar lo que **yo
+   he dado** hoy —anima a dar, no compara a nadie, y hace falta para el
+   tope—. Es la misma regla que ya prohíbe el ranking entre miembros.
 3. **Específico o no es.** Un botón de 👏 suelto es el «muy bien»
    genérico que Owen et al. mide como gastado por repetición. **Todo
    reconocimiento nombra un hecho**, aunque el hecho lo elija de una
@@ -130,8 +131,12 @@ valor y coste de toda la spec.
 
 **Dónde:** dentro de la ficha de cada persona (la que ya abre el avatar),
 como una sección más junto a los sellos. En la de la peque, con su
-formato: frases cortas, leídas en voz alta con el botón de sonido que ya
-existe.
+formato: la cara de quien se lo dijo, grande, y la frase pequeña debajo
+para el adulto que pase (§10.2 · la app no la lee en voz alta, la lee una
+persona, que es mejor).
+
+**Cómo se entera alguien de que hay algo nuevo**, sin avisos push: su
+avatar late la próxima vez que entra (§10.1).
 
 **Reglas:**
 - Orden inverso, lo último arriba.
@@ -273,7 +278,7 @@ misma regla que ya cumple el buzón de fallos.
 | Fase | Qué | Migración | Por qué en este orden |
 |---|---|---|---|
 | **F1** | P1 · El Muro | **No** | Valor inmediato con datos que ya existen. Si el muro se lee, el resto tiene sentido; si no se lee, hay que replantear antes de escribir una tabla |
-| **F2** | P2 · Gracias (con la variante de la peque) | 034 | El corazón de la spec |
+| **F2** | P2 · Gracias (con la variante de la peque). **En modo piso, también P3** (§10.4) | 034 | El corazón de la spec |
 | **F3** | P3 · Lo espontáneo + P4 · Retrato + P5 · Sacar el elogio de la tienda | No | Pulido y coherencia |
 
 F1 es deliberadamente una **prueba barata de la hipótesis** entera: que
@@ -324,25 +329,98 @@ Medibles con lo que ya hay (`app_logs`, `reconocimientos`,
 
 ---
 
-## 10. Preguntas abiertas
+## 10. Las cuatro decisiones
 
-Las cuatro cambian el diseño; ninguna la puede decidir quien escribe el
-código:
+Estaban abiertas y las cierra el autor de la spec a petición del autor
+del proyecto (22-ago). **Ninguna ata la F1**: si alguna se quiere del
+revés, se cambia aquí antes de tocar código de la F2.
 
-1. **¿Los gracias los ve todo el gremio o solo quien lo recibe?**
-   Público hace comunidad y arriesga comparación; privado protege y
-   pierde el efecto de «esto aquí se hace».
-2. **¿La peque recibe reconocimientos de texto?** No sabe leer. ¿Se los
-   lee la app en voz alta, o solo recibe gestos?
-3. **¿Puede un adulto reconocer una misión que él mismo validó**, o eso
-   es doblar el mismo acto y conviene forzar que el gracias venga de otra
-   persona?
-4. **¿El modo piso hereda esto entero?** Entre convivientes adultos el
-   reconocimiento de la carga invisible es, probablemente, **la** función
-   —más que las misiones—. Puede que P3 sea ahí la pieza principal y no
-   el pulido.
+### 10.1 · Los gracias los ve todo el gremio, pero no hay contadores
 
----
+**Decisión: públicos.** Un reconocimiento privado protege de la
+comparación y a cambio pierde lo único que hace que estas cosas arraiguen
+en una casa: que se vea que aquí esto se hace. Los niños aprenden lo que
+ven hacer, no lo que reciben en un sobre cerrado. Y el Muro (P1) ya se
+definió como memoria común y no como diario.
+
+**El riesgo real no es la visibilidad: son los totales.** Ver «Ana le dio
+las gracias a papá por acordarse de la mochila» es memoria. Ver «Ana 7 ·
+papá 2» es un marcador, y activa exactamente la comparación que prohíbe
+la decisión 2.
+
+De modo que se afina la decisión 2 con una regla operativa:
+
+> **En ningún sitio de la app aparece un número de reconocimientos
+> recibidos.** Ni en la ficha, ni en el selector, ni en el Cuadro del
+> panel, ni sumado por semana. El único contador que puede existir es el
+> de los que YO he dado hoy, y existe solo porque hace falta para el tope.
+
+**Cómo se entera alguien de que le han dicho algo**, ya que no hay avisos
+push (decisión 8): su avatar **late** la próxima vez que entra, igual que
+late hoy la ficha cuando hay algo que no ha visto. Se reutiliza la
+animación de `latido.js`, no su lógica —aquella cuenta aperturas para
+enseñar dónde está la ficha; esta mira si hay algo posterior a su última
+visita al Muro—.
+
+### 10.2 · La peque recibe reconocimientos con texto, pero para ella el mensaje no es el texto
+
+**Decisión: los recibe, y la app NO se los lee en voz alta.**
+
+Su pantalla ya tiene resuelta esta pregunta desde el primer día, y la
+respuesta está escrita en la cabecera de `KidHome.jsx`: *«No sabe leer:
+manda el dibujo. El texto está para el adulto que pasa»*. Un
+reconocimiento para ella es **la cara de quien se lo manda** y una pieza
+que se queda; la frase va debajo, pequeña, para quien pase por allí y se
+la lea. Que se la lea una persona es mejor que cualquier síntesis de voz:
+el reconocimiento leído por el padre EN VOZ ALTA es, de hecho, la versión
+buena de esto.
+
+**Descartado el `speechSynthesis`** del navegador: mete una dependencia
+de voces, permisos y calidad que varía por aparato, para resolver algo
+que ya resuelve la persona que está al lado. Si algún día se quiere voz,
+su sitio es el botón de sonido que ya existe en su cabecera, y es otra
+conversación.
+
+### 10.3 · No se reconoce dos veces el mismo hecho (y quién validó da igual)
+
+La pregunta era si un adulto puede reconocer una misión que él mismo
+validó. **La pregunta estaba mal planteada, y por eso no tenía respuesta
+buena: lo que importa no es quién validó, sino si ese hecho YA tiene
+palabras.**
+
+**Decisión:** la lista de hechos que propone el flujo de gracias (P2)
+**no ofrece completaciones que ya lleven elogio** (`praise is not null`).
+Da igual quién lo escribiera. Y no se bloquea nada más: el gracias libre
+y lo espontáneo (P3) siguen abiertos hacia esa misma persona, porque son
+un acto distinto y no el mismo repetido.
+
+Ventaja lateral que decide el empate: **no hace falta migración.**
+`completions` guarda `resolved_at` y `praise`, pero **no guarda quién
+resolvió** —comprobado en `schema.sql`—, así que la regla por autor
+habría exigido una columna nueva y un relleno inventado para las filas
+viejas. La regla por «ya tiene palabras» se puede aplicar hoy con lo que
+hay, y además es la regla correcta.
+
+### 10.4 · El modo piso lo hereda entero, y ahí P3 sube de fase
+
+**Decisión: sí, entero. Y en piso, «lo que nadie pidió» (P3) entra en la
+F2, no en la F3.**
+
+El motivo no es de producto, es estructural: en una familia el
+reconocimiento vertical ya existe y funciona —el adulto valida y elogia—,
+así que los gracias entre iguales llegan a una casa donde ya se reconoce
+algo. **En un piso compartido no hay nadie por encima**: todos son
+adultos, nadie valida a nadie, y ese canal vertical sencillamente no
+existe. Si en piso solo se monta P2, se monta la mitad de un sistema
+sobre un vacío.
+
+Y lo que se reparte mal en un piso no son las tareas del catálogo: es lo
+que nadie apuntó. Reponer el papel, darse cuenta de que faltaba leche,
+llamar al fontanero. **P3 es ahí la pieza principal**, y su frase —«nadie
+te lo pidió y lo hiciste»— está escrita para ese caso.
+
+Consecuencia práctica para quien implemente: la F2 tiene dos alcances
+según `families.tipo_gremio`, y el de piso incluye P3.
 
 ## 11. De dónde sale esto
 
