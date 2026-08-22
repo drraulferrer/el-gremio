@@ -19,6 +19,7 @@ import { esRecuperacion } from './lib/acceso'
 import Onboarding from './screens/Onboarding'
 import ProfilePicker from './screens/ProfilePicker'
 import ReportarFallo from './screens/ReportarFallo'
+import { useVersionNueva } from './lib/actualizacion'
 import Home from './screens/Home'
 import KidHome from './screens/KidHome'
 import ParentPanel from './screens/ParentPanel'
@@ -55,6 +56,9 @@ export default function App() {
   // sobreviva a que el selector se recargue por realtime mientras alguien
   // está escribiendo: perder lo escrito es perder el informe.
   const [contandoFallo, setContandoFallo] = useState(false)
+  // Si hay publicada una versión distinta de la que corre aquí. No
+  // recarga sola: avisa. Ver src/lib/actualizacion.js.
+  const versionNueva = useVersionNueva()
   // Viene del enlace del correo. Se mira la URL ya en el primer render
   // además de escuchar el evento: supabase-js consume el hash al arrancar
   // y puede avisar antes de que esto esté escuchando.
@@ -488,6 +492,20 @@ export default function App() {
     return (
       <div>
         <div className="velo-superior" aria-hidden="true" />
+
+        {/* Va aquí y no más arriba a propósito: la pantalla de la peque
+            sale antes de este punto, y un cartel de texto que ella no
+            puede leer solo sería ruido. Cuando un adulto salga de su
+            pantalla al selector, lo verá. */}
+        {versionNueva && (
+          <p className="aviso-carga" role="status">
+            Hay una versión nueva del gremio. Esta lleva abierta un rato y puede que le falten arreglos.
+            <button className="btn btn-mini" style={{ marginLeft: 8 }} onClick={() => window.location.reload()}>
+              Recargar
+            </button>
+          </p>
+        )}
+
         {profile ? (
           <Home
             family={family}

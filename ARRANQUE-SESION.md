@@ -3569,3 +3569,34 @@ Lo que se arregló en `src/screens/Estado.jsx` y `src/lib/registro.js`:
 
 `tests/registro.test.js` (14 pruebas) fija el comportamiento con la fila
 REAL que guardó producción el 21-ago a las 22:21.
+
+---
+
+## 7ae. La app se entera de que está vieja (22 de agosto) · 2.17.0
+
+Sale de una pregunta del panel nuevo: por qué aparecía la versión
+`2.5.1+ba00891` entre los errores del 21-ago. Respuesta: **una sesión
+abierta desde el día 18**. Tres días, diez versiones.
+
+`src/lib/actualizacion.js` compara `COMMIT` (inyectado en el bundle) con
+el `commit` de `version.json` (escrito en cada despliegue). Si difieren,
+`useVersionNueva()` devuelve `true` y App pinta el cartel.
+
+Lo que hay que respetar si se toca:
+
+- **No recarga sola, y no debe.** Ver el comentario del fichero.
+- **El aviso va DENTRO del contenedor que no usa la peque**: su pantalla
+  hace `return` antes. Moverlo más arriba se lo pone delante a ella.
+- **Ante la duda, no avisa.** El guardia de `content-type` no es
+  decorativo: en `npm run dev` el comodín de la SPA devuelve `index.html`
+  con un 200, y sin esa comprobación saldría el cartel en cada arranque de
+  desarrollo. Hay test.
+- Relojes: 20 s al arrancar, 5 min de gracia al volver a primer plano, 30
+  min en periódico. Mirar más a menudo no aporta —los despliegues son a
+  mano y espaciados— y gasta batería y datos de alguien.
+
+Queda pendiente, y es deliberado: **la tablet de la peque no muestra el
+aviso**. Si se queda días abierta, depende de que un adulto salga al
+selector. Si eso resulta ser un problema real, la salida no es un cartel
+en su pantalla sino recargar al volver de segundo plano, y eso hay que
+pensarlo con cuidado.

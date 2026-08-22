@@ -18,6 +18,40 @@ verdad duele en esta app: que el esquema y el cliente dejen de encajar.
 
 ---
 
+## 2.17.0 · 22 de agosto de 2026
+
+**La app no se enteraba nunca de que estaba vieja.** El 21 de agosto a
+las 08:44 hubo una sesión corriendo el bundle del día 18: tres días y
+diez versiones por detrás. No era caché del service worker —el nuestro no
+cachea nada a propósito—, era una app **abierta desde hacía días**. Un
+icono de inicio en un móvil no se cierra nunca, y el código con el que se
+cargó sigue ejecutándose hasta que alguien recarga de verdad.
+
+Eso choca con la regla que gobierna los despliegues aquí: una migración
+puede dejar roto a un cliente viejo, y el cliente viejo no tenía forma de
+saber que lo era.
+
+Ahora compara el commit que lleva dentro con el de `version.json` —que ya
+se publicaba en cada build— y, si no coinciden, avisa con un cartel y un
+botón de recargar.
+
+- **Mira en tres momentos**, y el segundo es el que importa: al arrancar
+  (pasados 20 s, para no competir con la carga), **al volver a primer
+  plano** si hace más de cinco minutos de la última —el caso exacto del
+  móvil suspendido— y cada media hora.
+- **No recarga sola.** Una app que se recarga bajo el dedo de alguien
+  pierde el toque que estaba dando, y en la pantalla de la peque sería
+  sencillamente inquietante. Avisa; recarga quien quiera.
+- **La peque no lo ve.** Su pantalla vuelve antes de ese punto del árbol y
+  un cartel de texto que no puede leer solo sería ruido. Cuando un adulto
+  salga al selector, lo verá.
+- **Ante la duda, no avisa**: sin dato, sin commit, con un bundle de
+  desarrollo o con un `index.html` devuelto por el comodín de la SPA
+  —200 y `text/html`, que es lo que pasa en `npm run dev`—, se calla. Un
+  aviso que sale cuando no toca se aprende a ignorar en dos días.
+- Deja **una sola línea** en el registro (`version.vieja`) la primera vez,
+  para saber por fin cuánto tiempo corre la gente con una versión vieja.
+
 ## 2.16.1 · 22 de agosto de 2026
 
 **Un fallo ya arreglado seguía leyéndose como un fallo vivo.** El panel
