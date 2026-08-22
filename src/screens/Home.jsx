@@ -11,7 +11,7 @@ import Colecciones from '../components/Colecciones'
 import SelloDetalle, { tieneDetalle } from '../components/SelloDetalle'
 import { pedirMision as pedirMisionRemota, canjearPremio, deshacerMision } from '../lib/acciones'
 import { proyeccionDe } from '../lib/sellos-motor'
-import { Gema, XPBar, Bolsa, Celebracion, Pestana, Talis } from '../components/ui'
+import { Gema, XPBar, Bolsa, Celebracion, Pestana, Talis, Plegable } from '../components/ui'
 import { talis, progresoDeTalis } from '../lib/talis'
 import { HABILIDADES, habilidad, xpPorHabilidad, rangoDeHabilidad, habilidadDominante } from '../lib/habilidades'
 import { flex, generoDe } from '../lib/genero'
@@ -202,6 +202,7 @@ export default function Home({ family, data, profile, refresh, onSwitchProfile, 
           refresh={refresh}
           historial={historial}
           elogios={elogios}
+          muroNuevo={muroNuevo}
           onDarGracias={() => setDandoGracias(true)}
           alVerMuro={() => {
             // Se sella con la fecha de la ÚLTIMA frase y no con «ahora»:
@@ -579,9 +580,7 @@ function Tienda({ data, profile, ocupado, onCanjear }) {
   )
 }
 
-function Progreso({ data, profile, genero, refresh, historial, elogios = [], alVerMuro, onDarGracias }) {
-  // Al abrir la pestaña se da por visto: es el gesto que apaga el punto.
-  useEffect(() => { alVerMuro?.() }, []) // eslint-disable-line react-hooks/exhaustive-deps
+function Progreso({ data, profile, genero, refresh, historial, elogios = [], alVerMuro, onDarGracias, muroNuevo = false }) {
   // El historial va por semanas y no en una lista infinita: una lista que
   // solo crece deja de leerse al mes. Nada se archiva de verdad —los datos
   // siguen en la base—, solo sale de la vista.
@@ -656,8 +655,13 @@ function Progreso({ data, profile, genero, refresh, historial, elogios = [], alV
         })}
       </div>
 
-      <div className="titulo-seccion">Lo que has hecho</div>
-
+      <Plegable
+        id="hecho"
+        titulo="Lo que has hecho"
+        pista={resumen.misiones === 0
+          ? (atras === 0 ? 'Nada validado esta semana todavía' : 'Esa semana no hubo nada')
+          : `${resumen.misiones} ${resumen.misiones === 1 ? 'misión' : 'misiones'} · ${resumen.xp} XP`}
+      >
       <div className="carta">
         <div className="fila-separada" style={{ marginBottom: 10 }}>
           <button
@@ -711,7 +715,7 @@ function Progreso({ data, profile, genero, refresh, historial, elogios = [], alV
           arriba está lo que HAS HECHO, y esto es lo que te han DICHO. Las
           frases ya existían desde el primer día —se escriben al validar—,
           pero vivían colgadas de su semana y desaparecían al rodar. */}
-      <div className="titulo-seccion">Lo que te han dicho</div>
+      </Plegable>
 
       {/* El retrato de la semana: se calcula, no se guarda. Los sellos dan
           identidad a largo plazo y no contestan la pregunta corta —«¿en
@@ -719,7 +723,20 @@ function Progreso({ data, profile, genero, refresh, historial, elogios = [], alV
           domingo. Sin cifras de lo recibido: §10.1. */}
       <p className="retrato" role="status">{retratoDe(profile.id, data).frase}</p>
 
-      <Muro elogios={elogios} challenges={data.challenges} genero={genero} />
+      {/* La pista es la última frase recortada, no un número: enseñar
+          cuántas te han dicho convertiría esto en un marcador, y es justo
+          lo que §10.1 prohíbe. Y el punto no se apaga al entrar en
+          Progreso sino al ABRIR esta sección: antes se daba por leído lo
+          que nadie había leído. */}
+      <Plegable
+        id="muro"
+        titulo="Lo que te han dicho"
+        pista={elogios[0] ? `Lo último: “${elogios[0].texto || 'te dieron las gracias'}”` : 'Todavía nada'}
+        marca={muroNuevo}
+        alAbrir={alVerMuro}
+      >
+        <Muro elogios={elogios} challenges={data.challenges} genero={genero} />
+      </Plegable>
 
       {/* Dar vive junto a recibir a propósito: quien acaba de leer lo que
           le han dicho es quien más cerca está de decírselo a otro. */}

@@ -3515,3 +3515,44 @@ button.kid-avatar.latiendo { animation: latido-aviso 2.6s var(--ease-salida) inf
   background: rgba(110, 231, 160, 0.16);
   border-color: rgba(110, 231, 160, 0.4);
 }
+
+/* Secciones plegables de Progreso. Misma cabecera que «Ver el catálogo de
+   sellos», que ya era un `<details>`: una sola forma de plegar en toda la
+   app y no dos parecidas. */
+.plegable { margin: 0 0 12px; }
+.plegable > summary {
+  cursor: pointer;
+  padding: 12px 14px;
+  background: var(--carta);
+  border: 1px solid var(--linea);
+  border-radius: var(--radio-s);
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 0.9rem;
+  /* 44 px de alto: es un control y se toca con el pulgar. */
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.plegable > summary::-webkit-details-marker { display: none; }
+.plegable > summary::marker { content: ''; }
+.plegable > summary:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+.plegable[open] > summary { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+.plegable-pista {
+  display: block;
+  margin-top: 2px;
+  font-family: var(--cuerpo);
+  font-weight: 400;
+  font-size: 0.78rem;
+  color: var(--tinta-suave);
+  /* Una pista de tres líneas deja de ser una pista. */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.plegable-flecha { color: var(--tinta-suave); font-size: 0.85rem; }
+/* El punto va en la cabecera, no flotando: aquí no hay barra de pestañas
+   sobre la que colgarlo. */
+.plegable-marca { position: static; top: auto; right: auto; }
+.plegable-cuerpo { padding-top: 10px; }

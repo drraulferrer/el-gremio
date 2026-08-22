@@ -18,6 +18,32 @@ verdad duele en esta app: que el esquema y el cliente dejen de encajar.
 
 ---
 
+## 2.21.1 · 22 de agosto de 2026
+
+**Progreso se comía la pantalla con la semana llena.** «Lo que has hecho»
+y «Lo que te han dicho» crecen con el uso, que es lo que se quería, pero
+con dieciséis misiones validadas y sus frases dejaban la racha, las
+habilidades y los sellos a **trece pantallas de móvil** de scroll
+(18.373 px contra 7.758 midiéndolo en la demo).
+
+Los dos se pliegan ahora, y **la cabecera dice qué hay dentro sin abrir**:
+«16 misiones · 240 XP» y «Lo último: “Te has acordado tú de hacer la
+cama”». Una cabecera muda obliga a abrir para saber si hay algo, que es
+justo lo que se quería evitar.
+
+- **Se pliegan de serie, pero lo que abres se queda abierto**: obligar a
+  desplegar lo mismo cada vez es la forma más rápida de que deje de
+  abrirse. Se recuerda por aparato, como el orden de la tienda.
+- Son `<details>` de verdad y no un `div` con `onClick`: el navegador ya
+  sabe abrirlos con teclado, anunciarlos a un lector de pantalla y buscar
+  dentro del texto plegado.
+- La pista del muro es **la última frase**, nunca un número: contar lo
+  recibido es el marcador que prohíbe §10.1.
+
+**Y de paso, un fallo que trajo la 2.19.0:** el punto de «hay algo nuevo»
+se apagaba al entrar en Progreso, hubiera leído uno el muro o no. Ahora se
+apaga **al abrir la sección**, que es cuando de verdad se lee.
+
 ## 2.21.0 · 22 de agosto de 2026
 
 **F3 y última de `docs/RECONOCIMIENTOS.md`.** Tres piezas y ninguna

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { levelProgress, hashPin } from '../lib/supabase'
+import { estaAbierto, recordarAbierto } from '../lib/plegado'
 import Icono from './Icono'
 import { BOLSA, TALIS, talis } from '../lib/talis'
 
@@ -174,5 +175,44 @@ export function Celebracion({ emoji = '🌟', texto, elogio, onDone }) {
         {elogio && <span className="celebracion-elogio">“{elogio}”</span>}
       </div>
     </div>
+  )
+}
+
+/**
+ * Sección plegable con memoria.
+ *
+ * `<details>` de verdad y no un div con `onClick`: el navegador ya sabe
+ * abrirlo con el teclado, anunciarlo a un lector de pantalla y buscar
+ * dentro del texto plegado. Reescribir eso a mano siempre sale peor.
+ *
+ * La `pista` es lo que se ve SIN abrir, y es lo que decide si esto ayuda
+ * o estorba: una cabecera muda obliga a abrir para saber si hay algo.
+ * `marca` es un punto sin número —lo que hay detrás son reconocimientos
+ * recibidos, y esos no se cuentan en ninguna pantalla (§10.1)—.
+ */
+export function Plegable({ id, titulo, pista = '', marca = false, alAbrir, children }) {
+  const [abierto, setAbierto] = useState(() => estaAbierto(id))
+
+  return (
+    <details
+      className="plegable"
+      open={abierto}
+      onToggle={(e) => {
+        const ahora = e.currentTarget.open
+        if (ahora === abierto) return
+        setAbierto(recordarAbierto(id, ahora))
+        if (ahora) alAbrir?.()
+      }}
+    >
+      <summary>
+        <span className="crece">
+          {titulo}
+          {pista && <span className="plegable-pista">{pista}</span>}
+        </span>
+        {marca && <span className="tab-aviso tab-punto plegable-marca" aria-label="hay algo nuevo" />}
+        <span className="plegable-flecha" aria-hidden="true">{abierto ? '▾' : '▸'}</span>
+      </summary>
+      <div className="plegable-cuerpo">{children}</div>
+    </details>
   )
 }

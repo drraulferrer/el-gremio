@@ -3693,3 +3693,22 @@ canal de arriba abajo con nombre nuevo. Se comprueba así:
 select tipo, count(*), count(distinct de_profile) as personas
   from public.reconocimientos group by tipo;
 ```
+
+---
+
+## 7ai. Progreso plegable (22 de agosto) · 2.21.1
+
+`Plegable` en `components/ui.jsx` + `lib/plegado.js`. Envuelve «Lo que has
+hecho» y «Lo que te han dicho», que son las dos secciones que crecen con
+el uso.
+
+- Un `<details>` con `open` controlado y memoria por aparato
+  (`gremio_plegado_<id>`). Misma cabecera que «Ver el catálogo de sellos»,
+  que ya era un `<details>`: **una sola forma de plegar en la app**, no
+  dos parecidas.
+- **La pista de la cabecera no es decorativa**: sin ella hay que abrir
+  para saber si hay algo, y entonces plegar no ahorra nada. En el muro es
+  la última frase y NUNCA un número (§10.1).
+- El sellado del muro se movió de «al montar Progreso» a «al abrir la
+  sección». Era un fallo de la 2.19.0: se daba por leído lo que nadie
+  había leído.
