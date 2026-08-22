@@ -84,3 +84,34 @@ export function fechaCorta(ts, ahora = new Date()) {
   const dia = `${d.getDate()} de ${MESES[d.getMonth()]}`
   return d.getFullYear() === ahora.getFullYear() ? dia : `${dia} de ${d.getFullYear()}`
 }
+
+/**
+ * El muro completo: los elogios de validación MÁS los reconocimientos
+ * que le ha dado el resto del gremio (F2), en una sola lista.
+ *
+ * Los dos tipos conviven a propósito y no en pestañas separadas: para
+ * quien lo lee no son dos cosas, es todo lo bueno que le han dicho. La
+ * diferencia se ve en la firma —los gracias la llevan, los elogios no
+ * pueden llevarla porque `completions` no guarda quién validó— y en el
+ * dibujo de cada tarjeta.
+ */
+export function muroDe({ completions = [], reconocimientos = [], perfiles = [] } = {}, profileId) {
+  const quien = (id) => perfiles.find((p) => p.id === id) || null
+
+  const gracias = reconocimientos
+    .filter((r) => r.a_profile === profileId)
+    .map((r) => ({
+      id: r.id,
+      texto: r.texto ? String(r.texto).trim() : '',
+      ts: r.created_at || null,
+      challengeId: r.completion_id ? completionAReto(completions, r.completion_id) : null,
+      de: quien(r.de_profile),
+      tipo: r.tipo || 'gracias'
+    }))
+
+  const elogios = elogiosDe(completions, profileId).map((e) => ({ ...e, de: null, tipo: 'elogio' }))
+
+  return [...gracias, ...elogios].sort((a, b) => String(b.ts || '').localeCompare(String(a.ts || '')))
+}
+
+const completionAReto = (completions, id) => completions.find((c) => c.id === id)?.challenge_id || null

@@ -41,9 +41,15 @@ export default function Muro({ elogios = [], challenges = [], genero = 'neutro',
       <div className="muro-peque">
         {visibles.map((e) => (
           <div className="muro-peque-frase" key={e.id}>
-            <span className="muro-peque-emoji" aria-hidden="true">{retoDe(e.challengeId)?.emoji || '⭐'}</span>
+            {/* Si hay remitente manda su cara: a los tres años «quién me
+                lo dice» se entiende mucho antes que «por qué». */}
+            <span className="muro-peque-emoji" aria-hidden="true">
+              {e.de?.emoji || retoDe(e.challengeId)?.emoji || '⭐'}
+            </span>
             <div>
-              <p className="muro-peque-texto">{e.texto}</p>
+              <p className="muro-peque-texto">
+                {e.tipo === 'gesto' ? `${e.de?.name || 'Alguien'} te dio las gracias ⭐` : e.texto}
+              </p>
               <p className="muro-fecha">{fechaCorta(e.ts)}</p>
             </div>
           </div>
@@ -63,10 +69,22 @@ export default function Muro({ elogios = [], challenges = [], genero = 'neutro',
         const reto = retoDe(e.challengeId)
         return (
           <div className="carta muro-frase" key={e.id}>
-            <p className="muro-texto">“{e.texto}”</p>
+            {e.tipo === 'gesto' ? (
+              <p className="muro-texto">
+                ⭐ {e.de?.name || 'Alguien'} te dio las gracias
+              </p>
+            ) : (
+              <p className="muro-texto">“{e.texto}”</p>
+            )}
             <p className="muro-fecha">
+              {/* La firma primero cuando la hay: quién lo dijo pesa más
+                  que de qué encargo salió. Los elogios de validación no
+                  pueden firmarse —`completions` no guarda quién validó—,
+                  así que ahí manda el encargo. */}
+              {e.de ? `${e.de.emoji || '·'} ${e.de.name} · ` : ''}
               {reto?.emoji ? `${reto.emoji} ` : ''}
-              {flex(reto?.title, genero) || 'Una misión'} · {fechaCorta(e.ts)}
+              {e.de && !reto ? '' : (flex(reto?.title, genero) || 'Una misión') + ' · '}
+              {fechaCorta(e.ts)}
             </p>
           </div>
         )

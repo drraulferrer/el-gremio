@@ -14,7 +14,8 @@ import Juego from './JuegosPeque'
 import FichaPeque from './FichaPeque'
 import { debeLatir, leerLatido, contarApertura, sellarPrimeraVez } from '../lib/latido'
 import { useRecargarAlVolver } from '../lib/actualizacion'
-import { elogiosDe, hayNuevo, leerVisita, sellarVisita } from '../lib/muro'
+import { muroDe, hayNuevo, leerVisita, sellarVisita } from '../lib/muro'
+import { darGracias, aQuienPuedoDar, quedanHoy } from '../lib/gracias'
 import { plural } from '../lib/plural'
 
 // ------------------------------------------------------------------
@@ -51,10 +52,30 @@ export default function KidHome({ family, data, profile, refresh, onSalir }) {
     sellarPrimeraVez(profile.id)
   }, [profile.id])
 
+  // Su forma de dar las gracias: una cara y una estrella. Sin texto —no
+  // sabe escribir— y con el mismo tope de tres al día que los demás, que
+  // en su caso además es lo que impide que esto se convierta en el juego
+  // de tocar caras toda la tarde.
+  const [gracias, setGracias] = useState(null)
+  const puedeDar = quedanHoy(data.reconocimientos, profile.id, dayKey(new Date(), family.timezone)) > 0
+  const gente = aQuienPuedoDar(data.profiles, profile.id)
+
+  async function darGraciasA(quien) {
+    setGracias(quien.id)
+    const r = await darGracias({ family, de: profile.id, a: quien.id, tipo: 'gesto' })
+    setGracias(null)
+    if (!r.ok) {
+      setFallo(r.mensaje || 'No ha salido. Prueba luego.')
+      return
+    }
+    tocarEstrella()
+    await refresh()
+  }
+
   // Dos motivos distintos para que su avatar lata, y el segundo es nuevo:
   // que le hayan dicho algo desde la última vez que abrió su ficha. Ella
   // no puede recibir un aviso escrito, así que el aviso es el latido.
-  const susElogios = elogiosDe(data.completions, profile.id)
+  const susElogios = muroDe({ completions: data.completions, reconocimientos: data.reconocimientos, perfiles: data.profiles }, profile.id)
   const [muroNuevo, setMuroNuevo] = useState(() => hayNuevo(susElogios, leerVisita(profile.id)))
 
   function abrirFicha() {
@@ -253,6 +274,31 @@ export default function KidHome({ family, data, profile, refresh, onSalir }) {
           )
         })}
       </div>
+
+      {/* Debajo de sus misiones y antes de todo lo demás: dar las gracias
+          no es una misión y no da estrellas, así que no puede vivir
+          dentro de la rejilla. Sale solo si le quedan: un botón que
+          contesta «no» a los tres años no se entiende, se repite. */}
+      {puedeDar && gente.length > 0 && (
+        <div className="kid-gracias">
+          <p className="kid-gracias-rotulo">Dar las gracias</p>
+          <div className="kid-gracias-caras">
+            {gente.map((p) => (
+              <button
+                key={p.id}
+                className="kid-gracias-cara"
+                style={{ background: p.color }}
+                disabled={gracias === p.id}
+                onClick={() => darGraciasA(p)}
+                aria-label={`Dar las gracias a ${p.name}`}
+              >
+                <span aria-hidden="true">{p.emoji}</span>
+                <span className="kid-gracias-estrella" aria-hidden="true">⭐</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {verTarro && (
         <TiendaPeque

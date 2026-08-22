@@ -28,6 +28,11 @@ export function mensajeDeError(error) {
   if (/limite_de_ritmo/i.test(texto)) {
     return 'Demasiadas acciones seguidas. Espera un momento y vuelve a intentarlo.'
   }
+  // El tope de los gracias no es un fallo: es la regla. Y por eso se
+  // cuenta como regla y no como error de sistema.
+  if (/tope_de_gracias/i.test(texto)) {
+    return 'Ya has dado tus tres gracias de hoy. Mañana hay tres más: son pocos a propósito.'
+  }
   if (/violates row-level security|permission denied/i.test(texto)) {
     return 'Esta sesión no tiene permiso para eso. Cierra sesión y vuelve a entrar.'
   }

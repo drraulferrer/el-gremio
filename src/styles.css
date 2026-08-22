@@ -3464,3 +3464,36 @@ button.kid-avatar.latiendo { animation: latido-aviso 2.6s var(--ease-salida) inf
 /* El aviso sin número: mismo sitio y mismo color que el contador, pero
    sin cifra, porque lo que anuncia no se cuenta. */
 .tab-punto { min-width: 9px; width: 9px; height: 9px; padding: 0; }
+
+/* La fila de «dar las gracias» de la peque. Caras grandes y redondas, del
+   mismo tamaño táctil que sus baldosas, con una estrella de otro color
+   que la suya encima: la suya se gana, esta se regala. */
+.kid-gracias { margin: 4px 14px 10px; }
+.kid-gracias-rotulo {
+  margin: 0 0 8px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #6b5943;
+}
+.kid-gracias-caras { display: flex; gap: 12px; flex-wrap: wrap; }
+.kid-gracias-cara {
+  position: relative;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  border: 3px solid rgba(60, 40, 20, 0.16);
+  font-size: 1.9rem;
+  line-height: 1;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: transform var(--t-rapido) var(--ease-salida);
+}
+.kid-gracias-cara:active { transform: scale(0.92); }
+.kid-gracias-cara:disabled { opacity: 0.55; }
+.kid-gracias-estrella {
+  position: absolute;
+  right: -3px;
+  bottom: -3px;
+  font-size: 1.05rem;
+}

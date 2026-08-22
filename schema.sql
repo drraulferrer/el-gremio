@@ -449,6 +449,45 @@ create index if not exists idx_informes_family on public.informes_fallo (family_
 grant select on public.informes_fallo to anon;
 grant select, insert, update, delete on public.informes_fallo to authenticated;
 
+-- ------------------------------------------------------------------
+-- Los reconocimientos (migración 034).
+--
+-- El primer canal HORIZONTAL de la app: cualquiera reconoce a cualquiera,
+-- incluidos los adultos, a quienes hasta ahora no reconocía nadie. Tres
+-- tipos: 'gracias' (con frase, cuelgue o no de un encargo), 'espontaneo'
+-- (lo que nadie pidió; la pieza principal del modo piso) y 'gesto' (el de
+-- la peque: una cara y una estrella, sin texto).
+--
+-- No hay ninguna columna de recompensa y es deliberado: un reconocimiento
+-- no da Talis ni XP. Que la columna no exista es más fuerte que acordarse
+-- de no usarla.
+-- ------------------------------------------------------------------
+create table if not exists public.reconocimientos (
+  id uuid primary key default gen_random_uuid(),
+  family_id uuid not null references public.families(id) on delete cascade,
+  de_profile uuid references public.profiles(id) on delete set null,
+  a_profile uuid not null references public.profiles(id) on delete cascade,
+  tipo text not null default 'gracias' check (tipo in ('gracias','espontaneo','gesto')),
+  texto text check (texto is null or length(btrim(texto)) between 3 and 240),
+  completion_id uuid references public.completions(id) on delete set null,
+  -- El día del gremio, puesto por el cliente con la zona de la familia,
+  -- igual que `bonuses.dia`. Es sobre lo que cuenta el tope diario.
+  dia date not null,
+  created_at timestamptz not null default now(),
+  constraint reconocimiento_con_forma check (
+    (tipo = 'gesto' and texto is null) or (tipo <> 'gesto' and texto is not null)
+  ),
+  constraint reconocimiento_no_a_uno_mismo check (de_profile is distinct from a_profile)
+);
+
+create index if not exists idx_reconocimientos_para
+  on public.reconocimientos (family_id, a_profile, created_at desc);
+create index if not exists idx_reconocimientos_dados
+  on public.reconocimientos (de_profile, dia);
+
+grant select on public.reconocimientos to anon;
+grant select, insert, update, delete on public.reconocimientos to authenticated;
+
 create index if not exists idx_completions_family_status on public.completions (family_id, status);
 create index if not exists idx_completions_profile on public.completions (profile_id, requested_at desc);
 create index if not exists idx_redemptions_family_status on public.redemptions (family_id, status);
@@ -505,6 +544,7 @@ alter table public.plan_diario enable row level security;
 alter table public.campanas_limpieza enable row level security;
 alter table public.zonas_casa enable row level security;
 alter table public.informes_fallo enable row level security;
+alter table public.reconocimientos enable row level security;
 
 -- Todas van declaradas `to authenticated`. Sin eso Postgres evalúa la
 -- política —y con ella la subconsulta a `families`— también para el rol
@@ -520,7 +560,7 @@ create policy familia_owner on public.families
 do $$
 declare t text;
 begin
-  foreach t in array array['profiles','challenges','completions','rewards','redemptions','family_goals','profile_badges','plan_diario','mission_families','campanas_limpieza','zonas_casa','informes_fallo']
+  foreach t in array array['profiles','challenges','completions','rewards','redemptions','family_goals','profile_badges','plan_diario','mission_families','campanas_limpieza','zonas_casa','informes_fallo','reconocimientos']
   loop
     execute format('drop policy if exists familia_miembro on public.%I', t);
     execute format($f$
@@ -589,6 +629,41 @@ create trigger tope_zonas before insert on public.zonas_casa
 drop trigger if exists tope_informes on public.informes_fallo;
 create trigger tope_informes before insert on public.informes_fallo
   for each row execute function public.tg_tope_filas('200');
+
+drop trigger if exists tope_reconocimientos on public.reconocimientos;
+create trigger tope_reconocimientos before insert on public.reconocimientos
+  for each row execute function public.tg_tope_filas('4000');
+
+-- Tres al día por persona, y el tope vive AQUÍ y no en la interfaz: uno
+-- que solo viva en el cliente lo salta cualquiera que recargue, y este
+-- tope no es una protección técnica sino la regla que sostiene el valor
+-- de la pieza (§3.4 de docs/RECONOCIMIENTOS.md).
+create or replace function public.tg_tope_gracias_dia()
+returns trigger language plpgsql security invoker as $$
+declare
+  v_max integer := 3;
+  v_cuantos integer;
+begin
+  if new.de_profile is null then
+    return new;
+  end if;
+
+  select count(*) into v_cuantos
+    from public.reconocimientos
+   where de_profile = new.de_profile
+     and dia = new.dia;
+
+  if v_cuantos >= v_max then
+    raise exception 'tope_de_gracias: ya has dado % hoy (máximo %)', v_cuantos, v_max
+      using errcode = 'P0001';
+  end if;
+
+  return new;
+end $$;
+
+drop trigger if exists tope_gracias on public.reconocimientos;
+create trigger tope_gracias before insert on public.reconocimientos
+  for each row execute function public.tg_tope_gracias_dia();
 
 -- El plan solo se programa cerca: hoy o mañana. El `unique` limita las
 -- filas por día, pero `dia` es un eje libre y una cuenta podría insertar
@@ -732,6 +807,7 @@ do $$ begin alter publication supabase_realtime add table public.profile_badges;
 do $$ begin alter publication supabase_realtime add table public.plan_diario; exception when duplicate_object then null; end $$;
 do $$ begin alter publication supabase_realtime add table public.campanas_limpieza; exception when duplicate_object then null; end $$;
 do $$ begin alter publication supabase_realtime add table public.zonas_casa; exception when duplicate_object then null; end $$;
+do $$ begin alter publication supabase_realtime add table public.reconocimientos; exception when duplicate_object then null; end $$;
 
 -- =====================================================================
 -- CAPA DE PRODUCCIÓN

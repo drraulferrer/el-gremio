@@ -3632,3 +3632,37 @@ Lo que hay que saber si se toca:
 
 Siguiente: F2 (los gracias entre iguales), que ya sí pide la migración
 034. Y ojo al alcance doble de §10.4: en modo piso, la F2 incluye P3.
+
+---
+
+## 7ag. Los gracias (22 de agosto) · 2.20.0 · F2 · **MIGRACIÓN 034**
+
+El primer canal horizontal de la app. `src/lib/gracias.js` +
+`src/screens/DarGracias.jsx`, con la variante sin texto de la peque
+dentro de `KidHome`.
+
+Lo que no hay que deshacer:
+
+- **La tabla no tiene columna de recompensa.** No es un olvido: es la
+  decisión 1 de la spec hecha esquema. Que no exista es más fuerte que
+  acordarse de no usarla.
+- **El tope de tres al día lo impone el trigger `tg_tope_gracias_dia`**,
+  no la interfaz. El cliente solo lo enseña.
+- **El `dia` lo calcula el cliente** con `dayKey(ahora, family.timezone)`,
+  como `bonuses.dia`: a las 00:30 de un lunes, una tablet en otra zona
+  contaría el domingo.
+- **No se ofrecen hechos que ya tengan elogio** (§10.3). La regla mira si
+  el hecho ya tiene palabras, no quién las escribió — entre otras cosas
+  porque `completions` no guarda quién validó.
+- **El backend simulado imita las tres reglas** (tope, no-a-uno-mismo y la
+  forma del gesto). Una demo más permisiva que la base es peor que no
+  tener demo.
+
+Verificado en demo de punta a punta: dar tres, que el cuarto lo corte la
+base incluso saltándose la interfaz, que la junior lo reciba firmado con
+la cara de quien se lo mandó, que la peque dé con un toque y que su ficha
+lo enseñe con la cara del remitente.
+
+Pendiente de mirar en uso: en la tablet, la fila de «dar las gracias»
+queda por debajo de sus cinco misiones y hay que bajar para verla. Es
+deliberado —sus misiones van primero— pero si nadie la encuentra, sube.

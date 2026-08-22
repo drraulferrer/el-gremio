@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { elogiosDe, hayNuevo, leerVisita, sellarVisita, fechaCorta } from '../src/lib/muro'
+import { elogiosDe, hayNuevo, leerVisita, sellarVisita, fechaCorta, muroDe } from '../src/lib/muro'
 
 const c = (extra = {}) => ({
   id: Math.random().toString(36).slice(2),
@@ -113,5 +113,40 @@ describe('la fecha de cada frase', () => {
   it('una fecha rota no escribe «Invalid Date» en la pantalla de nadie', () => {
     expect(fechaCorta('no soy una fecha', ahora)).toBe('')
     expect(fechaCorta(null, ahora)).toBe('')
+  })
+})
+
+describe('el muro completo (elogios + gracias)', () => {
+  const perfiles = [{ id: 'p1', name: 'Ana' }, { id: 'p2', name: 'Luis' }]
+  const completions = [c({ id: 'c1', profile_id: 'p1', resolved_at: '2026-08-20T10:00:00.000Z', praise: 'un elogio' })]
+  const reconocimientos = [
+    { id: 'r1', a_profile: 'p1', de_profile: 'p2', texto: 'gracias por la cena', tipo: 'gracias', created_at: '2026-08-21T10:00:00.000Z', completion_id: 'c1' },
+    { id: 'r2', a_profile: 'otro', de_profile: 'p2', texto: 'no es suyo', tipo: 'gracias', created_at: '2026-08-21T11:00:00.000Z' }
+  ]
+
+  it('junta las dos fuentes y ordena por fecha', () => {
+    const muro = muroDe({ completions, reconocimientos, perfiles }, 'p1')
+    expect(muro.map((m) => m.tipo)).toEqual(['gracias', 'elogio'])
+  })
+
+  it('solo lo dirigido a esa persona', () => {
+    expect(muroDe({ completions, reconocimientos, perfiles }, 'p1')).toHaveLength(2)
+  })
+
+  // Los gracias llevan firma; los elogios no pueden llevarla, porque
+  // `completions` no guarda quién validó.
+  it('el gracias va firmado y el elogio no', () => {
+    const muro = muroDe({ completions, reconocimientos, perfiles }, 'p1')
+    expect(muro[0].de?.name).toBe('Luis')
+    expect(muro[1].de).toBeNull()
+  })
+
+  it('un gracias colgado de un encargo recupera su dibujo', () => {
+    expect(muroDe({ completions, reconocimientos, perfiles }, 'p1')[0].challengeId).toBe('ch1')
+  })
+
+  it('sin nada, nada', () => {
+    expect(muroDe({}, 'p1')).toEqual([])
+    expect(muroDe(undefined, 'p1')).toEqual([])
   })
 })

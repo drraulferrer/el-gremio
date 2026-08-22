@@ -33,7 +33,8 @@ const TABLAS = [
   'push_subs',
   'campanas_limpieza',
   'zonas_casa',
-  'informes_fallo'
+  'informes_fallo',
+  'reconocimientos'
 ]
 
 const vacia = () => TABLAS.reduce((acc, t) => ({ ...acc, [t]: [] }), {})
@@ -73,7 +74,8 @@ const DEFECTOS_TABLA = {
   push_subs: { activa: true, fallos: 0, ultimo_ok: null },
   campanas_limpieza: { emoji: '🧹', estado: 'activa', cerrada_at: null, activada_por: null },
   zonas_casa: { emoji: '🚪', plantilla: 'generica', tipo: 'comun', dueno: null, orden: 0 },
-  informes_fallo: { profile_id: null, pantalla: null, version_app: null, agente: null, huellas: [], estado: 'nuevo' }
+  informes_fallo: { profile_id: null, pantalla: null, version_app: null, agente: null, huellas: [], estado: 'nuevo' },
+  reconocimientos: { tipo: 'gracias', texto: null, completion_id: null }
 }
 
 /** Columnas de fecha que la base rellena sola, por tabla. */
@@ -90,7 +92,8 @@ const SELLOS_TABLA = {
   families: ['created_at'],
   campanas_limpieza: ['created_at'],
   zonas_casa: ['created_at'],
-  informes_fallo: ['created_at']
+  informes_fallo: ['created_at'],
+  reconocimientos: ['created_at']
 }
 
 function leer() {
@@ -276,6 +279,28 @@ class Consulta {
         // la demo guardaría completaciones sin contexto congelado y los
         // sellos de oficio se calcularían por el respaldo en vez de por
         // el camino real: se probaría una cosa y se publicaría otra.
+        // Espejo de `tg_tope_gracias_dia` (migración 034). Sin esto la
+        // demo dejaría dar gracias infinitas mientras producción corta a
+        // las tres: se probaría una cosa y se publicaría otra, que es la
+        // trampa que este fichero lleva persiguiendo desde el principio.
+        if (this.tabla === 'reconocimientos' && nueva.de_profile) {
+          const dados = tabla.filter((r) => r.de_profile === nueva.de_profile && r.dia === nueva.dia).length
+          if (dados >= 3) {
+            return {
+              data: null,
+              error: { message: `tope_de_gracias: ya has dado ${dados} hoy (máximo 3)`, code: 'P0001' }
+            }
+          }
+          // Y los dos checks de forma de la tabla.
+          if (nueva.de_profile === nueva.a_profile) {
+            return { data: null, error: { message: 'reconocimiento_no_a_uno_mismo', code: '23514' } }
+          }
+          const conTexto = Boolean(nueva.texto && String(nueva.texto).trim())
+          if ((nueva.tipo === 'gesto') === conTexto) {
+            return { data: null, error: { message: 'reconocimiento_con_forma', code: '23514' } }
+          }
+        }
+
         if (this.tabla === 'completions') {
           const reto = (db.challenges || []).find((c) => c.id === nueva.challenge_id)
           nueva.snapshot_title = nueva.snapshot_title ?? (reto?.title || '').slice(0, 160)

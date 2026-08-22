@@ -1,7 +1,8 @@
 # Reconocimientos
 
-**Estado: F1 EN PRODUCCIÓN desde la 2.19.0 (22-ago).** F2 y F3 sin
-empezar. Las cuatro decisiones de §10 están cerradas.
+**Estado: F1 y F2 EN PRODUCCIÓN** (2.19.0 y 2.20.0, 22-ago). Queda la F3
+—lo espontáneo fuera del modo piso, el Retrato y sacar el elogio de la
+tienda—. Las cuatro decisiones de §10 están cerradas.
 
 De qué va: El Gremio sabe **recompensar** y apenas sabe **reconocer**.
 Son cosas distintas y hoy la app solo tiene una de las dos montada de
@@ -282,7 +283,7 @@ misma regla que ya cumple el buzón de fallos.
 | Fase | Qué | Migración | Por qué en este orden |
 |---|---|---|---|
 | ~~**F1**~~ | ~~P1 · El Muro~~ · **HECHA** (2.19.0) | **No** | Valor inmediato con datos que ya existen. Si el muro se lee, el resto tiene sentido; si no se lee, hay que replantear antes de escribir una tabla |
-| **F2** | P2 · Gracias (con la variante de la peque). **En modo piso, también P3** (§10.4) | 034 | El corazón de la spec |
+| ~~**F2**~~ | ~~P2 · Gracias + P3 en modo piso~~ · **HECHA** (2.20.0) | 034 ✅ | El corazón de la spec |
 | **F3** | P3 · Lo espontáneo + P4 · Retrato + P5 · Sacar el elogio de la tienda | No | Pulido y coherencia |
 
 F1 es deliberadamente una **prueba barata de la hipótesis** entera: que

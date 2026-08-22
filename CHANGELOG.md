@@ -18,6 +18,51 @@ verdad duele en esta app: que el esquema y el cliente dejen de encajar.
 
 ---
 
+## 2.20.0 · 22 de agosto de 2026
+
+**Los gracias: el primer canal horizontal de la app.** F2 de
+`docs/RECONOCIMIENTOS.md`. Hasta hoy todo lo que El Gremio reconocía
+bajaba de arriba abajo —el adulto valida y elogia— o lo dictaba el motor
+de sellos. Ahora la junior puede reconocer a su hermana, la peque a quien
+sea, y —lo que no había pasado nunca— **alguien puede reconocer a los
+adultos**.
+
+- **Dos toques**: a quién, y por qué. En ese orden, porque en una casa uno
+  piensa primero en la persona.
+- **Nada de folio en blanco.** El «por qué» propone los encargos REALES
+  que esa persona hizo estos días **y que todavía no tienen palabras**: lo
+  que ya recibió un elogio no se vuelve a ofrecer, porque reconocer dos
+  veces el mismo hecho es repetir el mismo acto, no sumar uno nuevo.
+  Escribir es la salida, no la entrada; es la lección del elogio al
+  validar, donde cada sugerencia ES el botón.
+- **La peque da con una cara y una estrella.** Sin texto: toca la cara de
+  quien sea y va. Su estrella de gracias es de otro color que la suya
+  —la suya se gana, esta se regala— y la fila solo aparece si le quedan,
+  porque un botón que contesta «no» a los tres años no se entiende: se
+  repite.
+- **Tres al día por persona, y el tope vive en la BASE.** Uno que solo
+  viviera en la interfaz lo salta cualquiera que recargue, y este tope no
+  es una protección técnica: es la regla que sostiene la pieza. Lo que se
+  puede dar infinitas veces deja de valer.
+- **Ni Talis ni XP, en ninguna dirección**, y la tabla no tiene ni una
+  columna para ello: que no exista es más fuerte que acordarse de no
+  usarla. Un «gracias» que paga cinco Talis deja de ser un gracias y pasa
+  a ser una misión barata.
+- **El muro los recibe firmados.** Los gracias llevan la cara y el nombre
+  de quien los manda; los elogios de validación siguen sin firma porque
+  `completions` no guarda quién validó. Conviven en una sola lista: para
+  quien lo lee no son dos cosas, es todo lo bueno que le han dicho.
+- **En modo piso, «lo que nadie pidió» entra ya** (§10.4 de la spec):
+  entre convivientes adultos no hay validación jerárquica, así que el
+  canal vertical no existe y lo que se reparte mal no son las tareas del
+  catálogo sino lo que nadie apuntó.
+
+Migración **034**, con RLS por gremio, grant explícito de `anon`, los dos
+checks de forma —nadie se reconoce a sí mismo; un gesto no lleva texto— y
+el trigger del tope diario. El backend simulado imita las tres reglas: sin
+eso, la demo dejaría dar gracias infinitas mientras producción corta a las
+tres, que es la trampa que este proyecto lleva evitando desde el principio.
+
 ## 2.19.0 · 22 de agosto de 2026
 
 **El Muro: todo lo bueno que te han dicho, junto y sin caducar.** Es la

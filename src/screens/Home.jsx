@@ -20,7 +20,8 @@ import { campanaActiva, diasRestantes, esfuerzoDeMision } from '../lib/limpieza'
 import { iniciarTarea, inicioDe, olvidarTarea, restanteDe, textoDeRestante } from '../lib/temporizador'
 import { flag } from '../lib/flags'
 import { premiosParaMayores, ordenarPorPrecio, leerOrdenTienda, alternarOrdenTienda, ORDEN_TIENDA } from '../lib/premios'
-import { elogiosDe, hayNuevo, leerVisita, sellarVisita } from '../lib/muro'
+import { muroDe, hayNuevo, leerVisita, sellarVisita } from '../lib/muro'
+import DarGracias from './DarGracias'
 import Muro from '../components/Muro'
 import { semana, etiquetaDeSemana, validadasDe, resumenDeSemana, semanasConDatos } from '../lib/historial'
 
@@ -29,8 +30,9 @@ export default function Home({ family, data, profile, refresh, onSwitchProfile, 
   const [tab, setTab] = useState('misiones')
   // El Muro: lo que le han dicho a esta persona. Se calcula aquí porque
   // el punto de la pestaña lo necesita, y se sella al entrar en Progreso.
-  const elogios = elogiosDe(data.completions, profile.id)
+  const elogios = muroDe({ completions: data.completions, reconocimientos: data.reconocimientos, perfiles: data.profiles }, profile.id)
   const [visto, setVisto] = useState(() => leerVisita(profile.id))
+  const [dandoGracias, setDandoGracias] = useState(false)
   const muroNuevo = hayNuevo(elogios, visto)
   const [celeb, setCeleb] = useState(null)
   const [ocupado, setOcupado] = useState(null)
@@ -199,6 +201,7 @@ export default function Home({ family, data, profile, refresh, onSwitchProfile, 
           refresh={refresh}
           historial={historial}
           elogios={elogios}
+          onDarGracias={() => setDandoGracias(true)}
           alVerMuro={() => {
             // Se sella con la fecha de la ÚLTIMA frase y no con «ahora»:
             // si llega una mientras está leyendo, seguirá siendo nueva.
@@ -207,6 +210,17 @@ export default function Home({ family, data, profile, refresh, onSwitchProfile, 
             sellarVisita(profile.id, ultima)
             setVisto(ultima)
           }}
+        />
+      )}
+
+      {dandoGracias && (
+        <DarGracias
+          family={family}
+          data={data}
+          profile={profile}
+          genero={genero}
+          onHecho={refresh}
+          onClose={() => setDandoGracias(false)}
         />
       )}
 
@@ -564,7 +578,7 @@ function Tienda({ data, profile, ocupado, onCanjear }) {
   )
 }
 
-function Progreso({ data, profile, genero, refresh, historial, elogios = [], alVerMuro }) {
+function Progreso({ data, profile, genero, refresh, historial, elogios = [], alVerMuro, onDarGracias }) {
   // Al abrir la pestaña se da por visto: es el gesto que apaga el punto.
   useEffect(() => { alVerMuro?.() }, []) // eslint-disable-line react-hooks/exhaustive-deps
   // El historial va por semanas y no en una lista infinita: una lista que
@@ -698,6 +712,12 @@ function Progreso({ data, profile, genero, refresh, historial, elogios = [], alV
           pero vivían colgadas de su semana y desaparecían al rodar. */}
       <div className="titulo-seccion">Lo que te han dicho</div>
       <Muro elogios={elogios} challenges={data.challenges} genero={genero} />
+
+      {/* Dar vive junto a recibir a propósito: quien acaba de leer lo que
+          le han dicho es quien más cerca está de decírselo a otro. */}
+      <button className="btn btn-fantasma btn-bloque" style={{ marginTop: 10 }} onClick={onDarGracias}>
+        Dar las gracias a alguien
+      </button>
 
       <Poderes data={data} profile={profile} refresh={refresh} genero={genero} />
 

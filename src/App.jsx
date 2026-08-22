@@ -179,7 +179,14 @@ export default function App() {
         .limit(20),
       // Las zonas de la casa (migración 032). Degradable como las demás:
       // sin la tabla, el modo limpieza cae a las zonas por defecto.
-      supabase.from('zonas_casa').select('*').eq('family_id', fid).order('orden')
+      supabase.from('zonas_casa').select('*').eq('family_id', fid).order('orden'),
+      // Los reconocimientos (migración 034). Degradable como las demás:
+      // sin la tabla, el muro enseña solo los elogios de validación y dar
+      // las gracias no aparece. Nada más se cae.
+      supabase.from('reconocimientos').select('*')
+        .eq('family_id', fid)
+        .order('created_at', { ascending: false })
+        .limit(400)
     ])
 
     const fallo = respuestas.slice(0, 7).find((r) => r.error)
@@ -190,7 +197,7 @@ export default function App() {
     }
     setErrorCarga('')
 
-    const [pr, ch, co, rw, rd, gl, bg, bo, pu, pl, pd, cl, zc] = respuestas
+    const [pr, ch, co, rw, rd, gl, bg, bo, pu, pl, pd, cl, zc, rc] = respuestas
     const metas = gl.data || []
     const next = {
       profiles: pr.data || [],
@@ -208,7 +215,8 @@ export default function App() {
       pushLog: pl.error ? [] : pl.data || [],
       planDiario: pd.error ? [] : pd.data || [],
       campanas: cl.error ? [] : cl.data || [],
-      zonas: zc.error ? [] : zc.data || []
+      zonas: zc.error ? [] : zc.data || [],
+      reconocimientos: rc.error ? [] : rc.data || []
     }
     log.debug('datos.cargados', {
       request_id: requestId,
