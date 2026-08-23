@@ -19,7 +19,9 @@
     "deploy": "node scripts/deploy.mjs",
     "vercel": "node scripts/publicar-vercel.mjs",
     "rollback": "node scripts/rollback.mjs",
-    "verify": "npm run test && npm run build && npm run secrets:check"
+    "verify": "npm run test && npm run build && npm run secrets:check",
+    "respaldo": "node scripts/respaldo.mjs",
+    "restaurar": "node scripts/restaurar.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.0",

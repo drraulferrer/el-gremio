@@ -350,6 +350,19 @@ comprobable con `npm run secrets:check`.
 
 ---
 
+## 7b. Copias de seguridad
+
+Ver [RESPALDOS.md](RESPALDOS.md). Resumen: `npm run respaldo` vuelca, cifra con
+AES-256 y **vuelve a abrir** la copia para comprobarla; el cron lo dispara a
+diario y deja el registro en `~/el-gremio-respaldos/respaldo.log`. Para
+restaurar, `npm run restaurar -- --ultimo --a <ref>`.
+
+Este apartado no existía hasta el 23-ago-2026, y su ausencia era el hallazgo
+GR-01 de la auditoría: el runbook cubría casi todo menos qué hacer cuando lo que
+falla son los datos.
+
+---
+
 ## 8. Incidentes conocidos y sus límites
 
 - **Proyecto Supabase pausado.** El plan gratuito pausa proyectos tras 7 días
