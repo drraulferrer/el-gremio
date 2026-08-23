@@ -17,13 +17,18 @@ npm run restaurar -- --ultimo --a <ref>
 ## Puesta en marcha (una vez)
 
 **1. Enlazar el proyecto.** El volcado sale por el CLI de Supabase, que necesita
-saber a qué base habla. Pide la contraseña de la base, que está en el panel →
-Settings → Database. El CLI se la queda en el Llavero; no hay que volver a
-escribirla.
+saber a qué base habla.
 
 ```bash
 supabase link --project-ref <ref>
 ```
+
+**Ya está hecho** en este Mac desde el 23-ago (`supabase/.temp/linked-project.json`
+apunta a `chfbrawsoulfiywiqhpe`). Y **no hace falta la contraseña de la base**:
+`consulta()` habla por `supabase db query --linked`, que va por la API de gestión
+con el testigo del CLI, no por Postgres. Comprobado desde un entorno pelado
+—sin TTY y con `env -i`—, que es lo más parecido a cron que se puede probar sin
+esperar a las 4:23.
 
 **2. Elegir la contraseña de las copias.** Es la que cifra los ficheros. Que sea
 larga: es lo único que separa el volcado de quien encuentre el disco.
@@ -49,13 +54,21 @@ falla y no da la copia por buena.
 
 **4. Ponerlo en cron**, para que no dependa de acordarse:
 
-```bash
-crontab -e
-```
+**Ya está puesto** en este Mac desde el 23-ago. `crontab -l` lo enseña:
 
 ```
-23 4 * * * cd ~/el-gremio && /usr/bin/node scripts/respaldo.mjs >> ~/el-gremio-respaldos/respaldo.log 2>&1
+23 4 * * * /bin/zsh -lc "cd ~/el-gremio && node scripts/respaldo.mjs" >> ~/el-gremio-respaldos/respaldo.log 2>&1
 ```
+
+**Ojo con la línea que decía antes esta página**: llamaba a `/usr/bin/node`, y en
+este Mac **ese fichero no existe** —node vive en nvm, bajo
+`~/.nvm/versions/node/<versión>/bin`—. Cron habría fallado cada noche escribiendo
+«command not found» en un log que nadie mira, que es la peor forma de no tener
+copias: creyendo que las tienes.
+
+Por eso va por shell de login (`zsh -lc`) en vez de con la ruta absoluta: así
+resuelve node por el perfil del usuario y sobrevive al próximo `nvm install`, que
+cambiaría la ruta.
 
 El log no va en `dist/`: cada `vite build` vacía esa carpeta y se llevaría el
 historial justo cuando hiciera falta mirarlo.

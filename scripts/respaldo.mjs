@@ -37,8 +37,12 @@
 //
 // PARA QUE SE DISPARE SOLO, una línea de cron en este Mac:
 //
-//   23 4 * * * cd ~/el-gremio && /usr/bin/node scripts/respaldo.mjs \
+//   23 4 * * * /bin/zsh -lc "cd ~/el-gremio && node scripts/respaldo.mjs" \
 //     >> ~/el-gremio-respaldos/respaldo.log 2>&1
+//
+//   Por shell de login y no con la ruta absoluta de node: aquí node vive
+//   en nvm y su ruta cambia con cada versión. Con `/usr/bin/node` —que en
+//   este Mac ni existe— cron fallaría cada noche en un log que nadie mira.
 //
 // ABRIR UNA COPIA A MANO:
 //
