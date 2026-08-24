@@ -3614,7 +3614,20 @@ button.kid-avatar.latiendo { animation: latido-aviso 2.6s var(--ease-salida) inf
 
 /* Texto solo para lectores de pantalla. Las barras de la semana llevan
    su letra en `aria-hidden` —una «X» suelta no se lee— y la frase de
-   verdad viaja aquí. */
+   verdad viaja aquí.
+
+   TRAMPA QUE COSTÓ UNA PANTALLA ENTERA, y que conviene leer antes de
+   meter un `.sr` en cualquier sitio: esto es `position: absolute`, así
+   que su caja se coloca contra el ANTECESOR POSICIONADO más cercano, no
+   contra el padre. Si por el camino hay un carrusel con `overflow-x`
+   pero SIN `position`, el `.sr` no es hijo suyo a efectos de posición y
+   **el recorte del carrusel no le afecta**: se queda tumbado a 690 px
+   del margen, el documento pasa a medir eso de ancho, y Safari de iOS
+   aleja la página entera para que quepa. En el móvil se veía toda la
+   pantalla de Hoy encogida al 66 % y pegada a la izquierda.
+
+   Por eso los contenedores que llevan un `.sr` dentro se posicionan:
+   `.ficha-hab` y `.barra-dia` más abajo. */
 .sr {
   position: absolute;
   width: 1px;
@@ -3869,6 +3882,9 @@ button.kid-avatar.latiendo { animation: latido-aviso 2.6s var(--ease-salida) inf
 }
 
 .barra-dia {
+  /* Posicionado para que el `.sr` de dentro se cuelgue de aquí. Ver la
+     trampa explicada en `.sr`. */
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -3940,6 +3956,10 @@ button.kid-avatar.latiendo { animation: latido-aviso 2.6s var(--ease-salida) inf
 .tira-habilidades::-webkit-scrollbar { display: none; }
 
 .ficha-hab {
+  /* Posicionado para que el `.sr` de dentro se cuelgue de aquí y NO se
+     escape del recorte de la tira. Ver la trampa explicada en `.sr`:
+     sin esto la tira desbordaba el documento a 692 px de ancho. */
+  position: relative;
   flex: 0 0 auto;
   /* 76 px es el ancho de «Responsabilidad» a 0,6 rem, que es el rótulo
      más largo de las ocho. Con 58 px se recortaba a «esponsabilidad»,
@@ -4032,10 +4052,18 @@ button.kid-avatar.latiendo { animation: latido-aviso 2.6s var(--ease-salida) inf
   text-overflow: ellipsis;
 }
 
-/* En el móvil estrecho se aprieta el hueco y el relleno lateral, nunca
-   la letra: 12 px es el suelo del texto de interfaz. */
-@media (max-width: 400px) {
-  .tabbar { gap: 2px; padding: 7px 4px; }
+/* En el móvil se aprieta la geometría de la barra, nunca la letra: 12 px
+   es el suelo del texto de interfaz y por debajo deja de leerse con el
+   teléfono en la mano. El corte es a 480 px y no a 400: «Progreso» en
+   Fraunces mide 52 px en Chromium y algo más en Safari, y a 393 pt de
+   pantalla eso deja tres píxeles de margen. Se ensancha la barra y se
+   cierran los huecos hasta dejar unos ocho. */
+@media (max-width: 480px) {
+  .tabbar {
+    width: min(536px, calc(100vw - 16px - var(--sal) - var(--sar)));
+    gap: 2px;
+    padding: 7px 4px;
+  }
   .tab { padding-left: 0; padding-right: 0; letter-spacing: -0.02em; }
 }
 

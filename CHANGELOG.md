@@ -18,6 +18,32 @@ verdad duele en esta app: que el esquema y el cliente dejen de encajar.
 
 ---
 
+## 2.23.1 · 24 de agosto de 2026
+
+**La pantalla de Hoy salía encogida en el móvil.** En un iPhone se veía
+al 66 %, pegada a la izquierda y con medio dedo de fondo vacío a la
+derecha; las demás pestañas, bien. En el portátil no se reproducía.
+
+La causa no estaba donde parecía. Los `.sr` —el texto que solo leen los
+lectores de pantalla, uno por ficha de habilidad— van en
+`position: absolute`, y eso los coloca contra el **antecesor
+posicionado** más cercano, no contra su padre. La tira de habilidades
+tiene `overflow-x: auto` pero no tenía `position`, así que a efectos de
+posición esos `.sr` no eran hijos suyos y **su recorte no les afectaba**:
+se quedaban tumbados a 692 px del margen izquierdo. El documento entero
+pasaba a medir eso de ancho y Safari de iOS alejaba la página para que
+cupiera, que es exactamente lo que se veía.
+
+Se arregla con una línea en cada contenedor (`.ficha-hab` y
+`.barra-dia`), y queda un test que lo fija: quitar esa línea no rompe
+nada visible en un portátil, que es como llegó hasta el móvil.
+
+**Y la barra de seis pestañas, con ocho píxeles de margen.** «Progreso»
+en Fraunces salía cortado en Safari —«Progre…»— porque a 393 pt le
+quedaban tres píxeles. La barra se ensancha y se cierran los huecos en
+pantallas de menos de 480 px; la letra no se toca, que 12 px es el suelo
+del texto de interfaz.
+
 ## 2.23.0 · 24 de agosto de 2026
 
 **La app ya no abre por los deberes.** La primera pantalla era la lista de

@@ -3932,3 +3932,45 @@ integrar. Del cruce salieron dos costuras que conviene conocer:
   haya pedido, y el toque avisa antes de que nadie lea nada.
 
 Estado: `npm run verify` en verde (1.046 tests, los de las dos sesiones).
+
+
+## 7al. El desbordamiento invisible de Hoy (24 de agosto) · 2.23.1
+
+**Cómo se veía**: la pantalla de Hoy al 66 % y pegada a la izquierda en
+un iPhone, con el fondo vacío a la derecha. La barra de pestañas, en
+cambio, centrada en la pantalla y de su tamaño normal. Las demás
+pestañas, perfectas.
+
+**Esa combinación es la firma del problema**: el contenido en flujo se
+coloca dentro del documento —que se había vuelto de 692 px— y lo `fixed`
+se coloca contra la ventana. Cuando se vean las dos cosas descuadradas
+entre sí, medir `document.documentElement.scrollWidth` contra
+`clientWidth` antes que nada.
+
+**La causa**: un `.sr` (texto para lectores de pantalla) dentro de cada
+`.ficha-hab` de la tira de habilidades. Es `position: absolute`, así que
+su caja cuelga del antecesor POSICIONADO más cercano. La tira tenía
+`overflow-x: auto` pero no `position`, de modo que el antecesor
+posicionado era `.carta`, ya fuera del carrusel, y **el recorte no le
+alcanzaba**. Las fichas del final del carrusel dejaban su `.sr` a 692 px.
+
+**El arreglo**: `position: relative` en `.ficha-hab` y en `.barra-dia`.
+Test en `estetica.test.js` («nada se escapa del carrusel de
+habilidades»), comprobado que falla al quitar la línea.
+
+**Cómo encontrarlo la próxima vez**, porque el primer intento de buscar
+el elemento culpable devolvió cero: un recorrido del DOM que descarta lo
+que tiene un antecesor con `overflow` distinto de `visible` NO encuentra
+esto, justo porque el fallo es que la cadena del DOM y la de bloques
+contenedores no coinciden. Lo que sí funcionó fue la amputación: esconder
+un candidato y volver a medir `scrollWidth`.
+
+De paso, la barra de pestañas: con seis, «Progreso» en Fraunces se
+cortaba en Safari. Se ensancha la barra a `100vw - 16px` y se cierran los
+huecos por debajo de 480 px; quedan ocho píxeles de margen (15 %) a
+393 pt. **No está holgado**: en una pantalla de 360 pt vuelve a ir justo.
+Si hay que tocar esto otra vez, la salida buena no es encoger la letra
+—12 px es el suelo— sino sacar «Cambiar» de la barra a la cabecera del
+Panorama, que además es el patrón del que salió la pantalla (el perfil
+vive arriba a la derecha en Oura y en Opal). Serían cinco pestañas a
+68 px cada una y se acabó el problema.

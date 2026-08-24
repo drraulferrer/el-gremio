@@ -196,6 +196,46 @@ describe('el icono de la app instalada', () => {
   })
 })
 
+describe('nada se escapa del carrusel de habilidades', () => {
+  // EL FALLO QUE FIJA, que se vio en un móvil y no en el navegador:
+  // la pantalla de Hoy salía encogida al 66 % y pegada a la izquierda,
+  // con medio dedo de fondo vacío a la derecha.
+  //
+  // La causa: los `.sr` —el texto que solo leen los lectores de
+  // pantalla— van en `position: absolute`, así que se colocan contra el
+  // antecesor POSICIONADO más cercano, no contra su padre. La tira de
+  // habilidades tiene `overflow-x: auto` pero no tenía `position`, de
+  // modo que su recorte no alcanzaba a esos `.sr`: se quedaban tumbados
+  // a 692 px del margen, el documento entero pasaba a medir eso de
+  // ancho y Safari de iOS alejaba la página para que cupiera.
+  //
+  // El arreglo es una línea en cada contenedor. Este test existe porque
+  // quitarla no rompe nada visible en un portátil.
+  const bloque = (sel) => {
+    const i = css.indexOf(`\n${sel} {`)
+    if (i < 0) return ''
+    return css.slice(i, css.indexOf('\n}', i)).replace(/\/\*[\s\S]*?\*\//g, '')
+  }
+
+  it('la ficha y la barra del día se posicionan: si no, el .sr se escapa', () => {
+    for (const sel of ['.ficha-hab', '.barra-dia']) {
+      expect(bloque(sel), `${sel} sin position: vuelve el desbordamiento`).toMatch(/position:\s*relative/)
+    }
+  })
+
+  it('la tira sigue recortando de verdad', () => {
+    expect(bloque('.tira-habilidades')).toMatch(/overflow-x:\s*auto/)
+  })
+
+  it('el texto para lectores de pantalla no ocupa sitio', () => {
+    // Si algún día alguien le quita el `clip-path` o el 1 px, vuelve a
+    // empujar el ancho del documento estando «oculto».
+    const sr = bloque('.sr')
+    expect(sr).toMatch(/width:\s*1px/)
+    expect(sr).toMatch(/clip-path:\s*inset\(50%\)/)
+  })
+})
+
 describe('las clases que se usan existen en la hoja', () => {
   // El fallo que fija: la ficha de un sello se escribió con
   // `className="btn btn-primario ancho"`, y NI `btn-primario` NI `ancho`
