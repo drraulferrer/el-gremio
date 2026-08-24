@@ -1,7 +1,7 @@
 # El retrato del gremialista
 
-Estado: **código escrito y verificado en navegador el 24-ago-2026.
-La migración 035 NO está ejecutada y NO se ha desplegado.**
+Estado: **en producción desde el 24-ago-2026** (2.24.0). Migración 035
+ejecutada y trigger verificado contra la base real.
 
 Un perfil deja de ser un emoji y pasa a ser una figura por capas que gana
 equipo al subir de nivel. El emoji no desaparece: sigue siendo el respaldo
@@ -97,9 +97,9 @@ sujeta un CHECK, `profiles_retrato_solo_personas`.
 
 ## 6. Lo que queda
 
-- **Ejecutar la migración 035** en Supabase. No rompe al cliente viejo:
-  solo añade columnas nullables y `emoji` sigue sirviendo de respaldo.
-- **Desplegar**, que en esta casa es un acto deliberado (§7n del arranque).
+- Nadie ha elegido sus piezas todavía: los once perfiles salen con los
+  valores por defecto hasta que cada cual entre en Miembros y se monte el
+  suyo. No es un fallo, es el estado inicial.
 - El arco del aro hace comparables a los miembros en el picker. Se aceptó
   a sabiendas (24-ago-2026): la `Gema` ya enseñaba el nivel ahí al lado.
 - Solo hay tres peinados. Añadir uno es una pieza SVG y una migración que

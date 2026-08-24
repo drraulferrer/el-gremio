@@ -4013,7 +4013,7 @@ igual: la celebración tapa la pantalla justo en ese momento y cuando se
 va, la cuenta ya habría terminado. Si algún día molesta, la solución es
 la misma que aquí —subir la memoria del contador por encima de Home—.
 
-## 7an. El retrato del gremialista (24 de agosto) · 2.24.0 · **MIGRACIÓN 035 SIN EJECUTAR**
+## 7an. El retrato del gremialista (24 de agosto) · 2.24.0 · MIGRACIÓN 035 EJECUTADA
 
 Un perfil ya no es un emoji: es una figura por capas que gana equipo al
 subir de nivel. Nueve fases del nivel 1 al 50. El detalle completo, con
@@ -4021,14 +4021,13 @@ las dos alternativas que se descartaron y por qué, está en
 [`docs/RETRATO.md`](docs/RETRATO.md); el prototipo con el que se decidió,
 en `docs/prototipos/retrato.html`.
 
-### Lo que hay que hacer antes de que esto sirva de algo
+### Estado: ejecutada y desplegada el 24-ago
 
-1. **Ejecutar `migracion-035-retrato.sql`** en el SQL Editor de Supabase.
-   No está ejecutada. Hasta que lo esté, el cliente nuevo funciona igual
-   —`piezasDe()` rellena con los valores por defecto— pero nadie puede
-   guardar su elección: el `update` fallará por columna inexistente.
-2. **Desplegar**, que aquí es deliberado: `git push origin main`, luego
-   `npm run vercel`, luego `npm run health` (§7n).
+La **035 está ejecutada** en `chfbrawsoulfiywiqhpe`: cuatro columnas,
+cuatro CHECK y el trigger, con el backfill de `xp_maxima` cuadrado en los
+once perfiles. El trigger se probó contra la base de verdad bajando la XP
+de un perfil dentro de un bloque que aborta solo: la XP cayó a 0 y la
+marca se quedó en 538, y nada de eso llegó a escribirse.
 
 La 035 **no rompe al cliente viejo**: solo añade columnas nullables y
 `emoji` sigue en su sitio como respaldo. Por eso la versión es menor y el
