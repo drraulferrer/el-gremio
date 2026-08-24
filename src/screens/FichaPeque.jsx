@@ -18,8 +18,11 @@
 // hay para quien no sabe leer: tócate a ti para verte a ti.
 // ------------------------------------------------------------------
 
+import { useState } from 'react'
 import Icono from '../components/Icono'
 import Retrato from '../components/Retrato'
+import EditorRetrato from '../components/EditorRetrato'
+import { guardarRetrato } from '../lib/acciones'
 import { semanaEnCasillas, resumenDePersona } from '../lib/resumen'
 import { goalProgress } from '../lib/supabase'
 import { flex } from '../lib/genero'
@@ -30,7 +33,23 @@ import Muro from '../components/Muro'
 // cuentan, se convierten en textura. A partir de aquí se resume.
 const ESTRELLAS_MAX = 12
 
-export default function FichaPeque({ data, profile, genero, onCerrar }) {
+export default function FichaPeque({ data, profile, genero, refresh, onCerrar }) {
+  // Copia local: la figura se mueve al tocar, sin esperar a la ida y
+  // vuelta. A los tres años una respuesta que tarda medio segundo se lee
+  // como que el botón no funciona, y se vuelve a tocar.
+  const [borrador, setBorrador] = useState(null)
+  const perfilLocal = borrador || profile
+
+  async function cambiarRetrato(cambios) {
+    const siguiente = { ...perfilLocal, ...cambios }
+    setBorrador(siguiente)
+    const { ok } = await guardarRetrato({ profile, piezas: siguiente })
+    if (ok) await refresh?.()
+    // Sin cartel de error a propósito: si falla, la figura ya se ha
+    // movido en su pantalla y un aviso que no puede leer no arregla nada.
+    // El adulto lo verá en el panel, que es quien puede hacer algo.
+  }
+
   const dias = semanaEnCasillas(profile, data.completions)
   const hechas = resumenDePersona(profile, data).completadas.semana
 
@@ -47,7 +66,7 @@ export default function FichaPeque({ data, profile, genero, onCerrar }) {
   return (
     <div className="kid-tienda kid-ficha" role="dialog" aria-label={`La ficha de ${profile.name}`}>
       <div className="kid-tienda-cabecera">
-        <Retrato perfil={profile} tamano={64} vista="cuerpo" disco={false} />
+        <Retrato perfil={perfilLocal} tamano={64} vista="cuerpo" disco={false} />
         <span className="kid-tienda-titulo crece">{profile.name}</span>
         <button className="kid-tienda-cerrar" onClick={onCerrar} aria-label="Cerrar">
           <Icono nombre="cerrar" tamano={28} />
@@ -55,6 +74,29 @@ export default function FichaPeque({ data, profile, genero, onCerrar }) {
       </div>
 
       <div className="kid-ficha-cuerpo">
+        {/* Su retrato, en su ficha y no detrás del PIN.
+            Aquí no hay explicación de fases ni de niveles: a los tres años
+            eso no es un resumen, es texto que no se puede leer. Lo que sí
+            entiende es tocar un color y ver que su figura cambia, y para
+            eso no hace falta saber leer las etiquetas.
+            Un adulto tiene el mismo editor en el panel para cuando quiera
+            montárselo con ella. */}
+        <p className="kid-ficha-rotulo">Cómo soy</p>
+        <div className="kid-retrato">
+          {/* Su figura grande y NADA de texto: la vista previa del editor
+              explica lo de las fases y los niveles, que aquí no sirve de
+              nada. Lo que ella necesita es verse cambiar mientras toca. */}
+          <div className="kid-retrato-espejo">
+            <Retrato perfil={perfilLocal} tamano={104} vista="cuerpo" disco={false} />
+          </div>
+          <EditorRetrato
+            perfil={perfilLocal}
+            onCambiar={cambiarRetrato}
+            genero={profile.gender || 'neutro'}
+            vistaPrevia={false}
+          />
+        </div>
+
         <p className="kid-ficha-rotulo">Esta semana</p>
 
         <div className="kid-semana" aria-label={`${hechas} misiones esta semana`}>

@@ -4233,3 +4233,36 @@ dos piezas del mismo tono, una encima de otra, decididas a ojo. El test
 nuevo recorre las 64 combinaciones de piel y pelo en vez de mirar tres.
 Si se añade un tono de piel o de pelo, ese test lo cubre solo; si se
 añade una pieza que se pinte SOBRE otra, hace falta un test como ese.
+
+## 7at. El retrato, a un toque desde cualquier sitio (24 de agosto) · 2.29.0 · SIN MIGRACIÓN
+
+Tocar el avatar de la cabecera abre el retrato, en cualquier pestaña y sin
+panel. Antes solo se llegaba por Progreso —y la peque no llegaba de
+ninguna manera, porque su pantalla no tiene pestañas—.
+
+Cuatro puertas, **un solo componente** (`MiRetrato` sobre
+`EditorRetrato`): cabecera, Progreso, ficha de la peque y panel parental.
+Es lo que impide que acaben ofreciendo catálogos distintos.
+
+### Decisiones
+
+- **Modal y no salto a Progreso.** Cambiar de pestaña para cambiarte el
+  pelo te saca de lo que estabas haciendo, y al cerrar habría que volver.
+- **La peque llega por su ficha**, no directamente al editor: su avatar ya
+  abría la ficha y ahí está lo que ha hecho. Quitárselo para poner el
+  editor habría cambiado una cosa por otra.
+- **Su editor va sin la vista previa con texto** (`vistaPrevia={false}`)
+  y con una figura grande de espejo encima. La explicación de fases y
+  niveles no es un resumen para ella, es texto que no puede leer.
+- Hay dos avatares de cabecera —la tarjeta de las pestañas de trabajo y el
+  saludo del Panorama— y **los dos abren lo mismo**. El estado vive en
+  Home, que es el padre de ambos.
+
+### Lo que no se ha hecho, por si alguien lo nota
+
+Cada toque en el editor **escribe en la base**. Con un adulto eso son
+cuatro escrituras; con una criatura de tres años probando colores pueden
+ser cincuenta seguidas. No molesta —la figura se mueve al instante con una
+copia local y la escritura va detrás— pero si algún día el log de Supabase
+se ve ruidoso, el sitio donde poner un retardo es `cambiarRetrato` en
+`FichaPeque.jsx`.

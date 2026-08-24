@@ -38,8 +38,7 @@ export default function Panorama({
   elogios = [],
   muroNuevo = false,
   alVerMuro,
-  onIrA
-}) {
+  onIrA, onVerRetrato}) {
   const ahora = new Date()
   const relojes = relojesDe(profile, data, ahora)
   const dia = diaDe(profile, data, ahora)
@@ -56,7 +55,13 @@ export default function Panorama({
   return (
     <div className="panorama">
       <header className="panorama-cabecera">
-        <Retrato perfil={profile} tamano={52} />
+        <button
+          className="btn-retrato"
+          onClick={onVerRetrato}
+          aria-label="Tu retrato: mirarlo y cambiarlo"
+        >
+          <Retrato perfil={profile} tamano={52} />
+        </button>
         <div className="crece">
           <p className="panorama-saludo">{saludo(ahora)},</p>
           <h2 className="panorama-nombre">{profile.name}</h2>

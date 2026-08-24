@@ -105,10 +105,21 @@ hay dos años: una cuenta atrás de años no empuja, deshincha.
 equipo nuevo. Es el único momento en que el progreso significa algo, y
 antes no se anunciaba en ninguna parte.
 
-**El editor está en dos sitios**: en el panel parental, donde un adulto
-monta el de cualquiera, y en Progreso, donde cada cual monta el suyo. La
-junior no necesita el PIN para elegir su peinado: no hay nada que validar
-en eso. La peque sigue en manos de su adulto.
+**El editor está en cuatro sitios y es el mismo componente** (`MiRetrato`
+sobre `EditorRetrato`), que es lo que impide que se separen:
+
+| Dónde | Quién |
+|---|---|
+| Avatar de la cabecera → modal | Adultos y junior, cualquier pestaña |
+| Progreso → «Tu retrato» | Adultos y junior |
+| Ficha de la peque → «Cómo soy» | La peque, tocando su avatar |
+| Panel → ⚙️ → Miembros | Un adulto, sobre cualquiera |
+
+Nadie necesita el PIN para elegir su propio peinado: no hay nada que
+validar en eso. En la ficha de la peque el editor va **sin la vista
+previa con texto**: su versión es la figura grande de espejo y los mandos,
+porque a los tres años una explicación de fases no es un resumen, es texto
+que no se puede leer.
 
 Lo que NUNCA se elige es el equipo. Túnica sí —es ropa de diario—, pero ni
 delantal, ni manto, ni farol. Si se pudiera elegir un manto, el manto

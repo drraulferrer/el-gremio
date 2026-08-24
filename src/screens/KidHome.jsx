@@ -318,7 +318,7 @@ export default function KidHome({ family, data, profile, refresh, onSalir }) {
       )}
 
       {verFicha && (
-        <FichaPeque data={data} profile={profile} genero={genero} onCerrar={() => setVerFicha(false)} />
+        <FichaPeque data={data} profile={profile} genero={genero} refresh={refresh} onCerrar={() => setVerFicha(false)} />
       )}
 
       {jugando && <Juego id={cual?.id} onTerminar={terminarJuego} onCerrar={() => setJugando(false)} />}

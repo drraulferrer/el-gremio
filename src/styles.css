@@ -562,6 +562,22 @@ button { font-family: inherit; }
    ------------------------------------------------------------------ */
 .retrato { flex: none; display: block; }
 
+/* El retrato de la cabecera abre el editor. Es un botón, pero no debe
+   parecerlo: la figura ya invita a tocarla y un marco alrededor la
+   convertiría en un mando más de una barra que ya tiene seis. Solo
+   responde al toque, como el avatar de la peque. */
+button.btn-retrato {
+  background: none;
+  border: none;
+  padding: 0;
+  flex: none;
+  cursor: pointer;
+  border-radius: 50%;
+  transition: transform var(--t-rapido) var(--ease-salida);
+}
+button.btn-retrato:active { transform: scale(0.94); }
+button.btn-retrato:focus-visible { outline: 2px solid var(--teal); outline-offset: 3px; }
+
 /* La cabecera de la peque conserva el botón —su animación de latido y su
    respuesta al toque— pero suelta el fondo y el borde cuando lleva
    retrato: el aro ya hace ese trabajo. */
@@ -3537,6 +3553,30 @@ button.kid-avatar.latiendo { animation: latido-aviso 2.6s var(--ease-salida) inf
   font-weight: 700;
   color: #6b5943;
 }
+/* El editor del retrato dentro de la ficha de la peque. El editor está
+   pensado para el tablero oscuro: aquí sus muestras necesitan borde
+   propio para no perderse sobre el pergamino, y las pastillas contraste
+   de texto. Los mandos son los mismos; solo cambia el mundo. */
+.kid-retrato { margin-bottom: 18px; }
+/* Su espejo: la figura centrada y grande, que es lo que mira mientras
+   toca. Sin ella los colores serían botones sueltos sin consecuencia. */
+.kid-retrato-espejo { display: grid; place-items: center; margin-bottom: 10px; }
+.kid-retrato .titulo-seccion { display: none; }
+.kid-retrato .campo label { color: #6b5c42; font-size: 0.9rem; }
+.kid-retrato .grid-colores button,
+.kid-retrato .grid-emojis button { border-color: rgba(60, 40, 20, 0.22); }
+.kid-retrato .grid-colores button.sel { border-color: var(--estrella-honda); border-width: 3px; }
+.kid-retrato .pastilla-habilidad {
+  background: #fff;
+  border-color: rgba(60, 40, 20, 0.18);
+  color: var(--pergamino-tinta, #3a3020);
+}
+.kid-retrato .pastilla-habilidad.sel {
+  background: var(--estrella);
+  border-color: var(--estrella-honda);
+  color: #3a3020;
+}
+
 .kid-gracias-caras { display: flex; gap: 12px; flex-wrap: wrap; }
 .kid-gracias-cara {
   position: relative;

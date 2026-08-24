@@ -7,14 +7,13 @@ import Cronica from '../components/Cronica'
 import Sello from '../components/Sello'
 import SellosGanados from '../components/SellosGanados'
 import Colecciones from '../components/Colecciones'
-import EditorRetrato from '../components/EditorRetrato'
+import MiRetrato from '../components/MiRetrato'
 import Retrato from '../components/Retrato'
-import { faseDePerfil, faseSiguiente } from '../lib/retratos'
-import { guardarRetrato } from '../lib/acciones'
+import { faseDePerfil } from '../lib/retratos'
 import SelloDetalle, { tieneDetalle } from '../components/SelloDetalle'
 import { pedirMision as pedirMisionRemota, canjearPremio, deshacerMision } from '../lib/acciones'
 import { proyeccionDe } from '../lib/sellos-motor'
-import { Gema, XPBar, Bolsa, Pestana, Talis, Plegable } from '../components/ui'
+import { Modal, Gema, XPBar, Bolsa, Pestana, Talis, Plegable } from '../components/ui'
 import { talis, progresoDeTalis } from '../lib/talis'
 import { HABILIDADES, habilidad, xpPorHabilidad, rangoDeHabilidad, habilidadDominante } from '../lib/habilidades'
 import { flex, generoDe } from '../lib/genero'
@@ -38,6 +37,11 @@ export default function Home({ family, data, profile, refresh, onSwitchProfile, 
   // dejaba todo el progreso —racha, nivel, habilidades, meta— dentro de
   // una pestaña que hay que ir a buscar. Ver src/lib/panorama.js.
   const [tab, setTab] = useState('panorama')
+  // El retrato se abre desde la cabecera de CUALQUIER pestaña, y la
+  // cabecera son dos sitios distintos: la tarjeta de las pestañas de
+  // trabajo y el saludo del Panorama. El estado vive aquí, que es el
+  // padre de las dos, para que el mismo toque haga lo mismo en todas.
+  const [verRetrato, setVerRetrato] = useState(false)
   // El Muro: lo que le han dicho a esta persona. Se calcula aquí porque
   // el punto de la pestaña lo necesita, y se sella al entrar en Progreso.
   const elogios = muroDe({ completions: data.completions, reconocimientos: data.reconocimientos, perfiles: data.profiles }, profile.id)
@@ -107,7 +111,13 @@ export default function Home({ family, data, profile, refresh, onSwitchProfile, 
         <>
           <div className="carta">
             <div className="fila">
-              <Retrato perfil={profile} tamano={46} />
+              <button
+                className="btn-retrato"
+                onClick={() => setVerRetrato(true)}
+                aria-label="Tu retrato: mirarlo y cambiarlo"
+              >
+                <Retrato perfil={profile} tamano={46} />
+              </button>
               <Gema xp={profile.xp} color={profile.color} />
               <div className="crece">
                 <div className="fila-separada">
@@ -131,6 +141,7 @@ export default function Home({ family, data, profile, refresh, onSwitchProfile, 
 
       {tab === 'panorama' && (
         <Panorama
+          onVerRetrato={() => setVerRetrato(true)}
           data={data}
           profile={profile}
           genero={genero}
@@ -181,6 +192,16 @@ export default function Home({ family, data, profile, refresh, onSwitchProfile, 
           onHecho={refresh}
           onClose={() => setDandoGracias(false)}
         />
+      )}
+
+      {/* El retrato, desde la cabecera de cualquier pestaña. Se abre en
+          modal y no saltando a Progreso porque cambiar de pestaña para
+          cambiarte el pelo te saca de lo que estabas haciendo, y al
+          cerrar habría que volver. */}
+      {verRetrato && (
+        <Modal titulo="Tu retrato" onClose={() => setVerRetrato(false)}>
+          <MiRetrato profile={profile} genero={genero} refresh={refresh} />
+        </Modal>
       )}
 
       <nav className="tabbar" aria-label="Secciones">
@@ -564,60 +585,20 @@ function Tienda({ data, profile, ocupado, onCanjear }) {
 // años no empuja, deshincha. `faseSiguiente()` devuelve null el resto del
 // tiempo y entonces lo que se enseña es lo que ya se lleva puesto.
 // ------------------------------------------------------------------
+// La sección de Progreso: la misma pieza que abre la cabecera, aquí
+// desplegable. No es una copia —las dos usan MiRetrato— sino el mismo
+// sitio contado dos veces, porque quien entra en Progreso a mirar cómo va
+// espera encontrarse su figura ahí y no tener que acordarse de que se
+// toca arriba.
 function TuRetrato({ profile, genero, refresh }) {
-  const [guardando, setGuardando] = useState(false)
-  const [fallo, setFallo] = useState('')
-  // Copia local para que el retrato se mueva al tocar, sin esperar a la
-  // ida y vuelta. Lo que se guarda es esto; `profile` llega con el
-  // refresco.
-  const [borrador, setBorrador] = useState(null)
-  const mio = borrador || profile
-
-  const fase = faseDePerfil(mio)
-  const cerca = faseSiguiente(mio)
-
-  async function cambiar(cambios) {
-    const siguiente = { ...mio, ...cambios }
-    setBorrador(siguiente)
-    setGuardando(true)
-    setFallo('')
-    const { ok, mensaje } = await guardarRetrato({ profile, piezas: siguiente })
-    if (ok) await refresh()
-    else setFallo(mensaje || 'No se pudo guardar el retrato.')
-    setGuardando(false)
-  }
-
   return (
     <Plegable
       id="progreso-retrato"
       titulo="Tu retrato"
-      pista={flex(fase.nombre, genero)}
+      pista={flex(faseDePerfil(profile).nombre, genero)}
     >
       <div className="carta">
-        <div className="fila" style={{ alignItems: 'center', gap: 16 }}>
-          <Retrato perfil={mio} tamano={92} vista="cuerpo" />
-          <div className="crece">
-            <strong style={{ fontFamily: 'var(--display)', fontSize: '1.05rem' }}>
-              {flex(fase.nombre, genero)}
-            </strong>
-            <div className="suave" style={{ fontSize: '0.85rem' }}>{fase.equipo}</div>
-            {cerca ? (
-              <div className="suave" style={{ fontSize: '0.8rem', marginTop: 6 }}>
-                A {cerca.faltan} XP de <strong>{flex(cerca.fase.nombre, genero)}</strong>,
-                que trae {cerca.fase.equipo.toLowerCase()}.
-              </div>
-            ) : (
-              <div className="suave" style={{ fontSize: '0.8rem', marginTop: 6 }}>
-                El equipo se gana subiendo de nivel. No se compra.
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className="titulo-seccion" style={{ marginTop: 14 }}>Cómo eres</div>
-        <EditorRetrato perfil={mio} onCambiar={cambiar} genero={genero} vistaPrevia={false} />
-        {guardando && <p className="suave">Guardando…</p>}
-        {fallo && <p className="error-texto">{fallo}</p>}
+        <MiRetrato profile={profile} genero={genero} refresh={refresh} />
       </div>
     </Plegable>
   )

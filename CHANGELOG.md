@@ -18,6 +18,25 @@ verdad duele en esta app: que el esquema y el cliente dejen de encajar.
 
 ---
 
+## 2.29.0 · 24 de agosto de 2026
+
+**El retrato se abre tocando el avatar de la cabecera**, en cualquier
+pestaña y sin pasar por el panel. Antes solo se llegaba por Progreso, o
+por el PIN si eras la peque —o sea, para ella no había manera—.
+
+Se abre en modal y no saltando a Progreso: cambiar de pestaña para
+cambiarte el pelo te saca de lo que estabas haciendo y al cerrar habría
+que volver.
+
+**La peque también.** Su avatar sigue abriendo su ficha, que es donde ya
+iba, y la ficha estrena «Cómo soy»: su figura grande de espejo y los
+mismos mandos, en su paleta y sin una palabra sobre fases ni niveles.
+A los tres años eso no es un resumen, es texto que no puede leer; lo que
+sí entiende es tocar un color y ver que cambia.
+
+La sección de Progreso se queda donde estaba. Las tres —cabecera,
+Progreso y ficha— usan el mismo componente, así que no pueden separarse.
+
 ## 2.28.1 · 24 de agosto de 2026
 
 **El flequillo de cortina parecía una calva.** Abría un pico ancho en
