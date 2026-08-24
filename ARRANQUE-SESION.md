@@ -4152,7 +4152,7 @@ añadir cualquier pieza, mídelo.
 - **La celebración se puede perder detrás del modal de sellos**: su
   temporizador corre aunque esté tapada. Es de antes del retrato.
 
-## 7aq. Barbas, y los dos cabos sueltos (24 de agosto) · 2.27.0 · **MIGRACIÓN 038 SIN EJECUTAR**
+## 7aq. Barbas, y los dos cabos sueltos (24 de agosto) · 2.27.0 · MIGRACIÓN 038 EJECUTADA
 
 **Barbas**: bigote, perilla, corta y larga, del color del pelo. Migración
 038 —hace falta la columna, pero los valores ya no van en un CHECK.
@@ -4183,6 +4183,8 @@ Dos detalles de la configuración, por si extrañan:
 Con esto, `tests/imports.test.js` se retiró: era una aproximación con
 expresiones regulares a media regla, y ahora hay la regla entera.
 
-### Lo que queda
+### Estado
 
-Ejecutar `migracion-038-barba.sql` y desplegar.
+Ejecutada y desplegado. Seis columnas de retrato, siete CHECK, y el de
+mascotas comprobado contra la base: cubre las seis, `retrato_barba`
+incluida.
