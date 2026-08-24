@@ -18,6 +18,45 @@ verdad duele en esta app: que el esquema y el cliente dejen de encajar.
 
 ---
 
+## 2.23.2 · 24 de agosto de 2026
+
+**Las celebraciones no salían nunca a quien valida.** «+18 XP · +4 Talis»
+con su elogio, la lluvia de estrellas, el háptico: todo estaba escrito y
+todo funcionaba, y aun así en casa no aparecía casi nunca.
+
+La celebración es una **diferencia entre dos cargas de datos**: hace falta
+acordarse de lo que había antes para saber qué hay nuevo. Esa memoria
+vivía dentro de la pantalla de inicio, y esa pantalla **se destruye entera
+al entrar en el panel parental** —que es exactamente donde se valida—. Al
+salir del panel volvía a montarse de cero, su memoria era una hoja en
+blanco y la primera pasada solo servía para tomar la referencia. Con un
+adulto y un móvil, que es como se usa esto, eso era **todas las veces**.
+
+Ahora la memoria vive un piso más arriba, en el componente que no se
+desmonta nunca, junto a las otras dos cosas que ya estaban ahí por el
+mismo motivo (el lote de sellos y el aviso de Talis a mano). Si se valida
+algo estando dentro del panel, la celebración sale **al salir**, que es
+cuando hay alguien mirando.
+
+De paso, la regla —qué se celebra y en qué escalón— sale del componente a
+`lib/celebracion.js` y queda con sus ocho pruebas. No es orden por orden:
+este fallo no se ve en un portátil y llegó al móvil de casa sin que nadie
+lo notara, y lo que no se puede probar es justo lo que llega roto.
+
+Tres decisiones que quedan fijadas ahí:
+
+- **Sin memoria previa no se celebra nada.** Abrir la app no puede sacar
+  de golpe la fiesta de todo lo de ayer.
+- **Cinco validaciones seguidas son UNA celebración**, con la suma. Cinco
+  pantallas seguidas no celebran, agotan.
+- **Subir de nivel gana a la misión que lo subió.** Dos celebraciones por
+  el mismo gesto le quitan valor a la grande.
+
+Y el mundo de la peque queda fuera a propósito: su pantalla se aprueba en
+el acto y ya tiene su respuesta —estrella, sonido, háptico—. Una segunda
+celebración encima, con texto que todavía no lee, sería ruido sobre lo
+que ya funciona.
+
 ## 2.23.1 · 24 de agosto de 2026
 
 **La pantalla de Hoy salía encogida en el móvil.** En un iPhone se veía

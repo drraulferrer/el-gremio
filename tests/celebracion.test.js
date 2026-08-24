@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
+  marcaDe,
+  queCelebrar,
   ESCALONES,
   escalonDe,
   duracionCelebracion,
@@ -84,5 +86,80 @@ describe('la lluvia de estrellas', () => {
     for (const nombre of Object.keys(ESCALONES)) {
       expect(estrellasDe(nombre, true)).toBe(0)
     }
+  })
+})
+
+// ------------------------------------------------------------------
+// Qué se celebra entre dos cargas.
+//
+// EL FALLO QUE FIJAN ESTOS TESTS: la memoria de «lo que ya se ha visto»
+// vivía dentro de Home, y Home se desmonta al entrar en el panel
+// parental, que es justo donde se valida. Al salir montaba de cero y la
+// primera pasada solo tomaba la referencia: quien validaba su propia
+// misión no veía la celebración NUNCA. Con un adulto y un móvil, siempre.
+//
+// Por eso la regla es una función pura y la memoria vive en App: lo que
+// no se puede probar es lo que llega al móvil de casa roto.
+// ------------------------------------------------------------------
+describe('qué se celebra entre dos cargas', () => {
+  const c = (id, extra = {}) => ({ id, xp: 10, coins: 4, praise: null, ...extra })
+
+  it('sin marca previa no se celebra nada', () => {
+    // Abrir la app no puede sacar de golpe la fiesta de todo lo de ayer.
+    expect(queCelebrar({ antes: null, aprobadas: [c('a'), c('b')], nivel: 3, profileId: 'p1' })).toBe(null)
+  })
+
+  it('una validación nueva se celebra en el escalón de todos los días', () => {
+    const antes = marcaDe({ aprobadas: [c('a')], nivel: 3, profileId: 'p1' })
+    const f = queCelebrar({ antes, aprobadas: [c('a'), c('b')], nivel: 3, profileId: 'p1' })
+    expect(f.intensidad).toBe('normal')
+    expect(f.texto).toMatch(/\+10 XP/)
+    expect(f.emoji).toBe('🌟')
+  })
+
+  it('la marca SOBREVIVE a que la pantalla se destruya y se vuelva a montar', () => {
+    // Esto es el fallo, dicho en un test: la marca se toma antes de
+    // entrar en el panel y se compara al salir. Si la memoria viviera en
+    // la pantalla, aquí no habría con qué comparar.
+    const antesDeEntrarAlPanel = marcaDe({ aprobadas: [c('a')], nivel: 3, profileId: 'p1' })
+    const alSalirDelPanel = [c('a'), c('b', { praise: 'Te ha costado y lo has hecho igual.' })]
+    const f = queCelebrar({ antes: antesDeEntrarAlPanel, aprobadas: alSalirDelPanel, nivel: 3, profileId: 'p1' })
+    expect(f).not.toBe(null)
+    expect(f.elogio).toBe('Te ha costado y lo has hecho igual.')
+  })
+
+  it('varias de golpe se suman en UNA sola celebración', () => {
+    // Validar cinco seguidas en el panel no puede sacar cinco pantallas.
+    const antes = marcaDe({ aprobadas: [], nivel: 3, profileId: 'p1' })
+    const f = queCelebrar({ antes, aprobadas: [c('a'), c('b'), c('c')], nivel: 3, profileId: 'p1' })
+    expect(f.texto).toMatch(/\+30 XP/)
+    expect(f.texto).toMatch(/12/)
+  })
+
+  it('sin Talis no se escribe el importe', () => {
+    const antes = marcaDe({ aprobadas: [], nivel: 3, profileId: 'p1' })
+    const f = queCelebrar({ antes, aprobadas: [c('a', { coins: 0 })], nivel: 3, profileId: 'p1' })
+    expect(f.texto).toBe('+10 XP')
+  })
+
+  it('subir de nivel gana a la misión que lo subió', () => {
+    // Dos celebraciones seguidas por el mismo gesto le quitan valor a la
+    // grande, que es lo que la escala venía a proteger.
+    const antes = marcaDe({ aprobadas: [], nivel: 3, profileId: 'p1' })
+    const f = queCelebrar({ antes, aprobadas: [c('a')], nivel: 4, profileId: 'p1' })
+    expect(f.intensidad).toBe('hito')
+    expect(f.texto).toBe('¡Nivel 4!')
+  })
+
+  it('nada nuevo, nada que celebrar', () => {
+    const antes = marcaDe({ aprobadas: [c('a')], nivel: 3, profileId: 'p1' })
+    expect(queCelebrar({ antes, aprobadas: [c('a')], nivel: 3, profileId: 'p1' })).toBe(null)
+  })
+
+  it('al cambiar de perfil no se hereda la fiesta de otra persona', () => {
+    // La tablet compartida: si la marca de una valiera para la otra, al
+    // entrar la segunda vería celebrado lo que hizo la primera.
+    const antes = marcaDe({ aprobadas: [], nivel: 3, profileId: 'p1' })
+    expect(queCelebrar({ antes, aprobadas: [c('z')], nivel: 3, profileId: 'p2' })).toBe(null)
   })
 })

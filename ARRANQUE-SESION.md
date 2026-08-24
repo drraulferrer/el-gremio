@@ -3974,3 +3974,41 @@ Si hay que tocar esto otra vez, la salida buena no es encoger la letra
 Panorama, que además es el patrón del que salió la pantalla (el perfil
 vive arriba a la derecha en Oura y en Opal). Serían cinco pestañas a
 68 px cada una y se acabó el problema.
+
+
+## 7am. Las celebraciones que no salían (24 de agosto) · 2.23.2
+
+**El síntoma**: «no me saltan los mensajes de recompensas ni las
+animaciones». Y era verdad, pero no porque estuvieran rotas: la
+celebración, el háptico y el contador funcionaban perfectamente cuando se
+probaban de frente.
+
+**La causa**: la celebración es una diferencia entre dos cargas de datos,
+y su memoria (`prev`, un `useRef`) vivía en `screens/Home.jsx`. Pero
+`App.jsx` hace `if (parentMode) return <ParentPanel …>`: **Home se
+desmonta entero mientras se está en el panel**, que es donde se valida.
+Al salir, `useRef(null)` otra vez y la primera pasada solo tomaba la
+referencia. Nadie que validara su propia misión veía nada.
+
+**Cómo se demostró**, porque el código «parecía» bien: A/B en la demo con
+el mismo guion —salir de Home, aprobar por detrás, volver y forzar una
+recarga—. Con el código de git: nada. Con el arreglo: «+20 XP · +4 Talis»
+y su elogio. Y como las celebraciones se cierran solas en 1,9 s, sondear
+con llamadas sueltas no vale: hay que dejar puesto un `MutationObserver`
+y leer el registro después.
+
+**El arreglo**: la memoria y el estado suben a `App.jsx`, junto a
+`LoteDeSellos` y `TalisAMano`, que ya estaban ahí por lo mismo. La regla
+sale a `lib/celebracion.js` (`marcaDe` + `queCelebrar`) con ocho pruebas.
+Home conserva solo la chispa del canje, que sí es respuesta a un gesto
+suyo, y la pide con `onCelebrar`.
+
+**Lo que se pinta sigue dentro de la rama de los mayores**, no en la raíz
+de App: si se montara arriba del todo saldría también encima de la
+pantalla de la peque, que tiene su propia respuesta.
+
+**Lo que NO se arregló, y es aceptable**: al salir del panel, la Bolsa no
+cuenta hacia arriba, porque `useContador` monta de cero con Home. Da
+igual: la celebración tapa la pantalla justo en ese momento y cuando se
+va, la cuenta ya habría terminado. Si algún día molesta, la solución es
+la misma que aquí —subir la memoria del contador por encima de Home—.

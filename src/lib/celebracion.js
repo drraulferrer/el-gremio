@@ -90,3 +90,64 @@ export function estrellasDe(nombre, menosMovimiento = false) {
   if (menosMovimiento) return 0
   return escalonDe(nombre).estrellas
 }
+
+// ------------------------------------------------------------------
+// Qué hay que celebrar entre dos cargas de datos.
+//
+// Vive aquí y no dentro del componente por la razón de siempre en esta
+// casa: una cuenta metida en la pantalla no se puede probar. Y esta en
+// concreto había que poder probarla, porque su fallo no se ve en un
+// portátil —hay que salir del panel parental para reproducirlo— y llegó
+// hasta el móvil de casa sin que nadie lo notara.
+//
+// EL FALLO QUE ARREGLA, para que no vuelva: la comparación necesita
+// acordarse de lo que había ANTES. Esa memoria vivía en Home, y Home se
+// desmonta entero al entrar en el panel parental, que es justo donde se
+// valida. Al salir, Home montaba de cero y la primera pasada solo servía
+// para tomar la referencia: quien validaba su propia misión no veía
+// nunca la celebración. Con un solo adulto y un solo móvil, eso era
+// TODAS las veces. Ahora la memoria vive en App, que no se desmonta.
+// ------------------------------------------------------------------
+
+import { talis } from './talis'
+
+/** La foto de referencia: lo que ya se ha visto de esta persona. */
+export function marcaDe({ aprobadas = [], nivel = 0, profileId = null } = {}) {
+  return { ids: new Set(aprobadas.map((c) => c.id)), nivel, profileId }
+}
+
+/**
+ * Qué celebrar, comparando con la marca anterior. `null` si nada.
+ *
+ * Sin marca previa no se celebra NADA, y esa es la regla que evita el
+ * otro fallo posible: abrir la app y comerse de golpe la fiesta de todo
+ * lo que se validó ayer. La primera pasada solo toma la referencia.
+ *
+ * El nivel gana a las misiones cuando coinciden: si una validación sube
+ * de nivel, lo que ha pasado es que se ha subido de nivel. Dos
+ * celebraciones seguidas por el mismo gesto le quitan valor a la grande.
+ */
+export function queCelebrar({ antes, aprobadas = [], nivel = 0, profileId = null } = {}) {
+  if (!antes || antes.profileId !== profileId) return null
+
+  if (nivel > antes.nivel) {
+    return { emoji: '💎', texto: `¡Nivel ${nivel}!`, elogio: '', intensidad: 'hito' }
+  }
+
+  const nuevas = aprobadas.filter((c) => !antes.ids.has(c.id))
+  if (!nuevas.length) return null
+
+  const xp = nuevas.reduce((t, c) => t + (c.xp || 0), 0)
+  const monedas = nuevas.reduce((t, c) => t + (c.coins || 0), 0)
+  // El elogio es lo que de verdad tiene efecto; la XP y los Talis
+  // acompañan. El orden importa: primero lo que se ha ganado, y el
+  // elogio debajo con más peso visual, no al revés.
+  const conElogio = nuevas.find((c) => c.praise)
+
+  return {
+    emoji: '🌟',
+    texto: monedas > 0 ? `+${xp} XP · +${talis(monedas)}` : `+${xp} XP`,
+    elogio: conElogio?.praise || '',
+    intensidad: 'normal'
+  }
+}

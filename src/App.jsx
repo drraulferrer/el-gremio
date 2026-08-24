@@ -8,10 +8,13 @@ import { historialAprobado, conNuevas } from './lib/sellos-carga'
 import { log, setContexto, setSink, instalarVaciadoAlSalir, nuevoRequestId } from './lib/log'
 import { instalarMonitorizacion, capturar } from './lib/monitoring'
 import { flag } from './lib/flags'
+import { vibrar, LOGRO } from './lib/vibrar'
+import { marcaDe, queCelebrar } from './lib/celebracion'
+import { levelProgress } from './lib/supabase'
 import { perfilesActivos, estaActivo } from './lib/miembros'
 import { RELEASE } from './lib/version'
 import { registrarServiceWorker, apuntarPerfil } from './lib/push'
-import { PinModal } from './components/ui'
+import { PinModal, Celebracion } from './components/ui'
 import LoteDeSellos from './components/LoteDeSellos'
 import TalisAMano from './components/TalisAMano'
 import { manualesDe, pendientesDeAviso, leerAvisados, marcarAvisados } from './lib/premioManual'
@@ -40,6 +43,22 @@ export default function App() {
   // lote. `perfilActual` es la misma cosa en forma de ref porque
   // `otorgarInsignias` corre fuera del render y leería un valor viejo.
   const [loteNuevo, setLoteNuevo] = useState([])
+  // La celebración de una validación o de un nivel.
+  //
+  // VIVE AQUÍ Y NO EN HOME, y eso es lo que arregla el fallo de la
+  // 2.23.2: la detección es una DIFERENCIA entre dos cargas de datos, y
+  // Home se desmonta entero cada vez que alguien entra en el panel
+  // parental —que es justo donde se valida—. Al volver, Home montaba de
+  // cero, su `prev` era null y la primera pasada solo servía para tomar
+  // la referencia: quien validaba su propia misión no veía nunca ni la
+  // celebración ni la cuenta de la Bolsa. En un móvil con un solo
+  // adulto, eso era TODAS las veces.
+  //
+  // App no se desmonta nunca, así que la referencia sobrevive al panel y
+  // la celebración sale al salir de él.
+  const [celeb, setCeleb] = useState(null)
+  const ultimoVisto = useRef(null)
+
   // Los Talis entregados a mano que todavía no se le han contado a quien
   // los recibió. Ver src/components/TalisAMano.jsx.
   const [talisAMano, setTalisAMano] = useState([])
@@ -456,6 +475,34 @@ export default function App() {
     if (avisar.length) setTalisAMano(avisar)
   }, [data, profile?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Qué hay nuevo desde la última carga. La regla vive en
+  // `lib/celebracion.js` y está probada allí; aquí solo se le da de
+  // comer y se guarda la marca para la próxima.
+  useEffect(() => {
+    if (!data || !profile) return
+
+    // El mundo de la peque queda fuera: su pantalla se aprueba en el
+    // acto y tiene su propia respuesta (estrella, sonido, háptico). Una
+    // segunda celebración encima, con texto que todavía no lee, sería
+    // ruido sobre lo que ya funciona.
+    if (profile.role === 'peque' && flag('modoPeque')) {
+      ultimoVisto.current = null
+      return
+    }
+
+    const aprobadas = data.completions.filter(
+      (c) => c.profile_id === profile.id && c.status === 'aprobado'
+    )
+    const nivel = levelProgress(profile.xp).level
+    const fiesta = queCelebrar({ antes: ultimoVisto.current, aprobadas, nivel, profileId: profile.id })
+
+    if (fiesta) {
+      vibrar(LOGRO)
+      setCeleb(fiesta)
+    }
+    ultimoVisto.current = marcaDe({ aprobadas, nivel, profileId: profile.id })
+  }, [data, profile?.id]) // eslint-disable-line react-hooks/exhaustive-deps
+
   function cerrarTalisAMano() {
     marcarAvisados(profile.id, talisAMano.map((m) => m.id))
     setTalisAMano([])
@@ -548,6 +595,7 @@ export default function App() {
             onSwitchProfile={cambiarPerfil}
             onParent={() => setPidePin(true)}
             historial={historialUI}
+            onCelebrar={setCeleb}
           />
         ) : (
           <ProfilePicker
@@ -568,6 +616,21 @@ export default function App() {
             familyId={family.id}
             profileId={profile?.id || null}
             onClose={() => setContandoFallo(false)}
+          />
+        )}
+
+        {/* La celebración se DETECTA arriba, en App, para que sobreviva al
+            panel parental; se PINTA aquí, dentro de la rama de los
+            mayores, para no invadir el mundo de la peque, que tiene su
+            propia respuesta. Si se validó algo estando en el panel, sale
+            al salir de él, que es cuando hay alguien mirando. */}
+        {celeb && (
+          <Celebracion
+            emoji={celeb.emoji}
+            texto={celeb.texto}
+            elogio={celeb.elogio}
+            intensidad={celeb.intensidad}
+            onDone={() => setCeleb(null)}
           />
         )}
 

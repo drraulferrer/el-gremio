@@ -10,8 +10,7 @@ import Colecciones from '../components/Colecciones'
 import SelloDetalle, { tieneDetalle } from '../components/SelloDetalle'
 import { pedirMision as pedirMisionRemota, canjearPremio, deshacerMision } from '../lib/acciones'
 import { proyeccionDe } from '../lib/sellos-motor'
-import { Gema, XPBar, Bolsa, Celebracion, Pestana, Talis, Plegable } from '../components/ui'
-import { vibrar, LOGRO } from '../lib/vibrar'
+import { Gema, XPBar, Bolsa, Pestana, Talis, Plegable } from '../components/ui'
 import { talis, progresoDeTalis } from '../lib/talis'
 import { HABILIDADES, habilidad, xpPorHabilidad, rangoDeHabilidad, habilidadDominante } from '../lib/habilidades'
 import { flex, generoDe } from '../lib/genero'
@@ -28,7 +27,7 @@ import Estandarte from '../components/Estandarte'
 import Panorama from './Panorama'
 import { semana, etiquetaDeSemana, validadasDe, resumenDeSemana, semanasConDatos } from '../lib/historial'
 
-export default function Home({ family, data, profile, refresh, onSwitchProfile, onParent, historial }) {
+export default function Home({ family, data, profile, refresh, onSwitchProfile, onParent, historial, onCelebrar }) {
   const genero = generoDe(profile)
   // Abre por el Panorama y no por las misiones. Abrir por la lista de
   // deberes decía lo mismo el día de quince misiones y el de ninguna, y
@@ -41,43 +40,11 @@ export default function Home({ family, data, profile, refresh, onSwitchProfile, 
   const [visto, setVisto] = useState(() => leerVisita(profile.id))
   const [dandoGracias, setDandoGracias] = useState(false)
   const muroNuevo = hayNuevo(elogios, visto)
-  const [celeb, setCeleb] = useState(null)
   const [ocupado, setOcupado] = useState(null)
   const [aviso, setAviso] = useState('')
-  const prev = useRef(null)
 
   const misPendientes = data.completions.filter((c) => c.profile_id === profile.id && c.status === 'pendiente')
   const misAprobadas = data.completions.filter((c) => c.profile_id === profile.id && c.status === 'aprobado')
-
-  // Celebrar cuando llega una validación o se sube de nivel (vía realtime)
-  useEffect(() => {
-    const ids = new Set(misAprobadas.map((c) => c.id))
-    const lvl = levelProgress(profile.xp).level
-    if (prev.current && prev.current.profileId === profile.id) {
-      const nuevas = misAprobadas.filter((c) => !prev.current.ids.has(c.id))
-      if (lvl > prev.current.lvl) {
-        // Subir de nivel es lo que pasa una vez cada muchas veces: va
-        // en el escalón grande. Si durase lo mismo que aprobar una
-        // misión, no se distinguiría de un martes cualquiera.
-        vibrar(LOGRO)
-        setCeleb({ emoji: '💎', texto: `¡Nivel ${lvl}!`, intensidad: 'hito' })
-      } else if (nuevas.length) {
-        const xp = nuevas.reduce((s, c) => s + c.xp, 0)
-        const monedas = nuevas.reduce((s, c) => s + (c.coins || 0), 0)
-        // El elogio es lo que de verdad tiene efecto; la XP y los Talis
-        // acompañan. El orden importa: primero lo que se ha ganado, y el
-        // elogio debajo con más peso visual, no al revés.
-        const conElogio = nuevas.find((c) => c.praise)
-        vibrar(LOGRO)
-        setCeleb({
-          emoji: '🌟',
-          texto: monedas > 0 ? `+${xp} XP · +${talis(monedas)}` : `+${xp} XP`,
-          elogio: conElogio?.praise || ''
-        })
-      }
-    }
-    prev.current = { ids, lvl, profileId: profile.id }
-  }, [data, profile.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function pedirMision(reto) {
     setOcupado(reto.id)
@@ -95,7 +62,9 @@ export default function Home({ family, data, profile, refresh, onSwitchProfile, 
     if (ok) {
       // Una confirmación, no un logro: no has conseguido nada, has
       // hecho algo y ha salido bien. Chispa corta y se quita de en medio.
-      setCeleb({ emoji: '🛍️', texto: 'Pedido al gremio', intensidad: 'chispa' })
+      // Se pide a App, que es quien tiene ahora la celebración: ver el
+      // comentario de `celebrar` allí.
+      onCelebrar({ emoji: '🛍️', texto: 'Pedido al gremio', intensidad: 'chispa' })
       await refresh()
     } else {
       setAviso(mensaje)
@@ -125,8 +94,6 @@ export default function Home({ family, data, profile, refresh, onSwitchProfile, 
 
   return (
     <div className="app">
-      {celeb && <Celebracion emoji={celeb.emoji} texto={celeb.texto} elogio={celeb.elogio} intensidad={celeb.intensidad} onDone={() => setCeleb(null)} />}
-
       {/* El carnet y el estandarte encabezan las pestañas de trabajo,
           no el Panorama: allí ya hay una cabecera propia con el nombre,
           la racha y la bolsa, y el nivel cuelga del arco. Repetir aquí
