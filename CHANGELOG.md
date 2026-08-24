@@ -84,6 +84,15 @@ acción que la disparó.
 la cuenta cazada a media subida (la Bolsa marcando 903 con el valor real
 ya en 905).
 
+**Esta versión arrastra dos commits que nunca se publicaron.** El 23-ago
+entraron en `main` las **copias de seguridad cifradas** (`c482c68`) y el
+arreglo de su línea de cron (`3211863`), y ninguno subió el número:
+`package.json` se quedó en 2.21.1 y producción siguió sirviendo
+`754fcd2`. Así que **2.22.0 publica también eso**, y es lo que dirá
+`app_logs.release` de aquellas líneas. Se anota aquí para que el día que
+haya que decidir a qué volver con `npm run rollback`, el número no mienta
+sobre lo que lleva dentro.
+
 ## 2.21.1 · 22 de agosto de 2026
 
 **Progreso se comía la pantalla con la semana llena.** «Lo que has hecho»

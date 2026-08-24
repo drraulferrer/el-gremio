@@ -33,6 +33,12 @@ ahorra media hora: sembrar `completions` en la demo con `approved_at` /
 `status:'approved'` revienta la app entera; los campos buenos son
 `requested_at` / `resolved_at` y el estado es `'aprobado'`.
 
+**Y lo que hay que hacer al abrir sesión, si nadie lo ha hecho ya:** la
+2.22.0 está **mezclada en `main` y sin publicar**, y con ella viajan las
+copias cifradas del 23-ago, que tampoco se publicaron nunca. Producción
+sigue en `754fcd2`. Una sola orden, sin migración de por medio:
+`npm run vercel && npm run health` (el detalle, al final de §7aj).
+
 **Si abres sesión nueva, empieza por §8.** Los **803 tests y el CI están
 en verde** (el CI estuvo roto unas horas por un test que parcheaba el
 cliente nulo; arreglado en `ed0a311` con inyección). Producción sirve la
@@ -3816,3 +3822,44 @@ se pierde media hora buscándolo en el sitio equivocado.
 - **Mirar si el `hito` cansa.** 3,2 s es mucho tiempo de pantalla
   tapada. Es la cifra más discutible de todo esto y la primera que hay
   que bajar si alguien lo dice.
+
+### Estado de publicación de la 2.22.0 · 24-ago
+
+**Mezclada en `main`. NO publicada todavía.** El último paso lo tiene que
+dar una persona, y es una sola orden.
+
+Por qué no lo dio la sesión: **producción se publica con un único
+mecanismo**, el deploy hook `publicar-a-mano` (`VERCEL_DEPLOY_HOOK` en el
+`.env`), y ese secreto no vive en el contenedor de la sesión. Comprobado
+contra la API de Vercel, y no es una suposición: **las quince
+publicaciones de producción de este proyecto llevan todas
+`deployHookName: publicar-a-mano`**. Empujar a `main` NO publica solo;
+solo dispara el preview de la rama. Que `main` vaya por delante de
+producción es un estado normal aquí, no una avería.
+
+```bash
+cd ~/el-gremio && npm run vercel && npm run health
+```
+
+**Y lo que hay que saber antes de darla:** producción venía sirviendo
+`754fcd2` (2.21.1), o sea **dos commits por detrás de `main`**. El 23-ago
+entraron las **copias de seguridad cifradas** (`c482c68`) y el arreglo de
+su cron (`3211863`) sin subir el número —`package.json` se quedó en
+2.21.1— y se quedaron sin publicar. Así que esa orden **no publica solo
+la 2.22.0: publica también aquello**. Sin migración pendiente ninguna, así
+que el orden esquema→bundle no aplica y se puede dar tal cual.
+
+Es el fallo del versionado otra vez, el que dejó el número parado en
+1.0.0 durante 55 despliegues: depende de acordarse. Aquí no rompió nada
+porque las copias son un script de fuera de la app, pero durante un día
+`app_logs.release` habría dicho 2.21.1 sobre un bundle que no era el de
+la 2.21.1.
+
+**Lo que no se pudo comprobar desde la sesión**, y hay que mirar tras
+publicar:
+
+- `npm run health` necesita las claves del `.env`, y la salida a
+  elgremioapp.com desde el contenedor da 403 por el proxy. La única
+  comprobación que vale es la de tu máquina.
+- El háptico: en Chromium headless `navigator.vibrate` existe y no hace
+  nada. Hay que tocarlo en un móvil.
