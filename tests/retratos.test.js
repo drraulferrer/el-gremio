@@ -3,7 +3,7 @@ import {
   FASES, NIVEL_TOPE, PIELES, PELOS, PEINADOS,
   faseDeNivel, faseDePerfil, piezasDe, hexDe, llevaFigura,
   PALETA_RETRATO, contraste, GAFAS, TUNICAS, BARBAS, FLEQUILLOS,
-  admiteFlequillo, usaColorDePelo, faseSiguiente, hayFaseNueva, DIAS_CERCA
+  admiteFlequillo, usaColorDePelo, colorDeRaya, MIN_RAYA, faseSiguiente, hayFaseNueva, DIAS_CERCA
 } from '../src/lib/retratos'
 import { plantillaCompleta, marcasDe, flex } from '../src/lib/genero'
 
@@ -327,5 +327,40 @@ describe('las barbas con bigote', () => {
 
   it('todas tienen nombre legible', () => {
     for (const b of BARBAS) expect(b.nombre.length).toBeGreaterThan(3)
+  })
+})
+
+// ------------------------------------------------------------------
+// La raya del flequillo de cortina.
+//
+// La primera versión de la cortina abría un pico en mitad de la frente y
+// se leía como una calva. La segunda cubre la frente y solo deja una raya
+// fina, pero entonces la raya tiene que VERSE: en rubio sobre piel pálida
+// piel y pelo contrastan 1,85 y la raya desaparecía, con lo que la
+// cortina volvía a parecer un flequillo recto.
+//
+// Cuarto fallo de contraste del retrato. Por eso este test recorre las 64
+// combinaciones en vez de mirar tres a ojo.
+// ------------------------------------------------------------------
+describe('la raya del pelo se ve sobre cualquier cabeza', () => {
+  it('ninguna de las 64 combinaciones de piel y pelo baja del mínimo', () => {
+    for (const piel of PIELES) {
+      for (const pelo of PELOS) {
+        const raya = colorDeRaya(piel.hex, pelo.hex)
+        expect(
+          contraste(raya, pelo.hex),
+          `${piel.id} + ${pelo.id}`
+        ).toBeGreaterThanOrEqual(MIN_RAYA - 0.01)
+      }
+    }
+  })
+
+  it('y son 64, no vaya a ser que el catálogo se vacíe y el test pase solo', () => {
+    expect(PIELES.length * PELOS.length).toBe(64)
+  })
+
+  it('la raya es más oscura que la piel: es sombra, no un hueco', () => {
+    const raya = colorDeRaya('#f0c9a8', '#2b2118')
+    expect(contraste(raya, '#ffffff')).toBeGreaterThan(contraste('#f0c9a8', '#ffffff'))
   })
 })

@@ -1,7 +1,7 @@
 import { useId } from 'react'
 import {
   PIELES, PELOS, TUNICAS, piezasDe, hexDe, faseDePerfil, llevaFigura, FASES,
-  PALETA_RETRATO, oscuro, claro, separar, admiteFlequillo
+  PALETA_RETRATO, oscuro, claro, separar, admiteFlequillo, colorDeRaya
 } from '../lib/retratos'
 
 // ------------------------------------------------------------------
@@ -157,18 +157,34 @@ function Barba({ tipo, color, uid }) {
 
 // El flequillo, recortado al cráneo. `base` es dónde termina el pelo que
 // cae sobre la frente, y sale del alto que pide cada peinado.
-function Flequillo({ forma, alto, color }) {
+function Flequillo({ forma, alto, color, piel }) {
   const base = 12 + alto
 
   if (forma === 'cortina') {
-    // Raya en medio: el pelo cae largo por los lados y se abre en el
-    // centro, así que el borde de abajo baja en los extremos y sube en
-    // mitad de la frente.
+    // Cortina, y la clave es cuánto pelo se quita: casi nada.
+    //
+    // La primera versión abría un pico ancho en mitad de la frente y lo
+    // que se veía no era una raya, era una calva. Una cortina no descubre
+    // la frente: cae ENTERA y solo se separa en una raya.
+    //
+    // Así que el pelo cubre igual que el flequillo recto —un poco más
+    // largo por los lados, que es lo que la distingue— y la raya es una
+    // cuña fina de piel de tres unidades, que a 40 px es un pelo de
+    // ancho y a tamaño grande se lee como lo que es.
     return (
-      <path
-        d={`M28,12 H72 V${base + 4} Q62,${base + 2} 56,${base - 9} Q50,${base - 14} 44,${base - 9} Q38,${base + 2} 28,${base + 4} Z`}
-        fill={color}
-      />
+      <>
+        <path d={`M28,12 H72 V${base + 6} Q50,${base - 2} 28,${base + 6} Z`} fill={color} />
+        {/* La raya parte de la piel EN SOMBRA y se separa del pelo.
+            Piel a secas no valía: en rubio sobre piel pálida las dos son
+            casi el mismo tono (1,85 de contraste) y la raya desaparecía.
+            Y una raya del pelo está en sombra de verdad, así que no hay
+            que elegir entre que se vea y que sea creíble. Medido, con
+            esto ninguna combinación del catálogo baja de 2,3. */}
+        <path
+          d={`M48.4,12 L51.6,12 L50.9,${base + 3} L49.1,${base + 3} Z`}
+          fill={colorDeRaya(piel, color)}
+        />
+      </>
     )
   }
   if (forma === 'despejado') {
@@ -205,6 +221,7 @@ function Cara({ piel, pelo, peinado, gafas, barba, flequillo, uid }) {
             forma={admiteFlequillo(peinado) ? flequillo : 'recto'}
             alto={ALTO_FLEQUILLO[peinado] ?? 14}
             color={tinte}
+            piel={piel}
           />
         </g>
       )}

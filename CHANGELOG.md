@@ -18,6 +18,22 @@ verdad duele en esta app: que el esquema y el cliente dejen de encajar.
 
 ---
 
+## 2.28.1 · 24 de agosto de 2026
+
+**El flequillo de cortina parecía una calva.** Abría un pico ancho en
+mitad de la frente y lo que se veía no era una raya, era piel. Una
+cortina no descubre la frente: cae entera y solo se separa en una raya.
+Ahora el pelo cubre como el flequillo recto —algo más largo por los
+lados, que es lo que la distingue— y la raya es una cuña fina.
+
+Con la raya fina apareció el problema de siempre: en rubio sobre piel
+pálida, piel y pelo contrastan 1,85 y la raya desaparecía, con lo que la
+cortina volvía a parecer un flequillo recto. La raya sale ahora de la
+piel **en sombra** —que es lo que hay debajo de una raya de verdad— y se
+separa del pelo lo justo. Hay un test que recorre las 64 combinaciones de
+piel y pelo del catálogo: es el cuarto fallo de contraste del retrato y
+mirar tres a ojo ya ha demostrado no bastar.
+
 ## 2.28.0 · 24 de agosto de 2026
 
 Cuatro cosas del retrato, las cuatro salidas de usarlo.

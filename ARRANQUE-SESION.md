@@ -73,7 +73,7 @@ modo peque, la capa de producción y la gestión de miembros.
 | Supabase | proyecto `chfbrawsoulfiywiqhpe`, Postgres 17.6, región EU |
 | Edge Function | `notificar`, versión 5, `verify_jwt` en false |
 | Versión publicada | ver `npm run health` (lee `version.json`, que ahora se emite en el build) |
-| Tests | 1.108, en 62 ficheros, todos en verde (24-ago). Bajaron al retirar `imports.test.js`, que el linter cubre mejor |
+| Tests | 1.111, en 62 ficheros, todos en verde (24-ago). Bajaron al retirar `imports.test.js`, que el linter cubre mejor |
 
 Comprobar que sigue vivo:
 
@@ -4215,3 +4215,21 @@ retrato lleva siete piezas y cada una nueva multiplica las combinaciones;
 **la única prueba que vale es repartir combinaciones raras entre los
 perfiles de la demo y mirarlas juntas**. Así salieron la cara de antifaz,
 la barba hueca y el flequillo ras.
+
+## 7as. La cortina que parecía una calva (24 de agosto) · 2.28.1 · SIN MIGRACIÓN
+
+El flequillo de cortina abría un pico en mitad de la frente: lo que se
+veía no era una raya, era piel. **Una cortina no descubre la frente**,
+cae entera y solo se separa en una raya. Ahora cubre como el recto —algo
+más larga por los lados— y la raya es una cuña de tres unidades.
+
+Y al hacerla fina apareció el de siempre: en rubio sobre piel pálida,
+piel y pelo contrastan 1,85 y la raya se perdía, con lo que la cortina
+volvía a parecer un flequillo recto. La raya sale ahora de la piel **en
+sombra** y se separa del pelo (`colorDeRaya`, mínimo 2,3).
+
+**Cuarto fallo de contraste del retrato.** Los cuatro con la misma forma:
+dos piezas del mismo tono, una encima de otra, decididas a ojo. El test
+nuevo recorre las 64 combinaciones de piel y pelo en vez de mirar tres.
+Si se añade un tono de piel o de pelo, ese test lo cubre solo; si se
+añade una pieza que se pinte SOBRE otra, hace falta un test como ese.

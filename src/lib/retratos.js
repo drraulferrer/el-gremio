@@ -392,3 +392,22 @@ export function separar(color, fondo, minimo = 1.9) {
   }
   return mejor
 }
+
+/**
+ * El color de la raya del pelo, en el flequillo de cortina.
+ *
+ * Parte de la piel EN SOMBRA —que es lo que hay debajo de una raya— y se
+ * separa del pelo lo justo. Piel a secas no valía: rubio sobre piel
+ * pálida son casi el mismo tono, 1,85 de contraste, y la raya
+ * desaparecía; y sin raya visible la cortina se lee como una calva, que
+ * fue justo la queja.
+ *
+ * Vive aquí y no en el dibujo para que un test pueda recorrer las 64
+ * combinaciones de piel y pelo del catálogo y comprobar que ninguna se
+ * queda por debajo del mínimo. A ojo ya se ha fallado tres veces.
+ */
+export function colorDeRaya(piel, pelo) {
+  return separar(oscuro(piel, 0.25), pelo, MIN_RAYA)
+}
+
+export const MIN_RAYA = 2.3
