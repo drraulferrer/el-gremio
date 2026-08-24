@@ -1,7 +1,7 @@
 import { useId } from 'react'
 import {
   PIELES, PELOS, TUNICAS, piezasDe, hexDe, faseDePerfil, llevaFigura, FASES,
-  PALETA_RETRATO, oscuro, claro, separar
+  PALETA_RETRATO, oscuro, claro, separar, admiteFlequillo
 } from '../lib/retratos'
 
 // ------------------------------------------------------------------
@@ -127,30 +127,60 @@ function Gafas({ tipo }) {
 function Barba({ tipo, color, uid }) {
   if (!tipo || tipo === 'ninguna') return null
 
-  if (tipo === 'bigote') {
-    return <path d="M41,44 q9,-3.5 18,0 q-3.5,3.2 -9,3.2 q-5.5,0 -9,-3.2 z" fill={color} />
-  }
+  const bigote = <path d="M41,44 q9,-3.5 18,0 q-3.5,3.2 -9,3.2 q-5.5,0 -9,-3.2 z" fill={color} />
+  if (tipo === 'bigote') return bigote
   if (tipo === 'perilla') {
     return (
       <>
         <ellipse cx="50" cy="52" rx="5.2" ry="4" fill={color} />
-        <path d="M41,44 q9,-3.5 18,0 q-3.5,3.2 -9,3.2 q-5.5,0 -9,-3.2 z" fill={color} />
+        {bigote}
       </>
     )
   }
+
+  const larga = tipo === 'larga' || tipo === 'largabigote'
+  const conBigote = tipo === 'cortabigote' || tipo === 'largabigote'
   return (
     <>
+      {/* La parte larga va DEBAJO de la recortada para que el borde de la
+          mandíbula quede limpio. Y es una forma MACIZA: la primera versión
+          eran dos curvas encaradas y lo que salía era el hueco entre
+          ellas, una barba con el centro vacío. */}
+      {larga && <path d="M32,47 Q33,68 50,76 Q67,68 68,47 Z" fill={color} />}
       <g clipPath={`url(#${uid}-h)`}>
         <path d="M27,42 q23,15 46,0 L73,61 L27,61 Z" fill={color} />
       </g>
-      {tipo === 'larga' && (
-        <path d="M37,50 q13,20 26,0 q-1,15 -13,18 q-12,-3 -13,-18 z" fill={color} />
-      )}
+      {conBigote && bigote}
     </>
   )
 }
 
-function Cara({ piel, pelo, peinado, gafas, barba, uid }) {
+// El flequillo, recortado al cráneo. `base` es dónde termina el pelo que
+// cae sobre la frente, y sale del alto que pide cada peinado.
+function Flequillo({ forma, alto, color }) {
+  const base = 12 + alto
+
+  if (forma === 'cortina') {
+    // Raya en medio: el pelo cae largo por los lados y se abre en el
+    // centro, así que el borde de abajo baja en los extremos y sube en
+    // mitad de la frente.
+    return (
+      <path
+        d={`M28,12 H72 V${base + 4} Q62,${base + 2} 56,${base - 9} Q50,${base - 14} 44,${base - 9} Q38,${base + 2} 28,${base + 4} Z`}
+        fill={color}
+      />
+    )
+  }
+  if (forma === 'despejado') {
+    // Pelo recogido hacia atrás: la frente queda despejada pero el pelo
+    // sigue ahí. Con el borde más alto parecía media calva en vez de un
+    // peinado, que es justo lo contrario de lo que se elige aquí.
+    return <path d={`M28,12 H72 V${base - 2} Q50,${base - 9} 28,${base - 2} Z`} fill={color} />
+  }
+  return <rect x="28" y="12" width="44" height={alto} fill={color} />
+}
+
+function Cara({ piel, pelo, peinado, gafas, barba, flequillo, uid }) {
   // Pelo negro sobre piel muy oscura contrastaba 1,12: eran la misma
   // mancha. `separar` lo mueve lo mínimo para despegarlo y no toca nada
   // cuando ya se veía, que es la mayoría de las combinaciones.
@@ -171,7 +201,11 @@ function Cara({ piel, pelo, peinado, gafas, barba, uid }) {
           cero, que en algunos navegadores deja una línea de un píxel. */}
       {peinado !== 'calvo' && (
         <g clipPath={`url(#${uid}-h)`}>
-          <rect x="28" y="12" width="44" height={ALTO_FLEQUILLO[peinado] ?? 14} fill={tinte} />
+          <Flequillo
+            forma={admiteFlequillo(peinado) ? flequillo : 'recto'}
+            alto={ALTO_FLEQUILLO[peinado] ?? 14}
+            color={tinte}
+          />
         </g>
       )}
       {/* Ojo con blanco y pupila, y no un punto de tinta. Un punto oscuro
@@ -382,7 +416,7 @@ export default function Retrato({ perfil, tamano = 64, vista = 'auto', disco = t
           <Equipo fase={fase.n} color={tunica} uid={uid} />
         </>
       )}
-      <Cara piel={piel} pelo={pelo} peinado={piezas.peinado} gafas={piezas.gafas} barba={piezas.barba} uid={uid} />
+      <Cara piel={piel} pelo={pelo} peinado={piezas.peinado} gafas={piezas.gafas} barba={piezas.barba} flequillo={piezas.flequillo} uid={uid} />
     </svg>
   )
 }

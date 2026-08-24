@@ -551,7 +551,8 @@ export async function guardarRetrato({ profile, piezas }) {
           retrato_peinado: piezas.retrato_peinado ?? null,
           retrato_gafas: piezas.retrato_gafas ?? null,
           retrato_tunica: piezas.retrato_tunica ?? null,
-          retrato_barba: piezas.retrato_barba ?? null
+          retrato_barba: piezas.retrato_barba ?? null,
+          retrato_flequillo: piezas.retrato_flequillo ?? null
         })
         .eq('id', profile.id),
     { request_id: requestId, profile_id: profile.id }

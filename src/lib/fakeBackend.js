@@ -61,12 +61,12 @@ function especieCoherente(fila) {
 function retratoCoherente(fila) {
   return fila.role !== 'mascota' ||
     ['retrato_piel', 'retrato_pelo', 'retrato_peinado', 'retrato_gafas', 'retrato_tunica',
-     'retrato_barba']
+     'retrato_barba', 'retrato_flequillo']
       .every((c) => (fila[c] ?? null) === null)
 }
 
 const DEFECTOS_TABLA = {
-  profiles: { emoji: '🙂', color: '#a78bfa', xp: 0, coins: 0, active: true, gender: 'neutro', xp_maxima: 0, retrato_piel: null, retrato_pelo: null, retrato_peinado: null, retrato_gafas: null, retrato_tunica: null, retrato_barba: null },
+  profiles: { emoji: '🙂', color: '#a78bfa', xp: 0, coins: 0, active: true, gender: 'neutro', xp_maxima: 0, retrato_piel: null, retrato_pelo: null, retrato_peinado: null, retrato_gafas: null, retrato_tunica: null, retrato_barba: null, retrato_flequillo: null },
   challenges: { emoji: '⭐', xp: 10, coins: 5, frequency: 'diario', active: true, profile_id: null, target_roles: null, skill: null, days: null, campana_id: null },
   completions: { status: 'pendiente', resolved_at: null, praise: null },
   rewards: { emoji: '🎁', cost: 50, active: true, tier: 2 },

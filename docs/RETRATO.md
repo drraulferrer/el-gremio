@@ -1,6 +1,6 @@
 # El retrato del gremialista
 
-Estado: **en producción desde el 24-ago-2026**. Migraciones 035 a 038, todas ejecutadas.
+Estado: **en producción desde el 24-ago-2026**. Migraciones 035 a 039.
 
 Un perfil deja de ser un emoji y pasa a ser una figura por capas que gana
 equipo al subir de nivel. El emoji no desaparece: sigue siendo el respaldo
@@ -131,11 +131,16 @@ sujeta un CHECK, `profiles_retrato_solo_personas`.
   suyo. No es un fallo, es el estado inicial.
 - El arco del aro hace comparables a los miembros en el picker. Se aceptó
   a sabiendas (24-ago-2026): la `Gema` ya enseñaba el nivel ahí al lado.
-- Hay ocho peinados, ocho pieles, ocho colores de pelo, cinco barbas,
-  gafas y siete túnicas. Añadir una pieza **solo necesita migración si
+- Hay ocho peinados, tres flequillos, ocho pieles, ocho colores de pelo,
+  siete barbas, gafas y siete túnicas. Añadir una pieza **solo necesita migración si
   necesita columna**: desde la 037 el CHECK es de forma y el catálogo vive
   en `src/lib/retratos.js`.
-- La barba va del color del pelo. No lleva columna propia a propósito.
+- La barba va del color del pelo. No lleva columna propia a propósito, y
+  por eso el selector de color sigue apareciendo aunque la cabeza vaya sin
+  pelo: `usaColorDePelo()` decide cuándo un mando pinta algo.
+- El flequillo es un eje aparte del peinado (`admiteFlequillo()` dice
+  dónde tiene sentido). Meterlo dentro de la lista de peinados la habría
+  triplicado.
 - Nadie ha probado todavía combinaciones extremas con datos reales. La que
   peor se portó en pruebas fue melena larga + barba larga del mismo tono
   sobre piel muy oscura: con el borde de la barba recto salía cara de

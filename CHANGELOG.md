@@ -18,6 +18,29 @@ verdad duele en esta app: que el esquema y el cliente dejen de encajar.
 
 ---
 
+## 2.28.0 · 24 de agosto de 2026
+
+Cuatro cosas del retrato, las cuatro salidas de usarlo.
+
+**Barba y bigote juntos** son ahora una opción propia —«Barba y bigote» y
+«Larga y bigote»— y no un segundo mando al lado de la barba: son dos
+decisiones para una sola cosa que se mira entera.
+
+**La barba larga salía hueca.** Eran dos curvas encaradas y lo que se
+dibujaba era el espacio ENTRE ellas: una barba con el centro vacío. Ahora
+es una forma maciza.
+
+**El color de pelo desaparecía al marcar «sin pelo»,** y la barba va de
+ese color: había que ponerse un peinado, elegir el color y volver a
+quitárselo. Ahora se ofrece mientras haya barba que teñir, y se llama
+«Color de la barba» cuando no hay pelo.
+
+**Flequillo**: recto, cortina o sin flequillo. Es un eje aparte y no un
+peinado más, porque «con flequillo o sin él» vale para casi todos los
+cortes y meterlo dentro habría triplicado la lista para decir lo mismo.
+No se ofrece en el rapado ni sin pelo: ahí no hay nada que peinar.
+Migración 039.
+
 ## 2.27.0 · 24 de agosto de 2026
 
 **Barbas.** Bigote, perilla, barba corta y barba larga, del color del pelo

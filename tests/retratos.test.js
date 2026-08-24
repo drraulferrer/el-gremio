@@ -2,7 +2,8 @@ import { describe, it, expect } from 'vitest'
 import {
   FASES, NIVEL_TOPE, PIELES, PELOS, PEINADOS,
   faseDeNivel, faseDePerfil, piezasDe, hexDe, llevaFigura,
-  PALETA_RETRATO, contraste, GAFAS, TUNICAS, BARBAS, faseSiguiente, hayFaseNueva, DIAS_CERCA
+  PALETA_RETRATO, contraste, GAFAS, TUNICAS, BARBAS, FLEQUILLOS,
+  admiteFlequillo, usaColorDePelo, faseSiguiente, hayFaseNueva, DIAS_CERCA
 } from '../src/lib/retratos'
 import { plantillaCompleta, marcasDe, flex } from '../src/lib/genero'
 
@@ -128,14 +129,15 @@ describe('las piezas', () => {
     expect(p.peinado).toBe('corto')
   })
 
-  it('y una que sí está se respeta, las seis', () => {
+  it('y una que sí está se respeta, las siete', () => {
     const p = piezasDe({
       retrato_piel: 'oscura', retrato_pelo: 'rubio', retrato_peinado: 'rizado',
-      retrato_gafas: 'redondas', retrato_tunica: 'musgo', retrato_barba: 'perilla'
+      retrato_gafas: 'redondas', retrato_tunica: 'musgo', retrato_barba: 'perilla',
+      retrato_flequillo: 'cortina'
     })
     expect(p).toEqual({
       piel: 'oscura', pelo: 'rubio', peinado: 'rizado',
-      gafas: 'redondas', tunica: 'musgo', barba: 'perilla'
+      gafas: 'redondas', tunica: 'musgo', barba: 'perilla', flequillo: 'cortina'
     })
   })
 
@@ -147,6 +149,7 @@ describe('las piezas', () => {
     expect(p.gafas).toBe('ninguna')
     expect(p.tunica).toBe('perfil')
     expect(p.barba).toBe('ninguna')
+    expect(p.flequillo).toBe('recto')
   })
 
   // 'perfil' no es un color: es la regla «usa la del miembro». Si algún
@@ -158,7 +161,7 @@ describe('las piezas', () => {
   })
 
   it('los catálogos no tienen ids repetidos', () => {
-    for (const lista of [PIELES, PELOS, PEINADOS, GAFAS, TUNICAS, BARBAS]) {
+    for (const lista of [PIELES, PELOS, PEINADOS, GAFAS, TUNICAS, BARBAS, FLEQUILLOS]) {
       const ids = lista.map((x) => x.id)
       expect(new Set(ids).size).toBe(ids.length)
     }
@@ -282,5 +285,47 @@ describe('el aviso de fase nueva', () => {
 
   it('un salto grande lo dispara una sola vez', () => {
     expect(hayFaseNueva(1, 20)).toBe(true)
+  })
+})
+
+// ------------------------------------------------------------------
+// Los mandos que aparecen y desaparecen.
+//
+// Fijan dos quejas concretas de uso: el color de pelo se escondía al
+// marcar «sin pelo», y la barba va de ese color, así que había que
+// ponerse un peinado, elegir el color y volver a quitárselo.
+// ------------------------------------------------------------------
+describe('qué mandos tienen sentido', () => {
+  it('sin pelo pero con barba, el color de pelo sigue haciendo falta', () => {
+    expect(usaColorDePelo({ peinado: 'calvo', barba: 'corta' })).toBe(true)
+    expect(usaColorDePelo({ peinado: 'calvo', barba: 'bigote' })).toBe(true)
+  })
+
+  it('sin pelo y sin barba, no pinta nada y se retira', () => {
+    expect(usaColorDePelo({ peinado: 'calvo', barba: 'ninguna' })).toBe(false)
+  })
+
+  it('con pelo siempre hace falta, haya barba o no', () => {
+    expect(usaColorDePelo({ peinado: 'largo', barba: 'ninguna' })).toBe(true)
+  })
+
+  it('el flequillo no se ofrece donde no hay nada que peinar', () => {
+    expect(admiteFlequillo('calvo')).toBe(false)
+    expect(admiteFlequillo('rapado')).toBe(false)
+    for (const p of ['corto', 'largo', 'rizado', 'coleta', 'mono', 'trenzas']) {
+      expect(admiteFlequillo(p), p).toBe(true)
+    }
+  })
+})
+
+describe('las barbas con bigote', () => {
+  it('están en el catálogo como opción propia, no como segundo mando', () => {
+    const ids = BARBAS.map((b) => b.id)
+    expect(ids).toContain('cortabigote')
+    expect(ids).toContain('largabigote')
+  })
+
+  it('todas tienen nombre legible', () => {
+    for (const b of BARBAS) expect(b.nombre.length).toBeGreaterThan(3)
   })
 })

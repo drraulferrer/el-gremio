@@ -73,7 +73,7 @@ modo peque, la capa de producción y la gestión de miembros.
 | Supabase | proyecto `chfbrawsoulfiywiqhpe`, Postgres 17.6, región EU |
 | Edge Function | `notificar`, versión 5, `verify_jwt` en false |
 | Versión publicada | ver `npm run health` (lee `version.json`, que ahora se emite en el build) |
-| Tests | 1.102, en 62 ficheros, todos en verde (24-ago). Bajaron al retirar `imports.test.js`, que el linter cubre mejor |
+| Tests | 1.108, en 62 ficheros, todos en verde (24-ago). Bajaron al retirar `imports.test.js`, que el linter cubre mejor |
 
 Comprobar que sigue vivo:
 
@@ -4188,3 +4188,29 @@ expresiones regulares a media regla, y ahora hay la regla entera.
 Ejecutada y desplegado. Seis columnas de retrato, siete CHECK, y el de
 mascotas comprobado contra la base: cubre las seis, `retrato_barba`
 incluida.
+
+## 7ar. Cuatro arreglos del retrato al usarlo (24 de agosto) · 2.28.0 · **MIGRACIÓN 039 SIN EJECUTAR**
+
+Los cuatro salieron de la familia usándolo, no de mirar el código:
+
+1. **Barba y bigote juntos** como opción propia, no como segundo mando.
+2. **La barba larga salía hueca**: eran dos curvas encaradas y se dibujaba
+   el espacio entre ellas. Ahora es una forma maciza.
+3. **El color de pelo desaparecía al marcar «sin pelo»** y la barba va de
+   ese color: había que ponerse un peinado, elegir color y quitárselo.
+   `usaColorDePelo()` decide ahora cuándo un mando pinta algo, y la
+   etiqueta pasa a «Color de la barba».
+4. **Flequillo**: recto, cortina o sin flequillo, como EJE APARTE del
+   peinado. Dentro de la lista de peinados la habría triplicado —largo,
+   largo con cortina, largo despejado— para decir lo mismo. Migración 039.
+
+**Pendiente**: ejecutar `migracion-039-flequillo.sql` y desplegar.
+
+### La lección, que ya va repetida
+
+Ninguno de estos cuatro se veía leyendo el código, y dos son de forma:
+una barba hueca y un mando que se esconde cuando aún hace falta. El
+retrato lleva siete piezas y cada una nueva multiplica las combinaciones;
+**la única prueba que vale es repartir combinaciones raras entre los
+perfiles de la demo y mirarlas juntas**. Así salieron la cara de antifaz,
+la barba hueca y el flequillo ras.

@@ -125,8 +125,45 @@ export const BARBAS = [
   { id: 'bigote', nombre: 'Bigote' },
   { id: 'perilla', nombre: 'Perilla' },
   { id: 'corta', nombre: 'Barba corta' },
-  { id: 'larga', nombre: 'Barba larga' }
+  // Barba y bigote juntos son una opción propia y no un segundo mando.
+  // Podría haber sido una casilla «¿con bigote?» al lado de la barba,
+  // pero eso son dos decisiones para una sola cosa que se mira entera.
+  { id: 'cortabigote', nombre: 'Barba y bigote' },
+  { id: 'larga', nombre: 'Barba larga' },
+  { id: 'largabigote', nombre: 'Larga y bigote' }
 ]
+
+/**
+ * Flequillo. Eje aparte y no un peinado más: «con flequillo o sin él» es
+ * una pregunta que vale para casi todos los cortes, y meterla dentro de
+ * la lista de peinados la habría triplicado —largo, largo con cortina,
+ * largo despejado…— para decir lo mismo.
+ *
+ * No aplica al rapado ni a la cabeza sin pelo: ahí no hay flequillo que
+ * peinar, y ofrecerlo sería un mando que no hace nada.
+ */
+export const FLEQUILLOS = [
+  { id: 'recto', nombre: 'Recto' },
+  { id: 'cortina', nombre: 'Cortina' },
+  { id: 'despejado', nombre: 'Sin flequillo' }
+]
+
+/** ¿Este peinado admite flequillo? */
+export function admiteFlequillo(peinado) {
+  return peinado !== 'calvo' && peinado !== 'rapado'
+}
+
+/**
+ * ¿Hace falta ofrecer el color de pelo?
+ *
+ * Sí aunque la cabeza vaya sin pelo, si hay barba: la barba va del color
+ * del pelo, y esconder el color al marcar «sin pelo» obligaba a ponerse
+ * un peinado, elegir color y volver a quitárselo. El mando no sobra
+ * cuando el dato sigue pintando algo.
+ */
+export function usaColorDePelo(piezas) {
+  return piezas.peinado !== 'calvo' || piezas.barba !== 'ninguna'
+}
 
 /**
  * Color de la túnica, separado del color del miembro.
@@ -148,7 +185,7 @@ export const TUNICAS = [
   { id: 'ciruela', hex: '#7d5f9c' }
 ]
 
-const POR_DEFECTO = { piel: 'media', pelo: 'negro', peinado: 'corto', gafas: 'ninguna', tunica: 'perfil', barba: 'ninguna' }
+const POR_DEFECTO = { piel: 'media', pelo: 'negro', peinado: 'corto', gafas: 'ninguna', tunica: 'perfil', barba: 'ninguna', flequillo: 'recto' }
 
 /** XP acumulada que exige un nivel. Misma curva que supabase.js. */
 function xpDeNivel(nivel) {
@@ -255,7 +292,8 @@ export function piezasDe(perfil) {
     peinado: enCatalogo(PEINADOS, perfil?.retrato_peinado, POR_DEFECTO.peinado),
     gafas: enCatalogo(GAFAS, perfil?.retrato_gafas, POR_DEFECTO.gafas),
     tunica: enCatalogo(TUNICAS, perfil?.retrato_tunica, POR_DEFECTO.tunica),
-    barba: enCatalogo(BARBAS, perfil?.retrato_barba, POR_DEFECTO.barba)
+    barba: enCatalogo(BARBAS, perfil?.retrato_barba, POR_DEFECTO.barba),
+    flequillo: enCatalogo(FLEQUILLOS, perfil?.retrato_flequillo, POR_DEFECTO.flequillo)
   }
 }
 

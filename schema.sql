@@ -111,6 +111,9 @@ create table if not exists public.profiles (
   retrato_tunica text check (retrato_tunica is null or retrato_tunica ~ '^[a-z]{2,24}$'),
   -- Del color del pelo: no lleva columna de color propia a propósito.
   retrato_barba text check (retrato_barba is null or retrato_barba ~ '^[a-z]{2,24}$'),
+  -- Eje aparte del peinado: «con flequillo o sin él» vale para casi todos
+  -- los cortes, y meterlo dentro los habría triplicado.
+  retrato_flequillo text check (retrato_flequillo is null or retrato_flequillo ~ '^[a-z]{2,24}$'),
   -- La XP más alta alcanzada. La FASE del retrato se calcula contra esto
   -- y nunca contra `xp`: deshacer devuelve la XP, y si el personaje se
   -- desvistiera al deshacer, deshacer se sentiría como un castigo y la
@@ -141,6 +144,7 @@ create table if not exists public.profiles (
       when role = 'mascota'
         then retrato_piel is null and retrato_pelo is null and retrato_peinado is null
          and retrato_gafas is null and retrato_tunica is null and retrato_barba is null
+         and retrato_flequillo is null
       else true
     end
   )

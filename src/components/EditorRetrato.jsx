@@ -1,5 +1,8 @@
 import Retrato from './Retrato'
-import { PIELES, PELOS, PEINADOS, GAFAS, TUNICAS, BARBAS, piezasDe, faseDePerfil } from '../lib/retratos'
+import {
+  PIELES, PELOS, PEINADOS, GAFAS, TUNICAS, BARBAS, FLEQUILLOS,
+  piezasDe, faseDePerfil, admiteFlequillo, usaColorDePelo
+} from '../lib/retratos'
 import { flex } from '../lib/genero'
 
 // ------------------------------------------------------------------
@@ -47,11 +50,14 @@ export default function EditorRetrato({ perfil, onCambiar, genero = 'neutro', vi
         onElegir={(id) => onCambiar({ retrato_piel: id })}
       />
 
-      {/* Sin pelo, el color de pelo no pinta nada: ofrecerlo sería un
-          mando que no hace nada, que es peor que no tenerlo. */}
-      {piezas.peinado !== 'calvo' && (
+      {/* El color de pelo también manda en la BARBA, así que se ofrece
+          aunque la cabeza vaya sin pelo mientras haya barba que teñir.
+          Esconderlo al marcar «sin pelo» obligaba a ponerse un peinado,
+          elegir el color y volver a quitárselo. Solo desaparece cuando de
+          verdad no pinta nada. */}
+      {usaColorDePelo(piezas) && (
         <Muestras
-          titulo="Pelo"
+          titulo={piezas.peinado === 'calvo' ? 'Color de la barba' : 'Pelo'}
           lista={PELOS}
           valor={piezas.pelo}
           onElegir={(id) => onCambiar({ retrato_pelo: id })}
@@ -64,6 +70,15 @@ export default function EditorRetrato({ perfil, onCambiar, genero = 'neutro', vi
         valor={piezas.peinado}
         onElegir={(id) => onCambiar({ retrato_peinado: id })}
       />
+
+      {admiteFlequillo(piezas.peinado) && (
+        <Pastillas
+          titulo="Flequillo"
+          lista={FLEQUILLOS}
+          valor={piezas.flequillo}
+          onElegir={(id) => onCambiar({ retrato_flequillo: id })}
+        />
+      )}
 
       <Pastillas
         titulo="Barba"
