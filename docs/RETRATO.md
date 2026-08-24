@@ -1,6 +1,6 @@
 # El retrato del gremialista
 
-Estado: **en producción desde el 24-ago-2026**. Migraciones 035 a 039.
+Estado: **en producción desde el 24-ago-2026**. Migraciones 035 a 039, todas ejecutadas.
 
 Un perfil deja de ser un emoji y pasa a ser una figura por capas que gana
 equipo al subir de nivel. El emoji no desaparece: sigue siendo el respaldo

@@ -4189,7 +4189,7 @@ Ejecutada y desplegado. Seis columnas de retrato, siete CHECK, y el de
 mascotas comprobado contra la base: cubre las seis, `retrato_barba`
 incluida.
 
-## 7ar. Cuatro arreglos del retrato al usarlo (24 de agosto) · 2.28.0 · **MIGRACIÓN 039 SIN EJECUTAR**
+## 7ar. Cuatro arreglos del retrato al usarlo (24 de agosto) · 2.28.0 · MIGRACIÓN 039 EJECUTADA
 
 Los cuatro salieron de la familia usándolo, no de mirar el código:
 
@@ -4204,7 +4204,8 @@ Los cuatro salieron de la familia usándolo, no de mirar el código:
    peinado. Dentro de la lista de peinados la habría triplicado —largo,
    largo con cortina, largo despejado— para decir lo mismo. Migración 039.
 
-**Pendiente**: ejecutar `migracion-039-flequillo.sql` y desplegar.
+Ejecutada y desplegado. Siete columnas de retrato, ocho CHECK, y el de
+mascotas comprobado contra la base: cubre las siete.
 
 ### La lección, que ya va repetida
 
