@@ -73,7 +73,7 @@ modo peque, la capa de producción y la gestión de miembros.
 | Supabase | proyecto `chfbrawsoulfiywiqhpe`, Postgres 17.6, región EU |
 | Edge Function | `notificar`, versión 5, `verify_jwt` en false |
 | Versión publicada | ver `npm run health` (lee `version.json`, que ahora se emite en el build) |
-| Tests | 1.110, en 63 ficheros, todos en verde (24-ago) |
+| Tests | 1.120, en 63 ficheros, todos en verde (24-ago) |
 
 Comprobar que sigue vivo:
 
@@ -4076,3 +4076,34 @@ también lleva la 035: los defectos de `profiles`, el CHECK
 aquí el único punto equivalente es la escritura. Si estuviera en el
 update, deshacer bajaría la marca en demo y no en producción, y el
 personaje se desvestiría solo en el sitio donde se prueba.
+
+## 7ao. Lo que el retrato traía roto (24 de agosto) · 2.25.0 · MIGRACIÓN 036 EJECUTADA
+
+Tres arreglos sobre la 2.24.0, los tres encontrados usándola.
+
+**El retrato no se guardaba.** El `update` de un miembro lleva lista
+EXPLÍCITA de columnas, y al añadir las tres del retrato en la 035 nadie
+las metió ahí. El editor las cambiaba, Supabase devolvía éxito y la
+pantalla decía «Guardado». Un fallo mudo: no hay error que leer, y solo se
+descubre volviendo a abrir la ficha.
+
+La fila se arma ahora en `filaDeMiembro()`, en `lib/miembros.js`, fuera
+del formulario y con un test que comprueba que lleva todas las columnas
+que el editor puede tocar. **Si se añade una pieza al retrato, hay que
+añadirla ahí**; el test avisa, pero conviene saberlo antes.
+
+**«Sin pelo».** Peinado nuevo, migración 036 (solo ensancha el CHECK, no
+rompe nada). Con él elegido, el selector de color de pelo desaparece.
+
+**El arco de fase no se veía en los perfiles cálidos**, y no era cosa del
+naranja: el oro no contrasta con NINGÚN color de la paleta —1,04 en el
+teal, 1,49 en el coral, 1,29 en el amarillo—. Parecía legible porque el
+fondo oscuro de alrededor hacía el trabajo, y saltó donde peor se
+disimulaba. Ahora el arco lleva un canal oscuro debajo (contraste 9,08) y
+el aro de base va apagado, porque es lo que aún no se ha conseguido.
+
+Cambiar el oro por otro color no era opción: el dorado reconoce, no
+decora. **La lección no es el canal, es que el contraste se miraba a ojo**
+y por eso el fallo llegó a producción. Las cifras viven ahora en
+`PALETA_RETRATO` con tests que las vigilan, incluido uno que deja
+constancia de lo malo que era antes por si alguien quita el canal.
