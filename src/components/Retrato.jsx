@@ -1,5 +1,5 @@
 import { useId } from 'react'
-import { PIELES, PELOS, piezasDe, hexDe, faseDePerfil, llevaFigura, FASES } from '../lib/retratos'
+import { PIELES, PELOS, piezasDe, hexDe, faseDePerfil, llevaFigura, FASES, PALETA_RETRATO } from '../lib/retratos'
 
 // ------------------------------------------------------------------
 // El dibujo del retrato.
@@ -25,10 +25,11 @@ import { PIELES, PELOS, piezasDe, hexDe, faseDePerfil, llevaFigura, FASES } from
 // arrastrar una librería.
 // ------------------------------------------------------------------
 
-const ORO = '#f2b33d'
-const ORO_CLARO = '#ffd77a'
-const ORO_HONDO = '#c9821f'
-const APAGADO = '#5a5a72'
+// Los tonos viven en lib/retratos.js: hay un test que vigila que el oro
+// siga contrastando contra el canal y el canal contra cada color de
+// miembro. Se miraba a ojo y por eso el progreso no se veía en ámbar.
+const { oro: ORO, oroClaro: ORO_CLARO, oroHondo: ORO_HONDO, canal: CANAL, apagado: APAGADO } =
+  PALETA_RETRATO
 
 // Umbral del recorte. 64 px es el primer tamaño donde el cuerpo entero
 // aporta algo; por debajo estorba.
@@ -52,6 +53,7 @@ const claro = (h, f) => mezcla(h, f, 'claro')
 function Pelo({ estilo, color, uid }) {
   // Detrás de la cabeza va el volumen; delante, lo que se recorta al
   // cráneo. Dibujar el pelo entero recortado deja calvas a las melenas.
+  if (estilo === 'calvo') return null
   return (
     <>
       {estilo === 'largo' && (
@@ -83,9 +85,14 @@ function Cara({ piel, pelo, peinado, uid }) {
           <circle cx="50" cy="34" r="20" />
         </clipPath>
       </defs>
-      <g clipPath={`url(#${uid}-h)`}>
-        <rect x="28" y="12" width="44" height={peinado === 'rizado' ? 16 : 14} fill={pelo} />
-      </g>
+      {/* El flequillo se recorta al cráneo. Sin pelo no hay nada que
+          recortar: se salta entero en vez de pintar una franja de altura
+          cero, que en algunos navegadores deja una línea de un píxel. */}
+      {peinado !== 'calvo' && (
+        <g clipPath={`url(#${uid}-h)`}>
+          <rect x="28" y="12" width="44" height={peinado === 'rizado' ? 16 : 14} fill={pelo} />
+        </g>
+      )}
       <circle cx="43" cy="37" r="2.9" fill="#1b1b2e" />
       <circle cx="57" cy="37" r="2.9" fill="#1b1b2e" />
       <path d="M45,45 q5,4.5 10,0" stroke="#1b1b2e" strokeWidth="2" fill="none" strokeLinecap="round" />
@@ -174,18 +181,44 @@ function Equipo({ fase, color, uid }) {
 
 // El aro. Un ARCO proporcional y no muescas: con nueve fases las muescas
 // no caben, y a 30 px una muesca es una mota. El arco se lee desde unos
-// 48 px y cuando no se lee no molesta —parece un reflejo—, que para este
-// tamaño importa más que ser preciso.
+// 48 px y cuando no se lee no molesta —parece un reflejo—.
+//
+// EL CANAL OSCURO NO ES ADORNO. El oro sobre el color del miembro no
+// contrasta con NINGUNO de la paleta: medido, el ratio va de 1,04 (teal)
+// a 1,49 (coral), y 1,29 en el ámbar, que es donde se notó. Parecía
+// legible en las capturas por el fondo de alrededor, no por el aro.
+//
+// Oscurecer el aro no bastaba: el ámbar se quedaba en 2,23, por debajo de
+// lo que se lee de un vistazo a 46 px. Y cambiar el oro por otro color no
+// es opción, porque la hoja de estilo dice que **el dorado no decora,
+// reconoce**: el progreso tiene que ir en oro o no significa lo mismo.
+//
+// La salida es dar al arco un canal oscuro debajo, un poco más ancho, de
+// modo que el oro lleve siempre su propio borde. Contra el canal el
+// contraste es alto sea cual sea el color del miembro, y el aro conserva
+// su tono a plena saturación para seguir identificando.
 function Aro({ color, fase }) {
   const R = 27
   const vuelta = 2 * Math.PI * R
   const arco = (vuelta * fase) / FASES.length
+  const trazos = `${arco.toFixed(1)} 999`
   return (
     <>
-      <circle cx="50" cy="34" r={R} fill="none" stroke={color} strokeWidth="3" />
+      {/* El aro de base va APAGADO, no a plena saturación. Es lo que
+          todavía no se ha conseguido, y así la diferencia entre hecho y
+          por hacer no depende del tono: el tramo ganado brilla y el resto
+          queda hundido. Sin esto, un miembro ámbar o amarillo llevaba oro
+          sobre oro y el progreso solo se adivinaba por el borde. El tono
+          se conserva —solo baja el brillo—, así que sigue identificando. */}
+      <circle cx="50" cy="34" r={R} fill="none" stroke={oscuro(color, 0.34)} strokeWidth="3" />
       <circle
-        cx="50" cy="34" r={R} fill="none" stroke={ORO} strokeWidth="3.4"
-        strokeLinecap="round" strokeDasharray={`${arco.toFixed(1)} 999`}
+        cx="50" cy="34" r={R} fill="none" stroke={CANAL} strokeWidth="5.8"
+        strokeLinecap="round" strokeDasharray={trazos}
+        transform="rotate(-90 50 34)"
+      />
+      <circle
+        cx="50" cy="34" r={R} fill="none" stroke={ORO} strokeWidth="3.2"
+        strokeLinecap="round" strokeDasharray={trazos}
         transform="rotate(-90 50 34)"
       />
     </>

@@ -1,7 +1,7 @@
 # El retrato del gremialista
 
-Estado: **en producción desde el 24-ago-2026** (2.24.0). Migración 035
-ejecutada y trigger verificado contra la base real.
+Estado: **en producción desde el 24-ago-2026** (2.25.0). Migraciones 035
+y 036 ejecutadas y trigger verificado contra la base real.
 
 Un perfil deja de ser un emoji y pasa a ser una figura por capas que gana
 equipo al subir de nivel. El emoji no desaparece: sigue siendo el respaldo
@@ -83,6 +83,14 @@ se probó a 72 px con cuerpo y el farol salía como una caja gris suelta,
 además de perderse el aro. Las listas piden `vista="cabeza"` aunque
 quepan; el equipo se mira en la ficha.
 
+**El arco lleva canal oscuro y el aro va apagado.** El oro sobre el color
+del miembro no contrasta con ninguno de la paleta: de 1,04 en el teal a
+1,49 en el coral. En un perfil ámbar el progreso era invisible, y nadie lo
+había medido porque se miraba a ojo. El canal le da al oro su propio borde
+(9,08 de contraste) y apagar el aro hace que la diferencia entre hecho y
+por hacer no dependa del tono. Cambiar el oro no era opción: reconoce, no
+decora. Las cifras están en `PALETA_RETRATO` y hay tests que las vigilan.
+
 **El disco de fondo en el tablero.** Un miembro de pelo y piel oscuros se
 disolvía en el índigo a 30 px y quedaba el aro flotando sin cara dentro.
 En pergamino no hace falta.
@@ -102,8 +110,8 @@ sujeta un CHECK, `profiles_retrato_solo_personas`.
   suyo. No es un fallo, es el estado inicial.
 - El arco del aro hace comparables a los miembros en el picker. Se aceptó
   a sabiendas (24-ago-2026): la `Gema` ya enseñaba el nivel ahí al lado.
-- Solo hay tres peinados. Añadir uno es una pieza SVG y una migración que
-  amplíe el CHECK.
+- Hay cuatro peinados: corto, largo, rizado y sin pelo. Añadir otro es una
+  pieza SVG y una migración que amplíe el CHECK, como la 036.
 
 El prototipo con el que se decidió todo esto está en
 [`prototipos/retrato.html`](prototipos/retrato.html): se abre en cualquier

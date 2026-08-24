@@ -6,7 +6,8 @@ import {
   validarMiembro,
   puedeRetirar,
   loQueSePierde,
-  MAX_PERFILES
+  MAX_PERFILES,
+  filaDeMiembro
 } from '../src/lib/miembros'
 
 const perfil = (id, name, role, active = true) => ({ id, name, role, active, xp: 0, coins: 0 })
@@ -109,5 +110,68 @@ describe('qué se pierde al borrar', () => {
 
   it('no revienta sin datos', () => {
     expect(loQueSePierde(null, null)).toEqual({ misiones: 0, canjes: 0, insignias: 0, xp: 0 })
+  })
+})
+
+// ------------------------------------------------------------------
+// La fila que se escribe al guardar.
+//
+// Estos tests existen por un fallo concreto: la 035 añadió tres columnas
+// de retrato, el editor las cambiaba, y la fila del `update` —que lleva
+// lista EXPLÍCITA de columnas— no las incluía. Supabase devolvía éxito,
+// la pantalla decía «Guardado» y no se guardaba nada. Sin error que leer.
+//
+// Lo que defienden: que la fila lleve todo lo que el editor puede tocar.
+// ------------------------------------------------------------------
+describe('la fila que se guarda', () => {
+  const persona = {
+    id: 'p1', name: '  Sam  ', role: 'junior', emoji: '🦊', color: '#4fc4b5',
+    gender: 'femenino', species: null,
+    retrato_piel: 'oscura', retrato_pelo: 'rubio', retrato_peinado: 'rizado'
+  }
+
+  it('lleva las piezas del retrato, que es lo que se perdía', () => {
+    const fila = filaDeMiembro(persona, 'fam')
+    expect(fila.retrato_piel).toBe('oscura')
+    expect(fila.retrato_pelo).toBe('rubio')
+    expect(fila.retrato_peinado).toBe('rizado')
+  })
+
+  // El guardián de verdad: si mañana se añade una pieza al retrato y no se
+  // añade a filaDeMiembro, esto cae. Es el test que no existía.
+  it('no se deja ninguna columna que el editor pueda tocar', () => {
+    const fila = filaDeMiembro(persona, 'fam')
+    for (const columna of [
+      'family_id', 'name', 'role', 'emoji', 'color', 'gender', 'species',
+      'retrato_piel', 'retrato_pelo', 'retrato_peinado'
+    ]) {
+      expect(Object.keys(fila), `falta ${columna}`).toContain(columna)
+    }
+  })
+
+  it('una mascota va sin retrato, como exige el CHECK', () => {
+    const fila = filaDeMiembro(
+      { ...persona, role: 'mascota', species: 'perro' }, 'fam')
+    expect(fila.retrato_piel).toBeNull()
+    expect(fila.retrato_pelo).toBeNull()
+    expect(fila.retrato_peinado).toBeNull()
+    expect(fila.species).toBe('perro')
+  })
+
+  it('al dejar de ser mascota la especie se borra con null, no con undefined', () => {
+    const fila = filaDeMiembro({ ...persona, role: 'junior', species: 'perro' }, 'fam')
+    expect(fila.species).toBeNull()
+    expect('species' in fila).toBe(true)
+  })
+
+  it('sin piezas elegidas van null, no undefined: null viaja y borra', () => {
+    const fila = filaDeMiembro({ ...persona, retrato_piel: undefined }, 'fam')
+    expect(fila.retrato_piel).toBeNull()
+  })
+
+  it('el nombre se recorta y la familia se cuelga', () => {
+    const fila = filaDeMiembro(persona, 'fam-7')
+    expect(fila.name).toBe('Sam')
+    expect(fila.family_id).toBe('fam-7')
   })
 })

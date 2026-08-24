@@ -117,3 +117,38 @@ export function loQueSePierde(perfil, datos) {
     xp: misiones.filter((c) => c.status === 'aprobado').reduce((s, c) => s + c.xp, 0)
   }
 }
+
+/**
+ * La fila que se escribe en `profiles` al guardar un miembro.
+ *
+ * Esto vivía dentro del formulario y de ahí salió un fallo caro: la lista
+ * de columnas es EXPLÍCITA, así que cuando el retrato añadió tres
+ * columnas nuevas (035) nadie las metió aquí. El editor las cambiaba, el
+ * `update` las descartaba, Supabase devolvía éxito y la pantalla decía
+ * «Guardado». Un fallo mudo, que es el peor: no hay error que leer.
+ *
+ * Está fuera del componente para que un test pueda comprobar que la fila
+ * lleva TODO lo que el editor puede tocar. Si mañana se añade una pieza
+ * más y no se añade aquí, el test cae antes que la familia.
+ *
+ * Los null son explícitos y no `undefined`: `undefined` no viaja en el
+ * JSON, así que al dejar de ser mascota la especie se quedaría puesta.
+ */
+export function filaDeMiembro(m, familyId) {
+  const esMascota = m.role === 'mascota'
+  return {
+    family_id: familyId,
+    name: String(m.name || '').trim(),
+    role: m.role,
+    emoji: m.emoji,
+    color: m.color,
+    gender: m.gender || 'neutro',
+    species: esMascota ? m.species : null,
+    // Una mascota lleva medallón de emoji y no tiene retrato: la base lo
+    // exige (`profiles_retrato_solo_personas`) y aquí se cumple en vez de
+    // esperar a que Postgres lo rechace con un error que no dice nada.
+    retrato_piel: esMascota ? null : m.retrato_piel ?? null,
+    retrato_pelo: esMascota ? null : m.retrato_pelo ?? null,
+    retrato_peinado: esMascota ? null : m.retrato_peinado ?? null
+  }
+}

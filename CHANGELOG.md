@@ -18,6 +18,34 @@ verdad duele en esta app: que el esquema y el cliente dejen de encajar.
 
 ---
 
+## 2.25.0 · 24 de agosto de 2026
+
+**Arregla que el retrato no se guardaba.** El `update` de un miembro lleva
+lista explícita de columnas y las tres del retrato no estaban en ella: el
+editor las cambiaba, Supabase devolvía éxito y no se guardaba nada. Un
+fallo mudo, sin error que leer. La fila se arma ahora en
+`lib/miembros.js` con `filaDeMiembro()`, fuera del formulario, y hay un
+test que comprueba que lleva todas las columnas que el editor puede tocar.
+
+**«Sin pelo» como peinado.** Cuando está elegido, el selector de color de
+pelo desaparece: un mando que no hace nada es peor que no tenerlo.
+Migración 036, que solo ensancha un CHECK.
+
+**El progreso del arco no se veía en los perfiles cálidos.** Y resultó no
+ser cosa del naranja: medido, el oro no contrasta con **ningún** color de
+la paleta —de 1,04 en el teal a 1,49 en el coral—. Colaba porque el fondo
+oscuro de alrededor hacía el trabajo. Dos cambios:
+
+- el arco lleva un **canal oscuro** debajo, que le da su propio borde y lo
+  hace legible contra cualquier tono (oro contra canal: 9,08);
+- el aro de base va **apagado**, porque es lo que aún no se ha
+  conseguido: así la diferencia entre hecho y por hacer no depende del
+  tono. El color se conserva, solo baja el brillo, y sigue identificando.
+
+Cambiar el oro por otro color no era opción: el dorado no decora,
+reconoce. Ahora las cifras viven en `PALETA_RETRATO` y hay tests que las
+vigilan, que es lo que faltaba: el contraste se miraba a ojo.
+
 ## 2.24.0 · 24 de agosto de 2026
 
 **El retrato del gremialista.** Un perfil deja de ser un emoji y pasa a

@@ -87,7 +87,10 @@ export const PELOS = [
 export const PEINADOS = [
   { id: 'corto', nombre: 'Corto' },
   { id: 'largo', nombre: 'Largo' },
-  { id: 'rizado', nombre: 'Rizado' }
+  { id: 'rizado', nombre: 'Rizado' },
+  // Sin pelo es un peinado más y no una casilla aparte: así el editor
+  // sigue siendo una sola elección y no una elección con excepción.
+  { id: 'calvo', nombre: 'Sin pelo' }
 ]
 
 const POR_DEFECTO = { piel: 'media', pelo: 'negro', peinado: 'corto' }
@@ -171,4 +174,41 @@ export function hexDe(lista, id) {
  */
 export function llevaFigura(perfil) {
   return perfil?.role !== 'mascota'
+}
+
+// ------------------------------------------------------------------
+// La paleta del retrato, y por qué está aquí y no en el componente.
+//
+// El arco de fase iba en oro sobre el aro del miembro, y el oro no
+// contrasta con NINGÚN color de la paleta: medido, entre 1,04 (teal) y
+// 1,49 (coral). Se veía en las capturas por el fondo de alrededor, no por
+// el aro, y en un miembro ámbar directamente no se veía. Nadie lo había
+// medido nunca porque el contraste se miraba a ojo.
+//
+// Ahora las cifras están aquí y hay un test que las vigila: si alguien
+// cambia un tono, se entera antes que la familia.
+// ------------------------------------------------------------------
+
+export const PALETA_RETRATO = {
+  oro: '#f2b33d',
+  oroClaro: '#ffd77a',
+  oroHondo: '#c9821f',
+  // Canal oscuro bajo el arco: le da al oro su propio borde, así que el
+  // progreso se lee contra cualquier color de miembro. Mismo tono que la
+  // tinta de los ojos, para no meter un color nuevo en la hoja.
+  canal: '#1b1b2e',
+  apagado: '#5a5a72'
+}
+
+/** Contraste WCAG entre dos hex. 1 = idénticos, 21 = negro sobre blanco. */
+export function contraste(a, b) {
+  const canal = (hex, i) => parseInt(String(hex).slice(1 + i * 2, 3 + i * 2), 16)
+  const lineal = (v) => {
+    const c = v / 255
+    return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4)
+  }
+  const luz = (hex) =>
+    0.2126 * lineal(canal(hex, 0)) + 0.7152 * lineal(canal(hex, 1)) + 0.0722 * lineal(canal(hex, 2))
+  const [x, y] = [luz(a), luz(b)]
+  return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05)
 }

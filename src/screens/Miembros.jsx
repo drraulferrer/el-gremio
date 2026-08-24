@@ -4,6 +4,7 @@ import {
   perfilesActivos,
   perfilesRetirados,
   validarMiembro,
+  filaDeMiembro,
   puedeRetirar,
   loQueSePierde,
   MAX_PERFILES,
@@ -58,19 +59,10 @@ export default function Miembros({ family, data, refresh }) {
     }
 
     setOcupado(true)
-    const fila = {
-      family_id: family.id,
-      name: m.name.trim(),
-      role: m.role,
-      emoji: m.emoji,
-      color: m.color,
-      gender: m.gender || 'neutro',
-      // Null explícito y no `undefined`: al dejar de ser mascota hay que
-      // BORRAR la especie en la base, y `undefined` no viaja en el JSON,
-      // así que la fila se quedaría con perro y rol junior. La base lo
-      // rechazaría, pero con un error que no dice nada.
-      species: m.role === 'mascota' ? m.species : null
-    }
+    // La fila se arma en lib/miembros.js para que un test pueda vigilar
+    // que lleva todas las columnas que el editor puede tocar. Se armaba
+    // aquí y por eso el retrato no se guardaba: la lista es explícita.
+    const fila = filaDeMiembro(m, family.id)
 
     // Se necesita el id para colgarle las misiones, así que en el alta se
     // pide la fila de vuelta.
@@ -357,6 +349,10 @@ function FormMiembro({ miembro, ocupado, onGuardar, onClose }) {
             ))}
           </div>
 
+          {/* Sin pelo, el color de pelo no pinta nada: ofrecerlo sería un
+              mando que no hace nada, que es peor que no tenerlo. */}
+          {piezasDe(m).peinado !== 'calvo' && (
+            <>
           <label>Pelo</label>
           <div className="grid-colores">
             {PELOS.map((x) => (
@@ -369,6 +365,8 @@ function FormMiembro({ miembro, ocupado, onGuardar, onClose }) {
               />
             ))}
           </div>
+            </>
+          )}
 
           <label>Peinado</label>
           <div className="grid-habilidades">

@@ -101,7 +101,7 @@ create table if not exists public.profiles (
   retrato_pelo text check (retrato_pelo is null or retrato_pelo in
     ('negro','castano','rubio','pelirrojo','gris','blanco')),
   retrato_peinado text check (retrato_peinado is null or retrato_peinado in
-    ('corto','largo','rizado')),
+    ('corto','largo','rizado','calvo')),
   -- La XP más alta alcanzada. La FASE del retrato se calcula contra esto
   -- y nunca contra `xp`: deshacer devuelve la XP, y si el personaje se
   -- desvistiera al deshacer, deshacer se sentiría como un castigo y la

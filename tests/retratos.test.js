@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import {
   FASES, NIVEL_TOPE, PIELES, PELOS, PEINADOS,
-  faseDeNivel, faseDePerfil, piezasDe, hexDe, llevaFigura
+  faseDeNivel, faseDePerfil, piezasDe, hexDe, llevaFigura,
+  PALETA_RETRATO, contraste
 } from '../src/lib/retratos'
 import { plantillaCompleta, marcasDe, flex } from '../src/lib/genero'
 
@@ -157,5 +158,49 @@ describe('las mascotas', () => {
     for (const role of ['adulto', 'junior', 'peque']) {
       expect(llevaFigura({ role })).toBe(true)
     }
+  })
+})
+
+// ------------------------------------------------------------------
+// El contraste del arco de fase.
+//
+// Estos tests existen por un fallo que llegó a producción: el arco de
+// progreso iba en oro directamente sobre el aro del miembro, y el oro no
+// contrasta con ningún color de la paleta. En un perfil ámbar el progreso
+// era invisible. Nadie lo había medido: se miraba a ojo, y a ojo colaba
+// porque el fondo oscuro de alrededor hacía el trabajo.
+//
+// Cambiar el oro por otro color no era opción: la hoja de estilo dice que
+// el dorado no decora, RECONOCE. La salida fue un canal oscuro bajo el
+// arco. Esto vigila que siga habiendo separación.
+// ------------------------------------------------------------------
+describe('el arco de fase se ve sobre cualquier miembro', () => {
+  const { oro, canal } = PALETA_RETRATO
+
+  it('el oro destaca contra su canal', () => {
+    expect(contraste(oro, canal)).toBeGreaterThan(4.5)
+  })
+
+  it('y el canal destaca contra todo color de miembro, incluidos los cálidos', () => {
+    // Los seis de COLORS más dos cálidos elegidos a mano por la familia,
+    // que son los que destaparon el fallo.
+    const colores = ['#ff6b6b', '#4ecdc4', '#a78bfa', '#ffd166', '#6ee7a0', '#7fb3ff',
+                     '#ff9f43', '#c9a227']
+    for (const c of colores) {
+      expect(contraste(canal, c), `canal vs ${c}`).toBeGreaterThan(3)
+    }
+  })
+
+  // Deja constancia de por qué hizo falta el canal: sin él, esto es lo
+  // que había. Si alguien lo quita "porque se ve bien", que lea esto.
+  it('sin canal no se veía: el oro sobre el color pelado no llega ni a 1,5', () => {
+    for (const c of ['#4ecdc4', '#ffd166', '#ff9f43']) {
+      expect(contraste(oro, c), `oro vs ${c}`).toBeLessThan(1.6)
+    }
+  })
+
+  it('la función de contraste dice lo que debe en los extremos', () => {
+    expect(contraste('#000000', '#ffffff')).toBeCloseTo(21, 0)
+    expect(contraste('#4fc4b5', '#4fc4b5')).toBeCloseTo(1, 5)
   })
 })
