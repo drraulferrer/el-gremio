@@ -4108,13 +4108,16 @@ y por eso el fallo llegó a producción. Las cifras viven ahora en
 `PALETA_RETRATO` con tests que las vigilan, incluido uno que deja
 constancia de lo malo que era antes por si alguien quita el canal.
 
-## 7ap. El retrato, completo (24 de agosto) · 2.26.0 · **MIGRACIÓN 037 SIN EJECUTAR**
+## 7ap. El retrato, completo (24 de agosto) · 2.26.0 · MIGRACIÓN 037 EJECUTADA
 
 Tres agujeros que tenía el retrato al salir, tapados a la vez: no había
 dónde mirarse, nadie avisaba de que habías avanzado, y solo un adulto con
 el PIN podía elegir piezas. Detalle en [`docs/RETRATO.md`](docs/RETRATO.md).
 
-**Pendiente**: ejecutar `migracion-037-retrato-ampliado.sql` y desplegar.
+La **037 está ejecutada** y desplegado el cliente: cinco columnas de
+retrato, seis CHECK y el de forma comprobado contra la base (acepta
+'coleta' y 'castanoclaro', rechaza 'DROP TABLE' y 'x'). Cuatro perfiles
+tenían ya peinado elegido cuando se ejecutó.
 
 ### Lo que conviene no deshacer
 
