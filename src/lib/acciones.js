@@ -560,3 +560,41 @@ export async function guardarRetrato({ profile, piezas }) {
 
   return error ? { ok: false, mensaje } : { ok: true, mensaje: '' }
 }
+
+/**
+ * Cerrar la sesión de la cuenta.
+ *
+ * No existía, y se notaba: lo único que llamaba a `signOut` era el borrado
+ * de la cuenta. Quien quisiera salir —para prestar el móvil, para entrar
+ * con otra cuenta, para dejar de estar dentro en un aparato ajeno— no
+ * tenía manera.
+ *
+ * Cierra la sesión de TODA la casa, porque la cuenta es una sola: no es
+ * «cambiar de perfil», que es otra cosa y está en la barra de abajo. Por
+ * eso vive detrás del PIN y no en el selector de perfiles, donde lo
+ * tendrían a un dedo la junior y la peque.
+ *
+ * También borra el perfil elegido en este aparato. Sin eso, la próxima
+ * persona que entrase con otra cuenta arrancaría con el perfil de la
+ * anterior seleccionado hasta que el selector la corrigiera.
+ */
+export async function cerrarSesion() {
+  const requestId = nuevoRequestId()
+  log.info('sesion.cerrada', { request_id: requestId })
+
+  const { error, mensaje } = await operacion(
+    'sesion.cerrada.error',
+    () => supabase.auth.signOut(),
+    { request_id: requestId }
+  )
+
+  // Se limpia aunque `signOut` falle: si la sesión no se ha podido cerrar
+  // en el servidor, dejar además el perfil apuntado no arregla nada.
+  try {
+    localStorage.removeItem('gremio_profile')
+  } catch {
+    // Modo privado de Safari y poco más. No es motivo para no salir.
+  }
+
+  return error ? { ok: false, mensaje } : { ok: true, mensaje: '' }
+}

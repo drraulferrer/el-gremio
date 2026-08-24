@@ -18,6 +18,34 @@ verdad duele en esta app: que el esquema y el cliente dejen de encajar.
 
 ---
 
+## 2.30.0 · 24 de agosto de 2026
+
+**Cerrar sesión**, que no existía: lo único que llamaba a `signOut` era el
+borrado de la cuenta. Está en Panel → ⚙️ → Datos, detrás del PIN y con dos
+toques. No va en el selector de perfiles a propósito: la cuenta es una
+sola para toda la casa, así que cerrarla echa a todos, y ahí lo tendrían a
+un dedo la junior y la peque. Cambiar de perfil sigue siendo otra cosa.
+
+**Entrar con un enlace por correo**, sin contraseña. Se pide desde la
+pantalla de acceso y llega por el SMTP que ya estaba montado.
+
+Dos decisiones que van dentro:
+
+- Se pide con **`shouldCreateUser: false`**. Por defecto Supabase crea la
+  cuenta si el correo no existe, y aquí eso sería un desastre callado: una
+  letra mal y quien entra se encuentra «Fundad vuestro gremio» con todo
+  vacío. La 017 impide que una cuenta tenga dos gremios, así que tampoco
+  se arreglaría después.
+- Cuando no hay cuenta, el mensaje es **el mismo** que cuando sí la hay.
+  Enseñar la diferencia convertiría la pantalla en un comprobador de qué
+  familias están dadas de alta. Es la regla que ya seguía la recuperación
+  de contraseña.
+
+**Falta pegar una plantilla.** Supabase usa una distinta para el enlace de
+entrada y no está entre las tres que se pegaron en agosto, así que hasta
+que se pegue estos correos salen en inglés. Está escrita y lista en
+`docs/CORREOS.md` §4.
+
 ## 2.29.0 · 24 de agosto de 2026
 
 **El retrato se abre tocando el avatar de la cabecera**, en cualquier

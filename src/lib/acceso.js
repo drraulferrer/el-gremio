@@ -53,6 +53,38 @@ export function resultadoDeRecuperacion({ error } = {}) {
   }
 }
 
+/**
+ * El mismo texto tanto si el correo tiene cuenta como si no. Ver abajo.
+ */
+const ENLACE_ENVIADO =
+  'Si ese correo tiene cuenta, le acaba de llegar un enlace para entrar. Solo sirve una vez.'
+
+/**
+ * Qué ha pasado tras `supabase.auth.signInWithOtp`.
+ *
+ * Dos decisiones viven aquí, y las dos importan:
+ *
+ * 1 · El enlace se pide con `shouldCreateUser: false`. Por defecto
+ *     Supabase CREA la cuenta si el correo no existe, y en esta app eso
+ *     sería un desastre silencioso: una letra mal en el correo y quien
+ *     entra se encuentra «Fundad vuestro gremio» con todo vacío, sin
+ *     entender que está en una cuenta nueva. La 017 impide que una cuenta
+ *     tenga dos gremios, así que tampoco se arregla solo después.
+ *
+ * 2 · Cuando NO hay cuenta, Supabase contesta «Signups not allowed for
+ *     otp». Ese error se traduce al MISMO mensaje que el camino bueno, a
+ *     propósito: enseñarlo convertiría la pantalla en un comprobador de
+ *     qué familias están dadas de alta. Es la misma regla que sigue
+ *     `resultadoDeRecuperacion`, y por el mismo motivo.
+ */
+export function resultadoDeEnlace({ error } = {}) {
+  if (error && /signups? not allowed|otp_disabled|signup_disabled/i.test(String(error.message))) {
+    return { estado: 'enviado', mensaje: ENLACE_ENVIADO }
+  }
+  if (error) return { estado: 'error', mensaje: traducirAcceso(error.message) }
+  return { estado: 'enviado', mensaje: ENLACE_ENVIADO }
+}
+
 /** ¿Vale esta contraseña nueva? Devuelve { ok, mensaje }. */
 export function validarClaveNueva(clave, repetida) {
   if (!clave || clave.length < MIN_CLAVE_NUEVA) {

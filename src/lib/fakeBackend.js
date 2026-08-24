@@ -925,6 +925,17 @@ export function crearClienteDemo() {
         avisarSesion(sesion)
         return { data: { session: sesion }, error: null }
       },
+      // Espejo de `signInWithOtp` con `shouldCreateUser: false`. En demo no
+      // hay correo que mandar, así que se comporta como el caso que
+      // importa probar: contesta sin error y NO abre sesión. Sin esto, la
+      // pantalla de acceso reventaría justo en el modo nuevo, que es
+      // donde hace falta poder trastear.
+      signInWithOtp: async ({ email, options }) => {
+        if (options && options.shouldCreateUser === false && !email) {
+          return { data: null, error: { message: 'Signups not allowed for otp' } }
+        }
+        return { data: { user: null, session: null }, error: null }
+      },
       signOut: async () => {
         localStorage.removeItem(CLAVE_SESION)
         avisarSesion(null)

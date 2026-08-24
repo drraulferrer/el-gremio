@@ -162,6 +162,55 @@ dispara es trabajo que hay que mantener a cambio de nada.
 
 ---
 
+## 4. Magic Link
+
+Es la plantilla del **enlace de entrada sin contraseña** (2.30.0). Supabase
+la tiene aparte de las otras tres, así que **hasta que se pegue, estos
+correos salen con el texto por defecto en inglés** aunque el remitente ya
+sea el propio.
+
+Va en Authentication → Emails → **Magic Link**.
+
+**Subject:** `Tu entrada al gremio`
+
+```html
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f2ec;padding:28px 12px;">
+  <tr><td align="center">
+    <table width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;background:#ffffff;border-radius:18px;border-top:5px solid #f5b841;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+      <tr><td style="padding:32px 32px 8px;">
+        <h1 style="margin:0;font-size:24px;color:#1e2140;">Pasa dentro</h1>
+        <p style="margin:16px 0 0;font-size:16px;line-height:1.55;color:#3d4275;">
+          Has pedido entrar en tu gremio sin escribir la contraseña. Este enlace
+          te abre la sesión en el aparato desde el que lo abras.
+        </p>
+      </td></tr>
+      <tr><td align="center" style="padding:24px 32px 8px;">
+        <a href="{{ .ConfirmationURL }}" style="display:inline-block;background:#f5b841;color:#1e2140;font-size:17px;font-weight:700;text-decoration:none;padding:14px 30px;border-radius:12px;">
+          Entrar en el gremio
+        </a>
+      </td></tr>
+      <tr><td style="padding:8px 32px 28px;">
+        <p style="margin:16px 0 0;font-size:13px;line-height:1.5;color:#6b70a0;">
+          Si el botón no funciona, copia esta dirección en el navegador:<br>
+          <span style="color:#3d4275;word-break:break-all;">{{ .ConfirmationURL }}</span>
+        </p>
+        <p style="margin:20px 0 0;font-size:13px;line-height:1.5;color:#6b70a0;">
+          El enlace caduca pronto y solo sirve una vez. Si no lo has pedido tú,
+          ignora este correo: nadie ha entrado y tu contraseña sigue valiendo.
+        </p>
+      </td></tr>
+    </table>
+  </td></tr>
+</table>
+```
+
+**Ojo con una diferencia frente a las otras tres**: este correo **abre
+sesión**, no confirma nada. Quien lo reciba sin haberlo pedido no tiene que
+hacer nada, pero conviene que el texto lo diga —y lo dice— porque un
+enlace que entra solo asusta más que uno que confirma.
+
+---
+
 ## El SMTP: qué va en cada casilla
 
 **Esto cambió el 16-ago y conviene saber por qué.** El plan era Resend

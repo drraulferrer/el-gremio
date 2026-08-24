@@ -73,7 +73,7 @@ modo peque, la capa de producción y la gestión de miembros.
 | Supabase | proyecto `chfbrawsoulfiywiqhpe`, Postgres 17.6, región EU |
 | Edge Function | `notificar`, versión 5, `verify_jwt` en false |
 | Versión publicada | ver `npm run health` (lee `version.json`, que ahora se emite en el build) |
-| Tests | 1.111, en 62 ficheros, todos en verde (24-ago). Bajaron al retirar `imports.test.js`, que el linter cubre mejor |
+| Tests | 1.116, en 62 ficheros, todos en verde (24-ago). Bajaron al retirar `imports.test.js`, que el linter cubre mejor |
 
 Comprobar que sigue vivo:
 
@@ -4266,3 +4266,43 @@ ser cincuenta seguidas. No molesta —la figura se mueve al instante con una
 copia local y la escritura va detrás— pero si algún día el log de Supabase
 se ve ruidoso, el sitio donde poner un retardo es `cambiarRetrato` en
 `FichaPeque.jsx`.
+
+## 7au. Cerrar sesión y entrar por enlace (24 de agosto) · 2.30.0 · SIN MIGRACIÓN
+
+**No había logout.** El único `signOut` del código estaba dentro del
+borrado de cuenta. Ahora hay uno en Panel → ⚙️ → Datos: detrás del PIN,
+con dos toques, y **no en el selector de perfiles** —la cuenta es una sola
+y cerrarla echa a toda la casa; ahí lo tendrían a un dedo la junior y la
+peque—.
+
+**Magic link.** Entrar sin contraseña, con el SMTP que ya estaba montado
+desde agosto. No hizo falta tocar Hostinger ni crear subdominios: el
+remitente `noreply@elgremioapp.com` y las URLs de retorno ya servían.
+
+### Dos decisiones del enlace que conviene no deshacer
+
+- **`shouldCreateUser: false`.** Por defecto Supabase CREA la cuenta si el
+  correo no existe. Con una letra mal, alguien entraría en un gremio vacío
+  sin entender que está en otra cuenta, y la 017 impide arreglarlo después.
+- **Sin cuenta se contesta lo mismo que con ella.** Si no, la pantalla se
+  convierte en un comprobador de qué familias existen. Misma regla que la
+  recuperación de contraseña, y por el mismo motivo.
+
+### PENDIENTE, y se nota si no se hace
+
+**Pegar la plantilla del Magic Link** en Authentication → Emails → Magic
+Link. Supabase la tiene aparte de las otras tres y **no** está entre las
+que se pegaron el 16-ago, así que hasta que se pegue estos correos salen
+con el texto por defecto **en inglés**. Escrita y lista en
+`docs/CORREOS.md` §4. Ojo a la trampa de §7e: guardar no basta con que se
+vea guardado, hay que recargar y volver a leer.
+
+### Google, que se miró y no se hizo
+
+El código del cliente es una línea, pero antes hay que crear credenciales
+OAuth en Google Cloud y pegarlas en Supabase. **Eso lo hace una persona**:
+manejar secretos ajenos no entra en lo que hace el agente, igual que la
+contraseña del SMTP en §7e. Y hay una trampa que conviene saber antes:
+Supabase enlaza identidades automáticamente **solo si el correo coincide y
+está verificado**; entrar con una cuenta de Google distinta a la del
+gremio crea una cuenta nueva y vacía.

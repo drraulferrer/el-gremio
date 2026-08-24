@@ -7,7 +7,8 @@ import {
   esRecuperacion,
   traducirAcceso,
   urlDeVuelta,
-  MIN_CLAVE_NUEVA
+  MIN_CLAVE_NUEVA,
+  resultadoDeEnlace
 } from '../src/lib/acceso'
 
 describe('alta de cuenta', () => {
@@ -141,5 +142,49 @@ describe('la forma de la llamada de entrar', () => {
   it('las tres claves de arriba son las que espera supabase-js', () => {
     expect(Object.keys(argumentosDeEntrada('a@b.com', 'x', 't')).sort())
       .toEqual(['email', 'options', 'password'])
+  })
+})
+
+// ------------------------------------------------------------------
+// El enlace de entrada por correo.
+//
+// Fija las dos decisiones del magic link, que no son de interfaz:
+//
+//  · Sin cuenta NO se crea una: se pide con `shouldCreateUser: false`.
+//    Por defecto Supabase la crearía, y una letra mal en el correo
+//    dejaría a alguien dentro de un gremio vacío sin entender por qué.
+//  · Y ese caso se cuenta con el MISMO mensaje que el camino bueno, para
+//    no convertir la pantalla en un comprobador de qué familias existen.
+// ------------------------------------------------------------------
+describe('el enlace de entrada', () => {
+  it('el camino bueno dice que ha salido, sin prometer que existe la cuenta', () => {
+    const r = resultadoDeEnlace({ error: null })
+    expect(r.estado).toBe('enviado')
+    expect(r.mensaje).toMatch(/si ese correo tiene cuenta/i)
+  })
+
+  it('sin cuenta responde EXACTAMENTE lo mismo', () => {
+    const bueno = resultadoDeEnlace({ error: null })
+    const sinCuenta = resultadoDeEnlace({ error: { message: 'Signups not allowed for otp' } })
+    expect(sinCuenta.estado).toBe('enviado')
+    expect(sinCuenta.mensaje).toBe(bueno.mensaje)
+  })
+
+  it('y también con las otras formas del mismo error', () => {
+    for (const m of ['Signup not allowed for otp', 'otp_disabled', 'signup_disabled']) {
+      expect(resultadoDeEnlace({ error: { message: m } }).estado, m).toBe('enviado')
+    }
+  })
+
+  it('un error de verdad sí se cuenta, y traducido', () => {
+    const r = resultadoDeEnlace({ error: { message: 'For security purposes, you can only request this once every 60 seconds' } })
+    expect(r.estado).toBe('error')
+    expect(r.mensaje).toMatch(/demasiados intentos/i)
+  })
+
+  it('un fallo de red no se disfraza de enlace enviado', () => {
+    const r = resultadoDeEnlace({ error: { message: 'Failed to fetch' } })
+    expect(r.estado).toBe('error')
+    expect(r.mensaje).toMatch(/sin conexión/i)
   })
 })

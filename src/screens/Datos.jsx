@@ -6,6 +6,7 @@ import {
 } from '../lib/datos'
 import { RELEASE } from '../lib/version'
 import { log } from '../lib/log'
+import { cerrarSesion } from '../lib/acciones'
 
 // ------------------------------------------------------------------
 // Tus datos: la zona horaria de la casa, la copia que te puedes llevar y
@@ -41,6 +42,8 @@ function zonasDisponibles() {
   return ZONAS_FRECUENTES
 }
 
+const FALLO_SALIR = 'salir'
+
 export default function Datos({ family, onCambiada, onCuentaBorrada }) {
   const [zona, setZona] = useState(family?.timezone || zonaDelDispositivo())
   const [guardando, setGuardando] = useState(false)
@@ -49,6 +52,28 @@ export default function Datos({ family, onCambiada, onCuentaBorrada }) {
 
   const [bajando, setBajando] = useState(false)
   const [copiaHecha, setCopiaHecha] = useState('')
+
+  // Dos toques para salir, sin modal. Está detrás del PIN, así que no hace
+  // falta una ceremonia; pero cerrar la sesión de la casa entera por un
+  // roce sí merece una pregunta.
+  const [confirmandoSalida, setConfirmandoSalida] = useState(false)
+  const [saliendo, setSaliendo] = useState(false)
+
+  async function salir() {
+    if (!confirmandoSalida) {
+      setConfirmandoSalida(true)
+      return
+    }
+    setSaliendo(true)
+    const { ok } = await cerrarSesion()
+    if (!ok) {
+      setSaliendo(false)
+      setConfirmandoSalida(false)
+      setFallo(FALLO_SALIR)
+    }
+    // Si sale bien no se toca nada más: `onAuthStateChange` en App se
+    // entera de que ya no hay sesión y devuelve al login solo.
+  }
 
   const [abierto, setAbierto] = useState(false)
   const [resumen, setResumen] = useState(null)
@@ -159,6 +184,25 @@ export default function Datos({ family, onCambiada, onCuentaBorrada }) {
 
   return (
     <div>
+      <div className="titulo-seccion">Cerrar sesión</div>
+
+      <div className="carta">
+        <p className="suave" style={{ marginTop: 0 }}>
+          La cuenta es una sola para toda la casa, así que esto cierra la sesión
+          <strong> de este aparato</strong> y habrá que volver a entrar con el correo y la
+          contraseña. Para dejarle el sitio a otra persona del gremio no hace falta:
+          eso es <strong>Cambiar</strong>, en la barra de abajo.
+        </p>
+        {fallo === FALLO_SALIR && <p className="error-texto">No se pudo cerrar la sesión. Inténtalo otra vez.</p>}
+        <button
+          className={'btn btn-bloque' + (confirmandoSalida ? '' : ' btn-fantasma')}
+          disabled={saliendo}
+          onClick={salir}
+        >
+          {saliendo ? 'Cerrando…' : confirmandoSalida ? 'Sí, cerrar sesión' : 'Cerrar sesión'}
+        </button>
+      </div>
+
       <div className="titulo-seccion">La hora de esta casa</div>
 
       <div className="carta">

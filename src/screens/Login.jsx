@@ -7,6 +7,7 @@ import { datosDeAceptacion, puedeAceptar, urlLegal } from '../lib/legal'
 import {
   argumentosDeEntrada,
   resultadoDeAlta,
+  resultadoDeEnlace,
   resultadoDeRecuperacion,
   traducirAcceso,
   urlDeVuelta,
@@ -15,7 +16,7 @@ import {
 } from '../lib/acceso'
 
 export default function Login() {
-  const [modo, setModo] = useState('entrar') // entrar | crear | olvidada
+  const [modo, setModo] = useState('entrar') // entrar | crear | olvidada | enlace
   const [email, setEmail] = useState('')
   const [pass, setPass] = useState('')
   const [error, setError] = useState('')
@@ -28,6 +29,8 @@ export default function Login() {
   const [intento, setIntento] = useState(0)
 
   const minimo = modo === 'crear' ? MIN_CLAVE_NUEVA : MIN_CLAVE_ENTRAR
+  // Los dos modos que solo piden el correo.
+  const soloCorreo = modo === 'olvidada' || modo === 'enlace'
 
   function limpiar(siguiente) {
     setModo(siguiente)
@@ -59,6 +62,25 @@ export default function Login() {
         await supabase.auth.resetPasswordForEmail(email, conCaptcha({
           redirectTo: urlDeVuelta(window.location.origin, import.meta.env.BASE_URL)
         }))
+      )
+      setCargando(false)
+      if (r.estado === 'error') fallo(r.mensaje)
+      else setAviso(r.mensaje)
+      return
+    }
+
+    if (modo === 'enlace') {
+      const r = resultadoDeEnlace(
+        await supabase.auth.signInWithOtp({
+          email,
+          options: conCaptcha({
+            emailRedirectTo: urlDeVuelta(window.location.origin, import.meta.env.BASE_URL),
+            // Sin esto Supabase CREA la cuenta si el correo no existe, y
+            // una letra mal dejaría a alguien dentro de un gremio vacío
+            // sin entender por qué. Ver resultadoDeEnlace() y su test.
+            shouldCreateUser: false
+          })
+        })
       )
       setCargando(false)
       if (r.estado === 'error') fallo(r.mensaje)
@@ -101,7 +123,7 @@ export default function Login() {
   const puedeEnviar =
     !cargando &&
     email.includes('@') &&
-    (modo === 'olvidada' || pass.length >= minimo) &&
+    (soloCorreo || pass.length >= minimo) &&
     // Sin la casilla no hay alta. La regla vive en legal.js para poder
     // probarla sin abrir el navegador.
     (modo !== 'crear' || puedeAceptar(acepta))
@@ -121,7 +143,9 @@ export default function Login() {
       <p className="suave" style={{ maxWidth: 320 }}>
         {modo === 'olvidada'
           ? 'Escribe el correo del gremio y te mandamos un enlace para poner una contraseña nueva.'
-          : 'Una sola cuenta para todo el gremio familiar. Cada persona elige su perfil después.'}
+          : modo === 'enlace'
+            ? 'Escribe el correo del gremio y te mandamos un enlace para entrar. Sin contraseña.'
+            : 'Una sola cuenta para todo el gremio familiar. Cada persona elige su perfil después.'}
       </p>
       <div style={{ width: '100%', maxWidth: 340 }}>
         <div className="campo">
@@ -136,7 +160,7 @@ export default function Login() {
           />
         </div>
 
-        {modo !== 'olvidada' && (
+        {!soloCorreo && (
           <div className="campo">
             <label htmlFor="acceso-clave">Contraseña</label>
             <input
@@ -185,21 +209,56 @@ export default function Login() {
         {aviso && <p className="aviso-texto">{aviso}</p>}
 
         <button className="btn btn-bloque" onClick={enviar} disabled={!puedeEnviar}>
-          {modo === 'entrar' ? 'Entrar' : modo === 'crear' ? 'Crear cuenta familiar' : 'Enviar el enlace'}
+          {modo === 'entrar'
+            ? 'Entrar'
+            : modo === 'crear'
+              ? 'Crear cuenta familiar'
+              : modo === 'enlace'
+                ? 'Mandarme el enlace'
+                : 'Enviar el enlace'}
         </button>
 
-        <button
-          className="btn btn-fantasma btn-bloque"
-          style={{ marginTop: 10 }}
-          onClick={() => limpiar(modo === 'entrar' ? 'crear' : 'entrar')}
-        >
-          {modo === 'entrar' ? 'Primera vez: crear cuenta' : 'Ya tengo cuenta'}
-        </button>
+        {/* En el modo enlace no sale: ahí ya hay un botón para volver a
+            la contraseña, y dos que llevan al mismo sitio con nombres
+            distintos se leen como dos caminos distintos. */}
+        {modo !== 'enlace' && (
+          <button
+            className="btn btn-fantasma btn-bloque"
+            style={{ marginTop: 10 }}
+            onClick={() => limpiar(modo === 'entrar' ? 'crear' : 'entrar')}
+          >
+            {modo === 'entrar' ? 'Primera vez: crear cuenta' : 'Ya tengo cuenta'}
+          </button>
+        )}
+
+        {/* Entrar sin contraseña. Va en «entrar» y no en las otras
+            porque es una alternativa a escribirla, no un rescate: quien
+            está creando la cuenta todavía no tiene ninguna, y quien viene
+            a recuperarla ya eligió otro camino. */}
+        {modo === 'entrar' && (
+          <button
+            className="btn btn-fantasma btn-bloque"
+            style={{ marginTop: 10 }}
+            onClick={() => limpiar('enlace')}
+          >
+            Entrar con un enlace por correo
+          </button>
+        )}
+
+        {modo === 'enlace' && (
+          <button
+            className="btn btn-fantasma btn-bloque"
+            style={{ marginTop: 10 }}
+            onClick={() => limpiar('entrar')}
+          >
+            Prefiero usar la contraseña
+          </button>
+        )}
 
         {/* La salida de emergencia va siempre visible menos cuando ya
             estás en ella: esconderla detrás de un intento fallido obliga a
             fallar a propósito para encontrarla. */}
-        {modo !== 'olvidada' && (
+        {!soloCorreo && (
           <button
             className="btn btn-fantasma btn-bloque"
             style={{ marginTop: 10 }}
