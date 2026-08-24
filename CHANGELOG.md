@@ -18,6 +18,31 @@ verdad duele en esta app: que el esquema y el cliente dejen de encajar.
 
 ---
 
+## 2.27.0 · 24 de agosto de 2026
+
+**Barbas.** Bigote, perilla, barba corta y barba larga, del color del pelo
+—una barba de otro color se ve rara casi siempre y sería un mando más en
+un formulario que ya tiene seis—. Migración 038, la primera pieza que se
+añade con el criterio de la 037: la columna hace falta, pero los valores
+ya viven en `src/lib/retratos.js` y no en un CHECK.
+
+**La celebración ya no se pierde detrás del modal de sellos.** Su
+temporizador corría desde que se montaba, así que cuando una misma
+validación concedía un sello Y subía de fase, la fase se apagaba sin que
+nadie la viera. Ahora espera a que la pantalla esté libre. Comprobado por
+secuencia: nada → modal de sellos → celebración.
+
+**Y hay linter, para una sola cosa: usar algo sin importarlo.** Pasó dos
+veces el 24-ago —`Retrato` en dos pantallas y `generoDe` en App— y las
+dos `npm run build` dio verde, porque Vite empaqueta tan tranquilo una
+referencia que no existe y el fallo sale en pantalla como
+`ReferenceError`. Dos reglas, `no-undef` y `react/jsx-no-undef`, dentro de
+`npm run verify`. Nada de estilo: el criterio del proyecto está escrito en
+los comentarios y no hace falta una herramienta que opine de comillas.
+
+Con el linter dentro, `tests/imports.test.js` sobra —era una aproximación
+con expresiones regulares a media regla— y se retira.
+
 ## 2.26.0 · 24 de agosto de 2026
 
 Tres agujeros del retrato, tapados a la vez porque se sostienen entre

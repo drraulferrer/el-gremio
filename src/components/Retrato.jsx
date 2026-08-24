@@ -113,7 +113,44 @@ function Gafas({ tipo }) {
   )
 }
 
-function Cara({ piel, pelo, peinado, gafas, uid }) {
+
+// La barba va del color del pelo y DEBAJO de la boca: dibujada encima, la
+// boca desaparece y la cara se queda sin expresión, que es lo único que
+// esta figura tiene. Se recorta al cráneo salvo la larga, que por
+// definición sobra por abajo.
+//
+// El borde de arriba es una CURVA, alta en las patillas y hundida en el
+// centro, como una barba de verdad. Con un borde recto —y con melena del
+// mismo color— la cabeza salía de un solo tono con una franja de piel a
+// la altura de los ojos: cara de antifaz. La curva deja el pómulo a la
+// vista y la boca por encima del pelo.
+function Barba({ tipo, color, uid }) {
+  if (!tipo || tipo === 'ninguna') return null
+
+  if (tipo === 'bigote') {
+    return <path d="M41,44 q9,-3.5 18,0 q-3.5,3.2 -9,3.2 q-5.5,0 -9,-3.2 z" fill={color} />
+  }
+  if (tipo === 'perilla') {
+    return (
+      <>
+        <ellipse cx="50" cy="52" rx="5.2" ry="4" fill={color} />
+        <path d="M41,44 q9,-3.5 18,0 q-3.5,3.2 -9,3.2 q-5.5,0 -9,-3.2 z" fill={color} />
+      </>
+    )
+  }
+  return (
+    <>
+      <g clipPath={`url(#${uid}-h)`}>
+        <path d="M27,42 q23,15 46,0 L73,61 L27,61 Z" fill={color} />
+      </g>
+      {tipo === 'larga' && (
+        <path d="M37,50 q13,20 26,0 q-1,15 -13,18 q-12,-3 -13,-18 z" fill={color} />
+      )}
+    </>
+  )
+}
+
+function Cara({ piel, pelo, peinado, gafas, barba, uid }) {
   // Pelo negro sobre piel muy oscura contrastaba 1,12: eran la misma
   // mancha. `separar` lo mueve lo mínimo para despegarlo y no toca nada
   // cuando ya se veía, que es la mayoría de las combinaciones.
@@ -141,6 +178,7 @@ function Cara({ piel, pelo, peinado, gafas, uid }) {
           desaparece sobre una piel oscura —medido: 1,20 de contraste en
           «ébano»— y quien elegía esa piel se quedaba sin cara. El blanco
           se ve sobre cualquier tono, que es justo lo que hace falta. */}
+      <Barba tipo={barba} color={tinte} uid={uid} />
       <circle cx="43" cy="37" r="3.3" fill="#f7f4ee" />
       <circle cx="57" cy="37" r="3.3" fill="#f7f4ee" />
       <circle cx="43" cy="37" r="1.9" fill="#1b1b2e" />
@@ -344,7 +382,7 @@ export default function Retrato({ perfil, tamano = 64, vista = 'auto', disco = t
           <Equipo fase={fase.n} color={tunica} uid={uid} />
         </>
       )}
-      <Cara piel={piel} pelo={pelo} peinado={piezas.peinado} gafas={piezas.gafas} uid={uid} />
+      <Cara piel={piel} pelo={pelo} peinado={piezas.peinado} gafas={piezas.gafas} barba={piezas.barba} uid={uid} />
     </svg>
   )
 }

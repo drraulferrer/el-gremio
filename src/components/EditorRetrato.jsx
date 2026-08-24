@@ -1,5 +1,5 @@
 import Retrato from './Retrato'
-import { PIELES, PELOS, PEINADOS, GAFAS, TUNICAS, piezasDe, faseDePerfil } from '../lib/retratos'
+import { PIELES, PELOS, PEINADOS, GAFAS, TUNICAS, BARBAS, piezasDe, faseDePerfil } from '../lib/retratos'
 import { flex } from '../lib/genero'
 
 // ------------------------------------------------------------------
@@ -63,6 +63,13 @@ export default function EditorRetrato({ perfil, onCambiar, genero = 'neutro', vi
         lista={PEINADOS}
         valor={piezas.peinado}
         onElegir={(id) => onCambiar({ retrato_peinado: id })}
+      />
+
+      <Pastillas
+        titulo="Barba"
+        lista={BARBAS}
+        valor={piezas.barba}
+        onElegir={(id) => onCambiar({ retrato_barba: id })}
       />
 
       <Pastillas

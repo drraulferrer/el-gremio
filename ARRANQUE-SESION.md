@@ -73,7 +73,7 @@ modo peque, la capa de producción y la gestión de miembros.
 | Supabase | proyecto `chfbrawsoulfiywiqhpe`, Postgres 17.6, región EU |
 | Edge Function | `notificar`, versión 5, `verify_jwt` en false |
 | Versión publicada | ver `npm run health` (lee `version.json`, que ahora se emite en el build) |
-| Tests | 1.136, en 63 ficheros, todos en verde (24-ago) |
+| Tests | 1.102, en 62 ficheros, todos en verde (24-ago). Bajaron al retirar `imports.test.js`, que el linter cubre mejor |
 
 Comprobar que sigue vivo:
 
@@ -4151,3 +4151,38 @@ añadir cualquier pieza, mídelo.
   mitad JSX. Añadir ESLint es una decisión del proyecto, no se ha tomado.
 - **La celebración se puede perder detrás del modal de sellos**: su
   temporizador corre aunque esté tapada. Es de antes del retrato.
+
+## 7aq. Barbas, y los dos cabos sueltos (24 de agosto) · 2.27.0 · **MIGRACIÓN 038 SIN EJECUTAR**
+
+**Barbas**: bigote, perilla, corta y larga, del color del pelo. Migración
+038 —hace falta la columna, pero los valores ya no van en un CHECK.
+
+**La celebración ya no se pierde detrás del modal de sellos.** Su
+temporizador corría aunque estuviera tapada, así que una validación que
+concediera sello Y subiera de fase se comía la fase. Ahora espera a que la
+pantalla esté libre. Comprobado por secuencia en el navegador: nada →
+modal de sellos → celebración.
+
+### Hay linter, y conviene saber para qué NO es
+
+Dos reglas y ninguna de estilo: `no-undef` y `react/jsx-no-undef`. Están
+por un motivo concreto: el 24-ago se usó dos veces algo sin importarlo
+—`Retrato` y `generoDe`— y las dos `npm run build` dio VERDE. Vite
+empaqueta una referencia que no existe y el fallo aparece en pantalla.
+
+**No añadas reglas de estilo aquí.** El criterio del proyecto vive en los
+comentarios del código, y convertir `npm run verify` en una discusión
+sobre comillas haría que la gente dejara de mirar su salida.
+
+Dos detalles de la configuración, por si extrañan:
+- `react-hooks/exhaustive-deps` está registrada pero **apagada**. Los
+  `eslint-disable-line` del código son anteriores al linter; si la regla
+  no existe, cada comentario de esos es un error por sí solo.
+- `__DOMINIO__` se declara como global porque lo inyecta Vite (`define`).
+
+Con esto, `tests/imports.test.js` se retiró: era una aproximación con
+expresiones regulares a media regla, y ahora hay la regla entera.
+
+### Lo que queda
+
+Ejecutar `migracion-038-barba.sql` y desplegar.

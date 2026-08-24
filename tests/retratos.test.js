@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import {
   FASES, NIVEL_TOPE, PIELES, PELOS, PEINADOS,
   faseDeNivel, faseDePerfil, piezasDe, hexDe, llevaFigura,
-  PALETA_RETRATO, contraste, GAFAS, TUNICAS, faseSiguiente, hayFaseNueva, DIAS_CERCA
+  PALETA_RETRATO, contraste, GAFAS, TUNICAS, BARBAS, faseSiguiente, hayFaseNueva, DIAS_CERCA
 } from '../src/lib/retratos'
 import { plantillaCompleta, marcasDe, flex } from '../src/lib/genero'
 
@@ -128,14 +128,14 @@ describe('las piezas', () => {
     expect(p.peinado).toBe('corto')
   })
 
-  it('y una que sí está se respeta, las cinco', () => {
+  it('y una que sí está se respeta, las seis', () => {
     const p = piezasDe({
       retrato_piel: 'oscura', retrato_pelo: 'rubio', retrato_peinado: 'rizado',
-      retrato_gafas: 'redondas', retrato_tunica: 'musgo'
+      retrato_gafas: 'redondas', retrato_tunica: 'musgo', retrato_barba: 'perilla'
     })
     expect(p).toEqual({
       piel: 'oscura', pelo: 'rubio', peinado: 'rizado',
-      gafas: 'redondas', tunica: 'musgo'
+      gafas: 'redondas', tunica: 'musgo', barba: 'perilla'
     })
   })
 
@@ -146,6 +146,7 @@ describe('las piezas', () => {
     const p = piezasDe({ retrato_piel: 'clara', retrato_peinado: 'largo' })
     expect(p.gafas).toBe('ninguna')
     expect(p.tunica).toBe('perfil')
+    expect(p.barba).toBe('ninguna')
   })
 
   // 'perfil' no es un color: es la regla «usa la del miembro». Si algún
@@ -157,7 +158,7 @@ describe('las piezas', () => {
   })
 
   it('los catálogos no tienen ids repetidos', () => {
-    for (const lista of [PIELES, PELOS, PEINADOS, GAFAS, TUNICAS]) {
+    for (const lista of [PIELES, PELOS, PEINADOS, GAFAS, TUNICAS, BARBAS]) {
       const ids = lista.map((x) => x.id)
       expect(new Set(ids).size).toBe(ids.length)
     }

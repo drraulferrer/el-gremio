@@ -116,6 +116,19 @@ export const GAFAS = [
 ]
 
 /**
+ * Barba. Va del color del pelo, como en la vida: no es una elección
+ * aparte porque un color de barba independiente del pelo se ve raro casi
+ * siempre y añade un mando más a un formulario que ya tiene seis.
+ */
+export const BARBAS = [
+  { id: 'ninguna', nombre: 'Sin barba' },
+  { id: 'bigote', nombre: 'Bigote' },
+  { id: 'perilla', nombre: 'Perilla' },
+  { id: 'corta', nombre: 'Barba corta' },
+  { id: 'larga', nombre: 'Barba larga' }
+]
+
+/**
  * Color de la túnica, separado del color del miembro.
  *
  * Eran el mismo dato y por eso el aro y la ropa iban siempre a juego.
@@ -135,7 +148,7 @@ export const TUNICAS = [
   { id: 'ciruela', hex: '#7d5f9c' }
 ]
 
-const POR_DEFECTO = { piel: 'media', pelo: 'negro', peinado: 'corto', gafas: 'ninguna', tunica: 'perfil' }
+const POR_DEFECTO = { piel: 'media', pelo: 'negro', peinado: 'corto', gafas: 'ninguna', tunica: 'perfil', barba: 'ninguna' }
 
 /** XP acumulada que exige un nivel. Misma curva que supabase.js. */
 function xpDeNivel(nivel) {
@@ -241,7 +254,8 @@ export function piezasDe(perfil) {
     pelo: enCatalogo(PELOS, perfil?.retrato_pelo, POR_DEFECTO.pelo),
     peinado: enCatalogo(PEINADOS, perfil?.retrato_peinado, POR_DEFECTO.peinado),
     gafas: enCatalogo(GAFAS, perfil?.retrato_gafas, POR_DEFECTO.gafas),
-    tunica: enCatalogo(TUNICAS, perfil?.retrato_tunica, POR_DEFECTO.tunica)
+    tunica: enCatalogo(TUNICAS, perfil?.retrato_tunica, POR_DEFECTO.tunica),
+    barba: enCatalogo(BARBAS, perfil?.retrato_barba, POR_DEFECTO.barba)
   }
 }
 

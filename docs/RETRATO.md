@@ -1,6 +1,6 @@
 # El retrato del gremialista
 
-Estado: **en producción desde el 24-ago-2026**. Migraciones 035, 036 y 037 ejecutadas.
+Estado: **en producción desde el 24-ago-2026**. Migraciones 035 a 038.
 
 Un perfil deja de ser un emoji y pasa a ser una figura por capas que gana
 equipo al subir de nivel. El emoji no desaparece: sigue siendo el respaldo
@@ -131,17 +131,16 @@ sujeta un CHECK, `profiles_retrato_solo_personas`.
   suyo. No es un fallo, es el estado inicial.
 - El arco del aro hace comparables a los miembros en el picker. Se aceptó
   a sabiendas (24-ago-2026): la `Gema` ya enseñaba el nivel ahí al lado.
-- Hay ocho peinados, ocho pieles, ocho colores de pelo, gafas y siete
-  túnicas. Añadir una pieza **ya no necesita migración**: desde la 037 el
-  CHECK es de forma y el catálogo vive en `src/lib/retratos.js`.
-- La celebración de fase comparte pantalla con el modal de sellos, y su
-  temporizador corre aunque esté tapada. Si un mismo gesto concede sellos
-  y sube de fase, la fase puede perderse. Es de antes del retrato y no se
-  ha tocado.
-- No hay linter. Dos fallos de esta sesión —un componente y una función
-  usados sin importar— pasaron el build y reventaron en pantalla; los dos
-  los habría cazado `no-undef`. `tests/imports.test.js` cubre solo la
-  mitad JSX del problema.
+- Hay ocho peinados, ocho pieles, ocho colores de pelo, cinco barbas,
+  gafas y siete túnicas. Añadir una pieza **solo necesita migración si
+  necesita columna**: desde la 037 el CHECK es de forma y el catálogo vive
+  en `src/lib/retratos.js`.
+- La barba va del color del pelo. No lleva columna propia a propósito.
+- Nadie ha probado todavía combinaciones extremas con datos reales. La que
+  peor se portó en pruebas fue melena larga + barba larga del mismo tono
+  sobre piel muy oscura: con el borde de la barba recto salía cara de
+  antifaz. Se curvó el borde superior y se arregló, pero es la familia de
+  casos a mirar si alguien dice que su retrato se ve raro.
 
 El prototipo con el que se decidió todo esto está en
 [`prototipos/retrato.html`](prototipos/retrato.html): se abre en cualquier

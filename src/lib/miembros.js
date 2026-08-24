@@ -151,6 +151,7 @@ export function filaDeMiembro(m, familyId) {
     retrato_pelo: esMascota ? null : m.retrato_pelo ?? null,
     retrato_peinado: esMascota ? null : m.retrato_peinado ?? null,
     retrato_gafas: esMascota ? null : m.retrato_gafas ?? null,
-    retrato_tunica: esMascota ? null : m.retrato_tunica ?? null
+    retrato_tunica: esMascota ? null : m.retrato_tunica ?? null,
+    retrato_barba: esMascota ? null : m.retrato_barba ?? null
   }
 }

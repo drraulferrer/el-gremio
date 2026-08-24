@@ -632,7 +632,17 @@ export default function App() {
             mayores, para no invadir el mundo de la peque, que tiene su
             propia respuesta. Si se validó algo estando en el panel, sale
             al salir de él, que es cuando hay alguien mirando. */}
-        {celeb && (
+        {/* La celebración ESPERA a que no haya un modal encima.
+            Su temporizador corre desde que se monta, así que si sale
+            debajo del lote de sellos —y sale, porque la misma validación
+            puede conceder sello y subir de fase— se apaga sin que nadie
+            la vea. Aquí no se pierde: se queda en el estado y se pinta
+            cuando la pantalla vuelve a estar libre.
+
+            Se comprueban los dos modales de premio porque son los que
+            coinciden con una validación. El PIN y el parte de fallo los
+            abre una persona a mano, y ahí no hay nada que atropellar. */}
+        {celeb && loteNuevo.length === 0 && talisAMano.length === 0 && (
           <Celebracion
             emoji={celeb.emoji}
             texto={celeb.texto}
