@@ -18,6 +18,22 @@ verdad duele en esta app: que el esquema y el cliente dejen de encajar.
 
 ---
 
+## 2.31.0 · 24 de agosto de 2026
+
+**Entrar con Google.** El proveedor quedó configurado en Supabase, así que
+se enciende el botón que ya viajaba apagado en la 2.30.0.
+
+Debajo lleva un aviso que no es decorativo: **usa la cuenta de Google del
+mismo correo del gremio**. Supabase enlaza identidades solo si el correo
+coincide y está verificado; con otra distinta se crea una cuenta nueva y
+vacía, y la 017 impide que una cuenta tenga dos gremios, así que limpiarlo
+después es entrar en la base a mano. Con el enlace por correo eso lo
+bloquea `shouldCreateUser: false`; en OAuth no hay equivalente y lo único
+que queda es decirlo antes.
+
+La bandera `google` sigue existiendo: si algún día caducan las
+credenciales, apagarla quita el botón sin revertir nada más.
+
 ## 2.30.0 · 24 de agosto de 2026
 
 **Cerrar sesión**, que no existía: lo único que llamaba a `signOut` era el

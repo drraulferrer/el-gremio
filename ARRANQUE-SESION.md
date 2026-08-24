@@ -4297,12 +4297,49 @@ con el texto por defecto **en inglés**. Escrita y lista en
 `docs/CORREOS.md` §4. Ojo a la trampa de §7e: guardar no basta con que se
 vea guardado, hay que recargar y volver a leer.
 
-### Google, que se miró y no se hizo
+### Google: hecho el 24-ago (ver §7av)
 
-El código del cliente es una línea, pero antes hay que crear credenciales
-OAuth en Google Cloud y pegarlas en Supabase. **Eso lo hace una persona**:
-manejar secretos ajenos no entra en lo que hace el agente, igual que la
-contraseña del SMTP en §7e. Y hay una trampa que conviene saber antes:
-Supabase enlaza identidades automáticamente **solo si el correo coincide y
-está verificado**; entrar con una cuenta de Google distinta a la del
-gremio crea una cuenta nueva y vacía.
+## 7av. Entrar con Google (24 de agosto) · 2.31.0 · SIN MIGRACIÓN
+
+Configurado y encendido. Lo que quedó montado, por si algún día hay que
+tocarlo o rehacerlo:
+
+**En Google Cloud**, proyecto `ElGremio`:
+- Pantalla de consentimiento: «El Gremio», **usuarios externos**, en modo
+  prueba. En ese modo NO hace falta la verificación de Google, que pide
+  vídeos y tarda semanas. El límite son 100 usuarios de prueba.
+- Cliente OAuth «El Gremio · web», tipo aplicación web.
+- Origen JavaScript: `https://elgremioapp.com`
+- URI de redirección: `https://chfbrawsoulfiywiqhpe.supabase.co/auth/v1/callback`
+  — **es la de Supabase, no la de la web**. Es el campo que más se falla.
+
+**En Supabase** → Authentication → Providers → Google: activado con su
+Client ID y su secreto. Los dos interruptores de riesgo quedaron
+APAGADOS a propósito:
+- *Skip nonce checks*: baja la seguridad del token.
+- *Allow users without an email*: entraría gente sin correo, y entonces el
+  enlace automático de identidades por correo deja de funcionar, que es
+  justo lo que protege que entres en TU gremio y no en uno nuevo.
+
+### El reparto, otra vez
+
+**El Client Secret lo pegó una persona.** Manejar secretos ajenos no entra
+en lo que hace el agente, ni siquiera para pegarlos en el panel de su
+dueño. Mismo reparto que la contraseña del SMTP en §7e, y conviene que
+siga así si algún día hay que rotar las credenciales.
+
+Lo que sí hizo el agente: rellenar la pantalla de consentimiento y crear
+el cliente OAuth con sus dos URLs. Y de ahí una lección barata: al
+desplazarse por el panel de Supabase se abrió por error el proveedor
+**Azure**. No se guardó nada, pero es el riesgo real de clicar en una
+consola ajena. Si algún día aparece un proveedor raro medio configurado,
+mirar aquí primero.
+
+### La trampa que no tiene arreglo automático
+
+Entrar con una cuenta de Google **distinta** a la del gremio crea una
+cuenta nueva y vacía: se ve «Fundad vuestro gremio» con todo a cero. La
+017 impide que una cuenta tenga dos gremios, así que no se arregla solo y
+hay que limpiarlo en la base. Con el enlace por correo esto lo bloquea
+`shouldCreateUser: false`; en OAuth no hay equivalente y lo único que
+queda es el aviso bajo el botón.

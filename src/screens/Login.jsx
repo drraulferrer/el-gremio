@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase'
 import { urlDeLaNarrativa, urlDelGremio } from '../lib/dominio'
 import Captcha from '../components/Captcha'
 import { esErrorDeCaptcha } from '../lib/captcha'
+import { flag } from '../lib/flags'
 import { datosDeAceptacion, puedeAceptar, urlLegal } from '../lib/legal'
 import {
   argumentosDeEntrada,
@@ -50,6 +51,31 @@ export default function Login() {
       : mensaje)
     setToken('')
     setIntento((n) => n + 1)
+  }
+
+  // Entrar con Google. Sale de `enviar` porque no comparte NADA con los
+  // otros modos: ni contraseña, ni captcha —el consentimiento lo pone
+  // Google—, ni mensaje de vuelta, porque si va bien el navegador ya no
+  // está en esta página.
+  //
+  // El aviso del correo no es decorativo. Supabase enlaza identidades
+  // solo si el correo coincide y está verificado: entrar con OTRA cuenta
+  // de Google crea una cuenta nueva y vacía, y la 017 impide que una
+  // cuenta tenga dos gremios, así que no se arregla después. Con el
+  // enlace por correo eso lo bloquea `shouldCreateUser: false`; aquí no
+  // hay equivalente, y lo único que queda es decirlo antes.
+  async function entrarConGoogle() {
+    setError('')
+    setAviso('')
+    setCargando(true)
+    const { error: err } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: urlDeVuelta(window.location.origin, import.meta.env.BASE_URL) }
+    })
+    if (err) {
+      setCargando(false)
+      fallo(traducirAcceso(err.message))
+    }
   }
 
   async function enviar() {
@@ -229,6 +255,26 @@ export default function Login() {
           >
             {modo === 'entrar' ? 'Primera vez: crear cuenta' : 'Ya tengo cuenta'}
           </button>
+        )}
+
+        {/* Google. Detrás de un flag porque el botón no sirve de nada
+            hasta que alguien configure el proveedor en Supabase, y un
+            botón que falla siempre es peor que ninguno. */}
+        {modo === 'entrar' && flag('google') && (
+          <>
+            <button
+              className="btn btn-fantasma btn-bloque"
+              style={{ marginTop: 10 }}
+              disabled={cargando}
+              onClick={entrarConGoogle}
+            >
+              Entrar con Google
+            </button>
+            <p className="suave" style={{ fontSize: '.78rem', marginTop: 6 }}>
+              Usa la cuenta de Google con el <strong>mismo correo</strong> del gremio. Con otra
+              distinta entrarías en un gremio nuevo y vacío.
+            </p>
+          </>
         )}
 
         {/* Entrar sin contraseña. Va en «entrar» y no en las otras

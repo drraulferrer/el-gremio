@@ -35,7 +35,14 @@ const DEFECTOS = {
   // normales: apagarla no le quita a nadie trabajo ya encargado.
   modoLimpieza: true,
   // Backend simulado en memoria, para ver la app sin Supabase.
-  demo: false
+  demo: false,
+  // Entrar con Google. Encendida el 24-ago, cuando el proveedor quedó
+  // configurado en Supabase (Client ID y Secret desde Google Cloud, en el
+  // proyecto `ElGremio`). Nació apagada por un motivo que sigue valiendo:
+  // sin proveedor, el botón existe pero lleva a un error de Supabase que
+  // no dice nada útil. Si algún día caducan las credenciales, apagarla
+  // aquí quita el botón sin revertir nada más.
+  google: true
 }
 
 const ENV = {
@@ -46,6 +53,7 @@ const ENV = {
   luzEnMovimiento: import.meta.env.VITE_FLAG_LUZ_MOVIMIENTO,
   sellosV2: import.meta.env.VITE_FLAG_SELLOS_V2,
   modoLimpieza: import.meta.env.VITE_FLAG_MODO_LIMPIEZA,
+  google: import.meta.env.VITE_FLAG_GOOGLE,
   demo: import.meta.env.VITE_DEMO
 }
 
