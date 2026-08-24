@@ -92,21 +92,66 @@ create table if not exists public.profiles (
   -- conserva su historial y la XP que aportó a las metas ya cerradas.
   active boolean not null default true,
   created_at timestamptz not null default now(),
-  La forma `case` no es estilo: es lo único que funciona. La versión
-  obvia —`(role='mascota' and species in (...)) or (role<>'mascota' and
-  species is null)`— **acepta una mascota sin especie**, y costó
-  descubrirlo el mismo día que se ejecutó la 027. Con `species` nulo esa
-  expresión da `TRUE and NULL` = NULL en la primera rama y FALSE en la
-  segunda, o sea `NULL or FALSE` = NULL. Y **un CHECK que da NULL PASA**:
-  solo rechaza cuando da FALSE. La lógica de tres valores de SQL vuelve a
-  morder justo donde uno cree que ha cubierto los dos casos.
+  -- Las piezas del retrato (migración 035). Tres columnas y no un jsonb
+  -- porque son pocas y así el catálogo lo protege un CHECK. Nullable =
+  -- «sin elegir»: el cliente rellena con los defectos de piezasDe(), que
+  -- es lo que permite desplegar sin tocar un solo perfil.
+  retrato_piel text check (retrato_piel is null or retrato_piel in
+    ('clara','media','tostada','morena','oscura','profunda')),
+  retrato_pelo text check (retrato_pelo is null or retrato_pelo in
+    ('negro','castano','rubio','pelirrojo','gris','blanco')),
+  retrato_peinado text check (retrato_peinado is null or retrato_peinado in
+    ('corto','largo','rizado')),
+  -- La XP más alta alcanzada. La FASE del retrato se calcula contra esto
+  -- y nunca contra `xp`: deshacer devuelve la XP, y si el personaje se
+  -- desvistiera al deshacer, deshacer se sentiría como un castigo y la
+  -- familia dejaría de hacerlo. Lo mantiene trg_marca_de_agua_xp, no el
+  -- cliente: hay cuatro caminos que tocan `xp` y bastaría que uno se
+  -- olvidara para que alguien perdiera el manto sin explicación.
+  xp_maxima integer not null default 0,
+  -- La forma `case` no es estilo: es lo único que funciona. La versión
+  -- obvia —`(role='mascota' and species in (...)) or (role<>'mascota' and
+  -- species is null)`— **acepta una mascota sin especie**, y costó
+  -- descubrirlo el mismo día que se ejecutó la 027. Con `species` nulo esa
+  -- expresión da `TRUE and NULL` = NULL en la primera rama y FALSE en la
+  -- segunda, o sea `NULL or FALSE` = NULL. Y **un CHECK que da NULL PASA**:
+  -- solo rechaza cuando da FALSE. La lógica de tres valores de SQL vuelve a
+  -- morder justo donde uno cree que ha cubierto los dos casos.
   constraint profiles_especie_coherente check (
     case
       when role = 'mascota' then species is not null and species in ('perro','gato')
       else species is null
     end
+  ),
+  -- Una mascota no tiene retrato: se queda con emoji (24-ago-2026). No es
+  -- solo que falten piezas de perro, es que un perro no tiene fase y
+  -- meterlo en una escalera de aprendiz a maestra diría sobre un animal
+  -- algo que este proyecto no quiere decir.
+  constraint profiles_retrato_solo_personas check (
+    case
+      when role = 'mascota'
+        then retrato_piel is null and retrato_pelo is null and retrato_peinado is null
+      else true
+    end
   )
 );
+
+-- La marca de agua de la XP. Ver el comentario de `xp_maxima` arriba.
+create or replace function public.marca_de_agua_xp()
+returns trigger
+language plpgsql
+as $$
+begin
+  -- greatest() cubre los tres casos de una vez: sube la XP (marca nueva),
+  -- baja la XP (marca intacta) e insert con XP inicial.
+  new.xp_maxima := greatest(coalesce(new.xp_maxima, 0), coalesce(new.xp, 0));
+  return new;
+end $$;
+
+drop trigger if exists trg_marca_de_agua_xp on public.profiles;
+create trigger trg_marca_de_agua_xp
+  before insert or update of xp, xp_maxima on public.profiles
+  for each row execute function public.marca_de_agua_xp();
 
 -- La identidad estable de una ACTIVIDAD (migración 028), por encima del
 -- challenge concreto que la representa hoy.

@@ -55,8 +55,18 @@ function especieCoherente(fila) {
     : fila.species === null || fila.species === undefined
 }
 
+// Espejo de `profiles_retrato_solo_personas` (035). Una mascota lleva
+// medallón de emoji y no tiene retrato ni fase; si la demo lo permitiera,
+// el editor podría guardar una fila que Postgres rechaza.
+function retratoCoherente(fila) {
+  return fila.role !== 'mascota' ||
+    ((fila.retrato_piel ?? null) === null &&
+     (fila.retrato_pelo ?? null) === null &&
+     (fila.retrato_peinado ?? null) === null)
+}
+
 const DEFECTOS_TABLA = {
-  profiles: { emoji: '🙂', color: '#a78bfa', xp: 0, coins: 0, active: true, gender: 'neutro' },
+  profiles: { emoji: '🙂', color: '#a78bfa', xp: 0, coins: 0, active: true, gender: 'neutro', xp_maxima: 0, retrato_piel: null, retrato_pelo: null, retrato_peinado: null },
   challenges: { emoji: '⭐', xp: 10, coins: 5, frequency: 'diario', active: true, profile_id: null, target_roles: null, skill: null, days: null, campana_id: null },
   completions: { status: 'pendiente', resolved_at: null, praise: null },
   rewards: { emoji: '🎁', cost: 50, active: true, tier: 2 },
@@ -105,8 +115,28 @@ function leer() {
   }
 }
 
+// Espejo de `trg_marca_de_agua_xp` (migración 035): xp_maxima nunca baja.
+//
+// Va aquí, en la escritura, y no en el insert/update de Consulta. Las RPC
+// —resolve_completion, el premio a mano, deshacer— tocan `profiles` y
+// escriben directas, saltándose ese camino. En Postgres las cubre a todas
+// un trigger BEFORE, y el único punto equivalente en la demo es este. Si
+// se pusiera en el update, deshacer una validación bajaría la marca en
+// demo y no en producción: el personaje se desvestiría solo aquí, que es
+// justo el sitio donde se prueba.
+function marcaDeAguaXp(db) {
+  if (!Array.isArray(db.profiles)) return db
+  return {
+    ...db,
+    profiles: db.profiles.map((p) => ({
+      ...p,
+      xp_maxima: Math.max(Number(p.xp_maxima) || 0, Number(p.xp) || 0)
+    }))
+  }
+}
+
 function escribir(db) {
-  localStorage.setItem(CLAVE, JSON.stringify(db))
+  localStorage.setItem(CLAVE, JSON.stringify(marcaDeAguaXp(db)))
 }
 
 function uuid() {
@@ -318,6 +348,16 @@ class Consulta {
         // Y de `tg_challenge_familia`: toda misión nace con familia.
         if (this.tabla === 'challenges' && !nueva.mission_family_id) {
           nueva.mission_family_id = `mf:${nueva.id}`
+        }
+
+        if (this.tabla === 'profiles' && !retratoCoherente(nueva)) {
+          return {
+            data: null,
+            error: {
+              message:
+                'new row for relation "profiles" violates check constraint "profiles_retrato_solo_personas"'
+            }
+          }
         }
 
         if (this.tabla === 'profiles' && !especieCoherente(nueva)) {

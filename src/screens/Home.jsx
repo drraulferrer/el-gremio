@@ -7,6 +7,7 @@ import Cronica from '../components/Cronica'
 import Sello from '../components/Sello'
 import SellosGanados from '../components/SellosGanados'
 import Colecciones from '../components/Colecciones'
+import Retrato from '../components/Retrato'
 import SelloDetalle, { tieneDetalle } from '../components/SelloDetalle'
 import { pedirMision as pedirMisionRemota, canjearPremio, deshacerMision } from '../lib/acciones'
 import { proyeccionDe } from '../lib/sellos-motor'
@@ -103,10 +104,11 @@ export default function Home({ family, data, profile, refresh, onSwitchProfile, 
         <>
           <div className="carta">
             <div className="fila">
+              <Retrato perfil={profile} tamano={46} />
               <Gema xp={profile.xp} color={profile.color} />
               <div className="crece">
                 <div className="fila-separada">
-                  <h2 style={{ fontSize: '1.2rem' }}>{profile.emoji} {profile.name}</h2>
+                  <h2 style={{ fontSize: '1.2rem' }}>{profile.name}</h2>
                   <Bolsa n={profile.coins} />
                 </div>
                 <div style={{ marginTop: 8 }}>

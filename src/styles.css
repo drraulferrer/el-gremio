@@ -554,6 +554,19 @@ button { font-family: inherit; }
 
 .gema-mini { width: 40px; height: 40px; font-size: 0.9rem; }
 
+/* ------------------------------------------------------------------
+   El retrato sustituye a la caja, no vive dentro de ella.
+   Trae su propio aro con el color del miembro, así que meterlo en un
+   .avatar bordeado daría dos marcos concéntricos. Lo único que necesita
+   del CSS es no encogerse dentro de una fila flex.
+   ------------------------------------------------------------------ */
+.retrato { flex: none; display: block; }
+
+/* La cabecera de la peque conserva el botón —su animación de latido y su
+   respuesta al toque— pero suelta el fondo y el borde cuando lleva
+   retrato: el aro ya hace ese trabajo. */
+button.kid-avatar.con-retrato { background: none; border: none; width: auto; height: auto; }
+
 .avatar {
   width: 46px;
   height: 46px;
@@ -3527,6 +3540,8 @@ button.kid-avatar.latiendo { animation: latido-aviso 2.6s var(--ease-salida) inf
   transition: transform var(--t-rapido) var(--ease-salida);
 }
 .kid-gracias-cara:active { transform: scale(0.92); }
+/* Con retrato, el aro ya pone el color y el borde: la cara suelta los suyos. */
+.kid-gracias-cara.con-retrato { background: none; border: none; width: auto; height: auto; }
 .kid-gracias-cara:disabled { opacity: 0.55; }
 .kid-gracias-estrella {
   position: absolute;

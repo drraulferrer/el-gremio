@@ -15,6 +15,8 @@ import { ESPECIES, EMOJI_DE_ESPECIE, catalogoDe, premiosDe, filaDeMision, filaDe
 import { GENEROS, flex, generoDe } from '../lib/genero'
 import { Modal, Gema, Talis } from '../components/ui'
 import Icono from '../components/Icono'
+import Retrato from '../components/Retrato'
+import { PIELES, PELOS, PEINADOS, piezasDe, faseDePerfil } from '../lib/retratos'
 
 // ------------------------------------------------------------------
 // Gestión de miembros del gremio.
@@ -172,7 +174,7 @@ export default function Miembros({ family, data, refresh }) {
       {activos.map((p) => (
         <div className="carta" key={p.id}>
           <div className="fila">
-            <div className="avatar" style={{ borderColor: p.color }}>{p.emoji}</div>
+            <Retrato perfil={p} tamano={46} />
             <div className="crece">
               <strong>{p.name}</strong>
               <div className="suave">
@@ -204,7 +206,7 @@ export default function Miembros({ family, data, refresh }) {
           {retirados.map((p) => (
             <div className="carta" key={p.id} style={{ opacity: 0.6 }}>
               <div className="fila">
-                <div className="avatar" style={{ borderColor: p.color }}>{p.emoji}</div>
+                <Retrato perfil={p} tamano={46} />
                 <div className="crece">
                   <strong>{p.name}</strong>
                   <div className="suave">{flex(ROLE_LABEL[p.role], generoDe(p))} · {p.xp} XP</div>
@@ -329,7 +331,65 @@ function FormMiembro({ miembro, ocupado, onGuardar, onClose }) {
         </span>
       </div>
 
+      {/* El retrato solo tiene sentido en las personas: una mascota lleva
+          medallón de emoji y no tiene fase (migración 035). */}
+      {m.role !== 'mascota' && (
+        <div className="campo">
+          <label>Retrato</label>
+          <div className="fila" style={{ alignItems: 'center', gap: 14, marginBottom: 10 }}>
+            <Retrato perfil={m} tamano={78} vista="cuerpo" />
+            <span className="suave crece">
+              La figura gana equipo al subir de nivel: no se compra ni se elige, se alcanza.
+              Ahora mismo, <strong>{flex(faseDePerfil(m).nombre, m.gender || 'neutro')}</strong>.
+            </span>
+          </div>
+
+          <label>Piel</label>
+          <div className="grid-colores">
+            {PIELES.map((x) => (
+              <button
+                key={x.id}
+                className={piezasDe(m).piel === x.id ? 'sel' : ''}
+                style={{ background: x.hex }}
+                onClick={() => set({ retrato_piel: x.id })}
+                aria-label={'Piel ' + x.id}
+              />
+            ))}
+          </div>
+
+          <label>Pelo</label>
+          <div className="grid-colores">
+            {PELOS.map((x) => (
+              <button
+                key={x.id}
+                className={piezasDe(m).pelo === x.id ? 'sel' : ''}
+                style={{ background: x.hex }}
+                onClick={() => set({ retrato_pelo: x.id })}
+                aria-label={'Pelo ' + x.id}
+              />
+            ))}
+          </div>
+
+          <label>Peinado</label>
+          <div className="grid-habilidades">
+            {PEINADOS.map((x) => (
+              <button
+                key={x.id}
+                type="button"
+                className={'pastilla-habilidad' + (piezasDe(m).peinado === x.id ? ' sel' : '')}
+                onClick={() => set({ retrato_peinado: x.id })}
+              >
+                {x.nombre}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="campo">
+        {/* El emoji no se va: sigue siendo el respaldo del retrato y lo
+            único que llevan las mascotas. También es lo que ven los
+            clientes viejos que aún no han recargado. */}
         <label>Emoji</label>
         <div className="grid-emojis">
           {EMOJIS.map((e) => (

@@ -73,7 +73,7 @@ modo peque, la capa de producción y la gestión de miembros.
 | Supabase | proyecto `chfbrawsoulfiywiqhpe`, Postgres 17.6, región EU |
 | Edge Function | `notificar`, versión 5, `verify_jwt` en false |
 | Versión publicada | ver `npm run health` (lee `version.json`, que ahora se emite en el build) |
-| Tests | 1.013, en 59 ficheros, todos en verde (24-ago) |
+| Tests | 1.110, en 63 ficheros, todos en verde (24-ago) |
 
 Comprobar que sigue vivo:
 
@@ -4012,3 +4012,68 @@ cuenta hacia arriba, porque `useContador` monta de cero con Home. Da
 igual: la celebración tapa la pantalla justo en ese momento y cuando se
 va, la cuenta ya habría terminado. Si algún día molesta, la solución es
 la misma que aquí —subir la memoria del contador por encima de Home—.
+
+## 7an. El retrato del gremialista (24 de agosto) · 2.24.0 · **MIGRACIÓN 035 SIN EJECUTAR**
+
+Un perfil ya no es un emoji: es una figura por capas que gana equipo al
+subir de nivel. Nueve fases del nivel 1 al 50. El detalle completo, con
+las dos alternativas que se descartaron y por qué, está en
+[`docs/RETRATO.md`](docs/RETRATO.md); el prototipo con el que se decidió,
+en `docs/prototipos/retrato.html`.
+
+### Lo que hay que hacer antes de que esto sirva de algo
+
+1. **Ejecutar `migracion-035-retrato.sql`** en el SQL Editor de Supabase.
+   No está ejecutada. Hasta que lo esté, el cliente nuevo funciona igual
+   —`piezasDe()` rellena con los valores por defecto— pero nadie puede
+   guardar su elección: el `update` fallará por columna inexistente.
+2. **Desplegar**, que aquí es deliberado: `git push origin main`, luego
+   `npm run vercel`, luego `npm run health` (§7n).
+
+La 035 **no rompe al cliente viejo**: solo añade columnas nullables y
+`emoji` sigue en su sitio como respaldo. Por eso la versión es menor y el
+rollback de frontend sigue siendo seguro por sí solo.
+
+### Tres decisiones que conviene no deshacer
+
+- **La fase se calcula contra `xp_maxima`, nunca contra `xp`.** Deshacer
+  devuelve la XP; si el personaje se desvistiera al deshacer, deshacer
+  sería un castigo y la familia dejaría de hacerlo. Lo mantiene el trigger
+  `trg_marca_de_agua_xp` y no el cliente, porque hay cuatro caminos que
+  tocan `xp` y basta que uno se olvide. Mismo razonamiento que el rango
+  del Estandarte.
+- **Los niveles de las fases no son números redondos.** Están puestos en
+  hitos de calendario (una semana, un mes, tres, seis, un año, dos,
+  cuatro, siete) con la economía de `economia.js`. La curva es cuadrática:
+  repartir por nivel daría saltos de años. Hay un test que lo defiende.
+- **Las listas usan `vista="cabeza"` aunque quepa el cuerpo.** El picker
+  se probó a 72 px con cuerpo entero: el farol salía como una caja gris
+  suelta y encima se perdía el aro, que es lo que lleva la fase. El equipo
+  se mira en la ficha.
+
+### Dos trampas que salieron por el camino, ya pagadas
+
+**`schema.sql` no se podía ejecutar de cero.** Ocho líneas de comentario
+habían perdido sus `--` dentro del `create table profiles`. La base de
+producción no estaba afectada porque se construyó por migraciones, pero
+montar un gremio nuevo siguiendo el README fallaba con error de sintaxis.
+Arreglado. Merece la pena mirar el fichero entero de vez en cuando: nadie
+lo ejecuta nunca y por eso puede llevar meses roto sin que nadie lo note.
+
+**Un componente usado sin importar pasa el build.** Vite empaqueta tan
+tranquilo y revienta en pantalla con `ReferenceError`, en la ruta donde
+vive ese componente. Pasó dos veces cableando el retrato —Cuadro y
+Panorama— y las dos el build dio verde. Ahora lo cierra
+`tests/imports.test.js`, que recorre `src/` y comprueba que todo lo que se
+usa como `<Componente>` está importado o definido en el fichero.
+
+### El modo demo se alineó a mano
+
+`fakeBackend.js` copia a propósito las restricciones del esquema, así que
+también lleva la 035: los defectos de `profiles`, el CHECK
+`profiles_retrato_solo_personas` y el espejo del trigger. Ese último va en
+`escribir()` y no en el update de `Consulta` porque las RPC tocan
+`profiles` y escriben directas: en Postgres las cubre un trigger BEFORE y
+aquí el único punto equivalente es la escritura. Si estuviera en el
+update, deshacer bajaría la marca en demo y no en producción, y el
+personaje se desvestiría solo en el sitio donde se prueba.

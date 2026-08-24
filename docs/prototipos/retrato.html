@@ -1,0 +1,447 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>El Gremio · escalera de retrato</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Inter:wght@400;600&family=Baloo+2:wght@600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --tablero:#141428;--carta:#1d1d36;--carta-alta:#26264a;--linea:#33335c;
+    --tinta:#eaeaf4;--tinta-suave:#9a9ac0;--oro:#f2b33d;--teal:#4fc4b5;
+    --pergamino:#f5efe0;--pergamino-linea:#e8dcc2;--pergamino-tinta:#3a3020;
+    --display:'Fraunces',Georgia,serif;--cuerpo:'Inter',system-ui,sans-serif;--peque:'Baloo 2',sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:#0a0a16;color:var(--tinta);font-family:var(--cuerpo);line-height:1.55;padding:30px 20px 70px}
+  .wrap{max-width:1120px;margin:0 auto}
+  h1{font-family:var(--display);font-size:1.85rem;margin:0 0 6px}
+  h2{font-family:var(--display);font-size:1.2rem;margin:40px 0 4px;border-top:1px solid var(--linea);padding-top:20px}
+  h2:first-of-type{border-top:none;margin-top:26px}
+  .lede{color:var(--tinta-suave);max-width:70ch;margin:0 0 14px;font-size:.92rem}
+  .panel{border-radius:16px;padding:20px;margin:12px 0}
+  .oscuro{background:var(--tablero);border:1px solid var(--linea)}
+  .crema{background:var(--pergamino);border:1px solid var(--pergamino-linea);color:var(--pergamino-tinta)}
+  .etiqueta{font-size:.64rem;text-transform:uppercase;letter-spacing:.09em;color:var(--tinta-suave);margin:0 0 12px}
+  .crema .etiqueta{color:#8a7a5c}
+  .escalera{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:6px}
+  .paso{text-align:center;padding:6px 2px;border-radius:12px}
+  .paso:hover{background:var(--carta)}
+  .nv{font-family:var(--display);font-size:.72rem;color:var(--oro);letter-spacing:.03em}
+  .nb{font-family:var(--display);font-size:.86rem;margin-top:2px;line-height:1.25}
+  .eq{font-size:.66rem;color:var(--tinta-suave);line-height:1.35;margin-top:3px}
+  .tm{font-size:.62rem;color:var(--teal);margin-top:3px}
+  .crema .nb{color:var(--pergamino-tinta)} .crema .eq{color:#6b5c42}
+  table{border-collapse:collapse;width:100%}
+  td,th{padding:9px 6px;text-align:center;vertical-align:middle}
+  th{font-size:.64rem;text-transform:uppercase;letter-spacing:.07em;color:var(--tinta-suave);font-weight:600}
+  tbody tr+tr{border-top:1px solid rgba(128,128,160,.28)}
+  .crema th{color:#8a7a5c}
+  .px{font-family:var(--display);font-size:.8rem;color:var(--tinta-suave)}
+  .crema .px{color:#6b5c42}
+  .par{display:flex;gap:14px;flex-wrap:wrap}.par>*{flex:1;min-width:300px}
+  .fila{display:flex;gap:18px;align-items:center;margin-bottom:10px;flex-wrap:wrap}
+  .picker{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;max-width:600px}
+  .picker button{background:var(--carta);border:2px solid;border-radius:18px;padding:12px 8px;display:flex;
+    flex-direction:column;align-items:center;gap:5px;color:var(--tinta);font-family:inherit;cursor:pointer}
+  .picker .nombre{font-family:var(--display);font-size:.92rem}
+  .picker .sub{font-size:.62rem;color:var(--tinta-suave)}
+  .nota{background:var(--carta);border-left:3px solid var(--oro);border-radius:0 12px 12px 0;padding:13px 17px;margin:14px 0;max-width:74ch;font-size:.88rem}
+  .nota b{color:var(--oro);font-family:var(--display)}
+  code{background:var(--carta-alta);padding:1px 5px;border-radius:4px;font-size:.85em}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Retrato del gremialista · la escalera</h1>
+  <p class="lede">Nueve fases entre el nivel 1 y el 50. No están puestas en números redondos: están puestas en
+  <b>hitos de calendario</b> —una semana, un mes, tres, seis, un año, dos, cuatro, siete— calculados con la economía
+  real de <code>economia.js</code> (48 XP/día un adulto, 72 la junior). El nivel es la consecuencia, no la causa.</p>
+
+  <h2>1 · Las nueve fases</h2>
+  <p class="lede">Acumulativas. El equipo cambia la <b>silueta</b>, nunca el tamaño: dos miembros de fases distintas
+  ocupan lo mismo, que es lo que exige «sin ranking entre miembros». El oro entra en la fase 4 y la luz se enciende en la 8.</p>
+  <div class="panel oscuro"><p class="etiqueta">Tablero · el mundo del gremio</p><div class="escalera" id="esc-osc"></div></div>
+  <div class="panel crema"><p class="etiqueta">Pergamino · el mundo de la peque</p><div class="escalera" id="esc-cre"></div></div>
+
+  <h2>2 · Tamaños reales</h2>
+  <p class="lede">Fase 9, la más cargada. Confirma la regla: por debajo de 64 px se recorta a la cabeza. El arco dorado
+  del aro sustituye a las muescas —con nueve fases no cabían— y degrada sin molestar cuando ya no se lee.</p>
+  <div class="par">
+    <div class="panel oscuro"><p class="etiqueta">Tablero</p><table><thead><tr><th></th><th>Cuerpo</th><th>Cabeza + aro</th></tr></thead><tbody id="t-osc"></tbody></table></div>
+    <div class="panel crema"><p class="etiqueta">Pergamino</p><table><thead><tr><th></th><th>Cuerpo</th><th>Cabeza + aro</th></tr></thead><tbody id="t-cre"></tbody></table></div>
+  </div>
+
+  <h2>3 · Identidad a tamaño hostil</h2>
+  <p class="lede">Cuatro miembros en fases distintas, a 30 y 40 px. Es donde apareció el fallo de contraste: pelo y piel
+  oscuros sobre el tablero índigo. El disco de fondo lo corrige.</p>
+  <div class="par">
+    <div class="panel oscuro"><p class="etiqueta">Tablero · con disco de fondo</p><div id="id-osc"></div></div>
+    <div class="panel crema"><p class="etiqueta">Pergamino</p><div id="id-cre"></div></div>
+  </div>
+
+  <h2>4 · Mascotas: medallón de emoji</h2>
+  <p class="lede">Decisión del 24-ago-2026: los perfiles con <code>role='mascota'</code> se quedan con emoji de momento.
+  El medallón les da el mismo aro y el mismo tamaño que a las personas sin obligar a una segunda vía de piezas. Sin arco: la mascota no tiene fase.</p>
+  <div class="panel oscuro"><p class="etiqueta">ProfilePicker · familia mixta</p><div class="picker" id="picker"></div></div>
+
+  <h2>5 · Coste del set</h2>
+  <div class="nota" id="coste"></div>
+</div>
+<script>
+// ------------------------------------------------------------------
+// Retrato paramétrico · prototipo de de-riesgo
+//
+// La tesis que hay que probar o tumbar: se puede separar LO QUE CRECE
+// (la silueta y el equipo, por fases) de LO QUE IDENTIFICA (cabeza,
+// pelo, color), dibujando cada pieza UNA vez y anclándola a puntos
+// normalizados. Si eso se sostiene, el set no explota: 4-5 fases + N
+// piezas, no 4-5 × N.
+//
+// Y la restricción dura: por debajo de ~64 px se recorta a la cabeza.
+// Este fichero renderiza las dos versiones desde la MISMA geometría,
+// que es justo lo que hay que poder comparar.
+// ------------------------------------------------------------------
+
+// Puntos de anclaje. Todo lo que se cuelga del cuerpo se posiciona
+// contra estos, nunca contra coordenadas sueltas: es lo que permite
+// mover un hombro y que el manto lo siga.
+const A = {
+  cabeza: { cx: 50, cy: 34, r: 20 },
+  hombroI: [30, 66],
+  hombroD: [70, 66],
+  cintura: [50, 90],
+  manoD: [77, 103]
+}
+
+// ------------------------------------------------------------------
+// La escalera de fases.
+//
+// Tope en nivel 50 (decisión de la familia, 24-ago-2026: «de momento»).
+// Con la economía declarada en economia.js —8 misiones activas, 60 % de
+// adherencia— un adulto gana 48 XP/día y la junior 72. La curva de nivel
+// es 50·L·(L-1), o sea cuadrática: cualquier reparto de fases a
+// intervalos regulares de NIVEL da saltos de TIEMPO que crecen sin parar.
+//
+// Por eso las fases no están puestas en números redondos sino en hitos
+// de calendario del adulto —una semana, un mes, tres, seis, un año, dos,
+// cuatro, siete— y el nivel es la consecuencia, no la causa. La junior
+// llega antes a todas porque hace más, que es justo lo que debe pasar.
+//
+// Los nombres son PROVISIONALES y no cuestan nada de cambiar: van con
+// las tres formas del sistema de género (femenino|masculino|sin decir),
+// igual que el resto de textos de la app.
+// ------------------------------------------------------------------
+
+const NIVEL_TOPE = 50
+
+const FASES = [
+  { n: 1, nivel: 1,  nombre: 'Aprendiz',                              equipo: 'Túnica y cinto de cuerda' },
+  { n: 2, nivel: 3,  nombre: 'Ayudante',                              equipo: '+ pañuelo al cuello' },
+  { n: 3, nivel: 6,  nombre: '{Artesana|Artesano|Artesanía}',         equipo: '+ delantal del taller' },
+  { n: 4, nivel: 10, nombre: '{Forjadora|Forjador|Forja}',            equipo: '+ cinto con hebilla · primer oro' },
+  { n: 5, nivel: 14, nombre: '{Maestra|Maestro|Maestría}',            equipo: '+ manto corto' },
+  { n: 6, nivel: 20, nombre: '{Decana|Decano|Decanato}',              equipo: '+ broche del gremio' },
+  { n: 7, nivel: 27, nombre: '{Guardiana|Guardián|Guardia}',          equipo: '+ farol, aún apagado' },
+  { n: 8, nivel: 38, nombre: '{Insigne|Insigne|Insigne}',             equipo: '+ farol encendido' },
+  { n: 9, nivel: 50, nombre: '{Custodia|Custodio|Custodia} del taller', equipo: '+ filigrana en el manto' }
+]
+
+/** XP acumulada que exige un nivel. Copiada de supabase.js a propósito:
+ *  el prototipo no importa nada de la app. */
+function xpDeNivel(nivel) {
+  return 50 * nivel * (nivel - 1)
+}
+
+/**
+ * La fase que toca a un nivel dado. Por encima del tope se queda en la
+ * última: el nivel sigue subiendo (la curva no tiene techo), lo que se
+ * acaba es el dibujo.
+ */
+function faseDeNivel(nivel) {
+  let f = FASES[0]
+  for (const x of FASES) if (nivel >= x.nivel) f = x
+  return f
+}
+
+/**
+ * REGLA DE MARCA DE AGUA. La fase se calcula contra el nivel MÁXIMO
+ * alcanzado, nunca contra el actual. Deshacer una validación devuelve la
+ * XP —«todo se puede deshacer», README— y si el personaje se desvistiera
+ * al deshacer, deshacer se sentiría como un castigo. Mismo razonamiento
+ * que el rango del Estandarte, que sobrevive al cierre de una meta.
+ */
+function faseDePerfil(perfil) {
+  return faseDeNivel(Math.max(perfil.nivel || 1, perfil.nivelMaximo || 1))
+}
+
+/** Días que tarda un rol en llegar a un nivel, con los supuestos de economia.js */
+function diasHasta(nivel, xpPorDia) {
+  return Math.round(xpDeNivel(nivel) / xpPorDia)
+}
+
+const XP_DIA = { adulto: 48, junior: 72 }
+
+
+const ORO = '#f2b33d'
+const ORO_CLARO = '#ffd77a'
+const ORO_HONDO = '#c9821f'
+
+function mezcla(hex, f, hacia) {
+  const n = parseInt(hex.slice(1), 16)
+  const c = [(n >> 16) & 255, (n >> 8) & 255, n & 255]
+  const d = c.map((v) => Math.round(hacia === 'claro' ? v + (255 - v) * f : v * (1 - f)))
+  return '#' + d.map((v) => v.toString(16).padStart(2, '0')).join('')
+}
+const oscuro = (h, f) => mezcla(h, f, 'oscuro')
+const claro = (h, f) => mezcla(h, f, 'claro')
+
+let _uid = 0
+
+// --- piezas ---------------------------------------------------------
+
+function pelo(estilo, col, uid) {
+  // Detrás de la cabeza: volumen. Delante: recortado al cráneo.
+  let detras = ''
+  if (estilo === 'largo') {
+    detras =
+      '<path d="M28,30 q-5,20 -1,30 q7,4 10,-2 q-5,-14 -3,-28 z" fill="' + col + '"/>' +
+      '<path d="M72,30 q5,20 1,30 q-7,4 -10,-2 q5,-14 3,-28 z" fill="' + col + '"/>'
+  }
+  if (estilo === 'rizado') {
+    detras =
+      '<circle cx="35" cy="21" r="9" fill="' + col + '"/>' +
+      '<circle cx="50" cy="14" r="10" fill="' + col + '"/>' +
+      '<circle cx="65" cy="21" r="9" fill="' + col + '"/>'
+  }
+  const delante =
+    '<defs><clipPath id="' + uid + '-h"><circle cx="50" cy="34" r="20"/></clipPath></defs>' +
+    '<g clip-path="url(#' + uid + '-h)"><rect x="28" y="12" width="44" height="' +
+    (estilo === 'rizado' ? 16 : 14) + '" fill="' + col + '"/></g>'
+  return { detras, delante }
+}
+
+function cara(piel, uid, p) {
+  const h = pelo(p.peinado, p.pelo, uid)
+  return (
+    h.detras +
+    '<circle cx="31" cy="37" r="4.5" fill="' + piel + '"/>' +
+    '<circle cx="69" cy="37" r="4.5" fill="' + piel + '"/>' +
+    '<circle cx="50" cy="34" r="20" fill="' + piel + '"/>' +
+    h.delante +
+    '<circle cx="43" cy="37" r="2.9" fill="#1b1b2e"/>' +
+    '<circle cx="57" cy="37" r="2.9" fill="#1b1b2e"/>' +
+    '<path d="M45,45 q5,4.5 10,0" stroke="#1b1b2e" stroke-width="2" fill="none" stroke-linecap="round"/>'
+  )
+}
+
+function cuerpo(color, piel) {
+  const manga = oscuro(color, 0.18)
+  const pierna = oscuro(color, 0.5)
+  return (
+    // piernas
+    '<rect x="39" y="102" width="10" height="31" rx="5" fill="' + pierna + '"/>' +
+    '<rect x="51" y="102" width="10" height="31" rx="5" fill="' + pierna + '"/>' +
+    // brazos, anclados a los hombros. Tono propio para que no se coman
+    // con el torso: a 40 px un brazo del mismo color desaparece.
+    '<path d="M34,71 q-8,15 -8,29" stroke="' + manga + '" stroke-width="10" fill="none" stroke-linecap="round"/>' +
+    '<path d="M66,71 q8,15 8,29" stroke="' + manga + '" stroke-width="10" fill="none" stroke-linecap="round"/>' +
+    // cuello
+    '<rect x="45" y="50" width="10" height="11" rx="4" fill="' + oscuro(piel, 0.18) + '"/>' +
+    // torso
+    '<path d="M33,67 Q50,60 67,67 L70,104 Q50,109 30,104 Z" fill="' + color + '"/>' +
+    // manos
+    '<circle cx="26" cy="101" r="5.5" fill="' + piel + '"/>' +
+    '<circle cx="74" cy="101" r="5.5" fill="' + piel + '"/>'
+  )
+}
+
+function equipo(fase, color, uid) {
+  const f = fase
+  let s = ''
+
+  // 1 · cinto de cuerda. Sin oro: todavía no hay nada que reconocer.
+  if (f >= 1 && f < 4) {
+    s += '<rect x="32" y="87" width="36" height="4" rx="2" fill="' + oscuro(color, 0.4) + '"/>'
+  }
+  // 2 · pañuelo al cuello
+  if (f >= 2) {
+    s += '<path d="M39,58 L61,58 L50,76 Z" fill="' + oscuro(color, 0.5) + '"/>'
+  }
+  // 3 · delantal del taller
+  if (f >= 3) {
+    s += '<path d="M40,73 L60,73 L63,104 Q50,108 37,104 Z" fill="' + claro(color, 0.6) + '"/>'
+  }
+  // 4 · cinto con hebilla. Aquí entra el oro por primera vez, y entra
+  //     como reconocimiento: es la fase del primer mes largo.
+  if (f >= 4) {
+    s += '<rect x="30" y="85" width="40" height="7" rx="2.5" fill="#2b2118"/>' +
+         '<rect x="45" y="83" width="10" height="11" rx="2.5" fill="' + ORO + '"/>'
+  }
+  // 5 · manto. MÁS ANCHO que los hombros: cambiar la silueta es lo único
+  //     que hace legible una fase de un vistazo.
+  if (f >= 5) {
+    s += '<path d="M23,73 Q50,57 77,73 L81,93 Q66,86 50,86 Q34,86 19,93 Z" fill="' + oscuro(color, 0.55) + '"/>'
+  }
+  // 6 · broche del gremio
+  if (f >= 6) {
+    s += '<circle cx="50" cy="67" r="4.5" fill="' + ORO + '"/>'
+  }
+  // 9 · filigrana en el borde del manto (se dibuja sobre él)
+  if (f >= 9) {
+    s += '<path d="M19,93 Q34,86 50,86 Q66,86 81,93" stroke="' + ORO +
+         '" stroke-width="2" fill="none" stroke-linecap="round"/>'
+  }
+  // 7 y 8 · el farol: primero se lleva, después se enciende. Separarlos
+  //     en dos fases es deliberado: encender la luz del taller es el
+  //     gesto que da nombre a toda la paleta de la app.
+  if (f >= 7) {
+    const encendido = f >= 8
+    if (encendido) {
+      s += '<defs><radialGradient id="' + uid + '-g">' +
+           '<stop offset="0%" stop-color="' + ORO_CLARO + '" stop-opacity="0.9"/>' +
+           '<stop offset="55%" stop-color="' + ORO + '" stop-opacity="0.28"/>' +
+           '<stop offset="100%" stop-color="' + ORO + '" stop-opacity="0"/>' +
+           '</radialGradient></defs>' +
+           '<circle cx="83" cy="112" r="21" fill="url(#' + uid + '-g)"/>'
+    }
+    s += '<path d="M75,100 q4,-3 8,4" stroke="' + (encendido ? ORO_HONDO : '#5a5a72') +
+         '" stroke-width="2.2" fill="none" stroke-linecap="round"/>' +
+         '<rect x="76" y="104" width="14" height="17" rx="3" fill="#1d1d36" stroke="' +
+         (encendido ? ORO : '#5a5a72') + '" stroke-width="2"/>' +
+         '<circle cx="83" cy="113" r="4.2" fill="' + (encendido ? ORO_CLARO : '#3a3a52') + '"/>'
+  }
+  return s
+}
+
+// ------------------------------------------------------------------
+// Mascotas: se quedan con emoji, de momento (decisión del 24-ago-2026).
+//
+// Un perro es un perfil con role='mascota' y sale en las mismas listas
+// que las personas, así que necesita ALGO. El medallón le da el mismo
+// aro y el mismo tamaño que a los demás sin obligar a dibujar una
+// segunda vía de piezas. Sin muescas: la mascota no tiene fase.
+// ------------------------------------------------------------------
+function medallon(emoji, color, size) {
+  return '<svg width="' + size + '" height="' + size + '" viewBox="18 2 64 64" xmlns="http://www.w3.org/2000/svg">' +
+    '<circle cx="50" cy="34" r="27" fill="#1d1d36" stroke="' + color + '" stroke-width="3"/>' +
+    '<text x="50" y="34" text-anchor="middle" dominant-baseline="central" font-size="30">' + emoji + '</text>' +
+    '</svg>'
+}
+
+
+// --- render ---------------------------------------------------------
+
+// El aro. Con 3 fases llevaba muescas doradas; con 9 no caben, y la
+// prueba de tamaño ya había demostrado que a 30 px una muesca es una
+// mota. Un ARCO proporcional se lee mucho antes y, cuando no se lee,
+// no molesta: parece un aro con un reflejo. Degradar bien importa más
+// que ser preciso, porque abajo lo único que hace falta es saber quién es.
+function aro(color, fase) {
+  const R = 27
+  const vuelta = 2 * Math.PI * R
+  const arco = (vuelta * fase) / FASES.length
+  return (
+    '<circle cx="50" cy="34" r="' + R + '" fill="none" stroke="' + color + '" stroke-width="3"/>' +
+    '<circle cx="50" cy="34" r="' + R + '" fill="none" stroke="' + ORO + '" stroke-width="3.4"' +
+    ' stroke-linecap="round" stroke-dasharray="' + arco.toFixed(1) + ' 999"' +
+    ' transform="rotate(-90 50 34)"/>'
+  )
+}
+
+function retrato(p, opt) {
+  opt = opt || {}
+  const uid = 'r' + ++_uid
+  const solo = !!opt.soloCabeza
+  const size = opt.size || 130
+  const vb = solo ? '18 2 64 64' : '0 -2 100 140'
+  const alto = solo ? size : Math.round(size * 1.42)
+  const cuerpoSvg = solo ? '' : cuerpo(p.color, p.piel) + equipo(p.fase, p.color, uid)
+  // Disco de fondo. Corrige el fallo que solo apareció al renderizar:
+  // un miembro de pelo y piel oscuros se disolvía en el tablero índigo a
+  // 30 px y quedaba el aro flotando sin cara dentro. Un disco claro muy
+  // tenue devuelve la silueta sin ensuciar la paleta. En pergamino no
+  // hace falta: el fondo ya es claro.
+  const discoSvg = solo && opt.disco
+    ? '<circle cx="50" cy="34" r="25.5" fill="#eaeaf4" opacity="0.14"/>'
+    : ''
+  const aroSvg = solo && opt.aro !== false ? aro(p.color, p.fase) : ''
+  return (
+    '<svg width="' + size + '" height="' + alto + '" viewBox="' + vb + '" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="' +
+    p.nombre + ', fase ' + p.fase + '">' +
+    discoSvg + aroSvg + cuerpoSvg + cara(p.piel, uid, p) +
+    '</svg>'
+  )
+}
+
+const MIEMBROS = [
+  { nombre: 'Miembro A', color: '#4fc4b5', piel: '#f0c9a8', pelo: '#2b2118', peinado: 'corto' },
+  { nombre: 'Miembro B', color: '#ff7a6e', piel: '#a9724a', pelo: '#1f1710', peinado: 'rizado' },
+  { nombre: 'Miembro C', color: '#7c9ce8', piel: '#d9a173', pelo: '#5a3a22', peinado: 'largo' },
+  { nombre: 'Miembro D', color: '#b57edc', piel: '#7a4f30', pelo: '#2b2118', peinado: 'rizado' }
+]
+
+</script>
+<script>
+  const $ = (i) => document.getElementById(i)
+  // Tercera forma: la de «sin especificar», que es el valor por defecto
+  // y por tanto la que más se lee en la app.
+  const flex = (t) => t.replace(/\{([^}]*)\}/g, (_, g) => g.split('|')[2] || g.split('|')[0])
+  const M = MIEMBROS
+
+  for (const [id, size] of [['esc-osc', 108], ['esc-cre', 108]]) {
+    $(id).innerHTML = FASES.map((f) =>
+      '<div class="paso">' + retrato({ ...M[0], fase: f.n }, { size }) +
+      '<div class="nv">NIVEL ' + f.nivel + '</div>' +
+      '<div class="nb">' + flex(f.nombre) + '</div>' +
+      '<div class="eq">' + f.equipo + '</div>' +
+      '<div class="tm">' + diasHasta(f.nivel, XP_DIA.adulto) + ' d</div></div>'
+    ).join('')
+  }
+
+  const USOS = { 30: 'plan-toggle', 40: 'Cuadro · .avatar', 64: 'Home · cabecera' }
+  for (const id of ['t-osc', 't-cre']) {
+    $(id).innerHTML = [30, 40, 64].map((px) =>
+      '<tr><td class="px">' + px + ' px</td>' +
+      '<td>' + retrato({ ...M[0], fase: 9 }, { size: px }) + '</td>' +
+      '<td>' + retrato({ ...M[0], fase: 9 }, { size: px, soloCabeza: true }) + '</td></tr>'
+    ).join('')
+  }
+
+  for (const [id, disco] of [['id-osc', true], ['id-cre', false]]) {
+    $(id).innerHTML = [30, 40].map((px) =>
+      '<div class="fila"><span class="px" style="width:38px">' + px + ' px</span>' +
+      M.map((m, i) => retrato({ ...m, fase: [2, 5, 7, 9][i] }, { size: px, soloCabeza: true, disco })).join('') +
+      '</div>').join('')
+  }
+
+  const FAMILIA = [
+    { ...M[0], fase: 5, nombre: 'Adulta', sub: 'nivel 14' },
+    { ...M[1], fase: 9, nombre: 'Adulto', sub: 'nivel 50' },
+    { ...M[2], fase: 3, nombre: 'Junior', sub: 'nivel 7' },
+    { ...M[3], fase: 1, nombre: 'Peque', sub: 'nivel 2' }
+  ]
+  $('picker').innerHTML =
+    FAMILIA.map((m) =>
+      '<button style="border-color:' + m.color + '">' +
+      retrato(m, { size: 62, soloCabeza: true, disco: true }) +
+      '<span class="nombre">' + m.nombre + '</span><span class="sub">' + m.sub + '</span></button>'
+    ).join('') +
+    ['🐕', '🐈'].map((e, i) =>
+      '<button style="border-color:' + ['#c9a227', '#8a8ab0'][i] + '">' +
+      medallon(e, ['#c9a227', '#8a8ab0'][i], 62) +
+      '<span class="nombre">' + ['Perro', 'Gato'][i] + '</span><span class="sub">sin fase</span></button>'
+    ).join('')
+
+  const piezas = 9 + 3 + 1
+  $('coste').innerHTML =
+    '<b>Piezas dibujadas:</b> ' + FASES.length + ' fases de equipo + 3 peinados + 1 cara = ' + piezas + '. ' +
+    'Con 4 tonos de piel dan ' + (FASES.length * 3 * 4) + ' retratos distintos.<br><br>' +
+    '<b>Si fuera combinatorio</b> —cada fase dibujada con cada peinado— serían ' + (FASES.length * 3) +
+    ' dibujos solo con 3 peinados, y con un set real de 12 peinados pasaría de ' + (FASES.length * 12) + '. ' +
+    'El anclaje a <code>hombro</code>/<code>cintura</code>/<code>mano</code> es lo que mantiene el coste lineal en vez de multiplicativo.'
+</script>
+</body>
+</html>

@@ -9,6 +9,7 @@ import { tocarEstrella, sonidoActivo, alternarSonido } from '../lib/sonido'
 import { vibrar, LOGRO } from '../lib/vibrar'
 import { log } from '../lib/log'
 import Icono from '../components/Icono'
+import Retrato from '../components/Retrato'
 import { useMantenerPulsado } from '../lib/mantenerPulsado'
 import { flex, generoDe } from '../lib/genero'
 import { premiosParaPeque, estrellasDe, estrellasQueCuesta } from '../lib/premios'
@@ -228,12 +229,11 @@ export default function KidHome({ family, data, profile, refresh, onSalir }) {
 
       <header className="kid-cabecera">
         <button
-          className={'kid-avatar' + (latido || muroNuevo ? ' latiendo' : '')}
-          style={{ background: profile.color }}
+          className={'kid-avatar con-retrato' + (latido || muroNuevo ? ' latiendo' : '')}
           onClick={abrirFicha}
           aria-label={`Ver lo que ha hecho ${profile.name}`}
         >
-          {profile.emoji}
+          <Retrato perfil={profile} tamano={66} vista="cabeza" disco={false} />
         </button>
         <div className="crece">
           <h1 className="kid-nombre">{profile.name}</h1>
@@ -295,13 +295,12 @@ export default function KidHome({ family, data, profile, refresh, onSalir }) {
             {gente.map((p) => (
               <button
                 key={p.id}
-                className="kid-gracias-cara"
-                style={{ background: p.color }}
+                className="kid-gracias-cara con-retrato"
                 disabled={gracias === p.id}
                 onClick={() => darGraciasA(p)}
                 aria-label={`Dar las gracias a ${p.name}`}
               >
-                <span aria-hidden="true">{p.emoji}</span>
+                <Retrato perfil={p} tamano={58} vista="cabeza" disco={false} />
                 <span className="kid-gracias-estrella" aria-hidden="true">⭐</span>
               </button>
             ))}

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { perfilesActivos } from '../lib/miembros'
 import { Modal, Talis } from '../components/ui'
 import Icono from '../components/Icono'
+import Retrato from '../components/Retrato'
 import SelectorEmoji from '../components/SelectorEmoji'
 import { GRUPOS_EMOJI_MISION } from '../lib/emojis'
 import { lanzarCampanaLimpieza, cerrarCampanaLimpieza } from '../lib/acciones'
@@ -78,7 +79,7 @@ function CierreDeCampana({ cierre, onClose }) {
       </p>
       {cierre.botin.map((b) => (
         <div className="fila" key={b.perfil.id} style={{ padding: '4px 4px' }}>
-          <div className="avatar" style={{ borderColor: b.perfil.color }}>{b.perfil.emoji}</div>
+          <Retrato perfil={b.perfil} tamano={46} />
           <span className="crece">{b.perfil.name}</span>
           <span>+<Talis n={b.botin} /></span>
         </div>
@@ -364,7 +365,7 @@ function LanzarCampana({ data, refresh, onIrACasa }) {
           <div className="titulo-seccion">Lo que se lleva cada cual</div>
           {resumen.map((r) => (
             <div className="fila" key={r.perfil.id} style={{ padding: '4px 4px' }}>
-              <div className="avatar" style={{ borderColor: r.perfil.color }}>{r.perfil.emoji}</div>
+              <Retrato perfil={r.perfil} tamano={46} />
               <span className="crece">{r.perfil.name}</span>
               <span className="suave">
                 {r.tareas} {r.tareas === 1 ? 'tarea' : 'tareas'} · ~{r.minutos} min · +{r.xp} XP · +<Talis n={r.coins} />
@@ -525,7 +526,7 @@ function CampanaEnMarcha({ campana, data, refresh, onCerrada }) {
 
       {porPersona.map((x) => (
         <div className="fila" key={x.perfil.id} style={{ padding: '4px 4px' }}>
-          <div className="avatar" style={{ borderColor: x.perfil.color }}>{x.perfil.emoji}</div>
+          <Retrato perfil={x.perfil} tamano={46} />
           <span className="crece">{x.perfil.name}</span>
           <span className="suave">{x.hechas} de {x.total}</span>
         </div>

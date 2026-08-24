@@ -29,6 +29,7 @@ import { diaDe, lecturaDelDia, relojesDe, saludo, semanaDe } from '../lib/panora
 import { HABILIDADES, rangoDeHabilidad, xpPorHabilidad } from '../lib/habilidades'
 import { retratoDe } from '../lib/retrato'
 import { flex } from '../lib/genero'
+import Retrato from '../components/Retrato'
 
 export default function Panorama({
   data,
@@ -55,9 +56,10 @@ export default function Panorama({
   return (
     <div className="panorama">
       <header className="panorama-cabecera">
+        <Retrato perfil={profile} tamano={52} />
         <div className="crece">
           <p className="panorama-saludo">{saludo(ahora)},</p>
-          <h2 className="panorama-nombre">{profile.emoji} {profile.name}</h2>
+          <h2 className="panorama-nombre">{profile.name}</h2>
         </div>
         <div className="panorama-marcas">
           {/* La misma llama inquieta que el camino de la racha, y por

@@ -1,4 +1,5 @@
 import { Gema } from '../components/ui'
+import Retrato from '../components/Retrato'
 import { RELEASE } from '../lib/version'
 import { modoDemo } from '../lib/supabase'
 
@@ -15,7 +16,7 @@ export default function ProfilePicker({ family, profiles, onPick, onParent, onRe
             style={{ borderColor: p.color }}
             onClick={() => onPick(p.id)}
           >
-            <span className="picker-emoji">{p.emoji}</span>
+            <Retrato perfil={p} tamano={p.role === 'peque' ? 84 : 72} vista="cabeza" />
             <span className="picker-nombre">{p.name}</span>
             {p.role === 'peque' ? <span className="chip">⭐ modo peque</span> : <Gema xp={p.xp} color={p.color} mini />}
           </button>

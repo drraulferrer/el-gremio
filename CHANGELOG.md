@@ -18,6 +18,44 @@ verdad duele en esta app: que el esquema y el cliente dejen de encajar.
 
 ---
 
+## 2.24.0 · 24 de agosto de 2026
+
+**El retrato del gremialista.** Un perfil deja de ser un emoji y pasa a
+ser una figura por capas que gana equipo al subir de nivel: nueve fases
+entre el nivel 1 y el 50, de la túnica del aprendiz al farol encendido de
+quien custodia el taller. El equipo no se compra ni se elige: se alcanza.
+
+Menor y no mayor porque **el cliente viejo no se rompe**: la migración 035
+solo añade columnas nullables y `emoji` sigue donde estaba, sirviendo de
+respaldo. Un navegador sin recargar sigue pintando su emoji sin enterarse,
+y el rollback de frontend sigue siendo seguro por sí solo.
+
+- Las fases están puestas en **hitos de calendario** —una semana, un mes,
+  tres, seis, un año, dos, cuatro, siete— y no en números redondos de
+  nivel: la curva es cuadrática y repartir por nivel daría saltos de
+  tiempo que crecen sin freno. Los niveles salen de ahí.
+- **La fase nunca baja.** Se calcula contra `xp_maxima`, que mantiene un
+  trigger. Deshacer devuelve la XP y no puede desvestir a nadie: si lo
+  hiciera, deshacer se sentiría como un castigo y la familia dejaría de
+  hacerlo.
+- **Las mascotas se quedan con emoji**, en un medallón con el mismo aro y
+  tamaño que las personas. Sin arco de fase: un perro no es aprendiz.
+- Por debajo de 64 px se dibuja solo la cabeza. Se probó lo contrario y a
+  30 px el cuerpo entero es una mancha.
+- Se elige piel, pelo y peinado en **Panel → ⚙️ → Miembros**, con vista
+  previa en vivo.
+
+Además, dos arreglos que salieron por el camino:
+
+- **`schema.sql` estaba roto.** Ocho líneas de comentario habían perdido
+  sus `--` dentro del `create table profiles`, así que el fichero no se
+  podía ejecutar de cero: montar un gremio nuevo siguiendo el README
+  fallaba con un error de sintaxis. La base en producción no estaba
+  afectada, porque se construyó por migraciones.
+- **Test nuevo `imports.test.js`**: un componente usado sin importar no
+  rompe el build, revienta en pantalla. Pasó dos veces cableando esto
+  —Cuadro y Panorama— y las dos el build dio verde.
+
 ## 2.23.2 · 24 de agosto de 2026
 
 **Las celebraciones no salían nunca a quien valida.** «+18 XP · +4 Talis»

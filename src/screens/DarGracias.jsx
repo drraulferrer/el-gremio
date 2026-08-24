@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import Retrato from '../components/Retrato'
 import { Modal } from '../components/ui'
 import {
   darGracias, hechosDe, aQuienPuedoDar, quedanHoy, validarTexto,
@@ -101,7 +102,7 @@ export default function DarGracias({ family, data, profile, genero = 'neutro', o
               style={{ borderColor: p.color }}
               onClick={() => setAQuien(p)}
             >
-              <span className="picker-emoji">{p.emoji}</span>
+              <Retrato perfil={p} tamano={72} vista="cabeza" />
               <span className="picker-nombre">{p.name}</span>
             </button>
           ))}

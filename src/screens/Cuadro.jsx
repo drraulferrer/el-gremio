@@ -19,6 +19,7 @@ import { flex, generoDe } from '../lib/genero'
 import { estadoDeTemporada } from '../lib/temporadas'
 import { ROLE_LABEL } from '../lib/supabase'
 import { Talis } from '../components/ui'
+import Retrato from '../components/Retrato'
 
 const DIA_MS = 86400000
 
@@ -112,7 +113,7 @@ function FichaPersona({ r, challenges }) {
   return (
     <div className="carta">
       <div className="fila" style={{ marginBottom: 10 }}>
-        <div className="avatar" style={{ borderColor: p.color }}>{p.emoji}</div>
+        <Retrato perfil={p} tamano={46} />
         <div className="crece">
           <div className="fila-separada">
             <strong>{p.name}</strong>

@@ -19,6 +19,7 @@
 // ------------------------------------------------------------------
 
 import Icono from '../components/Icono'
+import Retrato from '../components/Retrato'
 import { semanaEnCasillas, resumenDePersona } from '../lib/resumen'
 import { goalProgress } from '../lib/supabase'
 import { flex } from '../lib/genero'
@@ -46,7 +47,7 @@ export default function FichaPeque({ data, profile, genero, onCerrar }) {
   return (
     <div className="kid-tienda kid-ficha" role="dialog" aria-label={`La ficha de ${profile.name}`}>
       <div className="kid-tienda-cabecera">
-        <span className="kid-avatar" style={{ background: profile.color }}>{profile.emoji}</span>
+        <Retrato perfil={profile} tamano={64} vista="cuerpo" disco={false} />
         <span className="kid-tienda-titulo crece">{profile.name}</span>
         <button className="kid-tienda-cerrar" onClick={onCerrar} aria-label="Cerrar">
           <Icono nombre="cerrar" tamano={28} />
