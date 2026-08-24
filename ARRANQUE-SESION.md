@@ -25,6 +25,20 @@ publicada** (§7z, el buzón de fallos), en ese orden. Desde ahora hay un
 sitio nuevo que mirar cada pocos días: la tabla `informes_fallo`, que es
 donde la familia cuenta lo que va mal (RUNBOOK §3b).
 
+**Lo tercero, al 24-ago:** la **2.22.0** (§7aj) trae la gramática de
+respuesta de Duolingo —los números suben en vez de saltar, la celebración
+en tres escalones, la llama que solo se mueve el día que hay algo que
+hacer y el háptico—. **Sin migración: solo bundle.** Y una nota que
+ahorra media hora: sembrar `completions` en la demo con `approved_at` /
+`status:'approved'` revienta la app entera; los campos buenos son
+`requested_at` / `resolved_at` y el estado es `'aprobado'`.
+
+**Y lo que hay que hacer al abrir sesión, si nadie lo ha hecho ya:** la
+2.22.0 está **mezclada en `main` y sin publicar**, y con ella viajan las
+copias cifradas del 23-ago, que tampoco se publicaron nunca. Producción
+sigue en `754fcd2`. Una sola orden, sin migración de por medio:
+`npm run vercel && npm run health` (el detalle, al final de §7aj).
+
 **Si abres sesión nueva, empieza por §8.** Los **803 tests y el CI están
 en verde** (el CI estuvo roto unas horas por un test que parcheaba el
 cliente nulo; arreglado en `ed0a311` con inyección). Producción sirve la
@@ -59,7 +73,7 @@ modo peque, la capa de producción y la gestión de miembros.
 | Supabase | proyecto `chfbrawsoulfiywiqhpe`, Postgres 17.6, región EU |
 | Edge Function | `notificar`, versión 5, `verify_jwt` en false |
 | Versión publicada | ver `npm run health` (lee `version.json`, que ahora se emite en el build) |
-| Tests | 599, en 35 ficheros, todos en verde |
+| Tests | 1.013, en 59 ficheros, todos en verde (24-ago) |
 
 Comprobar que sigue vivo:
 
@@ -3712,3 +3726,140 @@ el uso.
 - El sellado del muro se movió de «al montar Progreso» a «al abrir la
   sección». Era un fallo de la 2.19.0: se daba por leído lo que nadie
   había leído.
+
+---
+
+## 7aj. La gramática de Duolingo (24 de agosto) · 2.22.0 · SIN MIGRACIÓN
+
+**De dónde sale.** Una rama hermana —`claude/gremio-animations-tools-6fn3yf`,
+en el repo `Proyectos`, no en este— estaba mirando animaciones y
+herramientas con Duolingo como referencia. **No llegó a empujar nada**:
+la rama no existe en ningún remoto, así que sus hallazgos no se pudieron
+leer. Con eso sobre la mesa, la derivación se hizo aquí. Si algún día
+aparece, hay que cotejar: esto es una lectura, no la suya.
+
+**Qué NO es.** No hay mecánica nueva, ni migración, ni nada más que
+hacer. Solo cambia lo que la app **contesta** cuando ya has hecho algo.
+Es deliberado: §8 pedía un par de semanas de uso antes de añadir nada, y
+la capa de respuesta se puede tocar sin añadir superficie.
+
+**Cuatro piezas, tres módulos nuevos:**
+
+`lib/contador.js` — **los números suben, no saltan**. Va en la Bolsa y en
+la XP del tramo. Cuatro decisiones que están fijadas en tests porque no
+son cosméticas:
+
+- **Dura lo mismo suba 4 que suba 300.** Lo fijo es el TIEMPO (700 ms),
+  no la velocidad. A velocidad constante, el premio grande sería el más
+  lento y el pequeño no se vería.
+- **Sube animado, baja instantáneo.** Ganar se saborea; gastar es una
+  transacción.
+- **La primera vez no se anima**, solo el cambio con la pantalla
+  delante. Si no, abrir la app es una tragaperras.
+- **El redondeo va HACIA el destino, no al más cercano.** Con
+  `Math.round`, una subida de +1 se pasaba media cuenta enseñando el
+  número viejo: el caso más corto era el único invisible.
+
+  Y un regalo: al **subir de nivel**, `current` BAJA (95 → 5), y como las
+  bajadas no se animan, ahí se planta solo. Es lo correcto.
+
+`lib/celebracion.js` — **tres escalones**: `chispa` (1.100 ms, 4
+estrellas), `normal` (1.900 ms, 10 — exactamente lo que ya había) y
+`hito` (3.200 ms, 18). Cambian el **tamaño**, no solo la duración.
+`Celebracion` sin `intensidad` se comporta igual que antes de la 2.22.0,
+que es lo que evita tocar las llamadas ya repartidas. Subir de nivel →
+`hito`; pedir un premio → `chispa`.
+
+`lib/vibrar.js` — **el háptico**, en la estrella de la peque (4 sitios) y
+en cada misión aprobada. **Sin interruptor en Ajustes**, a propósito: la
+vibración ya tiene el del sistema y el silencio del móvil, y
+`prefers-reduced-motion` cubre el resto. No existe en iOS Safari y eso no
+es un fallo; lo que sí sería un fallo es que una excepción aquí se
+comiera la acción que la disparó, así que va todo en `try/catch`.
+
+**La llama inquieta** (`CaminoRacha` + `styles.css`). El 🔥 solo se mueve
+el día que la racha está en riesgo. Es la lección del `latido` del
+avatar: una animación permanente deja de comunicar en dos días. Duolingo
+apaga su llama cuando no has practicado; aquí **no se apaga** —sería
+castigar a mediodía, justo lo que este camino evita— sino que se
+inquieta.
+
+### Comprobado en el navegador, no solo compilando
+
+Con `npm run dev:demo` y Chromium, que es lo que manda `CLAUDE.md` y lo
+que habría cazado los tres bugs caros de este proyecto. Los cuatro:
+
+- `normal` al aprobar misión, con el elogio debajo ✅
+- `hito` al subir de nivel: `celebracion celebracion-hito`, 18 estrellas ✅
+- `chispa` al canjear: `celebracion celebracion-chispa`, y el modal del
+  sello se lee por detrás ✅
+- llama: clase `racha-numero inquieta`, `animationName = llama-inquieta` ✅
+- **el contador cazado a media subida**: la Bolsa marcando 903 con el
+  valor real ya en 905 ✅
+
+Cero errores de consola en todas las pasadas. 34 tests nuevos, **1.013 en
+total**.
+
+### La trampa que se pagó al sembrar la demo, y que volverá a pasar
+
+Para poder ver la racha en riesgo hay que inventar `completions` en la BD
+demo. Con los campos inventados —`approved_at`, `status: 'approved'`— la
+app **revienta entera** con `RangeError: Invalid time value` en
+`partesEnZona`, y el ErrorBoundary saca «El gremio ha tropezado».
+
+Los campos buenos son **`requested_at` / `resolved_at`** y el estado es
+**`'aprobado'`**, en español (`canDo` y `goalProgress` leen justo esos).
+Merece la pena anotarlo porque el fallo no se parece en nada a su causa y
+se pierde media hora buscándolo en el sitio equivocado.
+
+### Lo que queda abierto
+
+- **Verlo en un móvil de verdad.** El háptico no se puede comprobar en
+  Chromium headless: ahí `navigator.vibrate` existe y no hace nada. Lo
+  único que está probado es que no tira y que respeta
+  `prefers-reduced-motion`; que el patrón `LOGRO` se note bien en la mano
+  solo lo dice un teléfono.
+- **Mirar si el `hito` cansa.** 3,2 s es mucho tiempo de pantalla
+  tapada. Es la cifra más discutible de todo esto y la primera que hay
+  que bajar si alguien lo dice.
+
+### Estado de publicación de la 2.22.0 · 24-ago
+
+**Mezclada en `main`. NO publicada todavía.** El último paso lo tiene que
+dar una persona, y es una sola orden.
+
+Por qué no lo dio la sesión: **producción se publica con un único
+mecanismo**, el deploy hook `publicar-a-mano` (`VERCEL_DEPLOY_HOOK` en el
+`.env`), y ese secreto no vive en el contenedor de la sesión. Comprobado
+contra la API de Vercel, y no es una suposición: **las quince
+publicaciones de producción de este proyecto llevan todas
+`deployHookName: publicar-a-mano`**. Empujar a `main` NO publica solo;
+solo dispara el preview de la rama. Que `main` vaya por delante de
+producción es un estado normal aquí, no una avería.
+
+```bash
+cd ~/el-gremio && npm run vercel && npm run health
+```
+
+**Y lo que hay que saber antes de darla:** producción venía sirviendo
+`754fcd2` (2.21.1), o sea **dos commits por detrás de `main`**. El 23-ago
+entraron las **copias de seguridad cifradas** (`c482c68`) y el arreglo de
+su cron (`3211863`) sin subir el número —`package.json` se quedó en
+2.21.1— y se quedaron sin publicar. Así que esa orden **no publica solo
+la 2.22.0: publica también aquello**. Sin migración pendiente ninguna, así
+que el orden esquema→bundle no aplica y se puede dar tal cual.
+
+Es el fallo del versionado otra vez, el que dejó el número parado en
+1.0.0 durante 55 despliegues: depende de acordarse. Aquí no rompió nada
+porque las copias son un script de fuera de la app, pero durante un día
+`app_logs.release` habría dicho 2.21.1 sobre un bundle que no era el de
+la 2.21.1.
+
+**Lo que no se pudo comprobar desde la sesión**, y hay que mirar tras
+publicar:
+
+- `npm run health` necesita las claves del `.env`, y la salida a
+  elgremioapp.com desde el contenedor da 403 por el proxy. La única
+  comprobación que vale es la de tu máquina.
+- El háptico: en Chromium headless `navigator.vibrate` existe y no hace
+  nada. Hay que tocarlo en un móvil.

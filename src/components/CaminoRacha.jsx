@@ -81,8 +81,15 @@ export default function CaminoRacha({ data, profile, refresh }) {
 
       <div className="carta">
         <div className="fila-separada" style={{ marginBottom: 4 }}>
-          <span className="racha-numero">
-            <span aria-hidden="true">{racha > 0 ? '🔥' : '🌑'}</span> {racha}
+          {/* La llama se mueve SOLO cuando la racha está en riesgo, que
+              es la otra mitad de la lección del `latido` (§ lib/latido):
+              una animación permanente deja de comunicar en dos días.
+              Duolingo apaga su llama cuando no has practicado; aquí no
+              se apaga —sería castigar a mediodía, que es lo que este
+              camino evita a propósito— sino que se inquieta, y solo el
+              día que hay algo que hacer. */}
+          <span className={'racha-numero' + (riesgo ? ' inquieta' : '')}>
+            <span className="racha-llama" aria-hidden="true">{racha > 0 ? '🔥' : '🌑'}</span> {racha}
             <em>{racha === 1 ? ' día' : ' días'}</em>
           </span>
           {siguiente && (

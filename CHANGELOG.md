@@ -18,6 +18,81 @@ verdad duele en esta app: que el esquema y el cliente dejen de encajar.
 
 ---
 
+## 2.22.0 · 24 de agosto de 2026
+
+**La gramática de Duolingo, aplicada a la capa de respuesta.** Cuatro
+piezas que no añaden nada que hacer: cambian lo que la app contesta
+cuando ya has hecho algo. Sin migración; solo bundle.
+
+**Los números suben, no saltan** (`lib/contador.js`). Aprobar una misión
+cambiaba la Bolsa de 118 a 126 entre dos fotogramas. Un número que salta
+se lee como un dato; uno que sube se lee como algo que acabas de ganar.
+Cuatro decisiones dentro:
+
+- **Dura lo mismo suba 4 que suba 300.** Lo fijo es el tiempo, no la
+  velocidad: a velocidad constante el premio grande —el que no puedes
+  hacer esperar— sería el más lento.
+- **Sube animado, baja instantáneo.** Contar hacia atrás los Talis de una
+  compra sería subrayar la pérdida 700 ms, justo lo que no queremos que
+  recuerde quien acaba de canjear.
+- **La primera vez no se anima.** Abrir la app y ver tus 1.240 Talis
+  contar desde cero es una tragaperras, no una respuesta a un gesto.
+- **El `aria-label` lleva siempre la cifra de verdad.** Un lector de
+  pantalla leyendo siete números intermedios no celebra: estorba.
+
+Efecto lateral que salió gratis: al **subir de nivel** la XP del tramo
+baja (95 → 5), y como las bajadas no se animan, ahí el número se planta
+solo. Es lo correcto: lo que se celebra es el nivel, no el contador.
+
+**Celebrar en escala** (`lib/celebracion.js`). Lo que más se pasa por
+alto de Duolingo no es que celebre, es que **no celebra siempre igual**.
+Aquí una misión aprobada, subir de nivel y confirmar un canje sacaban la
+misma lluvia de diez estrellas y los mismos 1,9 s. Ahora hay tres
+escalones —`chispa`, `normal`, `hito`— y cambian el **tamaño**, no solo
+la duración: alargar la misma animación no la hace más grande, la hace
+más lenta. `normal` es exactamente lo que ya había, así que las llamadas
+que no piden escalón se comportan igual que antes.
+
+- **Subir de nivel** pasa a `hito`. Si durase lo mismo que aprobar una
+  misión, no se distinguiría de un martes cualquiera.
+- **Pedir un premio** pasa a `chispa`: no has conseguido nada, has hecho
+  algo y ha salido bien. Con fondo más claro, para no tapar la pantalla
+  de la que no te has movido.
+- Con `prefers-reduced-motion` no cae **ninguna** estrella, en ningún
+  escalón. La caja con el texto se queda: quien pide menos movimiento
+  sigue necesitando saber que la misión se aprobó.
+
+**La llama solo se mueve el día que hay algo que hacer.** La racha en
+riesgo inquieta el 🔥; el resto de los días está quieto. Es la lección
+del latido del avatar y del revés: una animación permanente deja de
+comunicar en dos días. Duolingo apaga su llama cuando no has practicado;
+aquí no se apaga —eso sería castigar a mediodía, que es lo que este
+camino evita a propósito— sino que se inquieta.
+
+**El háptico** (`lib/vibrar.js`), en la estrella de la peque y en cada
+misión aprobada. Quien usa la pantalla peque no lee el texto que
+confirma, y la tablet está a menudo en silencio: sin vibración, con el
+sonido apagado no queda ninguna confirmación que no haya que saber leer.
+**No lleva interruptor en Ajustes**: la vibración ya tiene dos que la
+persona conoce —el del sistema y el silencio del móvil— y
+`prefers-reduced-motion` cubre el resto. Callar donde no existe la API
+(iOS Safari) no es un fallo, y una excepción aquí jamás puede comerse la
+acción que la disparó.
+
+34 tests nuevos (1.013 en total). Comprobado en el navegador con
+`dev:demo`, no solo compilando: los tres escalones, la llama inquieta y
+la cuenta cazada a media subida (la Bolsa marcando 903 con el valor real
+ya en 905).
+
+**Esta versión arrastra dos commits que nunca se publicaron.** El 23-ago
+entraron en `main` las **copias de seguridad cifradas** (`c482c68`) y el
+arreglo de su línea de cron (`3211863`), y ninguno subió el número:
+`package.json` se quedó en 2.21.1 y producción siguió sirviendo
+`754fcd2`. Así que **2.22.0 publica también eso**, y es lo que dirá
+`app_logs.release` de aquellas líneas. Se anota aquí para que el día que
+haya que decidir a qué volver con `npm run rollback`, el número no mienta
+sobre lo que lleva dentro.
+
 ## 2.21.1 · 22 de agosto de 2026
 
 **Progreso se comía la pantalla con la semana llena.** «Lo que has hecho»

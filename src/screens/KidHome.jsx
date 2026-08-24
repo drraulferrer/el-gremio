@@ -2,6 +2,11 @@ import { useEffect, useState } from 'react'
 import { canDo, dayKey } from '../lib/supabase'
 import { estrellaInmediata, deshacerMision, canjearPremio, cobrarGlobos } from '../lib/acciones'
 import { tocarEstrella, sonidoActivo, alternarSonido } from '../lib/sonido'
+// El háptico va SIEMPRE con la estrella. Quien usa esta pantalla no lee
+// el texto que confirma, y la tablet está a menudo en silencio: sin
+// vibración, cuando el sonido está apagado no queda ninguna
+// confirmación que no haya que saber leer.
+import { vibrar, LOGRO } from '../lib/vibrar'
 import { log } from '../lib/log'
 import Icono from '../components/Icono'
 import { useMantenerPulsado } from '../lib/mantenerPulsado'
@@ -69,6 +74,7 @@ export default function KidHome({ family, data, profile, refresh, onSalir }) {
       return
     }
     tocarEstrella()
+    vibrar(LOGRO)
     await refresh()
   }
 
@@ -171,6 +177,7 @@ export default function KidHome({ family, data, profile, refresh, onSalir }) {
     const { ok, yaHoy, mensaje } = await cobrarGlobos(profile.id)
     if (ok) {
       tocarEstrella()
+      vibrar(LOGRO)
       setCelebrando({ emoji: cual?.emoji || '🎈', title: '¡Una estrella más!', elogio: '¡Lo has conseguido!' })
       await refresh()
     } else if (!yaHoy) {
@@ -183,6 +190,7 @@ export default function KidHome({ family, data, profile, refresh, onSalir }) {
     const { ok, mensaje } = await canjearPremio({ premio, profile })
     if (ok) {
       tocarEstrella()
+      vibrar(LOGRO)
       setVerTarro(false)
       setCelebrando({ emoji: premio.emoji, elogio: '¡Se lo decimos a mamá y a papá!' })
       await refresh()
@@ -205,6 +213,7 @@ export default function KidHome({ family, data, profile, refresh, onSalir }) {
     const { ok, mensaje } = await estrellaInmediata({ family, profile, reto, elogio })
     if (ok) {
       tocarEstrella()
+      vibrar(LOGRO)
       setCelebrando({ ...reto, elogio })
       await refresh()
     } else {
