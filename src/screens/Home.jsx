@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import { canDo, dayKey, goalProgress, levelProgress, FREQ_LABEL } from '../lib/supabase'
+import { canDo, dayKey, levelProgress, FREQ_LABEL } from '../lib/supabase'
 import { INSIGNIAS, PODERES, PODERES_LISTOS, insigniaPorCodigo } from '../lib/insignias'
-import { estadoDeTemporada } from '../lib/temporadas'
 import Poderes from '../components/Poderes'
 import CaminoRacha from '../components/CaminoRacha'
 import Cronica from '../components/Cronica'
@@ -25,11 +24,17 @@ import { muroDe, hayNuevo, leerVisita, sellarVisita } from '../lib/muro'
 import DarGracias from './DarGracias'
 import { retratoDe } from '../lib/retrato'
 import Muro from '../components/Muro'
+import Estandarte from '../components/Estandarte'
+import Panorama from './Panorama'
 import { semana, etiquetaDeSemana, validadasDe, resumenDeSemana, semanasConDatos } from '../lib/historial'
 
 export default function Home({ family, data, profile, refresh, onSwitchProfile, onParent, historial }) {
   const genero = generoDe(profile)
-  const [tab, setTab] = useState('misiones')
+  // Abre por el Panorama y no por las misiones. Abrir por la lista de
+  // deberes decía lo mismo el día de quince misiones y el de ninguna, y
+  // dejaba todo el progreso —racha, nivel, habilidades, meta— dentro de
+  // una pestaña que hay que ir a buscar. Ver src/lib/panorama.js.
+  const [tab, setTab] = useState('panorama')
   // El Muro: lo que le han dicho a esta persona. Se calcula aquí porque
   // el punto de la pestaña lo necesita, y se sella al entrar en Progreso.
   const elogios = muroDe({ completions: data.completions, reconocimientos: data.reconocimientos, perfiles: data.profiles }, profile.id)
@@ -105,84 +110,63 @@ export default function Home({ family, data, profile, refresh, onSwitchProfile, 
     else setAviso(mensaje || 'No se pudo cancelar.')
   }
 
+  // Dar por leído el muro. Se sella con la fecha de la ÚLTIMA frase y no
+  // con «ahora»: si llega una mientras está leyendo, seguirá siendo
+  // nueva. Vive aquí arriba porque lo abren dos pantallas —el Panorama y
+  // Progreso— y dos copias acabarían sellando con criterios distintos.
+  function sellarMuro() {
+    const ultima = elogios[0]?.ts
+    if (!ultima || ultima === visto) return
+    sellarVisita(profile.id, ultima)
+    setVisto(ultima)
+  }
+
   const retoDe = (id) => data.challenges.find((ch) => ch.id === id)
-  const goal = data.goal
-  const progresoMeta = goalProgress(goal, data.completions)
-  // Metas logradas = temporadas cerradas. Se deriva, no se guarda: un
-  // contador duplicado se desincroniza el día que alguien reabre una meta.
-  const temporada = estadoDeTemporada(data.goals || [])
 
   return (
     <div className="app">
       {celeb && <Celebracion emoji={celeb.emoji} texto={celeb.texto} elogio={celeb.elogio} intensidad={celeb.intensidad} onDone={() => setCeleb(null)} />}
 
-      {/* Carnet de aventurera/o */}
-      <div className="carta">
-        <div className="fila">
-          <Gema xp={profile.xp} color={profile.color} />
-          <div className="crece">
-            <div className="fila-separada">
-              <h2 style={{ fontSize: '1.2rem' }}>{profile.emoji} {profile.name}</h2>
-              <Bolsa n={profile.coins} />
-            </div>
-            <div style={{ marginTop: 8 }}>
-              <XPBar xp={profile.xp} />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Estandarte: rango del gremio y meta cooperativa.
-          El sello va ENCIMA de la meta, y el bloque entero sobrevive a que
-          no haya meta activa. Las dos cosas son la misma decisión: la
-          barra de la meta se vacía al cerrarla, y si con ella desaparecía
-          también el rango, cerrar una meta se sentía como perder el
-          progreso. Es justo lo que las temporadas venían a arreglar. */}
-      {(goal || temporada.metasLogradas > 0) && (
-        <div className="estandarte">
-          <div className="sello-gremio">
-            <span className="sello-emoji" aria-hidden="true">{temporada.rango.emoji}</span>
-            <div className="crece">
-              <div className="sello-nombre">{temporada.rango.nombre}</div>
-              {temporada.metasLogradas > 0 && (
-                <div className="suave" style={{ fontSize: '0.78rem' }}>
-                  {temporada.metasLogradas} {temporada.metasLogradas === 1 ? 'meta lograda' : 'metas logradas'} ·
-                  {' '}{temporada.xpHistorica} XP de por vida
+      {/* El carnet y el estandarte encabezan las pestañas de trabajo,
+          no el Panorama: allí ya hay una cabecera propia con el nombre,
+          la racha y la bolsa, y el nivel cuelga del arco. Repetir aquí
+          la misma tarjeta dejaría la cifra grande a media pantalla de
+          distancia de lo alto, que es donde tiene que estar. */}
+      {tab !== 'panorama' && (
+        <>
+          <div className="carta">
+            <div className="fila">
+              <Gema xp={profile.xp} color={profile.color} />
+              <div className="crece">
+                <div className="fila-separada">
+                  <h2 style={{ fontSize: '1.2rem' }}>{profile.emoji} {profile.name}</h2>
+                  <Bolsa n={profile.coins} />
                 </div>
-              )}
+                <div style={{ marginTop: 8 }}>
+                  <XPBar xp={profile.xp} />
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* Decorativa: separa el rango de la meta. aria-hidden porque no
-              hay nada que anunciar. */}
-          <div className="filigrana" aria-hidden="true" />
-
-          {goal ? (
-            <>
-              <div className="fila-separada">
-                <strong style={{ fontFamily: 'var(--display)' }}>{goal.emoji} {goal.title}</strong>
-                <span className="suave">{Math.min(progresoMeta, goal.target_xp)} / {goal.target_xp} XP</span>
-              </div>
-              <div className="xpbar" style={{ marginTop: 8 }}>
-                {/* Sin color en línea: la meta es reconocimiento y su oro
-                    lo pone `.estandarte .xpbar-fill` en la hoja. */}
-                <div className="xpbar-fill" style={{ width: Math.min(100, Math.round((100 * progresoMeta) / goal.target_xp)) + '%' }} />
-                <div className="xpbar-pips"><span /><span /><span /><span /><span /></div>
-              </div>
-              {progresoMeta >= goal.target_xp && (
-                <p style={{ marginTop: 8, color: 'var(--exito)', fontWeight: 800 }}>¡Meta del gremio conseguida! 🎉</p>
-              )}
-            </>
-          ) : (
-            <p className="suave" style={{ margin: 0 }}>
-              Temporada {temporada.temporada}: sin meta todavía. Un adulto puede proponer la siguiente desde el panel.
-            </p>
-          )}
-        </div>
+          <Estandarte data={data} />
+        </>
       )}
 
       {aviso && (
         <p className="error-texto" role="alert" style={{ margin: '0 4px 10px' }}>{aviso}</p>
+      )}
+
+      {tab === 'panorama' && (
+        <Panorama
+          data={data}
+          profile={profile}
+          genero={genero}
+          elogios={elogios}
+          muroNuevo={muroNuevo}
+          onIrA={setTab}
+          alVerMuro={sellarMuro}
+        />
       )}
 
       {tab === 'misiones' && (
@@ -212,14 +196,7 @@ export default function Home({ family, data, profile, refresh, onSwitchProfile, 
           elogios={elogios}
           muroNuevo={muroNuevo}
           onDarGracias={() => setDandoGracias(true)}
-          alVerMuro={() => {
-            // Se sella con la fecha de la ÚLTIMA frase y no con «ahora»:
-            // si llega una mientras está leyendo, seguirá siendo nueva.
-            const ultima = elogios[0]?.ts
-            if (!ultima || ultima === visto) return
-            sellarVisita(profile.id, ultima)
-            setVisto(ultima)
-          }}
+          alVerMuro={sellarMuro}
         />
       )}
 
@@ -235,6 +212,12 @@ export default function Home({ family, data, profile, refresh, onSwitchProfile, 
       )}
 
       <nav className="tabbar" aria-label="Secciones">
+        {/* Sin punto de aviso, aunque el muro también asome en el
+            Panorama: la app ABRE por esta pestaña, así que un punto aquí
+            casi nunca se vería desde otro sitio, y dos puntos por lo
+            mismo se leen como dos cosas pendientes. El de Progreso se
+            queda, que es donde vive el muro entero. */}
+        <Pestana icono="cuadro" etiqueta="Hoy" activa={tab === 'panorama'} onClick={() => setTab('panorama')} />
         <Pestana icono="misiones" etiqueta="Misiones" activa={tab === 'misiones'} onClick={() => setTab('misiones')} />
         <Pestana icono="tienda" etiqueta="Tienda" activa={tab === 'tienda'} onClick={() => setTab('tienda')} />
         <Pestana

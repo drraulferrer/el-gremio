@@ -63,6 +63,22 @@ export const HITOS = [
 /** El tipo con el que se guarda el cobro de un hito en `bonuses`. */
 export const tipoDeHito = (dias) => `racha:${dias}`
 
+/**
+ * Los días que un comodín dio por salvados.
+ *
+ * Vive aquí y no en cada pantalla porque la clave tiene que ser LA MISMA
+ * que la de `diasConAlgo`: se comparan entre ellas dentro de un Set. Se
+ * escribió una vez a mano en el camino de la racha con la fecha del
+ * aparato, y eso solo coincide con `dayKey` mientras el móvil esté en la
+ * zona de la familia; con la familia en Madrid y alguien de viaje, el
+ * comodín tapaba el día de al lado.
+ */
+export function diasSalvados(powerUses = [], profileId) {
+  return powerUses
+    .filter((u) => u.profile_id === profileId && u.tipo === 'salva_racha')
+    .map((u) => dayKey(new Date(u.used_at)))
+}
+
 /** Los días con algo aprobado, más los tapados con un comodín. */
 function diasConAlgo(completions = [], profileId, diasSalvados = []) {
   return new Set([

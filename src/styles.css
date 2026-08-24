@@ -3593,3 +3593,513 @@ button.kid-avatar.latiendo { animation: latido-aviso 2.6s var(--ease-salida) inf
    sobre la que colgarlo. */
 .plegable-marca { position: static; top: auto; right: auto; }
 .plegable-cuerpo { padding-top: 10px; }
+
+/* ==================================================================
+   EL PANORAMA · la pantalla por la que abre el gremio
+   ------------------------------------------------------------------
+   La referencia son los cuadros de Oura y de Opal, y de ellos se toman
+   tres cosas que aquí son estructura y no adorno:
+
+     · UNA cifra manda. Un arco grande arriba y todo lo demás a media
+       voz: si tres bloques piden la misma atención, no la pide ninguno.
+     · La cifra va con palabra. El titular en Fraunces debajo del arco
+       es lo que convierte «3/5» en «Más de la mitad».
+     · Tres relojes colgando del arco, en pastillas con filo, como los
+       sub-scores de Opal.
+
+   Y la regla de la casa, que manda sobre la referencia: el arco va en
+   TEAL mientras el día corre y solo pasa a ORO cuando se cierra. El
+   dorado no decora, reconoce.
+   ================================================================== */
+
+/* Texto solo para lectores de pantalla. Las barras de la semana llevan
+   su letra en `aria-hidden` —una «X» suelta no se lee— y la frase de
+   verdad viaja aquí. */
+.sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+.panorama-cabecera {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 2px 4px 4px;
+}
+
+.panorama-saludo {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--tinta-suave);
+  letter-spacing: 0.02em;
+}
+
+.panorama-nombre {
+  margin: 0;
+  font-size: 1.35rem;
+  line-height: 1.15;
+}
+
+.panorama-marcas {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  padding-top: 4px;
+}
+
+/* La racha, en pastilla. Teal y no oro: una racha viva es progreso en
+   marcha, no un logro cobrado —los hitos, esos sí, pagan en Talis—. */
+.chip-racha {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(79, 196, 181, 0.14);
+  border: 1px solid rgba(79, 196, 181, 0.34);
+  color: var(--menta);
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 0.86rem;
+}
+
+/* En riesgo NO cambia de color, y menos a rojo o a gris: la racha sigue
+   viva y el día no ha terminado, así que apagarla a media tarde es
+   castigar por adelantado —lo que el aviso de `rachas.js` evita decir
+   con palabras—. Lo que hace es MOVERSE, con la misma llama inquieta del
+   camino de la racha. La regla está en su bloque, más arriba. */
+.chip-racha.inquieta {
+  border-color: rgba(79, 196, 181, 0.5);
+}
+
+/* ---------------- el bloque del día ---------------- */
+
+.panorama-dia {
+  position: relative;
+  margin: 4px 0 14px;
+  padding: 6px 14px 16px;
+  text-align: center;
+}
+
+.arco {
+  position: relative;
+  width: min(300px, 100%);
+  margin: 0 auto;
+}
+
+.arco-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.arco-carril,
+.arco-trazo {
+  fill: none;
+  stroke-width: 7;
+  stroke-linecap: round;
+}
+
+.arco-carril { stroke: rgba(154, 154, 192, 0.22); }
+
+.arco-trazo {
+  /* `pathLength="100"` en el SVG deja escribir el guion en por ciento
+     directo, sin la fórmula de la circunferencia que deja de cuadrar en
+     cuanto alguien toca el radio. */
+  transition: stroke-dasharray 900ms var(--ease-salida);
+}
+
+.arco-tope {
+  fill: var(--tinta-suave);
+  font-family: var(--cuerpo);
+  font-size: 9px;
+  opacity: 0.75;
+}
+
+.arco-tope-fin { text-anchor: end; }
+
+/* La cifra se superpone al arco y se apoya en su base. `absolute` con
+   `bottom` y no un flex dentro del SVG: el texto tiene que poder crecer
+   sin deformar el dibujo. */
+.arco-centro {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  pointer-events: none;
+}
+
+.arco-cifra {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 2.6rem;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.arco-rotulo {
+  font-size: 0.66rem;
+  letter-spacing: 0.2em;
+  color: var(--tinta-suave);
+  text-transform: uppercase;
+}
+
+.arco-cerrado .arco-cifra {
+  background: var(--oro-grad);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.panorama-titular {
+  font-family: var(--display);
+  font-size: 1.6rem;
+  font-weight: 600;
+  line-height: 1.12;
+  margin: 10px 0 0;
+  letter-spacing: -0.01em;
+}
+
+.panorama-frase {
+  margin: 6px auto 0;
+  max-width: 34ch;
+  color: var(--tinta-suave);
+  font-size: 0.92rem;
+  line-height: 1.4;
+}
+
+/* ---------------- los tres relojes ---------------- */
+
+/* Cuelgan del arco con una horquilla, como los sub-scores de Opal. La
+   línea la dibuja el ::before del contenedor y las patas cada pastilla:
+   así la horquilla se adapta sola al ancho que haya. */
+.relojes {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 22px;
+}
+
+.relojes::before {
+  content: '';
+  position: absolute;
+  top: -11px;
+  left: 18%;
+  right: 18%;
+  height: 11px;
+  border-top: 1px solid var(--linea);
+  border-left: 1px solid var(--linea);
+  border-right: 1px solid var(--linea);
+  border-radius: 8px 8px 0 0;
+  pointer-events: none;
+}
+
+.reloj {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  padding: 8px 6px 7px;
+  border-radius: 999px;
+  border: 1px solid var(--cristal-filo);
+  background: var(--cristal-fondo);
+  color: var(--tinta);
+  cursor: pointer;
+  transition: transform var(--t-rapido) var(--ease-salida), border-color var(--t-rapido) linear;
+}
+
+.reloj:active { transform: scale(0.97); }
+.reloj:hover { border-color: rgba(79, 196, 181, 0.4); }
+
+/* La pata que une cada pastilla con la horquilla de arriba. */
+.reloj::before {
+  content: '';
+  position: absolute;
+  top: -11px;
+  left: 50%;
+  width: 1px;
+  height: 11px;
+  background: var(--linea);
+}
+
+.reloj-cifra {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 1rem;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.reloj-nombre {
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--tinta-suave);
+}
+
+/* ---------------- la semana en barras ---------------- */
+
+.barras-semana {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+  align-items: end;
+}
+
+.barra-dia {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+}
+
+.barra-carril {
+  width: 100%;
+  height: 56px;
+  border-radius: 7px;
+  background: rgba(154, 154, 192, 0.12);
+  display: flex;
+  align-items: flex-end;
+  overflow: hidden;
+}
+
+.barra-valor {
+  width: 100%;
+  border-radius: 7px;
+  background: linear-gradient(180deg, var(--menta), var(--teal));
+  transition: height 700ms var(--ease-salida);
+}
+
+.barra-letra {
+  font-family: var(--display);
+  font-size: 0.72rem;
+  color: var(--tinta-suave);
+}
+
+/* Hoy se marca con el filo, no con otro color: el color de la barra ya
+   dice cuánto, y dos códigos de color en siete barras se leen mal. */
+.barra-dia.es-hoy .barra-carril {
+  box-shadow: inset 0 0 0 1px rgba(79, 196, 181, 0.55);
+}
+
+.barra-dia.es-hoy .barra-letra {
+  color: var(--menta);
+  font-weight: 700;
+}
+
+/* Los días que aún no han llegado se dibujan a rayas y no vacíos: una
+   barra a cero en el jueves de un martes parece un fallo. */
+.barra-dia.es-futuro .barra-carril {
+  background: repeating-linear-gradient(
+    -45deg,
+    rgba(154, 154, 192, 0.1) 0 4px,
+    transparent 4px 8px
+  );
+}
+
+/* ---------------- la tira de habilidades ---------------- */
+
+/* En fila y con desplazamiento lateral, como la tira de marcadores de
+   Oura. Ocho barras apiladas son una tabla que hay que leer; ocho
+   fichas en fila son un vistazo. La versión larga, con sus rangos y sus
+   barras, sigue estando en Progreso. */
+.tira-habilidades {
+  list-style: none;
+  margin: 0;
+  padding: 2px 0 6px;
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.tira-habilidades::-webkit-scrollbar { display: none; }
+
+.ficha-hab {
+  flex: 0 0 auto;
+  /* 76 px es el ancho de «Responsabilidad» a 0,6 rem, que es el rótulo
+     más largo de las ocho. Con 58 px se recortaba a «esponsabilidad»,
+     que además de feo se lee mal a la primera. */
+  width: 76px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  scroll-snap-align: start;
+}
+
+/* El aro es el progreso DENTRO del rango, dibujado con un cónico.
+   El anillo va en un ::before y no en la caja misma por una razón que
+   cuesta una tarde descubrir: una máscara CSS recorta también a los
+   HIJOS del elemento, así que con el cónico y el recorte en `.ficha-hab-aro`
+   el icono del centro caía dentro del agujero y desaparecía. En una capa
+   aparte, el anillo se recorta solo y el icono se pinta encima. */
+.ficha-hab-aro {
+  position: relative;
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+}
+
+.ficha-hab-aro::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: conic-gradient(var(--teal) var(--hab-pct, 0%), rgba(154, 154, 192, 0.16) 0);
+  -webkit-mask: radial-gradient(circle, transparent 0 17px, #000 17.5px);
+  mask: radial-gradient(circle, transparent 0 17px, #000 17.5px);
+}
+
+.ficha-hab-icono {
+  position: relative;
+  width: 26px;
+  height: 26px;
+  object-fit: contain;
+}
+
+.ficha-hab-xp {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 0.86rem;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.ficha-hab-nombre {
+  font-size: 0.6rem;
+  color: var(--tinta-suave);
+  text-align: center;
+  line-height: 1.15;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.leyenda-aro {
+  margin: 0 0 8px;
+  font-size: 0.72rem;
+}
+
+.ficha-hab.apagada { opacity: 0.45; }
+
+.panorama-pie {
+  margin: 10px 4px 0;
+  text-align: center;
+  font-size: 0.8rem;
+}
+
+/* SEIS PESTAÑAS, y el arreglo que hizo falta al añadir la sexta.
+   `flex: 1` no basta: un hijo de flex trae `min-width: auto`, o sea que
+   se niega a encoger por debajo de su contenido. Con «Misiones» y
+   «Progreso» dentro, la barra medía más que su contenedor y las dos
+   últimas pestañas se salían de la pantalla —«Panel» directamente no se
+   veía—. `min-width: 0` es lo que las deja repartirse el ancho.
+   El rótulo se recorta con puntos suspensivos como última red: es feo,
+   pero es visible, y una pestaña fuera de la pantalla no lo es. */
+.tab { min-width: 0; }
+
+.tab-etiqueta {
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* En el móvil estrecho se aprieta el hueco y el relleno lateral, nunca
+   la letra: 12 px es el suelo del texto de interfaz. */
+@media (max-width: 400px) {
+  .tabbar { gap: 2px; padding: 7px 4px; }
+  .tab { padding-left: 0; padding-right: 0; letter-spacing: -0.02em; }
+}
+
+/* Sin movimiento: el arco y las barras aparecen ya en su sitio. */
+@media (prefers-reduced-motion: reduce) {
+  .arco-trazo,
+  .barra-valor { transition: none; }
+}
+
+/* ==================================================================
+   TALIS A MANO · el aviso de lo que no vino de una misión
+   ------------------------------------------------------------------
+   Aquí el oro SÍ manda, y es el único sitio de esta tanda donde lo
+   hace: unos Talis a mano son reconocimiento puro —alguien se salió
+   del catálogo porque la vida no cabía dentro— y el dorado es
+   exactamente eso en esta hoja.
+
+   El motivo va en grande y la cifra debajo. Al revés, esto sería una
+   nómina; así es lo que alguien se paró a escribir.
+   ================================================================== */
+
+.talis-mano { text-align: center; }
+
+.talis-mano h3 {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: var(--tinta-suave);
+  margin: 0;
+}
+
+.talis-mano-cifra {
+  margin: 6px 0 16px;
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 2.2rem;
+  line-height: 1.1;
+  color: var(--oro-claro);
+}
+
+.talis-mano-lista {
+  list-style: none;
+  margin: 0 0 14px;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+
+.talis-mano-motivo {
+  margin: 0;
+  font-family: var(--display);
+  font-size: 1.12rem;
+  line-height: 1.3;
+  color: var(--tinta);
+}
+
+.talis-mano-firma {
+  margin: 4px 0 0;
+  font-size: 0.8rem;
+}
+
+/* La ficha del importe grande lleva su propia sombra: sobre el cristal
+   del diálogo, el oro plano se quedaba corto de presencia. */
+.talis-mano-cifra .ficha-linea {
+  filter: drop-shadow(0 4px 12px rgba(242, 179, 61, 0.35));
+}

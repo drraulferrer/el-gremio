@@ -3863,3 +3863,72 @@ publicar:
   comprobación que vale es la de tu máquina.
 - El háptico: en Chromium headless `navigator.vibrate` existe y no hace
   nada. Hay que tocarlo en un móvil.
+
+## 7ak. El Panorama y los Talis a mano (24 de agosto) · 2.23.0 · SIN MIGRACIÓN
+
+**La app abre por «Hoy», no por las misiones.** `screens/Panorama.jsx` es
+la pestaña nueva y la de arranque (`Home.jsx`, `useState('panorama')`).
+Las cuentas viven todas en `lib/panorama.js` y están probadas en
+`tests/panorama.test.js`; en el JSX no se suma nada.
+
+Referencia declarada: los cuadros de **Oura** y **Opal**. De ahí salen el
+arco con la cifra dentro, el titular en palabra debajo y las tres
+pastillas colgando de una horquilla. Lo que NO se copia es la comparación
+social —Opal enseña «un 19 % menos que tus iguales»—: en una casa eso es
+una liga entre hermanos, y esta app no tiene ranking a propósito.
+
+Decisiones que conviene no deshacer sin leer primero:
+
+- **El arco cuenta lo enviado, no lo validado.** `diaDe()` mide
+  `tocan - quedan`, o sea lo que ya no está en el plato. Con una misión
+  pendiente de visto bueno, el día está hecho por su parte. Medir la
+  validación es medir la diligencia del adulto y enseñársela a la criatura
+  como si fuera suya.
+- **Teal mientras corre, oro al cerrarse.** `components/Arco.jsx`, prop
+  `cerrado`. Es la regla de la hoja aplicada a un componente.
+- **`ahora` no gobierna `canDo`.** `canDo` lee `new Date()` por su cuenta,
+  así que pasarle a `diaDe` una fecha inventada mueve el plan y no mueve
+  la disponibilidad. Los tests del día van con la hora real por eso; los
+  de la semana, con fecha fija, porque `semanaDe` no toca `canDo`.
+- **El estandarte salió de Home a `components/Estandarte.jsx`.** Lo pintan
+  el Panorama y las otras tres pestañas. Antes estaba escrito dentro de
+  `Home.jsx` y hacían falta dos copias.
+- **`min-width: 0` en `.tab`.** Con la sexta pestaña, `flex: 1` no basta:
+  un hijo de flex trae `min-width: auto`, la barra medía más que la
+  pantalla y «Panel» no se veía. Si algún día se añade una séptima, el
+  problema volverá por el rótulo, no por el ancho de la barra.
+- **`rachas.js` gana `diasSalvados()`.** El camino de la racha construía
+  la clave a mano con `getDate()`, y eso solo coincide con `dayKey`
+  mientras el aparato esté en la zona de la familia. Ahora la construyen
+  los dos con `dayKey`.
+
+**El aviso de los Talis a mano** (`components/TalisAMano.jsx` +
+`lib/premioManual.js`, `tests/talis-a-mano.test.js`). El premio a mano
+exige motivo desde la 014 «para que dentro de un mes se sepa por qué», y
+ese motivo solo lo leía quien lo escribía. Ahora lo lee quien lo recibe.
+
+- Se avisa una vez por concesión y por aparato
+  (`gremio_manual_avisado:<perfil>` en `localStorage`, tope de 60).
+- **Ventana de 14 días** (`DIAS_DE_AVISO`): lo más viejo se marca como
+  visto en silencio. Sin eso, estrenar la app en un móvil sacaría de golpe
+  todos los premios a mano de la historia del gremio.
+- Se monta en `App.jsx` junto a `LoteDeSellos`, por lo mismo: tiene que
+  sobrevivir a que Home se recargue por realtime.
+- **No sale en el mundo de la peque.** Un motivo escrito no le dice nada
+  a quien todavía no lee.
+
+**Se cruzó con la gramática de Duolingo (7aj), que llegó antes a `main`.**
+Las dos sesiones numeraron su trabajo 2.22.0; esta pasó a 2.23.0 al
+integrar. Del cruce salieron dos costuras que conviene conocer:
+
+- El `Bolsa` del Panorama cuenta solo, porque el contador vive dentro del
+  componente de `ui.jsx`. No hay nada que hacer aquí.
+- La llama de la racha se inquieta también en la pastilla del Panorama
+  (`.chip-racha.inquieta`, reusando `llama-inquieta`). Dos pantallas que
+  enseñan la MISMA racha no pueden contarla de dos maneras: la pastilla
+  se había escrito para apagarse a gris, y eso contradecía la decisión de
+  7aj de no apagar nunca la llama.
+- El aviso de Talis a mano vibra con `LOGRO`: aparece sin que nadie lo
+  haya pedido, y el toque avisa antes de que nadie lea nada.
+
+Estado: `npm run verify` en verde (1.046 tests, los de las dos sesiones).

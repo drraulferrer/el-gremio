@@ -18,6 +18,80 @@ verdad duele en esta app: que el esquema y el cliente dejen de encajar.
 
 ---
 
+## 2.23.0 · 24 de agosto de 2026
+
+**La app ya no abre por los deberes.** La primera pantalla era la lista de
+misiones, y esa pantalla decía lo mismo el día que quedaban quince y el
+día que no quedaba ninguna: nada de lo que llevabas hecho. Todo el
+progreso —racha, nivel, habilidades, meta del gremio— vivía dentro de una
+pestaña a la que había que ir a buscar.
+
+Ahora abre por **Hoy**, un cuadro de progreso. La referencia son los
+cuadros de **Oura** y **Opal**, y de ellos se toman tres decisiones que
+aquí son estructura y no adorno:
+
+- **Una cifra manda.** Un arco de 0 a lo que toque hoy, la cuenta dentro
+  y todo lo demás a media voz. Si tres bloques piden la misma atención,
+  no la pide ninguno.
+- **La cifra va con palabra.** «3/6» no dice si eso es bueno; «Más de la
+  mitad» sí, y debajo la única frase accionable de la pantalla: «te
+  quedan 3 misiones para cerrar el día».
+- **Tres relojes colgando del arco**, como los sub-scores de Opal: racha,
+  nivel y gremio, que son los tres que corren de verdad en esta app —el
+  de hoy, el personal a largo plazo y el compartido—.
+
+Y una que es de aquí y no de Oura: **el panorama no compara con nadie**.
+Opal enseña «un 19 % menos que tus iguales» y en una app de adultos
+funciona; en una casa, eso mismo es una liga entre hermanos. La única
+comparación es contra uno mismo la semana pasada y contra la meta común.
+
+Debajo del arco, **la semana en siete barras** —escaladas contra el mejor
+día de esa semana, no contra un techo fijo: con techo fijo una semana
+floja sale plana y no se lee nada—, la meta del gremio y **la tira de
+habilidades**, en fila y con desplazamiento lateral como la de Oura: ocho
+barras apiladas son una tabla, ocho fichas en fila son un vistazo.
+
+Detalles que costaron su rato y conviene no deshacer:
+
+- **El arco cuenta lo ENVIADO, no lo validado.** Quien ha hecho su parte y
+  espera el visto bueno de un adulto ha terminado su día. Medir la
+  validación sería enseñarle la diligencia del adulto como si fuera suya.
+- **El arco va en teal y solo pasa a oro al cerrarse el día**, que es toda
+  la regla de la hoja de estilo aplicada a un componente: el dorado no
+  decora, reconoce.
+- **El botón a las misiones va al final.** Arriba, el panorama vuelve a
+  ser un trámite antes de la lista de deberes, que es lo que venía a dejar
+  de ser.
+- El estandarte sale de la cabecera de Home a `components/Estandarte.jsx`:
+  lo necesitaban dos pantallas y dos copias acaban diciendo cosas
+  distintas.
+- Con la sexta pestaña, `flex: 1` no bastaba: un hijo de flex trae
+  `min-width: auto` y se niega a encoger, así que la barra medía más que
+  la pantalla y «Panel» no se veía. Lo arregla `min-width: 0`.
+
+**Y un aviso que faltaba: los Talis a mano.** El premio a mano obliga a
+escribir un motivo «para que dentro de un mes se sepa por qué», y hasta
+ahora ese motivo solo lo leía quien lo escribía: a quien los recibe le
+subía la Bolsa y nadie le decía nada. Reconocer algo sin decírselo a la
+persona no es reconocer, es contabilizar.
+
+Ahora sale un aviso propio —distinto del de una misión validada, porque
+unos Talis a mano son justo lo contrario: alguien saliéndose del catálogo
+porque la vida no cabía dentro— con **el motivo en grande y la cifra
+debajo**. Al revés sería una nómina.
+
+- Se avisa **una vez por concesión y por aparato**, con la marca en
+  `localStorage` como la visita al muro.
+- **Lo de hace más de catorce días se calla**, pero se marca igual:
+  estrenar la app en un móvil nuevo no puede sacar de golpe los premios a
+  mano de toda la historia del gremio, y un «te han dado 20 Talis» de hace
+  cuatro meses no reconoce nada, desconcierta.
+- **No se monta en el mundo de la peque**, y es a propósito: un motivo
+  escrito no le dice nada a quien todavía no lee. A esa edad se lo cuenta
+  quien se los da.
+
+Sin migración: todo sale de `bonuses`, que ya estaba.
+
 ## 2.22.0 · 24 de agosto de 2026
 
 **La gramática de Duolingo, aplicada a la capa de respuesta.** Cuatro

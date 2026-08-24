@@ -15,18 +15,17 @@
 // ------------------------------------------------------------------
 
 import { useEffect, useRef, useState } from 'react'
-import { caminoDe, rachaActual, enRiesgo, hitosPorCobrar, siguienteHito } from '../lib/rachas'
+import { caminoDe, rachaActual, enRiesgo, hitosPorCobrar, siguienteHito, diasSalvados } from '../lib/rachas'
 import { cobrarRacha } from '../lib/acciones'
 import { diasNeutros } from '../lib/misiones'
 import { Talis } from './ui'
 
 export default function CaminoRacha({ data, profile, refresh }) {
-  const salvados = (data.powerUses || [])
-    .filter((u) => u.profile_id === profile.id && u.tipo === 'salva_racha')
-    .map((u) => {
-      const d = new Date(u.used_at)
-      return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`
-    })
+  // Del helper de `rachas.js` y no escrito aquí a mano: la clave se
+  // compara dentro de un Set contra las de `diasConAlgo`, y la versión
+  // manual la construía con `getDate()`, que solo coincide con `dayKey`
+  // mientras el aparato esté en la zona de la familia.
+  const salvados = diasSalvados(data.powerUses || [], profile.id)
 
   // Los días sin misiones asignadas no rompen la racha ni la alargan. Se
   // calculan aquí y se pasan a las dos cuentas: si solo una de las dos los

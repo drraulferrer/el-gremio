@@ -13,6 +13,8 @@ import { RELEASE } from './lib/version'
 import { registrarServiceWorker, apuntarPerfil } from './lib/push'
 import { PinModal } from './components/ui'
 import LoteDeSellos from './components/LoteDeSellos'
+import TalisAMano from './components/TalisAMano'
+import { manualesDe, pendientesDeAviso, leerAvisados, marcarAvisados } from './lib/premioManual'
 import Login from './screens/Login'
 import NuevaClave from './screens/NuevaClave'
 import { esRecuperacion } from './lib/acceso'
@@ -38,6 +40,9 @@ export default function App() {
   // lote. `perfilActual` es la misma cosa en forma de ref porque
   // `otorgarInsignias` corre fuera del render y leería un valor viejo.
   const [loteNuevo, setLoteNuevo] = useState([])
+  // Los Talis entregados a mano que todavía no se le han contado a quien
+  // los recibió. Ver src/components/TalisAMano.jsx.
+  const [talisAMano, setTalisAMano] = useState([])
   const perfilActual = useRef(profileId)
   useEffect(() => { perfilActual.current = profileId }, [profileId])
   // El historial completo para los sellos: se pagina una vez y se va
@@ -436,6 +441,26 @@ export default function App() {
     if (family && profile) apuntarPerfil({ family, profile })
   }, [family?.id, profile?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // ¿Han caído Talis a mano sin avisar? Se mira aquí y no dentro de Home
+  // por lo mismo que el lote de sellos: el aviso tiene que sobrevivir a
+  // que la pantalla se recargue por realtime mientras se está leyendo.
+  //
+  // Lo viejo se marca como visto en silencio: estrenar la app en un móvil
+  // nuevo no puede sacar de golpe los premios a mano de toda la historia
+  // del gremio.
+  useEffect(() => {
+    if (!data || !profile) return
+    const manuales = manualesDe(data.bonuses, profile.id, data.profiles)
+    const { avisar, callar } = pendientesDeAviso(manuales, leerAvisados(profile.id))
+    if (callar.length) marcarAvisados(profile.id, callar.map((m) => m.id))
+    if (avisar.length) setTalisAMano(avisar)
+  }, [data, profile?.id]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  function cerrarTalisAMano() {
+    marcarAvisados(profile.id, talisAMano.map((m) => m.id))
+    setTalisAMano([])
+  }
+
   function elegirPerfil(id) {
     localStorage.setItem('gremio_profile', id)
     setProfileId(id)
@@ -554,6 +579,17 @@ export default function App() {
             genero={profile.gender}
             onClose={() => setLoteNuevo([])}
           />
+        )}
+
+        {/* Va fuera de Home por lo mismo que el lote de sellos: el aviso
+            tiene que sobrevivir a una recarga por realtime. Y NO se
+            monta en la pantalla de la peque, que es a propósito: su
+            mundo es de papel crema y botones enormes, y un motivo
+            escrito no le dice nada a quien todavía no lee. Cuando
+            reciba Talis a mano se lo cuenta quien se los da, que es
+            como funciona a esa edad. */}
+        {profile && talisAMano.length > 0 && (
+          <TalisAMano premios={talisAMano} onClose={cerrarTalisAMano} />
         )}
 
         {pidePin && (
