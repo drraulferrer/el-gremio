@@ -7,7 +7,10 @@ import Cronica from '../components/Cronica'
 import Sello from '../components/Sello'
 import SellosGanados from '../components/SellosGanados'
 import Colecciones from '../components/Colecciones'
+import EditorRetrato from '../components/EditorRetrato'
 import Retrato from '../components/Retrato'
+import { faseDePerfil, faseSiguiente } from '../lib/retratos'
+import { guardarRetrato } from '../lib/acciones'
 import SelloDetalle, { tieneDetalle } from '../components/SelloDetalle'
 import { pedirMision as pedirMisionRemota, canjearPremio, deshacerMision } from '../lib/acciones'
 import { proyeccionDe } from '../lib/sellos-motor'
@@ -540,6 +543,86 @@ function Tienda({ data, profile, ocupado, onCanjear }) {
   )
 }
 
+
+// ------------------------------------------------------------------
+// Tu retrato, en Progreso.
+//
+// Resuelve dos agujeros que tenía el retrato al salir:
+//
+// 1 · NO HABÍA DÓNDE MIRARSE. Las listas dibujan solo la cabeza, así que
+//     el equipo —que es lo que cuenta el progreso— no se veía en ninguna
+//     parte salvo la ficha de la peque. Se ganaba un manto y nadie lo
+//     sabía.
+// 2 · NO SE PODÍA ELEGIR NADA sin el PIN. La junior pide sus misiones y
+//     canjea sus premios desde su móvil, pero su cara la decidía otro.
+//     Aquí se monta la suya sin pedirle permiso a nadie: es lo único de
+//     la app que no necesita validación, porque no hay nada que validar
+//     en elegir un peinado.
+//
+// Lo que falta para la fase siguiente solo aparece si está CERCA. Con
+// esta escalera, de la fase 7 a la 8 hay dos años: una cuenta atrás de
+// años no empuja, deshincha. `faseSiguiente()` devuelve null el resto del
+// tiempo y entonces lo que se enseña es lo que ya se lleva puesto.
+// ------------------------------------------------------------------
+function TuRetrato({ profile, genero, refresh }) {
+  const [guardando, setGuardando] = useState(false)
+  const [fallo, setFallo] = useState('')
+  // Copia local para que el retrato se mueva al tocar, sin esperar a la
+  // ida y vuelta. Lo que se guarda es esto; `profile` llega con el
+  // refresco.
+  const [borrador, setBorrador] = useState(null)
+  const mio = borrador || profile
+
+  const fase = faseDePerfil(mio)
+  const cerca = faseSiguiente(mio)
+
+  async function cambiar(cambios) {
+    const siguiente = { ...mio, ...cambios }
+    setBorrador(siguiente)
+    setGuardando(true)
+    setFallo('')
+    const { ok, mensaje } = await guardarRetrato({ profile, piezas: siguiente })
+    if (ok) await refresh()
+    else setFallo(mensaje || 'No se pudo guardar el retrato.')
+    setGuardando(false)
+  }
+
+  return (
+    <Plegable
+      id="progreso-retrato"
+      titulo="Tu retrato"
+      pista={flex(fase.nombre, genero)}
+    >
+      <div className="carta">
+        <div className="fila" style={{ alignItems: 'center', gap: 16 }}>
+          <Retrato perfil={mio} tamano={92} vista="cuerpo" />
+          <div className="crece">
+            <strong style={{ fontFamily: 'var(--display)', fontSize: '1.05rem' }}>
+              {flex(fase.nombre, genero)}
+            </strong>
+            <div className="suave" style={{ fontSize: '0.85rem' }}>{fase.equipo}</div>
+            {cerca ? (
+              <div className="suave" style={{ fontSize: '0.8rem', marginTop: 6 }}>
+                A {cerca.faltan} XP de <strong>{flex(cerca.fase.nombre, genero)}</strong>,
+                que trae {cerca.fase.equipo.toLowerCase()}.
+              </div>
+            ) : (
+              <div className="suave" style={{ fontSize: '0.8rem', marginTop: 6 }}>
+                El equipo se gana subiendo de nivel. No se compra.
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="titulo-seccion" style={{ marginTop: 14 }}>Cómo eres</div>
+        <EditorRetrato perfil={mio} onCambiar={cambiar} genero={genero} vistaPrevia={false} />
+        {guardando && <p className="suave">Guardando…</p>}
+        {fallo && <p className="error-texto">{fallo}</p>}
+      </div>
+    </Plegable>
+  )
+}
+
 function Progreso({ data, profile, genero, refresh, historial, elogios = [], alVerMuro, onDarGracias, muroNuevo = false }) {
   // El historial va por semanas y no en una lista infinita: una lista que
   // solo crece deja de leerse al mes. Nada se archiva de verdad —los datos
@@ -573,6 +656,8 @@ function Progreso({ data, profile, genero, refresh, historial, elogios = [], alV
 
   return (
     <div>
+      <TuRetrato profile={profile} genero={genero} refresh={refresh} />
+
       <CaminoRacha data={data} profile={profile} refresh={refresh} />
 
       <div className="titulo-seccion">Tus habilidades</div>

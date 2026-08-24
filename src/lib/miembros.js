@@ -149,6 +149,8 @@ export function filaDeMiembro(m, familyId) {
     // esperar a que Postgres lo rechace con un error que no dice nada.
     retrato_piel: esMascota ? null : m.retrato_piel ?? null,
     retrato_pelo: esMascota ? null : m.retrato_pelo ?? null,
-    retrato_peinado: esMascota ? null : m.retrato_peinado ?? null
+    retrato_peinado: esMascota ? null : m.retrato_peinado ?? null,
+    retrato_gafas: esMascota ? null : m.retrato_gafas ?? null,
+    retrato_tunica: esMascota ? null : m.retrato_tunica ?? null
   }
 }

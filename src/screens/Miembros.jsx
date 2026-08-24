@@ -17,7 +17,7 @@ import { GENEROS, flex, generoDe } from '../lib/genero'
 import { Modal, Gema, Talis } from '../components/ui'
 import Icono from '../components/Icono'
 import Retrato from '../components/Retrato'
-import { PIELES, PELOS, PEINADOS, piezasDe, faseDePerfil } from '../lib/retratos'
+import EditorRetrato from '../components/EditorRetrato'
 
 // ------------------------------------------------------------------
 // Gestión de miembros del gremio.
@@ -328,59 +328,7 @@ function FormMiembro({ miembro, ocupado, onGuardar, onClose }) {
       {m.role !== 'mascota' && (
         <div className="campo">
           <label>Retrato</label>
-          <div className="fila" style={{ alignItems: 'center', gap: 14, marginBottom: 10 }}>
-            <Retrato perfil={m} tamano={78} vista="cuerpo" />
-            <span className="suave crece">
-              La figura gana equipo al subir de nivel: no se compra ni se elige, se alcanza.
-              Ahora mismo, <strong>{flex(faseDePerfil(m).nombre, m.gender || 'neutro')}</strong>.
-            </span>
-          </div>
-
-          <label>Piel</label>
-          <div className="grid-colores">
-            {PIELES.map((x) => (
-              <button
-                key={x.id}
-                className={piezasDe(m).piel === x.id ? 'sel' : ''}
-                style={{ background: x.hex }}
-                onClick={() => set({ retrato_piel: x.id })}
-                aria-label={'Piel ' + x.id}
-              />
-            ))}
-          </div>
-
-          {/* Sin pelo, el color de pelo no pinta nada: ofrecerlo sería un
-              mando que no hace nada, que es peor que no tenerlo. */}
-          {piezasDe(m).peinado !== 'calvo' && (
-            <>
-          <label>Pelo</label>
-          <div className="grid-colores">
-            {PELOS.map((x) => (
-              <button
-                key={x.id}
-                className={piezasDe(m).pelo === x.id ? 'sel' : ''}
-                style={{ background: x.hex }}
-                onClick={() => set({ retrato_pelo: x.id })}
-                aria-label={'Pelo ' + x.id}
-              />
-            ))}
-          </div>
-            </>
-          )}
-
-          <label>Peinado</label>
-          <div className="grid-habilidades">
-            {PEINADOS.map((x) => (
-              <button
-                key={x.id}
-                type="button"
-                className={'pastilla-habilidad' + (piezasDe(m).peinado === x.id ? ' sel' : '')}
-                onClick={() => set({ retrato_peinado: x.id })}
-              >
-                {x.nombre}
-              </button>
-            ))}
-          </div>
+          <EditorRetrato perfil={m} onCambiar={set} genero={m.gender || 'neutro'} />
         </div>
       )}
 

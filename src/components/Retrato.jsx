@@ -1,5 +1,8 @@
 import { useId } from 'react'
-import { PIELES, PELOS, piezasDe, hexDe, faseDePerfil, llevaFigura, FASES, PALETA_RETRATO } from '../lib/retratos'
+import {
+  PIELES, PELOS, TUNICAS, piezasDe, hexDe, faseDePerfil, llevaFigura, FASES,
+  PALETA_RETRATO, oscuro, claro, separar
+} from '../lib/retratos'
 
 // ------------------------------------------------------------------
 // El dibujo del retrato.
@@ -41,14 +44,10 @@ const { oro: ORO, oroClaro: ORO_CLARO, oroHondo: ORO_HONDO, canal: CANAL, apagad
 // aunque quepan: el equipo se mira en la ficha, donde hay sitio.
 const UMBRAL_CUERPO = 64
 
-function mezcla(hex, f, hacia) {
-  const n = parseInt(String(hex).slice(1), 16)
-  const c = [(n >> 16) & 255, (n >> 8) & 255, n & 255]
-  const d = c.map((v) => Math.round(hacia === 'claro' ? v + (255 - v) * f : v * (1 - f)))
-  return '#' + d.map((v) => v.toString(16).padStart(2, '0')).join('')
-}
-const oscuro = (h, f) => mezcla(h, f, 'oscuro')
-const claro = (h, f) => mezcla(h, f, 'claro')
+// Cuánto flequillo cae sobre el cráneo en cada peinado. El rapado se
+// distingue del corto por esto y solo por esto, así que el número no es
+// decorativo: con el mismo alto son el mismo dibujo.
+const ALTO_FLEQUILLO = { rizado: 16, rapado: 9, mono: 12, coleta: 13 }
 
 function Pelo({ estilo, color, uid }) {
   // Detrás de la cabeza va el volumen; delante, lo que se recorta al
@@ -69,14 +68,59 @@ function Pelo({ estilo, color, uid }) {
           <circle cx="65" cy="21" r="9" fill={color} />
         </>
       )}
+      {estilo === 'coleta' && (
+        <>
+          <ellipse cx="76" cy="48" rx="7" ry="14" fill={color} />
+          <rect x="68" y="32" width="9" height="5" rx="2.5" fill={oscuro(color, 0.3)} />
+        </>
+      )}
+      {estilo === 'mono' && <circle cx="50" cy="13" r="9.5" fill={color} />}
+      {estilo === 'trenzas' && (
+        <>
+          {[44, 52, 60].map((y) => (
+            <circle key={'i' + y} cx="29" cy={y} r="5.2" fill={color} />
+          ))}
+          {[44, 52, 60].map((y) => (
+            <circle key={'d' + y} cx="71" cy={y} r="5.2" fill={color} />
+          ))}
+        </>
+      )}
     </>
   )
 }
 
-function Cara({ piel, pelo, peinado, uid }) {
+// Gafas. Van DESPUÉS de los ojos y con la lente algo clara: sobre una piel
+// oscura una montura pelada se pierde, y el detalle más pequeño de la cara
+// es justo el que no puede depender del tono de piel.
+function Gafas({ tipo }) {
+  if (!tipo || tipo === 'ninguna') return null
+  const comun = { fill: '#eaeaf4', fillOpacity: 0.22, stroke: '#241f2e', strokeWidth: 2 }
   return (
     <>
-      <Pelo estilo={peinado} color={pelo} uid={uid} />
+      {tipo === 'redondas' ? (
+        <>
+          <circle cx="43" cy="37" r="6.4" {...comun} />
+          <circle cx="57" cy="37" r="6.4" {...comun} />
+        </>
+      ) : (
+        <>
+          <rect x="36.4" y="31.6" width="13" height="10.8" rx="2.5" {...comun} />
+          <rect x="50.6" y="31.6" width="13" height="10.8" rx="2.5" {...comun} />
+        </>
+      )}
+      <path d="M49.4,37 h1.2" stroke="#241f2e" strokeWidth="2" strokeLinecap="round" />
+    </>
+  )
+}
+
+function Cara({ piel, pelo, peinado, gafas, uid }) {
+  // Pelo negro sobre piel muy oscura contrastaba 1,12: eran la misma
+  // mancha. `separar` lo mueve lo mínimo para despegarlo y no toca nada
+  // cuando ya se veía, que es la mayoría de las combinaciones.
+  const tinte = separar(pelo, piel)
+  return (
+    <>
+      <Pelo estilo={peinado} color={tinte} uid={uid} />
       <circle cx="31" cy="37" r="4.5" fill={piel} />
       <circle cx="69" cy="37" r="4.5" fill={piel} />
       <circle cx="50" cy="34" r="20" fill={piel} />
@@ -90,12 +134,23 @@ function Cara({ piel, pelo, peinado, uid }) {
           cero, que en algunos navegadores deja una línea de un píxel. */}
       {peinado !== 'calvo' && (
         <g clipPath={`url(#${uid}-h)`}>
-          <rect x="28" y="12" width="44" height={peinado === 'rizado' ? 16 : 14} fill={pelo} />
+          <rect x="28" y="12" width="44" height={ALTO_FLEQUILLO[peinado] ?? 14} fill={tinte} />
         </g>
       )}
-      <circle cx="43" cy="37" r="2.9" fill="#1b1b2e" />
-      <circle cx="57" cy="37" r="2.9" fill="#1b1b2e" />
-      <path d="M45,45 q5,4.5 10,0" stroke="#1b1b2e" strokeWidth="2" fill="none" strokeLinecap="round" />
+      {/* Ojo con blanco y pupila, y no un punto de tinta. Un punto oscuro
+          desaparece sobre una piel oscura —medido: 1,20 de contraste en
+          «ébano»— y quien elegía esa piel se quedaba sin cara. El blanco
+          se ve sobre cualquier tono, que es justo lo que hace falta. */}
+      <circle cx="43" cy="37" r="3.3" fill="#f7f4ee" />
+      <circle cx="57" cy="37" r="3.3" fill="#f7f4ee" />
+      <circle cx="43" cy="37" r="1.9" fill="#1b1b2e" />
+      <circle cx="57" cy="37" r="1.9" fill="#1b1b2e" />
+      <path
+        d="M45,45.5 q5,4.5 10,0"
+        stroke={separar('#1b1b2e', piel)}
+        strokeWidth="2" fill="none" strokeLinecap="round"
+      />
+      <Gafas tipo={gafas} />
     </>
   )
 }
@@ -263,6 +318,11 @@ export default function Retrato({ perfil, tamano = 64, vista = 'auto', disco = t
   const piezas = piezasDe(perfil)
   const piel = hexDe(PIELES, piezas.piel)
   const pelo = hexDe(PELOS, piezas.pelo)
+  // La túnica ya no es el color del miembro: son dos datos distintos, así
+  // que el aro y la ropa pueden dejar de ir a juego. 'perfil' —el valor
+  // por defecto— significa «la del color del miembro», y por eso su hex
+  // es null: quien no elige nada sigue viéndose como antes.
+  const tunica = TUNICAS.find((t) => t.id === piezas.tunica)?.hex || color
   const fase = faseDePerfil(perfil)
 
   return (
@@ -280,11 +340,11 @@ export default function Retrato({ perfil, tamano = 64, vista = 'auto', disco = t
       {!entero && <Aro color={color} fase={fase.n} />}
       {entero && (
         <>
-          <Cuerpo color={color} piel={piel} />
-          <Equipo fase={fase.n} color={color} uid={uid} />
+          <Cuerpo color={tunica} piel={piel} />
+          <Equipo fase={fase.n} color={tunica} uid={uid} />
         </>
       )}
-      <Cara piel={piel} pelo={pelo} peinado={piezas.peinado} uid={uid} />
+      <Cara piel={piel} pelo={pelo} peinado={piezas.peinado} gafas={piezas.gafas} uid={uid} />
     </svg>
   )
 }

@@ -522,3 +522,39 @@ export async function apuntarMisionDeMascota({ family, mascota, reto, quien }) {
 
   return { ok: !aprobacion.error, mensaje: aprobacion.mensaje }
 }
+
+/**
+ * Guardar las piezas del retrato de quien está mirando.
+ *
+ * Existe para que la junior pueda montarse su propia cara sin pedirle el
+ * PIN a nadie. El editor del panel parental sigue donde estaba y sirve
+ * para todos; esto sirve para uno: el que lo pulsa.
+ *
+ * Escribe SOLO las tres columnas de retrato, y ese recorte es la
+ * seguridad de verdad. La familia comparte una cuenta, así que el RLS es
+ * por familia y nada impediría a este camino tocar el nivel, el rol o los
+ * Talis; lo que lo impide es que aquí no se nombran. Si algún día esto
+ * acepta un objeto suelto de quien lo llame, deja de ser seguro.
+ */
+export async function guardarRetrato({ profile, piezas }) {
+  const requestId = nuevoRequestId()
+  log.info('retrato.guardado', { request_id: requestId, profile_id: profile.id })
+
+  const { error, mensaje } = await operacion(
+    'retrato.guardado.error',
+    () =>
+      supabase
+        .from('profiles')
+        .update({
+          retrato_piel: piezas.retrato_piel ?? null,
+          retrato_pelo: piezas.retrato_pelo ?? null,
+          retrato_peinado: piezas.retrato_peinado ?? null,
+          retrato_gafas: piezas.retrato_gafas ?? null,
+          retrato_tunica: piezas.retrato_tunica ?? null
+        })
+        .eq('id', profile.id),
+    { request_id: requestId, profile_id: profile.id }
+  )
+
+  return error ? { ok: false, mensaje } : { ok: true, mensaje: '' }
+}

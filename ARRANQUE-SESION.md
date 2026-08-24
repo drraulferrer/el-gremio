@@ -73,7 +73,7 @@ modo peque, la capa de producción y la gestión de miembros.
 | Supabase | proyecto `chfbrawsoulfiywiqhpe`, Postgres 17.6, región EU |
 | Edge Function | `notificar`, versión 5, `verify_jwt` en false |
 | Versión publicada | ver `npm run health` (lee `version.json`, que ahora se emite en el build) |
-| Tests | 1.120, en 63 ficheros, todos en verde (24-ago) |
+| Tests | 1.136, en 63 ficheros, todos en verde (24-ago) |
 
 Comprobar que sigue vivo:
 
@@ -4107,3 +4107,44 @@ decora. **La lección no es el canal, es que el contraste se miraba a ojo**
 y por eso el fallo llegó a producción. Las cifras viven ahora en
 `PALETA_RETRATO` con tests que las vigilan, incluido uno que deja
 constancia de lo malo que era antes por si alguien quita el canal.
+
+## 7ap. El retrato, completo (24 de agosto) · 2.26.0 · **MIGRACIÓN 037 SIN EJECUTAR**
+
+Tres agujeros que tenía el retrato al salir, tapados a la vez: no había
+dónde mirarse, nadie avisaba de que habías avanzado, y solo un adulto con
+el PIN podía elegir piezas. Detalle en [`docs/RETRATO.md`](docs/RETRATO.md).
+
+**Pendiente**: ejecutar `migracion-037-retrato-ampliado.sql` y desplegar.
+
+### Lo que conviene no deshacer
+
+- **Lo que falta para la fase siguiente solo se enseña si está cerca**
+  (`faseSiguiente`, 45 días). De la fase 7 a la 8 hay dos años: una cuenta
+  atrás de años deshincha. Devolver `null` es la decisión, no un descuido.
+- **El equipo no se elige nunca.** El editor ofrece túnica —ropa de
+  diario— pero ni manto ni farol. Si se pudiera elegir un manto, el manto
+  dejaría de significar «maestría».
+- **La 037 deja de enumerar el catálogo en la base.** La 035 lo metió en
+  un CHECK; dos días después la 036 existía solo para añadir «calvo». El
+  CHECK que queda es de forma. El catálogo vive en `src/lib/retratos.js` y
+  añadir una pieza ya no pide migración.
+
+### Un fallo que ya estaba desplegado
+
+Sobre una piel muy oscura la cara desaparecía: los ojos eran tinta fija y
+contrastaban **1,20** sobre «ébano», y el pelo negro **1,12**. Quien
+elegía la piel más oscura se quedaba sin cara. Ahora el ojo lleva blanco y
+pupila, y `separar()` despega el pelo de la piel solo cuando hace falta.
+
+Es el TERCER fallo de contraste del retrato en dos días, y todos con la
+misma forma: un color fijo sobre un fondo variable, decidido a ojo. Al
+añadir cualquier pieza, mídelo.
+
+### Dos cosas para decidir
+
+- **No hay linter.** Dos fallos de esta sesión —`Retrato` y `generoDe`
+  usados sin importar— pasaron el build y reventaron en pantalla. Los dos
+  los habría cazado `no-undef`. `tests/imports.test.js` solo cubre la
+  mitad JSX. Añadir ESLint es una decisión del proyecto, no se ha tomado.
+- **La celebración se puede perder detrás del modal de sellos**: su
+  temporizador corre aunque esté tapada. Es de antes del retrato.

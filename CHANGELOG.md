@@ -18,6 +18,46 @@ verdad duele en esta app: que el esquema y el cliente dejen de encajar.
 
 ---
 
+## 2.26.0 · 24 de agosto de 2026
+
+Tres agujeros del retrato, tapados a la vez porque se sostienen entre
+ellos: no había dónde mirarse, nadie avisaba de que habías avanzado, y
+solo un adulto con el PIN podía elegir las piezas.
+
+**El retrato vive en Progreso.** Figura de cuerpo entero, la fase con su
+nombre y el equipo que trae. Y lo que falta para la siguiente **solo si
+está cerca**: de la fase 7 a la 8 hay dos años, y una cuenta atrás de años
+no empuja, deshincha. El resto del tiempo se enseña lo que ya se lleva
+puesto.
+
+**Cambiar de fase se celebra.** Con la figura nueva ya vestida, el nombre
+de la fase y qué equipo ha traído. Antes se ganaba el manto y no lo sabía
+nadie.
+
+**Cada cual monta su retrato.** El editor está también en Progreso, así
+que la junior elige su cara sin pedirle el PIN a nadie. No hay nada que
+validar en elegir un peinado. La peque sigue en manos de su adulto, que a
+los tres años es lo que toca.
+
+**Más piezas.** Cuatro peinados nuevos (coleta, moño, trenzas, rapado),
+dos tonos de piel y dos de pelo, **gafas** —la pieza que más rinde,
+porque las listas dibujan solo la cabeza y solo lo que está en la cara
+sirve para distinguir a alguien— y **color de túnica separado del color
+del miembro**, que multiplica las combinaciones sin dibujar nada.
+
+**Y un fallo que ya estaba desplegado**: sobre una piel muy oscura la cara
+desaparecía. Los ojos eran tinta fija y contrastaban 1,20 sobre «ébano»;
+el pelo negro, 1,12. Quien elegía la piel más oscura del catálogo se
+quedaba sin cara. Ahora el ojo lleva blanco y pupila —se ve sobre
+cualquier tono— y `separar()` despega el pelo de la piel solo cuando hace
+falta, sin tocar nada donde ya se veía.
+
+La migración 037 además **deja de enumerar el catálogo en la base**. La
+035 lo metió en un CHECK diciendo que así lo protegía Postgres; dos días
+después la 036 existía solo para añadir «calvo» y esta tendría que
+ensanchar tres CHECK más. Queda un CHECK de forma, que es lo que de verdad
+protegía. El catálogo vive en `src/lib/retratos.js`.
+
 ## 2.25.0 · 24 de agosto de 2026
 
 **Arregla que el retrato no se guardaba.** El `update` de un miembro lleva

@@ -96,12 +96,19 @@ create table if not exists public.profiles (
   -- porque son pocas y así el catálogo lo protege un CHECK. Nullable =
   -- «sin elegir»: el cliente rellena con los defectos de piezasDe(), que
   -- es lo que permite desplegar sin tocar un solo perfil.
-  retrato_piel text check (retrato_piel is null or retrato_piel in
-    ('clara','media','tostada','morena','oscura','profunda')),
-  retrato_pelo text check (retrato_pelo is null or retrato_pelo in
-    ('negro','castano','rubio','pelirrojo','gris','blanco')),
-  retrato_peinado text check (retrato_peinado is null or retrato_peinado in
-    ('corto','largo','rizado','calvo')),
+  -- El CHECK es de FORMA y no de catálogo, y es un cambio de criterio de
+  -- la 037: enumerar los valores aquí obligaba a una migración por cada
+  -- peinado nuevo, y no compraba casi nada, porque `piezasDe()` ya cae al
+  -- valor por defecto ante una pieza que no conoce —hace falta, porque un
+  -- cliente viejo lee piezas nuevas todo el rato—. El catálogo vive en
+  -- src/lib/retratos.js.
+  retrato_piel text check (retrato_piel is null or retrato_piel ~ '^[a-z]{2,24}$'),
+  retrato_pelo text check (retrato_pelo is null or retrato_pelo ~ '^[a-z]{2,24}$'),
+  retrato_peinado text check (retrato_peinado is null or retrato_peinado ~ '^[a-z]{2,24}$'),
+  retrato_gafas text check (retrato_gafas is null or retrato_gafas ~ '^[a-z]{2,24}$'),
+  -- Color de la túnica, separado del color del miembro: eran el mismo
+  -- dato y por eso el aro y la ropa iban siempre a juego.
+  retrato_tunica text check (retrato_tunica is null or retrato_tunica ~ '^[a-z]{2,24}$'),
   -- La XP más alta alcanzada. La FASE del retrato se calcula contra esto
   -- y nunca contra `xp`: deshacer devuelve la XP, y si el personaje se
   -- desvistiera al deshacer, deshacer se sentiría como un castigo y la
@@ -131,6 +138,7 @@ create table if not exists public.profiles (
     case
       when role = 'mascota'
         then retrato_piel is null and retrato_pelo is null and retrato_peinado is null
+         and retrato_gafas is null and retrato_tunica is null
       else true
     end
   )

@@ -10,11 +10,13 @@ import { instalarMonitorizacion, capturar } from './lib/monitoring'
 import { flag } from './lib/flags'
 import { vibrar, LOGRO } from './lib/vibrar'
 import { marcaDe, queCelebrar } from './lib/celebracion'
+import { generoDe } from './lib/genero'
 import { levelProgress } from './lib/supabase'
 import { perfilesActivos, estaActivo } from './lib/miembros'
 import { RELEASE } from './lib/version'
 import { registrarServiceWorker, apuntarPerfil } from './lib/push'
 import { PinModal, Celebracion } from './components/ui'
+import Retrato from './components/Retrato'
 import LoteDeSellos from './components/LoteDeSellos'
 import TalisAMano from './components/TalisAMano'
 import { manualesDe, pendientesDeAviso, leerAvisados, marcarAvisados } from './lib/premioManual'
@@ -494,7 +496,13 @@ export default function App() {
       (c) => c.profile_id === profile.id && c.status === 'aprobado'
     )
     const nivel = levelProgress(profile.xp).level
-    const fiesta = queCelebrar({ antes: ultimoVisto.current, aprobadas, nivel, profileId: profile.id })
+    // El género va aquí porque el nombre de una fase lleva las tres formas
+    // —{Decana|Decano|Decanato}— y sin esto la celebración enseñaría las
+    // llaves en pantalla. Lo pilló un test, no la pantalla.
+    const fiesta = queCelebrar({
+      antes: ultimoVisto.current, aprobadas, nivel,
+      profileId: profile.id, genero: generoDe(profile)
+    })
 
     if (fiesta) {
       vibrar(LOGRO)
@@ -628,8 +636,13 @@ export default function App() {
           <Celebracion
             emoji={celeb.emoji}
             texto={celeb.texto}
+            nota={celeb.nota}
             elogio={celeb.elogio}
             intensidad={celeb.intensidad}
+            /* En un cambio de fase se enseña la figura con el equipo ya
+               puesto: el perfil llega con la XP nueva, así que Retrato
+               dibuja la fase recién ganada sin que haya que decírselo. */
+            figura={celeb.fase ? <Retrato perfil={profile} tamano={120} vista="cuerpo" /> : null}
             onDone={() => setCeleb(null)}
           />
         )}

@@ -163,3 +163,51 @@ describe('qué se celebra entre dos cargas', () => {
     expect(queCelebrar({ antes, aprobadas: [c('z')], nivel: 3, profileId: 'p2' })).toBe(null)
   })
 })
+
+// ------------------------------------------------------------------
+// El cambio de fase del retrato.
+//
+// Sin esto, ganar el manto o encender el farol no se anunciaba en ningún
+// sitio: las listas dibujan solo la cabeza, así que el equipo nuevo
+// aparecía y nadie se enteraba. La fase se celebra en el momento en que
+// pasa, que es el único momento en que significa algo.
+// ------------------------------------------------------------------
+describe('subir de fase', () => {
+  const marca = (nivel) => marcaDe({ aprobadas: [], nivel, profileId: 'p1' })
+  const fiesta = (antesNivel, nivel, genero = 'neutro') =>
+    queCelebrar({ antes: marca(antesNivel), aprobadas: [], nivel, profileId: 'p1', genero })
+
+  it('la fase gana al nivel: una sola fiesta por el mismo gesto', () => {
+    const f = fiesta(13, 14)
+    expect(f.fase).toBe(5)
+    expect(f.texto).not.toMatch(/Nivel/)
+    // El número no se pierde, baja a la nota.
+    expect(f.nota).toMatch(/nivel 14/)
+  })
+
+  it('dice qué equipo se ha ganado, que es lo que hay que ver', () => {
+    expect(fiesta(37, 38).nota).toMatch(/[Ff]arol encendido/)
+  })
+
+  // El nombre de una fase lleva las tres formas. Sin flexionar, la
+  // celebración enseñaba «{Decana|Decano|Decanato}» en pantalla: lo pilló
+  // un test como este, no la pantalla.
+  it('el nombre sale flexionado y sin llaves, en los tres géneros', () => {
+    for (const g of ['femenino', 'masculino', 'neutro']) {
+      const f = fiesta(19, 20, g)
+      expect(f.texto, g).not.toMatch(/[{}|]/)
+      expect(f.texto.length, g).toBeGreaterThan(3)
+    }
+    expect(fiesta(19, 20, 'femenino').texto).not.toBe(fiesta(19, 20, 'masculino').texto)
+  })
+
+  it('subir de nivel sin cambiar de fase sigue celebrando el nivel de siempre', () => {
+    const f = fiesta(15, 16)
+    expect(f.fase).toBeUndefined()
+    expect(f.texto).toBe('¡Nivel 16!')
+  })
+
+  it('sin marca previa no se celebra nada, tampoco una fase', () => {
+    expect(queCelebrar({ antes: null, aprobadas: [], nivel: 50, profileId: 'p1' })).toBeNull()
+  })
+})

@@ -143,7 +143,7 @@ describe('la fila que se guarda', () => {
     const fila = filaDeMiembro(persona, 'fam')
     for (const columna of [
       'family_id', 'name', 'role', 'emoji', 'color', 'gender', 'species',
-      'retrato_piel', 'retrato_pelo', 'retrato_peinado'
+      'retrato_piel', 'retrato_pelo', 'retrato_peinado', 'retrato_gafas', 'retrato_tunica'
     ]) {
       expect(Object.keys(fila), `falta ${columna}`).toContain(columna)
     }
@@ -152,9 +152,10 @@ describe('la fila que se guarda', () => {
   it('una mascota va sin retrato, como exige el CHECK', () => {
     const fila = filaDeMiembro(
       { ...persona, role: 'mascota', species: 'perro' }, 'fam')
-    expect(fila.retrato_piel).toBeNull()
-    expect(fila.retrato_pelo).toBeNull()
-    expect(fila.retrato_peinado).toBeNull()
+    for (const c of ['retrato_piel', 'retrato_pelo', 'retrato_peinado',
+                     'retrato_gafas', 'retrato_tunica']) {
+      expect(fila[c], c).toBeNull()
+    }
     expect(fila.species).toBe('perro')
   })
 

@@ -110,6 +110,8 @@ export function estrellasDe(nombre, menosMovimiento = false) {
 // ------------------------------------------------------------------
 
 import { talis } from './talis'
+import { faseDeNivel, hayFaseNueva } from './retratos'
+import { flex } from './genero'
 
 /** La foto de referencia: lo que ya se ha visto de esta persona. */
 export function marcaDe({ aprobadas = [], nivel = 0, profileId = null } = {}) {
@@ -127,10 +129,28 @@ export function marcaDe({ aprobadas = [], nivel = 0, profileId = null } = {}) {
  * de nivel, lo que ha pasado es que se ha subido de nivel. Dos
  * celebraciones seguidas por el mismo gesto le quitan valor a la grande.
  */
-export function queCelebrar({ antes, aprobadas = [], nivel = 0, profileId = null } = {}) {
+export function queCelebrar({ antes, aprobadas = [], nivel = 0, profileId = null, genero = 'neutro' } = {}) {
   if (!antes || antes.profileId !== profileId) return null
 
   if (nivel > antes.nivel) {
+    // La fase gana al nivel por el mismo motivo por el que el nivel gana a
+    // las misiones: es lo más grande que ha pasado, y dos fiestas por el
+    // mismo gesto le quitan valor a la grande. El número de nivel no se
+    // pierde, va debajo.
+    //
+    // Sin esto, el equipo nuevo aparecía sin que nadie se enterara: se
+    // ganaba el manto y solo se veía entrando en Progreso a mirarse.
+    if (hayFaseNueva(antes.nivel, nivel)) {
+      const fase = faseDeNivel(nivel)
+      return {
+        emoji: '💎',
+        texto: flex(fase.nombre, genero),
+        nota: `${fase.equipo} · nivel ${nivel}`,
+        elogio: '',
+        intensidad: 'hito',
+        fase: fase.n
+      }
+    }
     return { emoji: '💎', texto: `¡Nivel ${nivel}!`, elogio: '', intensidad: 'hito' }
   }
 

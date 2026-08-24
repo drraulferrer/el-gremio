@@ -1,7 +1,6 @@
 # El retrato del gremialista
 
-Estado: **en producción desde el 24-ago-2026** (2.25.0). Migraciones 035
-y 036 ejecutadas y trigger verificado contra la base real.
+Estado: **en producción desde el 24-ago-2026**. Migraciones 035, 036 y 037.
 
 Un perfil deja de ser un emoji y pasa a ser una figura por capas que gana
 equipo al subir de nivel. El emoji no desaparece: sigue siendo el respaldo
@@ -95,6 +94,28 @@ decora. Las cifras están en `PALETA_RETRATO` y hay tests que las vigilan.
 disolvía en el índigo a 30 px y quedaba el aro flotando sin cara dentro.
 En pergamino no hace falta.
 
+## 4b. Dónde se ve y quién lo elige
+
+**En Progreso**, cada cual tiene su figura de cuerpo entero, su fase y lo
+que falta para la siguiente **solo si está cerca** (`DIAS_CERCA`, 45 días
+de los supuestos de `economia.js`). Con esta escalera, de la fase 7 a la 8
+hay dos años: una cuenta atrás de años no empuja, deshincha.
+
+**Al cambiar de fase se celebra**, con la figura ya vestida y el nombre del
+equipo nuevo. Es el único momento en que el progreso significa algo, y
+antes no se anunciaba en ninguna parte.
+
+**El editor está en dos sitios**: en el panel parental, donde un adulto
+monta el de cualquiera, y en Progreso, donde cada cual monta el suyo. La
+junior no necesita el PIN para elegir su peinado: no hay nada que validar
+en eso. La peque sigue en manos de su adulto.
+
+Lo que NUNCA se elige es el equipo. Túnica sí —es ropa de diario—, pero ni
+delantal, ni manto, ni farol. Si se pudiera elegir un manto, el manto
+dejaría de significar «maestría» y las nueve fases se quedarían sin
+idioma. **Lo elegible es quién eres; lo ganado es hasta dónde has
+llegado.** Es la línea que no conviene cruzar.
+
 ## 5. Las mascotas
 
 Se quedan con emoji, dentro de un medallón que les da el mismo aro y el
@@ -110,8 +131,17 @@ sujeta un CHECK, `profiles_retrato_solo_personas`.
   suyo. No es un fallo, es el estado inicial.
 - El arco del aro hace comparables a los miembros en el picker. Se aceptó
   a sabiendas (24-ago-2026): la `Gema` ya enseñaba el nivel ahí al lado.
-- Hay cuatro peinados: corto, largo, rizado y sin pelo. Añadir otro es una
-  pieza SVG y una migración que amplíe el CHECK, como la 036.
+- Hay ocho peinados, ocho pieles, ocho colores de pelo, gafas y siete
+  túnicas. Añadir una pieza **ya no necesita migración**: desde la 037 el
+  CHECK es de forma y el catálogo vive en `src/lib/retratos.js`.
+- La celebración de fase comparte pantalla con el modal de sellos, y su
+  temporizador corre aunque esté tapada. Si un mismo gesto concede sellos
+  y sube de fase, la fase puede perderse. Es de antes del retrato y no se
+  ha tocado.
+- No hay linter. Dos fallos de esta sesión —un componente y una función
+  usados sin importar— pasaron el build y reventaron en pantalla; los dos
+  los habría cazado `no-undef`. `tests/imports.test.js` cubre solo la
+  mitad JSX del problema.
 
 El prototipo con el que se decidió todo esto está en
 [`prototipos/retrato.html`](prototipos/retrato.html): se abre en cualquier

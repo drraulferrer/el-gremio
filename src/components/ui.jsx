@@ -179,7 +179,7 @@ const ESTRELLAS = ['⭐', '✨', '🌟', '💫']
  * es lo que hace que este cambio no toque las veinte llamadas que ya
  * había repartidas por la app.
  */
-export function Celebracion({ emoji = '🌟', texto, elogio, intensidad = 'normal', onDone }) {
+export function Celebracion({ emoji = '🌟', texto, elogio, nota, figura, intensidad = 'normal', onDone }) {
   const { clase } = escalonDe(intensidad)
   const cuantas = estrellasDe(intensidad, quiereMenosMovimiento())
 
@@ -202,8 +202,14 @@ export function Celebracion({ emoji = '🌟', texto, elogio, intensidad = 'norma
         return <span key={i} className="estrella-volandera" style={style}>{ESTRELLAS[i % ESTRELLAS.length]}</span>
       })}
       <div className="celebracion-caja">
-        <span className="celebracion-emoji">{emoji}</span>
+        {/* Con figura se enseña la figura: en un cambio de fase lo que
+            hay que ver es el equipo nuevo puesto, no un diamante. */}
+        {figura || <span className="celebracion-emoji">{emoji}</span>}
         <span className="celebracion-texto">{texto}</span>
+        {/* `nota` va sin comillas y `elogio` con ellas, y no es un detalle:
+            el elogio son palabras de alguien de la casa y por eso se
+            entrecomillan. La nota la escribe la app. */}
+        {nota && <span className="celebracion-nota">{nota}</span>}
         {elogio && <span className="celebracion-elogio">“{elogio}”</span>}
       </div>
     </div>
