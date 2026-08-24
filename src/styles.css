@@ -971,6 +971,43 @@ input:focus, select:focus, textarea:focus, button:focus-visible {
   100% { transform: translate(var(--dx), var(--dy)) scale(1.25); opacity: 0; }
 }
 
+/* Los dos escalones que no son el de siempre (lib/celebracion.js).
+   Cambian el TAMAÑO, no solo la duración: alargar la misma animación no
+   la hace más grande, la hace más lenta. */
+
+/* Chispa: confirmar algo. Emoji pequeño, sin fondo que tape la pantalla
+   —lo que hay detrás es la tienda, y taparla entera para decir «pedido»
+   es sacar a alguien de donde estaba para no contarle nada—. */
+.celebracion-chispa { background: radial-gradient(circle at 50% 45%, rgba(245, 184, 65, 0.16), rgba(12, 14, 30, 0.45) 70%); }
+.celebracion-chispa .celebracion-emoji { font-size: 2.8rem; }
+.celebracion-chispa .celebracion-texto { font-size: 1.2rem; }
+.celebracion-chispa .estrella-volandera { font-size: 1.1rem; animation-duration: 0.8s; }
+
+/* Hito: subir de nivel. Más grande, más lento al entrar y con un rebote
+   más marcado, que es lo que separa «bien» de «por fin». */
+.celebracion-hito { background: radial-gradient(circle at 50% 45%, rgba(245, 184, 65, 0.4), rgba(12, 14, 30, 0.92) 70%); }
+.celebracion-hito .celebracion-caja { animation: pop 0.7s cubic-bezier(0.34, 1.8, 0.5, 1); }
+.celebracion-hito .celebracion-emoji { font-size: 6rem; animation: hito-respira 2.4s ease-in-out 0.7s infinite; }
+.celebracion-hito .celebracion-texto { font-size: 2.2rem; }
+.celebracion-hito .estrella-volandera { font-size: 2rem; animation-duration: 1.6s; }
+
+@keyframes hito-respira {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.07); }
+}
+
+/* La llama inquieta de la racha en riesgo.
+   Solo el día que hay algo que hacer: una animación permanente deja de
+   comunicar en dos días y pasa a ser ruido (la lección de lib/latido). */
+.racha-llama { display: inline-block; }
+.racha-numero.inquieta .racha-llama { animation: llama-inquieta 1.7s ease-in-out infinite; transform-origin: 50% 85%; }
+
+@keyframes llama-inquieta {
+  0%, 100% { transform: scale(1) rotate(0deg); }
+  25% { transform: scale(1.12) rotate(-6deg); }
+  60% { transform: scale(1.06) rotate(5deg); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }

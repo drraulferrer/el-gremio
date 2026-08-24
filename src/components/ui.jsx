@@ -3,6 +3,8 @@ import { levelProgress, hashPin } from '../lib/supabase'
 import { estaAbierto, recordarAbierto } from '../lib/plegado'
 import Icono from './Icono'
 import { BOLSA, TALIS, talis } from '../lib/talis'
+import { useContador, quiereMenosMovimiento } from '../lib/contador'
+import { duracionCelebracion, escalonDe, estrellasDe } from '../lib/celebracion'
 
 /**
  * Pestaña de la barra inferior. Icono + rótulo siempre: una barra de solo
@@ -49,6 +51,16 @@ export function Gema({ xp, color, mini = false }) {
 
 export function XPBar({ xp, tone }) {
   const p = levelProgress(xp)
+
+  // La cifra sube a la vez que la barra se llena. Antes la barra se
+  // movía 0,6 s y el número de al lado ya estaba puesto desde el primer
+  // fotograma: la mitad de la animación contradecía a la otra mitad.
+  //
+  // Al subir de NIVEL, `current` baja (vuelve a empezar el tramo), y
+  // `useContador` no anima las bajadas: el número se planta, que es lo
+  // correcto —ahí lo que se celebra es el nivel, no el contador—.
+  const actual = useContador(p.current)
+
   return (
     <div>
       <div className="xpbar" aria-label={`Nivel ${p.level}, ${p.current} de ${p.needed} XP`}>
@@ -59,7 +71,7 @@ export function XPBar({ xp, tone }) {
       </div>
       <div className="fila-separada suave" style={{ marginTop: 4 }}>
         <span>Nivel {p.level}</span>
-        <span>{p.current} / {p.needed} XP</span>
+        <span>{actual} / {p.needed} XP</span>
       </div>
     </div>
   )
@@ -69,10 +81,15 @@ export function XPBar({ xp, tone }) {
 // guía en vez del emoji 🪙: un Talis no es una moneda cualquiera, y con
 // el emoji del sistema cada plataforma dibujaba una distinta.
 export function Bolsa({ n }) {
+  // Sube contando al ganar; al gastar en la tienda se planta en el
+  // número nuevo. El `aria-label` lleva SIEMPRE la cifra de verdad: un
+  // lector de pantalla leyendo una cuenta atrás de siete números
+  // intermedios no está celebrando nada, está estorbando.
+  const mostrado = useContador(n)
   return (
     <span className="bolsa" aria-label={`${BOLSA}: ${talis(n)}`}>
       <img src="/assets/talis.png" alt="" className="ficha-talis" />
-      {n}
+      <span aria-hidden="true">{mostrado}</span>
     </span>
   )
 }
@@ -148,18 +165,33 @@ export function PinModal({ family, onOk, onClose }) {
   )
 }
 
-const ESTRELLAS = ['⭐', '✨', '🌟', '💫', '⭐', '✨', '🌟', '💫', '⭐', '✨']
+const ESTRELLAS = ['⭐', '✨', '🌟', '💫']
 
-export function Celebracion({ emoji = '🌟', texto, elogio, onDone }) {
+/**
+ * La celebración, en tres tamaños.
+ *
+ * `intensidad` decide cuánto dura, cuántas estrellas caen y cuánto crece
+ * la caja: `chispa` para confirmar algo, `normal` para una misión
+ * aprobada, `hito` para lo que pasa una vez cada muchas (subir de nivel).
+ * El porqué de la escala está en `lib/celebracion.js`.
+ *
+ * Sin `intensidad` se comporta exactamente como antes de la 2.22.0, que
+ * es lo que hace que este cambio no toque las veinte llamadas que ya
+ * había repartidas por la app.
+ */
+export function Celebracion({ emoji = '🌟', texto, elogio, intensidad = 'normal', onDone }) {
+  const { clase } = escalonDe(intensidad)
+  const cuantas = estrellasDe(intensidad, quiereMenosMovimiento())
+
   useEffect(() => {
-    const t = setTimeout(onDone, elogio ? 3600 : 1900)
+    const t = setTimeout(onDone, duracionCelebracion(intensidad, Boolean(elogio)))
     return () => clearTimeout(t)
-  }, [onDone, elogio])
+  }, [onDone, elogio, intensidad])
 
   return (
-    <div className="celebracion" onClick={onDone}>
-      {ESTRELLAS.map((e, i) => {
-        const ang = (i / ESTRELLAS.length) * Math.PI * 2
+    <div className={'celebracion' + (clase ? ' ' + clase : '')} onClick={onDone}>
+      {Array.from({ length: cuantas }, (_, i) => {
+        const ang = (i / cuantas) * Math.PI * 2
         const dist = 120 + (i % 3) * 55
         const style = {
           left: '50%',
@@ -167,7 +199,7 @@ export function Celebracion({ emoji = '🌟', texto, elogio, onDone }) {
           '--dx': Math.cos(ang) * dist + 'px',
           '--dy': Math.sin(ang) * dist + 'px'
         }
-        return <span key={i} className="estrella-volandera" style={style}>{e}</span>
+        return <span key={i} className="estrella-volandera" style={style}>{ESTRELLAS[i % ESTRELLAS.length]}</span>
       })}
       <div className="celebracion-caja">
         <span className="celebracion-emoji">{emoji}</span>

@@ -12,6 +12,7 @@ import SelloDetalle, { tieneDetalle } from '../components/SelloDetalle'
 import { pedirMision as pedirMisionRemota, canjearPremio, deshacerMision } from '../lib/acciones'
 import { proyeccionDe } from '../lib/sellos-motor'
 import { Gema, XPBar, Bolsa, Celebracion, Pestana, Talis, Plegable } from '../components/ui'
+import { vibrar, LOGRO } from '../lib/vibrar'
 import { talis, progresoDeTalis } from '../lib/talis'
 import { HABILIDADES, habilidad, xpPorHabilidad, rangoDeHabilidad, habilidadDominante } from '../lib/habilidades'
 import { flex, generoDe } from '../lib/genero'
@@ -50,7 +51,11 @@ export default function Home({ family, data, profile, refresh, onSwitchProfile, 
     if (prev.current && prev.current.profileId === profile.id) {
       const nuevas = misAprobadas.filter((c) => !prev.current.ids.has(c.id))
       if (lvl > prev.current.lvl) {
-        setCeleb({ emoji: '💎', texto: `¡Nivel ${lvl}!` })
+        // Subir de nivel es lo que pasa una vez cada muchas veces: va
+        // en el escalón grande. Si durase lo mismo que aprobar una
+        // misión, no se distinguiría de un martes cualquiera.
+        vibrar(LOGRO)
+        setCeleb({ emoji: '💎', texto: `¡Nivel ${lvl}!`, intensidad: 'hito' })
       } else if (nuevas.length) {
         const xp = nuevas.reduce((s, c) => s + c.xp, 0)
         const monedas = nuevas.reduce((s, c) => s + (c.coins || 0), 0)
@@ -58,6 +63,7 @@ export default function Home({ family, data, profile, refresh, onSwitchProfile, 
         // acompañan. El orden importa: primero lo que se ha ganado, y el
         // elogio debajo con más peso visual, no al revés.
         const conElogio = nuevas.find((c) => c.praise)
+        vibrar(LOGRO)
         setCeleb({
           emoji: '🌟',
           texto: monedas > 0 ? `+${xp} XP · +${talis(monedas)}` : `+${xp} XP`,
@@ -82,7 +88,9 @@ export default function Home({ family, data, profile, refresh, onSwitchProfile, 
     setAviso('')
     const { ok, mensaje } = await canjearPremio({ premio, profile })
     if (ok) {
-      setCeleb({ emoji: '🛍️', texto: 'Pedido al gremio' })
+      // Una confirmación, no un logro: no has conseguido nada, has
+      // hecho algo y ha salido bien. Chispa corta y se quita de en medio.
+      setCeleb({ emoji: '🛍️', texto: 'Pedido al gremio', intensidad: 'chispa' })
       await refresh()
     } else {
       setAviso(mensaje)
@@ -106,7 +114,7 @@ export default function Home({ family, data, profile, refresh, onSwitchProfile, 
 
   return (
     <div className="app">
-      {celeb && <Celebracion emoji={celeb.emoji} texto={celeb.texto} elogio={celeb.elogio} onDone={() => setCeleb(null)} />}
+      {celeb && <Celebracion emoji={celeb.emoji} texto={celeb.texto} elogio={celeb.elogio} intensidad={celeb.intensidad} onDone={() => setCeleb(null)} />}
 
       {/* Carnet de aventurera/o */}
       <div className="carta">
