@@ -165,11 +165,16 @@ dispara es trabajo que hay que mantener a cambio de nada.
 ## 4. Magic Link
 
 Es la plantilla del **enlace de entrada sin contraseña** (2.30.0). Supabase
-la tiene aparte de las otras tres, así que **hasta que se pegue, estos
-correos salen con el texto por defecto en inglés** aunque el remitente ya
-sea el propio.
+la tiene aparte de las otras tres.
 
-Va en Authentication → Emails → **Magic Link**.
+**Pegada y comprobada el 25-ago-2026** en Authentication → Emails →
+**Magic link or OTP** (ese es el nombre exacto en el panel).
+
+Al pegarla salió una trampa que conviene conocer: copiar el HTML con
+`pbcopy` a secas **rompe los acentos** —«contraseña» llegó como
+«contrase√±a»—. La forma buena es `LC_CTYPE=UTF-8 pbcopy < fichero`. Se vio
+antes de guardar porque se leyó el DOM, no la pantalla; a simple vista en
+el editor cuesta distinguirlo.
 
 **Subject:** `Tu entrada al gremio`
 
@@ -208,6 +213,28 @@ Va en Authentication → Emails → **Magic Link**.
 sesión**, no confirma nada. Quien lo reciba sin haberlo pedido no tiene que
 hacer nada, pero conviene que el texto lo diga —y lo dice— porque un
 enlace que entra solo asusta más que uno que confirma.
+
+---
+
+## Las que están en inglés y por qué da igual
+
+Supabase tiene más plantillas de las cuatro nuestras, y las demás siguen
+con el texto por defecto en inglés. Comprobado el 25-ago-2026, **ninguna
+llega a enviarse**:
+
+| Plantilla | Por qué no sale |
+|---|---|
+| Invite user | La app nunca invita: los gremios se fundan desde el alta |
+| Reauthentication | La app no llama a `reauthenticate()` |
+| Password changed | Notificación de seguridad **desactivada** |
+| Email address changed | Íd. |
+| Phone number changed | Íd. |
+| Sign-in method linked | Íd. Esta se dispararía al enlazar Google |
+
+Las cuatro de abajo son notificaciones de seguridad que Supabase trae
+apagadas. Si algún día se encienden —tienen su propio interruptor «Enable
+notification» arriba de la plantilla—, **hay que traducirlas antes**, no
+después: se encienden y empiezan a salir en inglés el mismo día.
 
 ---
 

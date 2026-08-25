@@ -4290,12 +4290,8 @@ remitente `noreply@elgremioapp.com` y las URLs de retorno ya servían.
 
 ### PENDIENTE, y se nota si no se hace
 
-**Pegar la plantilla del Magic Link** en Authentication → Emails → Magic
-Link. Supabase la tiene aparte de las otras tres y **no** está entre las
-que se pegaron el 16-ago, así que hasta que se pegue estos correos salen
-con el texto por defecto **en inglés**. Escrita y lista en
-`docs/CORREOS.md` §4. Ojo a la trampa de §7e: guardar no basta con que se
-vea guardado, hay que recargar y volver a leer.
+**Hecho el 25-ago.** La plantilla del Magic Link está pegada y verificada
+recargando (§7e). Detalle y trampas en `docs/CORREOS.md` §4.
 
 ### Google: hecho el 24-ago (ver §7av)
 
@@ -4343,3 +4339,22 @@ cuenta nueva y vacía: se ve «Fundad vuestro gremio» con todo a cero. La
 hay que limpiarlo en la base. Con el enlace por correo esto lo bloquea
 `shouldCreateUser: false`; en OAuth no hay equivalente y lo único que
 queda es el aviso bajo el botón.
+
+## 7aw. Las plantillas de correo, al día (25 de agosto) · SIN VERSIÓN
+
+Pegada la cuarta plantilla —**Magic link or OTP**, que así se llama en el
+panel— y repasadas las tres de agosto: las cuatro en castellano.
+
+**La trampa nueva: `pbcopy` rompe los acentos.** Al pegar el HTML,
+«contraseña» llegó al editor como «contrase√±a». La forma buena es
+`LC_CTYPE=UTF-8 pbcopy < fichero`. Se pilló porque se leyó el DOM en vez
+de fiarse de la pantalla: en un editor de código con fuente monoespaciada,
+el mojibake cuesta de ver.
+
+**Las demás plantillas siguen en inglés y da igual**, que es lo que se
+comprobó: invitación y reautenticación no las usa la app, y las cuatro
+notificaciones de seguridad —contraseña cambiada, correo cambiado,
+teléfono cambiado, método de acceso enlazado— están **desactivadas** con
+su propio interruptor. La última se dispararía al enlazar Google, así que
+si algún día se encienden, **traducirlas antes de encenderlas**. Tabla en
+`docs/CORREOS.md`.
