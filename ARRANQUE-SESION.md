@@ -81,22 +81,25 @@ Todo lo del 24 y el 25 está **desplegado y documentado** (§7an a §7ax). La
 versión en producción es la 2.32.0. No hay nada a medias en el repo: el
 árbol está limpio y `origin/main` al día.
 
-Lo que queda son **cuatro comprobaciones que solo puede hacer la familia**,
-porque necesitan las credenciales o un aparato concreto:
+Las cuatro comprobaciones que dependían de la familia **están hechas y
+salieron bien** (25-ago, confirmado por Raúl):
 
-1. **Pedirse un enlace de entrada por correo** y comprobar que llega en
-   castellano y que entra. La plantilla se pegó el 25-ago.
-2. **Entrar con Google una primera vez**, con la cuenta del MISMO correo
-   del gremio. Con otra se crea un gremio vacío y hay que limpiarlo a mano.
-3. **Los pasos de instalación en un iPhone de verdad**: es la única rama
-   de `GuiaInstalar` que no se pudo ver en pantalla (el navegador de
-   pruebas emula Android, no iOS).
-4. **El editor del retrato en la tablet de la peque**, por si los botones
-   de color le quedan pequeños para acertar con el dedo.
+- ✅ **Entrar con Google**, en el gremio de verdad y no en uno vacío.
+- ✅ **El correo del enlace de entrada llega en castellano**, así que la
+  plantilla quedó bien pegada.
+- ✅ **Los pasos de iPhone salen correctamente**, que era la única rama de
+  `GuiaInstalar` que no se pudo ver en pantalla desde aquí.
+- ✅ **El editor del retrato funciona.**
 
-Y una que es decisión, no comprobación: **las plantillas de notificación
-de seguridad siguen en inglés** y están desactivadas. Si algún día se
-encienden, traducirlas ANTES (tabla en `docs/CORREOS.md`).
+Con eso, **las cuatro maneras de entrar están probadas en producción**:
+contraseña, enlace por correo, Google y —para salir— el botón de Panel →
+⚙️ → Datos. Y el retrato está completo de punta a punta.
+
+**No queda nada abierto de lo de agosto.** Lo único que sigue en el aire es
+una decisión, no una tarea: las plantillas de **notificación de seguridad**
+siguen en inglés y **desactivadas**. Si algún día se encienden, hay que
+traducirlas ANTES de encenderlas, o salen en inglés el mismo día. La tabla
+de cuáles son y por qué hoy no se envían está en `docs/CORREOS.md`.
 
 Comprobar que sigue vivo:
 
