@@ -73,7 +73,30 @@ modo peque, la capa de producción y la gestión de miembros.
 | Supabase | proyecto `chfbrawsoulfiywiqhpe`, Postgres 17.6, región EU |
 | Edge Function | `notificar`, versión 5, `verify_jwt` en false |
 | Versión publicada | ver `npm run health` (lee `version.json`, que ahora se emite en el build) |
-| Tests | 1.133, en 63 ficheros, todos en verde (24-ago). Bajaron al retirar `imports.test.js`, que el linter cubre mejor |
+| Tests | 1.133, en 63 ficheros, todos en verde (25-ago). `npm run verify` empieza por `npm run lint` desde la 2.27.0 |
+
+### Por dónde seguir · escrito al cerrar el 25-ago
+
+Todo lo del 24 y el 25 está **desplegado y documentado** (§7an a §7ax). La
+versión en producción es la 2.32.0. No hay nada a medias en el repo: el
+árbol está limpio y `origin/main` al día.
+
+Lo que queda son **cuatro comprobaciones que solo puede hacer la familia**,
+porque necesitan las credenciales o un aparato concreto:
+
+1. **Pedirse un enlace de entrada por correo** y comprobar que llega en
+   castellano y que entra. La plantilla se pegó el 25-ago.
+2. **Entrar con Google una primera vez**, con la cuenta del MISMO correo
+   del gremio. Con otra se crea un gremio vacío y hay que limpiarlo a mano.
+3. **Los pasos de instalación en un iPhone de verdad**: es la única rama
+   de `GuiaInstalar` que no se pudo ver en pantalla (el navegador de
+   pruebas emula Android, no iOS).
+4. **El editor del retrato en la tablet de la peque**, por si los botones
+   de color le quedan pequeños para acertar con el dedo.
+
+Y una que es decisión, no comprobación: **las plantillas de notificación
+de seguridad siguen en inglés** y están desactivadas. Si algún día se
+encienden, traducirlas ANTES (tabla en `docs/CORREOS.md`).
 
 Comprobar que sigue vivo:
 
@@ -113,10 +136,22 @@ diario que lo mantiene despierto (§7n)—.
 ✅ 025  plan_diario: programar las diarias del día siguiente (18-ago)
 ✅ 026  franja de noche + aviso sin_programar (18-ago)
 ✅ 027  perfiles de mascota (18-ago)
+✅ 028  familias de misión · 029 snapshot histórico
+✅ 030  sellos por temporada · 031 modo limpieza · 032 zonas de la casa
+✅ 033  informes de fallo · 034 reconocimientos
+✅ 035  retrato: piezas + xp_maxima con trigger (24-ago)
+✅ 036  «sin pelo» (24-ago)
+✅ 037  gafas, túnica y CATÁLOGO ABIERTO: el CHECK pasa a ser de forma (24-ago)
+✅ 038  barba (24-ago) · ✅ 039  flequillo (24-ago)
 ```
 
-**Ya no queda ninguna migración pendiente.** La 027 (mascotas) se ejecutó
-el 18-ago; el esquema está listo aunque todavía no haya interfaz que lo
+**Ya no queda ninguna migración pendiente.** Las cinco del retrato
+(035-039) se ejecutaron el 24-ago y están comprobadas contra la base: 7
+columnas `retrato_*`, 8 CHECK y el trigger de la marca de agua, probado
+bajando la XP de un perfil dentro de un bloque que aborta solo. **Desde la
+037 el CHECK del catálogo es de FORMA**, así que añadir una pieza nueva ya
+no pide migración: el catálogo vive en `src/lib/retratos.js`. La 027
+(mascotas) se ejecutó el 18-ago; el esquema está listo aunque todavía no haya interfaz que lo
 use, que es el orden bueno (§7e). Comprobado desde fuera: `species` y
 `target_role` responden 200, una columna inventada responde 400 y la
 lectura anónima sigue dando `[]`. La 025 y la 026 se
