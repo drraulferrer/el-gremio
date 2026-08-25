@@ -73,7 +73,7 @@ modo peque, la capa de producción y la gestión de miembros.
 | Supabase | proyecto `chfbrawsoulfiywiqhpe`, Postgres 17.6, región EU |
 | Edge Function | `notificar`, versión 5, `verify_jwt` en false |
 | Versión publicada | ver `npm run health` (lee `version.json`, que ahora se emite en el build) |
-| Tests | 1.116, en 62 ficheros, todos en verde (24-ago). Bajaron al retirar `imports.test.js`, que el linter cubre mejor |
+| Tests | 1.133, en 63 ficheros, todos en verde (24-ago). Bajaron al retirar `imports.test.js`, que el linter cubre mejor |
 
 Comprobar que sigue vivo:
 
@@ -4358,3 +4358,34 @@ teléfono cambiado, método de acceso enlazado— están **desactivadas** con
 su propio interruptor. La última se dispararía al enlazar Google, así que
 si algún día se encienden, **traducirlas antes de encenderlas**. Tabla en
 `docs/CORREOS.md`.
+
+## 7ax. Instalar en la pantalla de inicio, con dibujos (25 de agosto) · 2.32.0 · SIN MIGRACIÓN
+
+Las instrucciones estaban en texto y **detrás del PIN**, que es justo
+donde no llega quien las necesita: el aparato nuevo. Ahora hay un enlace
+en la pantalla de acceso y una guía dibujada (`GuiaInstalar`), compartida
+entre el acceso y Panel → Dispositivos para que no haya dos versiones.
+
+### Decisiones
+
+- **Dibujado, no capturado.** Una captura de pantalla envejece con cada
+  versión de iOS y haría falta una por idioma. El dibujo solo envejece si
+  cambia el icono, que es lo único que hay que reconocer.
+- **Enlace, no cartel.** Uno que salte solo es un anuncio, y quien usa la
+  app en el navegador a propósito no tiene por qué verlo cada vez.
+- **`todos` en Dispositivos**: ahí un adulto mira SU móvil para
+  explicárselo a quien tiene otro, así que detectar la plataforma
+  acertaría con la persona equivocada.
+
+### El fallo que salió al abrirlo
+
+La detección tenía las comprobaciones en mal orden: la conjetura del iPad
+—«un Mac con pantalla táctil es un iPad»— iba ANTES de mirar si el agente
+decía Android. Resultado: un Android emulado, que reporta `platform:
+MacIntel` y cinco puntos táctiles, recibía las instrucciones de iOS
+—«toca Compartir en Safari» en un Pixel—.
+
+**Lo que dice el aparato gana a lo que se deduce de él.** Corregido el
+orden y con test de regresión. Y se vio abriendo la app, no leyendo el
+código: los tests que había pasaban porque ninguno probaba un agente y una
+plataforma que se contradijeran.

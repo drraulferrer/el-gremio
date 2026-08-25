@@ -2,8 +2,11 @@ import { useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { urlDeLaNarrativa, urlDelGremio } from '../lib/dominio'
 import Captcha from '../components/Captcha'
+import { Modal } from '../components/ui'
 import { esErrorDeCaptcha } from '../lib/captcha'
 import { flag } from '../lib/flags'
+import GuiaInstalar from '../components/GuiaInstalar'
+import { abiertaComoApp } from '../lib/instalacion'
 import { datosDeAceptacion, puedeAceptar, urlLegal } from '../lib/legal'
 import {
   argumentosDeEntrada,
@@ -17,6 +20,9 @@ import {
 } from '../lib/acceso'
 
 export default function Login() {
+  // La guía de instalación no se enseña sola: sería un anuncio. Vive en
+  // un enlace discreto del pie, y solo si la app NO está ya instalada.
+  const [verInstalar, setVerInstalar] = useState(false)
   const [modo, setModo] = useState('entrar') // entrar | crear | olvidada | enlace
   const [email, setEmail] = useState('')
   const [pass, setPass] = useState('')
@@ -328,6 +334,24 @@ export default function Login() {
       >
         📖 Qué es El Gremio y por qué funciona así
       </a>
+
+      {/* Instalar en la pantalla de inicio. Aquí y no detrás del PIN
+          porque quien instala está en el aparato NUEVO, acaba de escanear
+          el QR y muchas veces no tiene el PIN. Y como enlace y no como
+          cartel: uno que saltara solo sería un anuncio, y quien usa la
+          app en el navegador a propósito no tiene por qué verlo cada vez.
+          Desaparece si ya está instalada. */}
+      {!abiertaComoApp() && (
+        <button className="enlace-instalar" onClick={() => setVerInstalar(true)}>
+          📲 Ponerla en la pantalla de inicio
+        </button>
+      )}
+
+      {verInstalar && (
+        <Modal titulo="Ponerla en la pantalla de inicio" onClose={() => setVerInstalar(false)}>
+          <GuiaInstalar onCerrar={() => setVerInstalar(false)} />
+        </Modal>
+      )}
     </div>
   )
 }

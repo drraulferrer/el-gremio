@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import QR from '../components/QR'
+import GuiaInstalar from '../components/GuiaInstalar'
 import { urlDelGremio, urlDeLaNarrativa, mirandoDireccionVieja } from '../lib/dominio'
 
 // ------------------------------------------------------------------
@@ -94,20 +95,14 @@ export default function Dispositivos() {
 
       <div className="titulo-seccion">Instalarla como app</div>
 
+      {/* La misma guía que ve quien entra desde el aparato nuevo. Estaba
+          escrita aquí en texto y duplicarla acabaría con dos versiones de
+          las instrucciones, cada una desactualizada por su lado.
+          OJO: esta pantalla la mira un adulto en SU aparato para enseñar
+          a otro, así que la guía detectará ESTE móvil y no aquel. Por eso
+          se enseñan los dos sistemas y no solo el detectado. */}
       <div className="carta">
-        <strong>📱 iPhone y iPad</strong>
-        <p className="suave">
-          Abre el enlace <strong>en Safari</strong> (Chrome en iOS no ofrece la opción). Toca el botón de
-          compartir <strong>↑</strong> → <strong>Añadir a pantalla de inicio</strong>.
-        </p>
-      </div>
-
-      <div className="carta">
-        <strong>🤖 Android</strong>
-        <p className="suave">
-          En Chrome, menú <strong>⋮</strong> → <strong>Añadir a pantalla de inicio</strong> o{' '}
-          <strong>Instalar aplicación</strong>.
-        </p>
+        <GuiaInstalar todos />
       </div>
 
       <div className="carta">

@@ -560,6 +560,94 @@ button { font-family: inherit; }
    .avatar bordeado daría dos marcos concéntricos. Lo único que necesita
    del CSS es no encogerse dentro de una fila flex.
    ------------------------------------------------------------------ */
+
+/* ------------------------------------------------------------------
+   Guía de instalación.
+   El móvil dibujado no es adorno: los pasos son «toca ESE botón», y una
+   captura de pantalla envejecería con cada versión de iOS y haría falta
+   una por idioma. Dibujado envejece solo cuando cambia el icono, que es
+   lo único que de verdad hay que reconocer.
+   ------------------------------------------------------------------ */
+.guia-instalar { text-align: left; }
+.guia-instalar .carta { margin-top: 12px; }
+/* Alineada a la izquierda porque la guía se abre desde la pantalla de
+   acceso, que centra todo. Una lista de pasos centrada no se sigue: el
+   ojo pierde dónde empieza cada línea y los números dejan de formar
+   columna, que es justo lo que los hace contarse solos. */
+
+.movil-guia {
+  flex: none;
+  width: 84px;
+  height: 148px;
+  border-radius: 16px;
+  border: 2px solid var(--linea);
+  background: var(--tablero-hondo);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.movil-guia .movil-barra {
+  order: 2;
+  display: grid;
+  place-items: center;
+  height: 34px;
+  color: var(--teal);
+  border-top: 1px solid var(--linea);
+  background: var(--carta);
+}
+/* En Android el menú está arriba; en iOS, compartir está abajo. La barra
+   cambia de sitio porque señalar el borde equivocado es peor que no
+   dibujar nada. */
+.movil-guia .movil-barra.arriba {
+  order: 0;
+  border-top: none;
+  border-bottom: 1px solid var(--linea);
+  justify-items: end;
+  padding-right: 8px;
+}
+.movil-guia .movil-pantalla { order: 1; flex: 1; display: grid; place-items: center; }
+
+.lista-instalar { list-style: none; margin: 0; padding: 0; }
+.paso-instalar {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 10px;
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+.paso-instalar:last-child { margin-bottom: 0; }
+.paso-instalar svg { vertical-align: -6px; color: var(--teal); }
+.paso-numero {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--carta-alta);
+  border: 1px solid var(--linea);
+  font-family: var(--display);
+  font-size: 0.78rem;
+  color: var(--tinta-suave);
+}
+
+/* El enlace del pie del acceso: discreto pero presente. Un cartel que
+   salte solo sería un anuncio, y quien ya la usa en el navegador a
+   propósito no tiene por qué verlo cada vez. */
+.enlace-instalar {
+  background: none;
+  border: none;
+  color: var(--tinta-suave);
+  font-family: var(--cuerpo);
+  font-size: 0.82rem;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+  padding: 6px;
+}
+.enlace-instalar:hover { color: var(--tinta); }
+
 .retrato { flex: none; display: block; }
 
 /* El retrato de la cabecera abre el editor. Es un botón, pero no debe

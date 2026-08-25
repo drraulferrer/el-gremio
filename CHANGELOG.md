@@ -18,6 +18,31 @@ verdad duele en esta app: que el esquema y el cliente dejen de encajar.
 
 ---
 
+## 2.32.0 · 25 de agosto de 2026
+
+**Cómo ponerla en la pantalla de inicio, explicado con dibujos.** Las
+instrucciones existían, pero en texto y detrás del PIN, en Panel → ⚙️ →
+Dispositivos. Ahí no llega quien las necesita: quien instala está en el
+aparato NUEVO, acaba de escanear el QR y muchas veces no tiene el PIN.
+
+Ahora hay un enlace discreto en la pantalla de acceso, «📲 Ponerla en la
+pantalla de inicio», que abre una guía con el móvil dibujado, el icono
+real de cada sistema y los pasos numerados. Va dibujado y no capturado
+porque una captura envejece con cada versión de iOS y haría falta una por
+idioma.
+
+- **Detecta el aparato** y enseña solo lo suyo. En Panel → Dispositivos
+  enseña los dos, porque ahí un adulto mira SU móvil para explicárselo a
+  quien tiene otro.
+- **En Android ofrece instalar de un toque** si el navegador lo permite
+  (`beforeinstallprompt`). iOS no tiene ese evento y no lo va a tener, así
+  que ahí los pasos a mano no son el plan B: son el único plan.
+- **Desaparece si ya está instalada**, mirando `display-mode` y también
+  el `navigator.standalone` de Safari, que va por su cuenta.
+- Es un enlace y no un cartel que salte solo. Un cartel sería un anuncio,
+  y quien usa la app en el navegador a propósito no tiene por qué verlo
+  cada vez.
+
 ## 2.31.0 · 24 de agosto de 2026
 
 **Entrar con Google.** El proveedor quedó configurado en Supabase, así que
