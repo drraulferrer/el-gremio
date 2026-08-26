@@ -18,6 +18,19 @@ verdad duele en esta app: que el esquema y el cliente dejen de encajar.
 
 ---
 
+## 2.33.1 · 26 de agosto de 2026
+
+**El panel de Actividad, con gráficos.** Enseñaba los 30 días en texto
+plano; ahora hay una línea de tendencia (SVG a mano, sin librería nueva)
+para gremios activos, misiones validadas, altas y errores, además del
+resumen de hoy y el detalle por día que ya había. El dashboard de
+PostHog también suma una tercera tarjeta, "Actividad total por semana"
+(`mision_validada + premio_canjeado`, agrupado por semana): con dos
+eventos nada más, semanal se lee mejor que diario.
+
+- Nuevo `src/lib/grafico.js` (`puntosDeLinea`), con tests.
+- **Sin migración.**
+
 ## 2.33.0 · 26 de agosto de 2026
 
 **PostHog, pero solo dos contadores.** El encargo era instalar el wizard
