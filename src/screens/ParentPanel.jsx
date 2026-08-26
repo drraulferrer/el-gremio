@@ -8,6 +8,7 @@ import {
   deshacerMision
 } from '../lib/acciones'
 import { perfilesActivos } from '../lib/miembros'
+import { misionValidada, premioCanjeado } from '../lib/actividadExterna'
 import { avisoDeCarga, monedasPorDia } from '../lib/economia'
 import { premioAMano } from '../lib/acciones'
 import { revisarPremioManual, avisoDeCantidad, MAXIMO_MANUAL } from '../lib/premioManual'
@@ -107,7 +108,10 @@ export default function ParentPanel({ family, data, refresh, refreshFamily, onVe
   async function resolverMision(id, estado, elogio = '') {
     setAviso('')
     const { ok, mensaje } = await resolverMisionRemota(id, estado, elogio)
-    if (ok) await refresh()
+    if (ok) {
+      await refresh()
+      if (estado === 'aprobado') misionValidada(family.id)
+    }
     // Puede salir bien y traer aviso: es el caso de la base sin migrar,
     // donde la misión se valida pero el elogio se queda por el camino.
     if (mensaje) setAviso(mensaje)
@@ -117,8 +121,10 @@ export default function ParentPanel({ family, data, refresh, refreshFamily, onVe
   async function resolverCanje(id, estado) {
     setAviso('')
     const { ok, mensaje } = await resolverCanjeRemoto(id, estado)
-    if (ok) await refresh()
-    else setAviso(mensaje || 'No se pudo resolver el canje.')
+    if (ok) {
+      await refresh()
+      if (estado === 'entregado') premioCanjeado(family.id)
+    } else setAviso(mensaje || 'No se pudo resolver el canje.')
   }
 
   return (

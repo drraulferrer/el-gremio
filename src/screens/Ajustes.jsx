@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { supabase, modoDemo } from '../lib/supabase'
 import Miembros from './Miembros'
 import Casa from './Casa'
 import Seguridad from './Seguridad'
@@ -7,6 +8,7 @@ import Datos from './Datos'
 import Avisos from './Avisos'
 import Evidencia from './Evidencia'
 import Estado from './Estado'
+import Actividad from './Actividad'
 
 // Las pantallas de administración que casi nunca se tocan viven aquí,
 // detrás del ⚙️, en vez de robar sitio en la barra de pestañas: con seis
@@ -27,11 +29,29 @@ export default function Ajustes({ family, data, refresh, refreshFamily, onVerTut
   // abrir directamente en 🔔 Avisos. Un enlace que te deja en Miembros y
   // te obliga a buscar la pestaña no es un enlace, es una pista.
   const [seccion, setSeccion] = useState(seccionInicial || 'miembros')
+  // «Actividad» es solo para quien mantiene la app, no para cada familia:
+  // se pregunta a `es_operador()` (RLS de verdad, no un adorno de la
+  // interfaz) y la pestaña ni se pinta si la respuesta es que no. En modo
+  // demo no hay `operadores` que consultar, así que ni se intenta.
+  const [esOperador, setEsOperador] = useState(false)
+
+  useEffect(() => {
+    if (modoDemo) return
+    let vivo = true
+    supabase.rpc('es_operador').then(({ data: si, error }) => {
+      if (vivo && !error) setEsOperador(Boolean(si))
+    })
+    return () => {
+      vivo = false
+    }
+  }, [])
+
+  const secciones = esOperador ? [...SECCIONES, { id: 'actividad', etiqueta: '📈 Actividad' }] : SECCIONES
 
   return (
     <div>
       <div className="segmentos" role="tablist">
-        {SECCIONES.map((s) => (
+        {secciones.map((s) => (
           <button
             key={s.id}
             role="tab"
@@ -62,6 +82,7 @@ export default function Ajustes({ family, data, refresh, refreshFamily, onVerTut
         </>
       )}
       {seccion === 'estado' && <Estado family={family} data={data} />}
+      {seccion === 'actividad' && esOperador && <Actividad />}
     </div>
   )
 }

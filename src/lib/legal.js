@@ -18,7 +18,7 @@
  * aceptó cada familia; si el texto cambia y la versión no, esa prueba
  * pasa a decir algo falso.
  */
-export const VERSION_LEGAL = '2026-08-16'
+export const VERSION_LEGAL = '2026-08-26'
 
 export const DOCUMENTOS = {
   privacidad: { archivo: 'legal/privacidad.html', titulo: 'Política de privacidad' },

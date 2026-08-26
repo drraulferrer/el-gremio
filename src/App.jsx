@@ -7,6 +7,7 @@ import { EVALUABLES } from './lib/sellos'
 import { historialAprobado, conNuevas } from './lib/sellos-carga'
 import { log, setContexto, setSink, instalarVaciadoAlSalir, nuevoRequestId } from './lib/log'
 import { instalarMonitorizacion, capturar } from './lib/monitoring'
+import { instalarActividadExterna } from './lib/actividadExterna'
 import { flag } from './lib/flags'
 import { vibrar, LOGRO } from './lib/vibrar'
 import { marcaDe, queCelebrar } from './lib/celebracion'
@@ -30,6 +31,8 @@ import { useVersionNueva } from './lib/actualizacion'
 import Home from './screens/Home'
 import KidHome from './screens/KidHome'
 import ParentPanel from './screens/ParentPanel'
+import ReconsentimientoLegal from './screens/ReconsentimientoLegal'
+import { VERSION_LEGAL } from './lib/legal'
 import Tutorial, { tutorialPendiente } from './screens/Tutorial'
 
 const iconoUrl = import.meta.env.BASE_URL + 'assets/emblema-gremio.png'
@@ -96,6 +99,7 @@ export default function App() {
   useEffect(() => {
     const quitarMonitor = instalarMonitorizacion()
     const quitarVaciado = instalarVaciadoAlSalir()
+    instalarActividadExterna()
     setSink(crearSinkDeLogs())
     log.info('app.arranque', { release: RELEASE, demo: modoDemo, configurado: configured })
     return () => {
@@ -560,6 +564,14 @@ export default function App() {
     if (verTutorial) return <Tutorial modo={verTutorial} onCerrar={() => setVerTutorial(null)} />
 
     if (parentMode) {
+      // Consentir es cosa de quien tiene la patria potestad, y esta es la
+      // única puerta del panel: entrar por aquí ya demostró el PIN. Se
+      // enseña ANTES que el panel y no en el resto de la app a propósito.
+      if (family.legal_version !== VERSION_LEGAL) {
+        return (
+          <ReconsentimientoLegal family={family} onAceptado={loadFamily} onSalir={() => setParentMode(false)} />
+        )
+      }
       return (
         <ParentPanel
           family={family}

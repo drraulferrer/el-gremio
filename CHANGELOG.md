@@ -18,6 +18,52 @@ verdad duele en esta app: que el esquema y el cliente dejen de encajar.
 
 ---
 
+## 2.33.0 · 26 de agosto de 2026
+
+**PostHog, pero solo dos contadores.** El encargo era instalar el wizard
+`self-driving` de PostHog. Antes de tocar nada: eso crea una cuenta de
+terceros, edita el código sin supervisión y activa grabación de sesión y
+captura de clics por defecto — justo lo que `legal/privacidad.html`
+prometía que no pasaría. Se reescribió la política primero (§2 y §5,
+versión 2026-08-26) y se montó a mano, con salvaguardas por partida
+doble: en el código (`src/lib/actividadExterna.js`) y en el panel de
+PostHog (grabación, autocaptura, web vitals y logs de consola apagados a
+mano; IP ya descartada por defecto).
+
+Lo único que sale de la app: `mision_validada` y `premio_canjeado`, sin
+propiedades, identificados por el id del gremio — nunca por persona, ni
+con el contenido de nada.
+
+- **Re-consentimiento**: quien ya tenía cuenta ve una pantalla nueva al
+  entrar al panel parental (con PIN, nunca antes) pidiendo aceptar la
+  política actualizada. El resto de la app sigue igual mientras tanto.
+- **CSP ampliada** en `index.html` y `vercel.json`: `eu.i.posthog.com`,
+  exacto y sin comodín.
+- Variables nuevas (`VITE_POSTHOG_KEY`, `VITE_POSTHOG_HOST`) — hace falta
+  darlas de alta también en Vercel antes de publicar. RUNBOOK §3d.
+- **Sin migración.**
+
+## 2.32.1 · 25 de agosto de 2026
+
+**Actividad global, sin analítica de terceros.** La idea de partida era
+montar PostHog para ver cómo se usa la app. `legal/privacidad.html` §2 lo
+impide sin matices —«ni herramientas de analítica o seguimiento de ningún
+tipo»—, y familias con menores ya aceptaron ese texto: cambiarlo es una
+decisión legal, no una casilla. Igual que se decidió con Sentry
+(RUNBOOK §3), se queda en casa.
+
+`salud_diaria` (migración 023) ya llevaba el recuento diario, pero solo
+se podía leer desde el SQL Editor. La migración 040 añade
+`public.operadores` (vacía, RLS sin políticas, se rellena a mano) y dos
+funciones `security definer`: `es_operador()` y `actividad_reciente()`,
+que devuelve la tabla completa a quien está en esa lista y **cero filas**
+a cualquier otra cuenta. Nuevo panel → ⚙️ → 📈 Actividad, que ni se pinta
+si la respuesta es que no. Sin variables de entorno nuevas, sin bytes
+saliendo de Supabase.
+
+- Cómo darte de alta como operador: RUNBOOK §3c.
+- **Migración 040**, ejecutada.
+
 ## 2.32.0 · 25 de agosto de 2026
 
 **Cómo ponerla en la pantalla de inicio, explicado con dibujos.** Las

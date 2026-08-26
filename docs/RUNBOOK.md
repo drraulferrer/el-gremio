@@ -179,6 +179,78 @@ instalada y probada.
 
 ---
 
+## 3c. Actividad global (para quien mantiene la app)
+
+`salud_diaria` (§3b la roza, migración 023) lleva cuentas, gremios,
+altas, misiones validadas y errores por día, pero solo se puede leer
+desde el SQL Editor. La migración 040 abre una vía desde la propia
+interfaz sin meter analítica de terceros: `legal/privacidad.html` §2
+promete que no la hay, y familias con menores ya aceptaron ese texto.
+
+**Darte de alta como operador (una vez, en el SQL Editor de Supabase):**
+
+```sql
+select id, created_at from auth.users order by created_at;  -- busca el tuyo
+insert into public.operadores values ('<tu-uuid-de-ahí>');
+```
+
+Con eso, Panel → ⚙️ aparece con una pestaña nueva, **📈 Actividad**, con
+los últimos 30 días. Para cualquier otra cuenta la pestaña ni se pinta:
+`actividad_reciente()` es `security definer` pero devuelve cero filas si
+`auth.uid()` no está en `operadores`, así que no hay nada que ocultar, ni
+family_id, ni nombres — `salud_diaria` tampoco los guarda.
+
+Para quitarte: `delete from public.operadores where user_id = '<uuid>'`.
+
+---
+
+## 3d. Actividad externa (PostHog)
+
+A diferencia de Sentry (§3), esto SÍ está activado — decisión tomada el
+26-ago tras descartar primero el wizard `self-driving` (edita código sin
+supervisión y activa grabación de sesión por defecto) y reescribir antes
+`legal/privacidad.html` §2 y §5 con lo que de verdad ocurre.
+
+**Qué manda:** dos eventos, `mision_validada` y `premio_canjeado`, sin
+propiedades, identificados solo por el id del gremio (`family.id`, el
+mismo que ya usa Supabase). Nada de nombres, texto libre, ni grabación de
+pantalla — ver `src/lib/actividadExterna.js` para el porqué de cada opción
+del `init`.
+
+**Salvaguardas por partida doble.** El código las fuerza
+(`disable_session_recording`, `autocapture: false`,
+`advanced_disable_decide`…), y ADEMÁS se apagaron a mano en el panel de
+PostHog (Session replay, Autocapture, Web vitals, Capture console logs) y
+se confirmó «Discard client IP data» activo. Las dos hacen falta: un
+cambio futuro en el panel de PostHog no debe poder reactivar nada de esto
+por su cuenta, y el código tampoco debe depender de que nadie recuerde la
+configuración del panel.
+
+**Activarlo en un clon nuevo:** `VITE_POSTHOG_KEY` (Project Settings →
+Project API Key, es pública por diseño) y `VITE_POSTHOG_HOST` — región
+**EU**, no la que ofrezca por defecto. Sin la clave no se carga la
+librería ni sale nada, igual que Sentry.
+
+**Ampliar la CSP, o PostHog no envía nada.** `connect-src` necesita
+`https://eu.i.posthog.com` exacto — sin comodín, porque `*.posthog.com`
+colaría también `app.posthog.com`. En dos sitios: la meta etiqueta de
+`index.html` y la cabecera de `vercel.json`. Los dos, siempre, o Vercel
+sirve una CSP distinta a la del código fuente.
+
+**Re-consentimiento.** Cambiar `legal/privacidad.html` de forma relevante
+exige subir `VERSION_LEGAL` en `src/lib/legal.js` (y la fecha visible de
+los DOS documentos — `tests/legal.test.js` lo comprueba) y las familias ya
+registradas ven `ReconsentimientoLegal` la próxima vez que abran el panel
+parental con PIN, nunca antes: es la única puerta que ya demostró que hay
+una persona adulta delante, y así ninguna criatura puede aceptar nada por
+accidente. El resto de la app sigue funcionando igual mientras tanto.
+
+**Vercel:** las variables de arriba hay que darlas de alta también en el
+panel de Vercel (Settings → Environment Variables) para que el build de
+producción las vea — `.env` es solo local.
+
+---
+
 ## 4. Límite de ritmo
 
 Vive en la base de datos, en disparadores `before insert` que llaman a

@@ -30,10 +30,13 @@
       `style-src` sí lo necesita: React escribe estilos como atributo y
       Turnstile inyecta los suyos.
 
-      Los dominios son exactamente los cuatro que usa la app: ella misma,
-      Supabase (datos y realtime), Google Fonts y Cloudflare Turnstile. El
-      comodín en supabase.co es a propósito, para que esto siga valiendo si
-      algún día cambia el proyecto de Supabase.
+      Los dominios son exactamente los cinco que usa la app: ella misma,
+      Supabase (datos y realtime), Google Fonts, Cloudflare Turnstile y
+      PostHog (región EU, solo dos eventos agregados — legal/privacidad.html
+      §2). El comodín en supabase.co es a propósito, para que esto siga
+      valiendo si algún día cambia el proyecto de Supabase. El host de
+      PostHog va exacto y no en comodín porque `*.posthog.com` colaría
+      también `app.posthog.com`, que no es el que usa esta app.
     -->
     <meta http-equiv="Content-Security-Policy" content="
       default-src 'self';
@@ -41,7 +44,7 @@
       style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
       font-src 'self' https://fonts.gstatic.com;
       img-src 'self' data: blob:;
-      connect-src 'self' https://*.supabase.co wss://*.supabase.co https://challenges.cloudflare.com;
+      connect-src 'self' https://*.supabase.co wss://*.supabase.co https://challenges.cloudflare.com https://eu.i.posthog.com;
       frame-src https://challenges.cloudflare.com;
       worker-src 'self';
       manifest-src 'self';

@@ -4427,3 +4427,119 @@ MacIntel` y cinco puntos táctiles, recibía las instrucciones de iOS
 orden y con test de regresión. Y se vio abriendo la app, no leyendo el
 código: los tests que había pasaban porque ninguno probaba un agente y una
 plataforma que se contradijeran.
+
+## 7ay. Actividad global, en vez de PostHog (25 de agosto) · 2.32.1 · migración 040
+
+El encargo era «montar PostHog para monitorizar la actividad». Antes de
+tocar código: `legal/privacidad.html` §2 dice, sin matices, que esta app
+no usa «herramientas de analítica o seguimiento de ningún tipo», y §5
+cierra la lista de proveedores (Supabase, GitHub Pages, Hostinger,
+Cloudflare). PostHog no encaja ahí sin reescribir un texto que familias
+con menores ya aceptaron — igual que se decidió con Sentry (RUNBOOK §3):
+es una decisión legal, no un interruptor. Preguntado, el veredicto fue
+quedarse en casa.
+
+**Qué hay ahora:** `salud_diaria` (migración 023) ya llevaba el
+recuento diario, pero solo se leía desde el SQL Editor. La 040 añade
+`public.operadores` (vacía, RLS sin políticas — se rellena a mano, nunca
+desde una migración) y dos funciones `security definer`:
+`es_operador()` y `actividad_reciente(p_dias)`, que solo devuelve filas
+si `auth.uid()` está en `operadores`. Panel → ⚙️ → **📈 Actividad**
+(`src/screens/Actividad.jsx`), pestaña que ni se pinta para quien no es
+operador. Cero variables de entorno nuevas, cero bytes fuera de Supabase.
+
+**Para verlo, falta un paso manual** (adrede: así el UUID de quien
+administra no entra en un repositorio público) — RUNBOOK §3c tiene las
+dos líneas para el SQL Editor.
+
+### El tropiezo de numeración
+
+Esta sesión arrancó con el repo local **22 commits por detrás de
+`origin/main`** — la 2.24.0 a la 2.32.0 (retrato, Google, magic link,
+guía de instalación) ya estaban fuera y la numeración de migraciones
+había llegado a la 039. La migración se escribió primero como «035» a
+ciegas; `git fetch` + `list_migrations` por MCP lo destaparon antes de
+aplicar nada. Se resolvió con `git stash -u` → `merge --ff-only
+origin/main` → `stash pop` (sin conflictos) y renumerando a **040**. La
+lección de siempre ([[el-gremio-sesiones-en-paralelo]] en la memoria del
+agente): `git fetch` antes de numerar, no después.
+
+### Verificado
+
+`npx vitest run`: 1129 tests en verde (`tests/upserts.test.js` no carga
+en esta ruta concreta —tiene espacios y `~` que rompen un `new
+URL(...).pathname` sin decodificar—, ajeno a este cambio). `npm run
+build` limpio. Abierto en `dev:demo`: sin la pestaña Actividad, como
+toca —el modo demo no tiene `operadores` que consultar y ni lo intenta—,
+y sin errores nuevos en consola. `get_advisors` solo marca lo esperado:
+`operadores` con RLS y sin políticas (mismo patrón que `salud_diaria`) y
+las dos funciones nuevas como «cualquier autenticado puede llamarlas»,
+que es el diseño — el filtro de verdad vive dentro de la función, no en
+el `grant`.
+
+**Pendiente de esta sesión:** confirmar que la pestaña aparece de verdad
+tras darte de alta como operador (RUNBOOK §3c) y decidir cuándo hacer
+`git push`.
+
+## 7az. PostHog, después de todo (26 de agosto) · 2.33.0 · sin migración
+
+Con la 040 recién desplegada, llegó el encargo real: `npx
+@posthog/wizard@latest self-driving`. Se paró antes de ejecutarlo — ese
+modo edita el código sin supervisión, crea la cuenta de terceros que §7ay
+acababa de descartar, y suele activar grabación de sesión y autocaptura
+por defecto. Preguntado, la respuesta fue: sí, PostHog de verdad, pero
+reescribiendo antes la política y configurándolo a mano.
+
+**Lo que se hizo, en orden:**
+
+1. **`legal/privacidad.html`**, versión 2026-08-26: la frase «ni
+   herramientas de analítica... de ningún tipo» (§2) se sustituyó por lo
+   que de verdad pasa —dos contadores agregados, sin nombres, sin
+   contenido, sin grabación—, con fila nueva en la tabla de proveedores
+   (§5), base legal en §3 y una frase en §4 (menores) dejando claro que
+   los contadores no distinguen adulto de criatura. `terminos.html`
+   también sube de fecha aunque no cambie de contenido: `tests/legal.test.js`
+   exige que las DOS lleven la misma versión.
+2. **`ReconsentimientoLegal.jsx`**, enganchada en `App.jsx` justo delante
+   de `ParentPanel` cuando `family.legal_version !== VERSION_LEGAL` —
+   nunca antes: consentir es cosa de quien tiene la patria potestad, y el
+   PIN es la única puerta que ya demuestra que hay una persona adulta.
+   Las peques y el uso diario no se enteran de nada.
+3. **El panel de PostHog, apagado a mano**, no solo en el código: Session
+   replay, Autocapture (clics, web vitals, dead clicks) y Capture console
+   logs, los cuatro venían ON por defecto en el proyecto nuevo. «Discard
+   client IP data» ya estaba activo. Sin este paso, un cambio futuro en
+   el panel de PostHog podría reactivar grabación de sesión sin tocar una
+   línea de código — por eso la salvaguarda va en los dos sitios.
+4. **`src/lib/actividadExterna.js`**: dos eventos, `mision_validada` y
+   `premio_canjeado`, disparados desde `ParentPanel.jsx` (`resolverMision`
+   / `resolverCanje`) con `family.id` como único identificador — nunca
+   `profile_id`, nunca el texto de la misión o el elogio. Apagado sin
+   `VITE_POSTHOG_KEY` y también en modo demo (no hay gremio real que
+   contar). `advanced_disable_decide` de propina: ni pide configuración
+   remota, así que el panel de PostHog no puede reactivar nada por su
+   cuenta aunque alguien lo intente.
+5. **CSP**: `https://eu.i.posthog.com` añadido a `connect-src` en
+   `index.html` Y `vercel.json` — exacto, sin comodín, porque
+   `*.posthog.com` colaría `app.posthog.com`.
+
+**La cuenta de PostHog ya existía** (el usuario la creó y la abrió en su
+Chrome real durante la sesión, región EU, proyecto 258309) — no hizo
+falta darla de alta desde aquí; el agente no crea cuentas de terceros ni
+introduce contraseñas, solo se conectó al navegador ya autenticado para
+leer la clave pública del proyecto y ajustar la configuración de
+privacidad.
+
+**Verificado:** `npx vitest run` (1129/1129, mismo ENOENT ajeno de
+`upserts.test.js`), `npm run build` limpio (el bundle sube a ~1,08 MB por
+`posthog-js`, ya avisaba Vite antes de esto por el tamaño del chunk), y
+`dev:demo` recargado sin errores nuevos en consola. **Lo que NO se pudo
+verificar en esta sesión**, porque hace falta una sesión real (el agente
+no introduce contraseñas): que `ReconsentimientoLegal` aparece de verdad
+al entrar al panel con una cuenta ya existente, y que los dos eventos
+llegan al proyecto de PostHog tras validar algo. Falta también dar de
+alta `VITE_POSTHOG_KEY`/`VITE_POSTHOG_HOST` en Vercel — `.env` es solo
+local.
+
+**Pendiente:** ese repaso en real, las dos variables en Vercel, y decidir
+cuándo hacer `git push` (esto y la 040 de §7ay siguen sin subir).
