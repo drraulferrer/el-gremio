@@ -41,16 +41,20 @@ copias cifradas del 23-ago, que tampoco se publicaron nunca. Producción
 sigue en `754fcd2`. Una sola orden, sin migración de por medio:
 `npm run vercel && npm run health` (el detalle, al final de §7aj).
 
-**Y lo último, al 27-ago:** hay una sesión de **limpieza de código** en
-la rama `claude/gremio-code-cleanup-e8o8ib` (**PR #2**, en borrador): la
-**2.33.2**, sin cambio de comportamiento y sin migración (§7ba). No toca
-`main` hasta que alguien la revise y la mezcle. Y el «sin subir» que
-dejó dicho §7az quedó resuelto antes de esa rama: la 2.33.0 y la 2.33.1
-están en `origin/main` (`52bf8ec`, `91cd31a`). Lo que NO se pudo
-comprobar desde esta sesión es si `npm run vercel` llegó a ejecutarse
-para ellas —la red del agente no alcanza el dominio—, así que al abrir
-sesión: `npm run health`, y si producción va por detrás,
-`npm run vercel` con `origin/main` al día.
+**Y lo último, al 27-ago:** la **limpieza de código 2.33.2** (§7ba) se
+revisó (Raúl) y se **mezcló en `main`** ese mismo día, desde el PR #2.
+Sin cambio de comportamiento y sin migración: solo bundle. Ese día quedó
+además comprobado desde fuera —vía el MCP de Vercel, leyendo
+`version.json` del dominio— que **producción servía la 2.33.1
+(`91cd31a`, desplegada el 26-ago 15:46 UTC)**: el «sin subir» que dejó
+dicho §7az quedó resuelto, las 2.33.0 y 2.33.1 sí se publicaron. Lo que
+queda para poner el dominio al día es UNA orden desde el portátil,
+porque la sesión remota no tiene el `.env` con `VERCEL_DEPLOY_HOOK` y su
+red tampoco alcanza `api.vercel.com` (§7ba):
+
+```bash
+git pull origin main && npm run vercel && npm run health   # debe salir 2.33.2
+```
 
 **Si abres sesión nueva, empieza por §8.** Los **803 tests y el CI están
 en verde** (el CI estuvo roto unas horas por un test que parcheaba el
@@ -4557,15 +4561,15 @@ local.
 **Pendiente:** ese repaso en real, las dos variables en Vercel, y decidir
 cuándo hacer `git push` (esto y la 040 de §7ay siguen sin subir).
 
-## 7ba. Limpieza de código (27 de agosto) · 2.33.2 · sin migración · EN RAMA, sin mezclar
+## 7ba. Limpieza de código (27 de agosto) · 2.33.2 · sin migración · MEZCLADA el 27-ago
 
 El encargo: repasar el proyecto entero buscando código muerto (imports,
 ficheros, componentes, banderas, dependencias), lógica duplicada y
 complejidad sin requisito; eliminar lo mínimo y seguro, sin cambiar
-comportamiento sin una prueba que lo cubra. Vive en la rama
-`claude/gremio-code-cleanup-e8o8ib`, **PR #2 en borrador**, con CI en
-verde y sin conflicto. No está en `main`: cuando se revise y se mezcle,
-publicar es lo de siempre (§7n) y es solo bundle.
+comportamiento sin una prueba que lo cubra. Llegó por la rama
+`claude/gremio-code-cleanup-e8o8ib` (**PR #2**), con CI en verde y sin
+conflicto, y **se mezcló en `main` el mismo día 27 tras revisarlo
+Raúl**. Publicar es lo de siempre (§7n) y es solo bundle.
 
 **El análisis, para poder repetirlo.** Cuatro barridos: un grafo de
 imports desde `main.jsx` (los 130 ficheros de `src/` son alcanzables, ni
@@ -4623,6 +4627,13 @@ lo vuelva a abrir:**
   dato y no lo son: una es el subconjunto exportable (sin `app_logs`, a
   propósito), la otra la base demo completa. Unificarlas sería un error.
 
-**Pendiente:** revisar el PR #2 y mezclarlo. Después, publicar lo de
-siempre: `npm run verify` → `git push origin main` → `npm run vercel` →
-`npm run health`.
+**El cierre, y una limitación de la sesión remota que conviene saber:**
+el PR se revisó y se mezcló el 27-ago, pero **publicar no se pudo hacer
+desde la sesión**: el contenedor no tiene el `.env` (el
+`VERCEL_DEPLOY_HOOK` no viaja al repo, con razón) y su red tampoco
+alcanza `api.vercel.com`, así que `npm run vercel` solo puede lanzarse
+desde el portátil. Lo que SÍ se pudo hacer desde fuera fue comprobar qué
+sirve el dominio —el MCP de Vercel lee `version.json` aunque la red del
+contenedor no llegue—, y así se confirmó que producción estaba en la
+2.33.1. En cuanto alguien ejecute `npm run vercel && npm run health`
+debe salir la **2.33.2**.
