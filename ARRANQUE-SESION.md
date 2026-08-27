@@ -2,11 +2,13 @@
 
 Documento de continuidad. Si abres una sesión nueva sobre este proyecto,
 lee esto primero: dice dónde está todo, qué está hecho, qué falta y qué
-trampas tiene. Última actualización: **19 de agosto de 2026**, al cierre
-de la sesión que construyó el **modo limpieza** (§7x): campañas de
-limpieza como misión secundaria, con reloj por tarea y botín de cierre.
-Ese mismo día, en sesiones anteriores, llegaron los sellos de oficio
-(§7u), su motor (§7v) y las migraciones 028-030 (§7w).
+trampas tiene. Última actualización: **27 de agosto de 2026**, al cierre
+de la sesión de **limpieza de código** (§7ba): sin cambio de
+comportamiento, en una rama a la espera de revisión. La sesión del
+19-ago construyó el **modo limpieza** (§7x): campañas de limpieza como
+misión secundaria, con reloj por tarea y botín de cierre. Ese mismo día,
+en sesiones anteriores, llegaron los sellos de oficio (§7u), su motor
+(§7v) y las migraciones 028-030 (§7w).
 
 Si solo vas a leer un párrafo: la app está **en producción y estable**, en
 elgremioapp.com, servida por **Vercel**, con las cabeceras de seguridad
@@ -38,6 +40,17 @@ ahorra media hora: sembrar `completions` en la demo con `approved_at` /
 copias cifradas del 23-ago, que tampoco se publicaron nunca. Producción
 sigue en `754fcd2`. Una sola orden, sin migración de por medio:
 `npm run vercel && npm run health` (el detalle, al final de §7aj).
+
+**Y lo último, al 27-ago:** hay una sesión de **limpieza de código** en
+la rama `claude/gremio-code-cleanup-e8o8ib` (**PR #2**, en borrador): la
+**2.33.2**, sin cambio de comportamiento y sin migración (§7ba). No toca
+`main` hasta que alguien la revise y la mezcle. Y el «sin subir» que
+dejó dicho §7az quedó resuelto antes de esa rama: la 2.33.0 y la 2.33.1
+están en `origin/main` (`52bf8ec`, `91cd31a`). Lo que NO se pudo
+comprobar desde esta sesión es si `npm run vercel` llegó a ejecutarse
+para ellas —la red del agente no alcanza el dominio—, así que al abrir
+sesión: `npm run health`, y si producción va por detrás,
+`npm run vercel` con `origin/main` al día.
 
 **Si abres sesión nueva, empieza por §8.** Los **803 tests y el CI están
 en verde** (el CI estuvo roto unas horas por un test que parcheaba el
@@ -73,7 +86,7 @@ modo peque, la capa de producción y la gestión de miembros.
 | Supabase | proyecto `chfbrawsoulfiywiqhpe`, Postgres 17.6, región EU |
 | Edge Function | `notificar`, versión 5, `verify_jwt` en false |
 | Versión publicada | ver `npm run health` (lee `version.json`, que ahora se emite en el build) |
-| Tests | 1.133, en 63 ficheros, todos en verde (25-ago). `npm run verify` empieza por `npm run lint` desde la 2.27.0 |
+| Tests | 1.138, en 64 ficheros, todos en verde (27-ago). `npm run verify` empieza por `npm run lint` desde la 2.27.0 |
 
 ### Por dónde seguir · escrito al cerrar el 25-ago
 
@@ -4543,3 +4556,73 @@ local.
 
 **Pendiente:** ese repaso en real, las dos variables en Vercel, y decidir
 cuándo hacer `git push` (esto y la 040 de §7ay siguen sin subir).
+
+## 7ba. Limpieza de código (27 de agosto) · 2.33.2 · sin migración · EN RAMA, sin mezclar
+
+El encargo: repasar el proyecto entero buscando código muerto (imports,
+ficheros, componentes, banderas, dependencias), lógica duplicada y
+complejidad sin requisito; eliminar lo mínimo y seguro, sin cambiar
+comportamiento sin una prueba que lo cubra. Vive en la rama
+`claude/gremio-code-cleanup-e8o8ib`, **PR #2 en borrador**, con CI en
+verde y sin conflicto. No está en `main`: cuando se revise y se mezcle,
+publicar es lo de siempre (§7n) y es solo bundle.
+
+**El análisis, para poder repetirlo.** Cuatro barridos: un grafo de
+imports desde `main.jsx` (los 130 ficheros de `src/` son alcanzables, ni
+uno huérfano), el uso real de dependencias (las 12 se usan) y de
+banderas (las nueve de `flags.js` se leen con `flag()`), `npm run
+muertos` (clase A a cero, antes y después), y un detector de bloques de
+seis líneas idénticos entre ficheros. Ojo con confiar en el lint para
+esto: `eslint.config.js` solo lleva `no-undef` **a propósito** (está
+razonado en el propio fichero), así que un import sin usar no lo caza
+nadie del tooling del repo; y `muertos.mjs` mira exports, no imports.
+Los dos huecos se cubrieron con scripts de sesión.
+
+**Lo que se eliminó:**
+
+- **Diez imports que nadie usaba**: `MONEDAS_POR_ESTRELLA` en
+  `juego.js`; `useRef`, `levelProgress`, `FREQ_LABEL` y `talis` en
+  `Home.jsx`; y cinco en tests (`precioObjetivo`, `insigniaPorCodigo`,
+  `planDeperfil`, `rachaActual`, `habilidadesElegidas`). Verificado
+  símbolo a símbolo que cada uno aparecía SOLO en su import y que sigue
+  vivo donde sí se usa: ninguno pasó a clase A.
+- **El efecto de foco de los diálogos, copiado calcado tres veces**
+  (`LoteDeSellos`, `SelloDetalle`, `TalisAMano`): el foco entra al
+  abrir, Escape cierra, el foco vuelve al salir. Ahora es un hook único,
+  `useFocoDialogo` en `src/lib/dialogo.js`, al estilo de los que ya
+  había (`useMantenerPulsado`, `useContador`). El háptico de
+  `TalisAMano` queda en su propio efecto con las MISMAS dependencias
+  (`[onClose]`), declarado antes del hook, así que dispara igual y en el
+  mismo orden que antes. Un diálogo nuevo debe usar este hook, no copiar
+  el efecto una cuarta vez.
+
+**Verificado en navegador, no solo compilando** (`dev:demo` + Chromium
+sin cabeza): onboarding de 11 pasos entero, misión completada y validada
+con elogio desde el panel, Talis a mano concedidos de un adulto a otro.
+Los tres diálogos, uno a uno: el foco entra en el botón de cerrar al
+abrir, Escape cierra, y en `SelloDetalle` el foco vuelve exactamente al
+`pieza-boton` que lo abrió. Sin errores de consola ni de página. Y de
+propina, una comprobación que §7az dejó como no verificable:
+**`ReconsentimientoLegal` SÍ aparece** al entrar al panel con una cuenta
+que ya existía, al menos en demo (salió en mitad del recorrido y hubo
+que aceptarla para seguir). `npm run verify` en verde: lint, 1.138
+tests en 64 ficheros, build y secrets-check.
+
+**Lo que el análisis señala y SE QUEDA, para que la próxima limpieza no
+lo vuelva a abrir:**
+
+- La clase B de `muertos` (16): modelo escrito por delante de la
+  interfaz (temporadas, poderes sin cablear) y ayudantes de tests. Ya lo
+  decía §7c y sigue siendo verdad.
+- La clase C (11): exports que solo usa su fichero. Ruido tolerado, no
+  fallo.
+- La tarjeta «Lo que te han dicho» duplicada entre `Home` y `Panorama`:
+  seis líneas con ids y comentarios de contexto distintos; extraerla
+  añadiría indirección sin quitar riesgo real.
+- Las listas de tablas de `datos.js` y `fakeBackend.js` PARECEN el mismo
+  dato y no lo son: una es el subconjunto exportable (sin `app_logs`, a
+  propósito), la otra la base demo completa. Unificarlas sería un error.
+
+**Pendiente:** revisar el PR #2 y mezclarlo. Después, publicar lo de
+siempre: `npm run verify` → `git push origin main` → `npm run vercel` →
+`npm run health`.
