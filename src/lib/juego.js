@@ -18,8 +18,6 @@
 // dispositivos daría dos estrellas.
 // ------------------------------------------------------------------
 
-import { MONEDAS_POR_ESTRELLA } from './premios'
-
 /** Globos que hay que reventar. Ni tantos que canse, ni tan pocos que no sepa a nada. */
 export const GLOBOS_DEL_JUEGO = 6
 

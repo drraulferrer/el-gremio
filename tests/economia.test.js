@@ -4,7 +4,6 @@ import {
   monedasPorDia,
   xpPorDia,
   tasaDeReferencia,
-  precioObjetivo,
   bandaDePrecio,
   metaObjetivo,
   diasParaPermitirse,

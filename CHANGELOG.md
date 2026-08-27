@@ -18,6 +18,32 @@ verdad duele en esta app: que el esquema y el cliente dejen de encajar.
 
 ---
 
+## 2.33.2 · 27 de agosto de 2026
+
+**Limpieza de código sin cambio de comportamiento.** Un repaso con
+`npm run muertos`, un grafo de imports y un detector de bloques
+repetidos. Lo que salió y lo que se hizo:
+
+- **Diez imports que nadie usaba**, fuera: `MONEDAS_POR_ESTRELLA` en
+  `juego.js`; `useRef`, `levelProgress`, `FREQ_LABEL` y `talis` en
+  `Home.jsx`; y cinco más en tests (`precioObjetivo`,
+  `insigniaPorCodigo`, `planDeperfil` + `rachaActual`,
+  `habilidadesElegidas`). Todos los símbolos siguen vivos donde sí se
+  usan; solo cayó la referencia muerta.
+- **El efecto de foco de los diálogos, copiado tres veces**, ahora es un
+  hook (`src/lib/dialogo.js`, `useFocoDialogo`): entra el foco al abrir,
+  Escape cierra, y el foco vuelve al salir. Lo usaban calcados
+  `LoteDeSellos`, `SelloDetalle` y `TalisAMano`; una copia de una regla
+  es una regla que se desincroniza. Comprobado en el navegador con los
+  tres diálogos: foco dentro al abrir, Escape cierra, y en el detalle de
+  sello el foco vuelve exactamente al botón que lo abrió.
+- Lo que el detector señala y **se queda a propósito**: la clase B son
+  modelos escritos por delante de la interfaz (temporadas, poderes) y la
+  clase C es ruido tolerado, como ya dice §7c del arranque. Ni ficheros
+  huérfanos, ni banderas apagadas, ni dependencias sin usar: el grafo
+  salió limpio.
+- **Sin migración.**
+
 ## 2.33.1 · 26 de agosto de 2026
 
 **El panel de Actividad, con gráficos.** Enseñaba los 30 días en texto
