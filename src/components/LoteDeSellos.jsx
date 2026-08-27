@@ -1,6 +1,6 @@
-import { useEffect, useRef } from 'react'
 import Sello from './Sello'
 import { selloPorId } from '../lib/sellos'
+import { useFocoDialogo } from '../lib/dialogo'
 import { insigniaPorCodigo } from '../lib/insignias'
 import { flex } from '../lib/genero'
 
@@ -57,21 +57,7 @@ function titular(cuantos) {
 }
 
 export default function LoteDeSellos({ codigos = [], genero = 'neutro', onClose }) {
-  const cerrar = useRef(null)
-
-  // El foco entra en el diálogo y vuelve al salir. Sin esto, quien navega
-  // con teclado sigue en el botón que había detrás y no puede cerrar lo
-  // que tiene delante.
-  useEffect(() => {
-    const antes = document.activeElement
-    cerrar.current?.focus()
-    const conTecla = (e) => { if (e.key === 'Escape') onClose() }
-    document.addEventListener('keydown', conTecla)
-    return () => {
-      document.removeEventListener('keydown', conTecla)
-      if (antes instanceof HTMLElement) antes.focus()
-    }
-  }, [onClose])
+  const cerrar = useFocoDialogo(onClose)
 
   if (!codigos.length) return null
 

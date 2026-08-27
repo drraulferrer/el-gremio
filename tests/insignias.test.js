@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
-  INSIGNIAS, CON_PODER, PODERES, insigniaPorCodigo, poderActivo,
+  INSIGNIAS, CON_PODER, PODERES, poderActivo,
   multiplicadorDe, usosDisponibles, ganablesPor, PODERES_LISTOS
 } from '../src/lib/insignias'
 import { readFileSync } from 'node:fs'

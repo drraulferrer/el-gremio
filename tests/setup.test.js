@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   PREGUNTAS, RESPUESTAS_POR_DEFECTO, preguntaResuelta, alternar,
-  habilidadesElegidas, cuantasMisiones, misionesParaRol, premiosDelPlan,
+  cuantasMisiones, misionesParaRol, premiosDelPlan,
   metaDelPlan, planDeArranque, TITULOS_DE_UNA_CASA, PREMIOS_DE_LA_PEQUE,
   PREMIOS_EN_LA_TIENDA, PREMIOS_POR_TIPO
 } from '../src/lib/setup'

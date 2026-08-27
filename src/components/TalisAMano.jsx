@@ -18,32 +18,21 @@
 // dejaría de notarse, que es lo único que la hace valer.
 // ------------------------------------------------------------------
 
-import { useEffect, useRef } from 'react'
+import { useEffect } from 'react'
 import { fechaCorta } from '../lib/muro'
 import { vibrar, LOGRO } from '../lib/vibrar'
+import { useFocoDialogo } from '../lib/dialogo'
 import { Talis } from './ui'
 
 export default function TalisAMano({ premios = [], onClose }) {
-  const cerrar = useRef(null)
-
-  // El foco entra en el diálogo y vuelve al salir. Sin esto, quien
-  // navega con teclado se queda en el botón de detrás y no puede cerrar
-  // lo que tiene delante.
+  // El háptico de logro, el mismo que una misión validada. No es un
+  // adorno: este diálogo aparece sin que nadie lo haya pedido, y un
+  // toque avisa de que ha pasado algo antes de que nadie lea nada.
   useEffect(() => {
-    // El háptico de logro, el mismo que una misión validada. No es un
-    // adorno: este diálogo aparece sin que nadie lo haya pedido, y un
-    // toque avisa de que ha pasado algo antes de que nadie lea nada.
     vibrar(LOGRO)
-
-    const antes = document.activeElement
-    cerrar.current?.focus()
-    const conTecla = (e) => { if (e.key === 'Escape') onClose() }
-    document.addEventListener('keydown', conTecla)
-    return () => {
-      document.removeEventListener('keydown', conTecla)
-      if (antes instanceof HTMLElement) antes.focus()
-    }
   }, [onClose])
+
+  const cerrar = useFocoDialogo(onClose)
 
   if (!premios.length) return null
 

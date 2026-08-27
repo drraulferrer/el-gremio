@@ -1,6 +1,5 @@
 import { describe, it, expect, afterEach } from 'vitest'
-import { planDelDia, hayPlan, planDeperfil, misionesDe } from '../src/lib/misiones'
-import { rachaActual } from '../src/lib/rachas'
+import { planDelDia, hayPlan, misionesDe } from '../src/lib/misiones'
 import { diasNeutros } from '../src/lib/misiones'
 import { configurarZona, dayKey } from '../src/lib/supabase'
 import { readFileSync } from 'node:fs'

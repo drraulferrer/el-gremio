@@ -1,6 +1,6 @@
-import { useEffect, useRef } from 'react'
 import Sello from './Sello'
 import { selloPorId, esSecreto } from '../lib/sellos'
+import { useFocoDialogo } from '../lib/dialogo'
 import { insigniaPorCodigo } from '../lib/insignias'
 import { loreDeSello, loreDeInsignia, condicionDe, poderDeInsignia } from '../lib/sellos-lore'
 import { nombreDeSello, detalleDeSello } from './SellosGanados'
@@ -38,18 +38,7 @@ function fechaLarga(iso) {
 }
 
 export default function SelloDetalle({ code, concesion, genero = 'neutro', onClose }) {
-  const cerrar = useRef(null)
-
-  useEffect(() => {
-    const antes = document.activeElement
-    cerrar.current?.focus()
-    const conTecla = (e) => { if (e.key === 'Escape') onClose() }
-    document.addEventListener('keydown', conTecla)
-    return () => {
-      document.removeEventListener('keydown', conTecla)
-      if (antes instanceof HTMLElement) antes.focus()
-    }
-  }, [onClose])
+  const cerrar = useFocoDialogo(onClose)
 
   const sello = selloPorId(code)
   const vieja = insigniaPorCodigo(code)
