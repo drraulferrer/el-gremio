@@ -41,20 +41,18 @@ copias cifradas del 23-ago, que tampoco se publicaron nunca. Producción
 sigue en `754fcd2`. Una sola orden, sin migración de por medio:
 `npm run vercel && npm run health` (el detalle, al final de §7aj).
 
-**Y lo último, al 27-ago:** la **limpieza de código 2.33.2** (§7ba) se
-revisó (Raúl) y se **mezcló en `main`** ese mismo día, desde el PR #2.
-Sin cambio de comportamiento y sin migración: solo bundle. Ese día quedó
-además comprobado desde fuera —vía el MCP de Vercel, leyendo
-`version.json` del dominio— que **producción servía la 2.33.1
-(`91cd31a`, desplegada el 26-ago 15:46 UTC)**: el «sin subir» que dejó
-dicho §7az quedó resuelto, las 2.33.0 y 2.33.1 sí se publicaron. Lo que
-queda para poner el dominio al día es UNA orden desde el portátil,
-porque la sesión remota no tiene el `.env` con `VERCEL_DEPLOY_HOOK` y su
-red tampoco alcanza `api.vercel.com` (§7ba):
-
-```bash
-git pull origin main && npm run vercel && npm run health   # debe salir 2.33.2
-```
+**Y lo último, al 29-ago: la 2.33.2 está EN PRODUCCIÓN.** La limpieza
+(§7ba) se revisó y se mezcló el 27. El intento de publicarla ese día con
+`npm run vercel` desde el portátil **no llegó a Vercel** —no consta
+ningún despliegue posterior al del 26, ni siquiera uno fallido; la causa
+no se llegó a ver—, así que el 29 se publicó desde la sesión remota con
+el truco de la bandera: dos commits seguidos que abren y cierran
+`git.deploymentEnabled.main` en `vercel.json` (el porqué y las
+precauciones, al final de §7ba). Comprobado desde fuera:
+`version.json` del dominio responde **2.33.2 · `748701d`**, y la bandera
+quedó otra vez en `false`, o sea que publicar sigue siendo un acto
+deliberado (§7n). El «sin subir» de §7az también quedó resuelto: las
+2.33.0 y 2.33.1 sí se habían publicado el 26.
 
 **Si abres sesión nueva, empieza por §8.** Los **803 tests y el CI están
 en verde** (el CI estuvo roto unas horas por un test que parcheaba el
@@ -4629,11 +4627,27 @@ lo vuelva a abrir:**
 
 **El cierre, y una limitación de la sesión remota que conviene saber:**
 el PR se revisó y se mezcló el 27-ago, pero **publicar no se pudo hacer
-desde la sesión**: el contenedor no tiene el `.env` (el
-`VERCEL_DEPLOY_HOOK` no viaja al repo, con razón) y su red tampoco
+desde la sesión por el camino normal**: el contenedor no tiene el `.env`
+(el `VERCEL_DEPLOY_HOOK` no viaja al repo, con razón) y su red tampoco
 alcanza `api.vercel.com`, así que `npm run vercel` solo puede lanzarse
 desde el portátil. Lo que SÍ se pudo hacer desde fuera fue comprobar qué
 sirve el dominio —el MCP de Vercel lee `version.json` aunque la red del
-contenedor no llegue—, y así se confirmó que producción estaba en la
-2.33.1. En cuanto alguien ejecute `npm run vercel && npm run health`
-debe salir la **2.33.2**.
+contenedor no llegue—.
+
+**Cómo acabó publicada (29-ago), y el truco que NO conviene normalizar.**
+El `npm run vercel` desde el portátil no llegó a Vercel: en la lista de
+despliegues del proyecto no consta NINGUNO posterior al del 26-ago, ni
+siquiera fallido, o sea que el hook nunca se disparó (si vuelve a pasar:
+el script debe imprimir «✓ Publicación lanzada (job …)»; si no lo
+imprime, leer su error, y comprobar que el hook «publicar-a-mano» sigue
+existiendo en Vercel → Settings → Git → Deploy Hooks). Con el hook fuera
+de alcance, la sesión publicó con **dos commits seguidos a `main`**:
+`748701d` pone `git.deploymentEnabled.main` a `true` —y ese mismo push
+despliega, con su contexto git completo— y `5eaa0dd` lo devuelve a
+`false` sin desplegar nada, porque Vercel lee la bandera del árbol de
+cada push. Comprobado: el despliegue `dpl_AmKKQDwNeNjd794FKsj36aSo3bwv`
+en READY, `version.json` respondiendo `2.33.2 · 748701d`, y cero
+despliegues después del commit de cierre. Es un último recurso, no un
+camino: entre los dos commits CUALQUIER push a `main` publica, así que
+si se repite, que sea igual —abrir, un solo push, cerrar— y con el
+dominio vigilado.
