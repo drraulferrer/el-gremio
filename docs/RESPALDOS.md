@@ -11,7 +11,7 @@ Son dos comandos y una línea de cron.
 ```bash
 npm run respaldo                    # vuelca, cifra y comprueba
 npm run respaldo -- --estado        # qué copias hay, sin tocar nada
-npm run restaurar -- --ultimo --a <ref>
+npm run restaurar -- --ultimo --db-url
 ```
 
 ## Puesta en marcha (una vez)
@@ -129,20 +129,48 @@ Sacar una copia al mes a otro sitio sigue pendiente y es la mitad que falta.
 ## Restaurar
 
 ```bash
-npm run restaurar -- --ultimo --a <ref> --ensayo   # enseña el plan, no toca nada
-npm run restaurar -- --ultimo --a <ref>
+read -rs RESTAURAR_DB_URL && export RESTAURAR_DB_URL   # la cadena del DESTINO
+npm run restaurar -- --ultimo --db-url --ensayo        # enseña el plan, no toca nada
+npm run restaurar -- --ultimo --db-url
 ```
 
+La cadena de conexión del destino está en su panel: **Connect → Direct connection**
+o **Session pooler**. Va en una variable de entorno y no en un argumento **porque
+lleva la contraseña de la base**: así no queda en el historial de la terminal ni a
+la vista en la lista de procesos. El script tampoco la imprime nunca, ni siquiera
+dentro de los errores que devuelve el CLI.
+
 Antes hay que crear el esquema en el proyecto de destino: pega `schema.sql` en su
-editor SQL, o pásalo con `supabase db query -f`.
+editor SQL, o pásalo con `psql "$RESTAURAR_DB_URL" -f schema.sql`.
+
+### Por qué `--db-url` y no `--a <ref>`
+
+Porque `--a` **solo vale para restaurar encima del proyecto enlazado**, y eso se
+descubrió el 29-ago-2026 al intentar por primera vez la restauración que este
+documento llevaba desde agosto prometiendo.
+
+`supabase db query --project-ref <ref>` no elige a qué proyecto hablar: solo
+comprueba que ese ref sea el del proyecto **enlazado**. Contra cualquier otro
+falla, y por red el error que sale es de IPv6, que despista del todo. La única
+forma de apuntar a otro proyecto con `--a` sería enlazarlo, y eso tiene dos
+efectos feos: el script pasaría a verlo como «producción» y exigiría
+`--si-de-verdad` —la bandera que existe para lo contrario—, y **el respaldo
+nocturno de las 4:23 empezaría a volcar la base equivocada** hasta que alguien se
+diera cuenta.
+
+`--a` se conserva porque sigue siendo la vía correcta para el caso de desastre:
+restaurar encima del proyecto de siempre.
 
 Lo que hace, por orden: descifra la copia, le pregunta al catálogo **del destino**
 en qué orden se pueden tocar las tablas sin romper una clave ajena, vacía en orden
 inverso, inserta en orden directo y recoloca las secuencias. Sin ese último paso,
 el primer `insert` que hiciera la aplicación chocaría con una clave que ya existe.
 
-Si el `--a` es el proyecto que tienes enlazado —o sea, producción— se planta y
-exige `--si-de-verdad`. Restaurar encima de una base viva borra todo lo ocurrido
+Si el destino es el proyecto que tienes enlazado —o sea, producción— se planta y
+exige `--si-de-verdad`. Con `--db-url` la comprobación es la misma: saca el ref de
+la cadena de conexión y lo compara. Si no consigue sacarlo, **lo dice en vez de
+callarse**, porque una salvaguarda que no se sabe si está puesta es peor que no
+tenerla. Restaurar encima de una base viva borra todo lo ocurrido
 desde la copia, y eso no puede pasar por un despiste al pegar un ref.
 
 Las cuentas de `auth.users` **no se restauran automáticamente**: esa tabla la

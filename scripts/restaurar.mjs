@@ -2,13 +2,35 @@
 // ------------------------------------------------------------------
 // Restaurar una copia cifrada en un proyecto de Supabase.
 //
-//   npm run restaurar -- --ultimo --a <ref>            # la copia más reciente
-//   npm run restaurar -- --fichero <ruta.enc> --a <ref>
-//   npm run restaurar -- --ultimo --a <ref> --ensayo   # enseña el plan y no toca nada
+//   npm run restaurar -- --ultimo --db-url             # la copia más reciente
+//   npm run restaurar -- --fichero <ruta.enc> --db-url
+//   npm run restaurar -- --ultimo --db-url --ensayo    # enseña el plan y no toca nada
+//   npm run restaurar -- --ultimo --a <ref>            # solo si <ref> ES el enlazado
 //
-// ANTES DE ESTO, el proyecto de destino necesita el esquema:
+// CÓMO SE ELIGE EL DESTINO, y por qué hay dos formas:
 //
-//   supabase db query -f schema.sql --linked --project-ref <ref>
+//   --db-url   Toma la cadena de conexión de la variable de entorno
+//              RESTAURAR_DB_URL. Es la forma buena para restaurar en un
+//              proyecto que NO es el de siempre. Va en una variable y no
+//              en un argumento para que la contraseña no acabe en el
+//              historial de la terminal ni en la lista de procesos.
+//
+//                export RESTAURAR_DB_URL='postgresql://…'   # sin dejar rastro:
+//                read -rs RESTAURAR_DB_URL && export RESTAURAR_DB_URL
+//
+//   --a <ref>  La forma antigua. `supabase db query --project-ref` NO
+//              elige a qué proyecto hablar: solo comprueba que el ref sea
+//              el del proyecto ENLAZADO. Contra cualquier otro falla
+//              («--project-ref only applies when targeting the linked
+//              project», y por red sale un error de IPv6 que despista).
+//              Descubierto el 29-ago-2026, al intentar por primera vez la
+//              restauración que este fichero llevaba desde agosto
+//              prometiendo. Se deja porque sigue valiendo para restaurar
+//              encima del proyecto enlazado, que es el caso de desastre.
+//
+// ANTES DE ESTO, el proyecto de destino necesita el esquema. Con --db-url:
+//
+//   psql "$RESTAURAR_DB_URL" -f schema.sql
 //
 // (o pegar las migraciones en su editor SQL, que es como se hace aquí).
 // Esto restaura DATOS, no estructura.
@@ -30,6 +52,15 @@
 // decir, producción— hace falta `--si-de-verdad`. Restaurar encima de una
 // base viva borra lo que haya después de la copia, y eso no puede pasar
 // por un despiste al copiar un ref.
+//
+// Con --db-url la misma comprobación se hace sacando el ref de la cadena
+// de conexión (`db.<ref>.supabase.co` o `postgres.<ref>@…pooler`). Si no
+// se puede sacar, se avisa bien claro en vez de callar: una salvaguarda
+// que no se sabe si está puesta es peor que no tenerla.
+//
+// Y la cadena NUNCA se imprime. Ni en los mensajes de este script ni en
+// los errores que devuelva el CLI, que se pasan por `censura()`: lleva la
+// contraseña de la base dentro.
 // ------------------------------------------------------------------
 
 import { execFileSync, spawnSync } from 'node:child_process'
@@ -62,6 +93,47 @@ export function abrir(fichero, destino, clave) {
   return join(destino, 'datos')
 }
 
+// --- a quién hablamos -----------------------------------------------------
+
+function argumento(argv, nombre) {
+  const i = argv.indexOf(nombre)
+  return i === -1 ? null : argv[i + 1]
+}
+
+/** El ref de un proyecto de Supabase dentro de una cadena de conexión. */
+export function refDeUrl(url) {
+  const directo = /db\.([a-z0-9]{16,24})\.supabase\.(co|com)/i.exec(url || '')
+  if (directo) return directo[1]
+  const pooler = /postgres\.([a-z0-9]{16,24})[:@]/i.exec(url || '')
+  return pooler ? pooler[1] : null
+}
+
+/** Tapa la contraseña de cualquier cadena de conexión que se vaya a imprimir. */
+export function censura(texto) {
+  return String(texto ?? '').replace(/(postgres(?:ql)?:\/\/[^:\s]+:)[^@\s]+@/gi, '$1•••@')
+}
+
+/**
+ * Cómo se habla con el destino. Dos modos, y el de la url es el que sirve
+ * para un proyecto que no es el enlazado (ver la cabecera).
+ */
+export function conexionDe(argv) {
+  const ref = argumento(argv, '--a')
+  const porUrl = argv.includes('--db-url')
+  if (ref && porUrl) morir('Elige uno: `--a <ref>` o `--db-url`, no los dos.')
+  if (porUrl) {
+    const url = process.env.RESTAURAR_DB_URL
+    if (!url) {
+      morir('Falta RESTAURAR_DB_URL. Ponla sin dejarla en el historial:\n' +
+            '    read -rs RESTAURAR_DB_URL && export RESTAURAR_DB_URL')
+    }
+    const suyo = refDeUrl(url)
+    return { args: ['--db-url', url], etiqueta: suyo || 'el destino de RESTAURAR_DB_URL', ref: suyo }
+  }
+  if (!ref) morir('Falta el destino: `--db-url` (recomendado) o `--a <project-ref>`.')
+  return { args: ['--linked', '--project-ref', ref], etiqueta: ref, ref }
+}
+
 // --- orden de las tablas --------------------------------------------------
 
 const SQL_ORDEN = `
@@ -86,15 +158,15 @@ select c.relname as tabla, max(d.nivel) as nivel
  * de todas. El tope de 20 niveles es un cortacircuitos: con una dependencia
  * circular, la recursiva no pararía nunca.
  */
-export function orden(ref) {
-  const filas = consultaEn(ref, SQL_ORDEN)
+export function orden(conexion) {
+  const filas = consultaEn(conexion, SQL_ORDEN)
   return filas.map((f) => f.tabla)
 }
 
-function consultaEn(ref, sql) {
+function consultaEn(conexion, sql) {
   let ultimo = ''
   for (let intento = 1; intento <= 4; intento++) {
-    const r = spawnSync(binario('supabase'), ['db', 'query', sql, '--linked', '--project-ref', ref, '-o', 'json'],
+    const r = spawnSync(binario('supabase'), ['db', 'query', sql, ...conexion.args, '-o', 'json'],
       { encoding: 'utf8', maxBuffer: 256 * 1024 * 1024 })
     if (r.status === 0) {
       try {
@@ -104,17 +176,17 @@ function consultaEn(ref, sql) {
     }
     ultimo = ((r.stderr || r.stdout) || '').trim()
   }
-  morir(`La consulta falló tras 4 intentos: ${ultimo.slice(-300)}`)
+  morir(`La consulta falló tras 4 intentos: ${censura(ultimo).slice(-300)}`)
 }
 
-function ejecutar(ref, sql, etiqueta) {
+function ejecutar(conexion, sql, etiqueta) {
   const tmp = mkdtempSync(join(tmpdir(), 'sql-'))
   const fichero = join(tmp, 'trozo.sql')
   try {
     writeFileSync(fichero, sql, 'utf8')
-    const r = spawnSync(binario('supabase'), ['db', 'query', '-f', fichero, '--linked', '--project-ref', ref],
+    const r = spawnSync(binario('supabase'), ['db', 'query', '-f', fichero, ...conexion.args],
       { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 })
-    if (r.status !== 0) morir(`Falló ${etiqueta}: ${((r.stderr || r.stdout) || '').trim().slice(-400)}`)
+    if (r.status !== 0) morir(`Falló ${etiqueta}: ${censura(((r.stderr || r.stdout) || '')).trim().slice(-400)}`)
   } finally {
     rmSync(tmp, { recursive: true, force: true })
   }
@@ -198,14 +270,8 @@ export function plan(datos, ordenTablas) {
 
 // --- principal ------------------------------------------------------------
 
-function argumento(argv, nombre) {
-  const i = argv.indexOf(nombre)
-  return i === -1 ? null : argv[i + 1]
-}
-
 function main(argv) {
-  const destino = argumento(argv, '--a')
-  if (!destino) morir('Falta `--a <project-ref>`: en qué proyecto se restaura.')
+  const conexion = conexionDe(argv)
 
   const fichero = argv.includes('--ultimo')
     ? (copias().at(-1)?.ruta ?? morir('No hay ninguna copia que restaurar.'))
@@ -213,10 +279,16 @@ function main(argv) {
   if (!fichero) morir('Elige qué copia: `--ultimo` o `--fichero <ruta.enc>`.')
   if (!existsSync(fichero)) morir(`No existe ${fichero}`)
 
-  if (existsSync('supabase/.temp/linked-project.json') && destino === proyecto() && !argv.includes('--si-de-verdad')) {
-    morir(`${destino} es el proyecto enlazado, o sea PRODUCCIÓN.\n` +
+  const enlazado = existsSync('supabase/.temp/linked-project.json') ? proyecto() : null
+  if (enlazado && conexion.ref === enlazado && !argv.includes('--si-de-verdad')) {
+    morir(`${conexion.ref} es el proyecto enlazado, o sea PRODUCCIÓN.\n` +
           '  Restaurar encima borra todo lo que haya pasado desde la copia.\n' +
           '  Si de verdad es lo que quieres, añade `--si-de-verdad`.')
+  }
+  if (enlazado && !conexion.ref) {
+    console.log('  ⚠ No se puede sacar el ref de la cadena de conexión, así que NO se ha')
+    console.log('    podido comprobar que el destino no sea producción. Míralo tú antes de')
+    console.log('    seguir: restaurar encima borra lo que haya pasado desde la copia.\n')
   }
 
   const clave = contrasena()
@@ -224,8 +296,8 @@ function main(argv) {
   try {
     console.log(`· Abriendo ${fichero}`)
     const datos = abrir(fichero, tmp, clave)
-    console.log(`· Preguntando al catálogo de ${destino} en qué orden van las tablas`)
-    const { partes, tablas, sueltas, fuera, presentes } = plan(datos, orden(destino))
+    console.log(`· Preguntando al catálogo de ${conexion.etiqueta} en qué orden van las tablas`)
+    const { partes, tablas, sueltas, fuera, presentes } = plan(datos, orden(conexion))
 
     console.log(`\n  ${tablas.length} tablas · ${Object.values(presentes).reduce((a, f) => a + f.length, 0)} filas · ${partes.length} sentencias`)
     for (const t of tablas) console.log(`    ${t.padEnd(24)} ${String(presentes[t].length).padStart(6)}`)
@@ -243,9 +315,9 @@ function main(argv) {
       return 0
     }
 
-    console.log(`\n· Restaurando en ${destino}…`)
+    console.log(`\n· Restaurando en ${conexion.etiqueta}…`)
     partes.forEach((sql, i) => {
-      ejecutar(destino, sql, `la sentencia ${i + 1}/${partes.length}`)
+      ejecutar(conexion, sql, `la sentencia ${i + 1}/${partes.length}`)
       process.stdout.write(`\r    ${i + 1}/${partes.length}`)
     })
     console.log('\n\n✓ Restaurado. Comprueba que puedes entrar con una cuenta antes de darlo por bueno.')
