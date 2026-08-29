@@ -33,7 +33,13 @@
 //      Llavero. Sin `-w <valor>`: así te la pide sin mostrarla y no
 //      queda en el historial de la terminal.
 //
-//        security add-generic-password -a $USER -s el-gremio-respaldo -w
+//        security add-generic-password -a "$USER" -s el-gremio-respaldo \
+//          -T /usr/bin/security -w
+//
+//      El `-T` autoriza a `security` a LEER el valor. Sin él el ítem se
+//      crea, se encuentra, y aun así `-w` falla: son dos permisos
+//      distintos. Es lo que tuvo este respaldo sin funcionar dos noches
+//      seguidas, fallando en un log que nadie mira (ver docs/RESPALDOS.md).
 //
 // PARA QUE SE DISPARE SOLO, una línea de cron en este Mac:
 //
@@ -123,9 +129,16 @@ export function contrasena() {
     { encoding: 'utf8' })
   const clave = (r.stdout || '').trim()
   if (r.status !== 0 || !clave) {
-    morir(`Falta la contraseña de respaldo en el Llavero. Créala con:\n` +
-          `    security add-generic-password -a $USER -s ${SERVICIO} -w\n` +
-          '  (sin valor: te la pide sin mostrarla y no queda en el historial)')
+    // El `-T` va en el mensaje a propósito: sin él el ítem se crea y se
+    // encuentra, pero leer el valor es otro permiso y esta misma línea
+    // vuelve a salir. Quien tiene el problema lee esto, no la
+    // documentación.
+    morir(`Falta la contraseña de respaldo en el Llavero, o no se puede LEER.\n` +
+          '  Créala autorizando al binario que la lee:\n' +
+          `    security add-generic-password -a "$USER" -s ${SERVICIO} -T /usr/bin/security -w\n` +
+          '  (sin valor: te la pide sin mostrarla y no queda en el historial)\n' +
+          '  Comprueba que se puede leer, que es distinto de que exista:\n' +
+          `    security find-generic-password -s ${SERVICIO} -w >/dev/null && echo legible`)
   }
   return clave
 }

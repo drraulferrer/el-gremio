@@ -34,12 +34,35 @@ esperar a las 4:23.
 larga: es lo único que separa el volcado de quien encuentre el disco.
 
 ```bash
-security add-generic-password -a $USER -s el-gremio-respaldo -w
+security add-generic-password -a "$USER" -s el-gremio-respaldo -T /usr/bin/security -w
 ```
 
 Sin `-w <valor>`: así te la pide sin mostrarla y no queda en el historial de la
 terminal. **Si la pierdes, las copias no se abren.** Guárdala también donde
-guardes lo demás importante.
+guardes lo demás importante, y no solo en este Mac: una copia cifrada cuya
+contraseña vive únicamente en el llavero de la máquina que puede romperse no
+protege del caso que más importa.
+
+**El `-T /usr/bin/security` no es opcional, y cuesta dos noches descubrirlo.**
+Sin él, el ítem se crea igual y `security find-generic-password -s
+el-gremio-respaldo` lo encuentra —parece que todo está bien—, pero **leer el
+valor con `-w` es otro permiso**, y ese es el que usa el script. Sin autorizar al
+binario, la lectura falla y el script cree que la contraseña no existe. Con el
+cron, además, falla de noche y en un log que nadie mira: pasó el 27 y el 29 de
+agosto de 2026, y hasta el 29 no hubo ni una sola copia de esta base.
+
+Si macOS pregunta al leerla, hay que decirle **Permitir siempre**: con «Permitir
+una vez», el cron vuelve a fallar en silencio.
+
+La comprobación buena, la que de verdad dice que esto va a funcionar, **lee el
+valor**:
+
+```bash
+security find-generic-password -s el-gremio-respaldo -w >/dev/null && echo "✓ legible"
+```
+
+Comprobar solo que el ítem existe, sin `-w`, no sirve: es exactamente lo que
+dejaba pasar el fallo.
 
 **3. Comprobar que funciona**, antes de fiarte de ello:
 
