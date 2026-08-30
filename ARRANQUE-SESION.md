@@ -2,8 +2,13 @@
 
 Documento de continuidad. Si abres una sesión nueva sobre este proyecto,
 lee esto primero: dice dónde está todo, qué está hecho, qué falta y qué
-trampas tiene. Última actualización: **27 de agosto de 2026**, al cierre
-de la sesión de **limpieza de código** (§7ba): sin cambio de
+trampas tiene. Última actualización: **30 de agosto de 2026**, al cierre de la
+sesión de **recuperación ante desastres y terreno firme** (§7bb): migraciones
+**041, 042 y 043 ejecutadas** y **2.33.3 publicada y comprobada**. Esa sesión
+descubrió que **la restauración de un respaldo nunca había funcionado** y
+arregló seis defectos del camino de vuelta; empieza por ahí si vas a tocar
+respaldos o el esquema. La sesión anterior fue la de **limpieza de código**
+(§7ba): sin cambio de
 comportamiento, en una rama a la espera de revisión. La sesión del
 19-ago construyó el **modo limpieza** (§7x): campañas de limpieza como
 misión secundaria, con reloj por tarea y botín de cierre. Ese mismo día,
@@ -4651,3 +4656,106 @@ despliegues después del commit de cierre. Es un último recurso, no un
 camino: entre los dos commits CUALQUIER push a `main` publica, así que
 si se repite, que sea igual —abrir, un solo push, cerrar— y con el
 dominio vigilado.
+
+## 7bb. Recuperación ante desastres y terreno firme (29-30 de agosto) · 2.33.3 · migraciones 041, 042 y 043
+
+**Lo que hay que saber en una línea:** las migraciones **041, 042 y 043 están
+EJECUTADAS** y la **2.33.3 publicada y comprobada** (`npm run health`: web
+2.33.3 `fff2a2e`, supabase 17.6). En ese orden.
+
+### Lo que se descubrió, que era el objetivo
+
+Se fue a probar la restauración por primera vez —un respaldo que nunca se ha
+restaurado no es una protección— y **no funcionaba nada de ese camino**. Seis
+defectos, todos invisibles sin ejecutarlo:
+
+1. **No había ni una copia.** El cron de las 4:23 fallaba cada noche desde al
+   menos el 27-ago porque el comando documentado del Llavero omitía
+   `-T /usr/bin/security`. Crear el ítem y poder LEER su valor son dos
+   permisos distintos: sin el `-T`, `find-generic-password` lo encuentra y el
+   `-w` que usa el script falla. Y fallaba en un log que nadie mira.
+   Arreglado en `docs/RESPALDOS.md`, en la cabecera del script **y en el
+   mensaje de error**, que era lo único que leía quien tenía el problema y
+   decía justo el comando que no funciona.
+2. **`--project-ref` no elige destino**, solo comprueba que sea el proyecto
+   enlazado. Restaurar en otro proyecto era imposible. Ahora hay `--db-url`,
+   que lee la cadena de `RESTAURAR_DB_URL` —en variable de entorno para que la
+   contraseña no acabe en el historial ni en la lista de procesos—.
+3. **`SQL_ORDEN` devolvía UNA tabla de 23.** El caso base descartaba las que
+   tienen clave ajena fuera de `public`, y como `families` apunta a
+   `auth.users` y de ella cuelga todo, la recursiva no alcanzaba nada. La
+   restauración habría insertado en orden de volcado y roto las claves ajenas.
+4. Los `delete` iban en un trozo multi-sentencia, que `--db-url` rechaza.
+5. El error real quedaba oculto tras el «Connecting to remote database…» del
+   CLI, porque el script mostraba `stderr || stdout` y la causa venía por el
+   otro.
+6. **`schema.sql` no reconstruía la base.** Faltaban el RLS de
+   `mission_families` —que la 028 sí enciende, así que producción está bien
+   pero cualquier base creada desde el fichero nacía con esa tabla expuesta—,
+   `create extension pg_cron`, y un `set check_function_bodies = off` porque
+   `zona_de_perfil()` es `language sql` y consulta `profiles` antes de que
+   exista.
+
+**El límite que queda, y no es un fallo:** en un proyecto NUEVO no se restaura
+nada, porque `families.owner` apunta a `auth.users` y eso no se restaura. Para
+el desastre real —proyecto vivo, datos perdidos— la vía es restaurar encima, y
+ahora tiene bastantes más probabilidades de funcionar. Cubrir el caso del
+proyecto nuevo exige recrear antes las cuentas con los mismos UUID, y no está
+resuelto.
+
+### Las tres migraciones
+
+- **041** · `redeem_reward` no comprobaba que el premio y el perfil fueran de
+  la misma casa. Hoy no lo puede provocar nadie porque el RLS solo deja ver un
+  gremio, pero esa garantía es del borde y el borde va a cambiar con los
+  gremios múltiples. Sale de auditar las cinco funciones que cruzan dos
+  identificadores: **las otras cuatro ya comprobaban**.
+- **042** · el libro de las monedas (`movimientos_coins`): saldo antes, saldo
+  después, motivo, resultado y clave de idempotencia. Se llama `coins` y no
+  `talis` porque el esquema no dice «talis» —hay un test que lo defiende y me
+  pilló en el intento—.
+- **043** · el libro lo escribe un **disparador** sobre `profiles`, no cada
+  función a mano. Llamarlo desde las ocho que mueven monedas es una costumbre;
+  el disparador es una garantía: si alguien añade la novena y olvida declarar
+  su motivo, el asiento sale como `desconocido` en vez de no salir. **Seis de
+  las ocho ya eran idempotentes** por su propio estado; solo
+  `grant_manual_bonus` necesitaba clave, y a propósito, porque el índice único
+  de `bonuses` excluye el tipo `manual`.
+
+### Trampas que costaron tiempo, para no repetirlas
+
+- **Mira los números de migración DESPUÉS de un `git fetch`.** Escribí una 040
+  que ya existía: otra sesión la había publicado mientras tanto. Lo mismo vale
+  para la versión.
+- **Para probar contra producción sin dejar rastro**, un bloque que aborta al
+  final funciona muy bien: `do $$ … raise exception 'ENSAYO %', v; end $$;`
+  deshace todo lo que haya hecho dentro. Así se comprobaron la idempotencia y
+  el disparador contra la base de verdad.
+- `supabase db query -f` manda el fichero como **una sola sentencia
+  preparada** por `--db-url`: no traga ficheros multi-sentencia. Por `--linked`
+  sí, porque va por la API de gestión. Para aplicar `schema.sql` entero, el
+  editor SQL del panel.
+
+### Lo que queda abierto
+
+- **`truncate` para `authenticated`** en todas las tablas. `truncate` se salta
+  el RLS, pero PostgREST no lo expone, así que es endurecimiento pendiente y
+  no una puerta abierta. Merece su propia revisión de grants.
+- **Derivar el nivel en servidor.** Era la otra mitad de la tarea 1.1 del plan
+  y se aplazó: hoy añadiría una tercera copia de la fórmula sin nadie que la
+  llame hasta que exista el hito de expansión.
+
+### El contexto: hay un plan
+
+Esto es la **Fase 1** de un plan de implementación que vive fuera del repo, en
+`~/Library/Mobile Documents/com~apple~CloudDocs/ClaudeCode/specs/`:
+
+- `el-gremio-gremios-multiples.md` — la especificación funcional de gremios
+  múltiples, tipos de gremio e identidad progresiva. 31 decisiones cerradas,
+  118 requisitos.
+- `el-gremio-plan-implementacion.md` — el plan en fases. **Fases 0 y 1
+  cerradas.** La siguiente es la 2, identidad y pertenencia, que es la que
+  cambia el modelo de datos vivo.
+- `el-gremio-briefing-legal-equipo.md` y `-menores.md` — listos para enviar,
+  sin encargar. Son el camino crítico de las fases 8a y 8b.
+- `el-gremio-catalogo-amigos.md` — borrador sin validar con un grupo real.
