@@ -4942,3 +4942,99 @@ defiende `tests/permisos.test.js` de la 044 en adelante.
 expuestas en una base reconstruida»: era falso. El barrido del final de
 `schema.sql` ya las cubría en una reconstrucción; el problema estaba en la
 base viva, y era mayor de lo que ese párrafo contaba.
+
+## 7be. Convertirse en persona, sin que se reinicie nada (30 de agosto) · SIN VERSIÓN · migración 047
+
+**Migración 047 EJECUTADA y ensayada contra producción.** Sigue sin haber
+versión nueva ni despliegue: lo único que cambia en `src/` es un mensaje de
+error que hoy no puede ver nadie.
+
+Es la pieza **2.5** de la Fase 2, el flujo **F-9**. Con esto la fase va por
+cinco de siete: quedan 2.6 (migrar el correo compartido) y 2.7 (borrar la
+identidad).
+
+### Por qué son dos pasos y no uno
+
+Por dos motivos, y el segundo es el que decide el diseño:
+
+1. `signUp` devuelve `error: null` y `session: null` cuando falta confirmar el
+   correo. La identidad no es buena hasta entonces, y **hasta entonces no se
+   mueve un saldo ni se crea una pertenencia**: un correo mal escrito dejaría
+   el dinero del juego en una identidad que no controla nadie.
+2. **La sesión nueva no puede demostrar que operaba ese personaje.** Son dos
+   sesiones distintas y no comparten nada.
+
+Así que `solicitar_conversion` se llama **desde la sesión compartida** —que sí
+puede demostrarlo— con el PIN, que es la única puerta que prueba que hay una
+persona adulta delante, y deja una fila con el correo elegido y 72 horas de
+caducidad. `completar_conversion` se llama **desde la sesión nueva**. El enlace
+entre las dos es **el correo**: se eligió a mano dentro del gremio y haberlo
+confirmado demuestra que ese buzón es suyo. No hace falta pasar ningún secreto
+de una sesión a la otra.
+
+### Lo que se creó
+
+- **`carteras`** · saldo único por persona. Se crea vacía en la conversión y se
+  llena con la transferencia de ese mismo momento. No hay relleno masivo, y
+  quien no se convierte conserva su saldo local tal cual.
+- **`conversiones`** · la solicitud, que es **también el asiento** de la
+  conversión: personaje, gremio, correo, saldo antes, importe, saldo de la
+  cartera después, fecha, resultado y clave. No hacía falta un libro aparte
+  para la cartera: esta fila es el apunte de la única operación que la llena.
+- **`profiles.saldo_local_cerrado`** · y `redeem_reward` la mira. Sin esa
+  línea la marca no marcaría nada: sería una columna que nadie lee.
+- **`movimientos_coins.tipo`** conoce `'conversion'`.
+
+### Dos decisiones que conviene recordar
+
+- **La pertenencia se crea como `reclamacion`, no como `fundacion`.** No crea
+  una relación nueva: formaliza la de quien ya operaba ese personaje, y es el
+  único origen de los cuatro que no consume llave.
+- **Y con rol `gestor`, no `titular`.** Pertenecer da acceso y gestión; no da
+  la potestad de cerrar el gremio ni de traspasarlo, que hoy sigue siendo de la
+  credencial compartida que lo fundó. Es la misma línea que se trazó en la 045
+  al dejar `familia_owner` intacta.
+
+### Lo que NO hace, y hay que leerlo entero
+
+- **No hay pantalla, y no es un olvido.** La identidad personal aparece solo
+  cuando alguien necesita cruzar el límite de su gremio: forjar una llave
+  (Fase 5), aceptar una invitación o cambiar de gremio (Fase 6). Nada de eso
+  existe, así que **no hay disparo**, y ofrecerla «por si acaso» es justo lo
+  que la especificación prohíbe. Las funciones existen, están probadas y no las
+  llama nadie.
+- **La cartera recibe el saldo pero todavía no lo gasta ni lo llena.** Las ocho
+  funciones que mueven monedas siguen escribiendo en `profiles.coins`;
+  encaminarlas a la cartera es la Fase 3. **Por eso la Fase 3 tiene que llegar
+  antes que la Fase 5**, que es el orden que el plan ya tiene. Si alguien se lo
+  salta, el primer gremialista que se convierta se queda con dos monederos y
+  ninguno completo.
+- **No convierte juniors** (va detrás de su revisión jurídica) ni peques ni
+  mascotas (no son personas con correo).
+- **No migra el correo compartido.** Quien fundó la casa con su correo personal
+  se choca con `correo_es_la_clave_de_casa`, y eso es la 2.6. Es el caso **más
+  frecuente**: sin la 2.6, la pantalla estrella le dice que no a casi todo el
+  mundo.
+
+### Cómo se comprobó
+
+Respaldo antes (`respaldo-2026-08-30-150149`). `npm run verify`: **1222 tests
+en 70 ficheros**, con `tests/conversion.test.js` (26) nuevo.
+
+Y sobre todo, **dos ensayos contra la base de verdad**, los dos en un bloque
+que termina lanzando una excepción para deshacerlo todo:
+
+- **La conversión entera**, con un adulto real de 424 Talis y una identidad
+  nueva creada y confirmada dentro del ensayo: `solicitar`=ok, `completar`=ok,
+  repetir con la misma clave=ok **sin duplicar nada** (1 pertenencia, 1
+  asiento), cartera=424, `coins`=0, `saldo_local_cerrado`=t, asiento de
+  conversión por −424, y el canje siguiente devolviendo **`saldo_en_cartera`**.
+  El correo se tecleó en MAYÚSCULAS a propósito: se normaliza.
+- **Los siete rechazos**: correo de la casa → `correo_es_la_clave_de_casa`; PIN
+  malo → `pin_incorrecto`; correo sin arroba → `correo_invalido`; junior →
+  `junior_bloqueado`; peque → `solo_adulto`; perfil de otro gremio →
+  `no_es_tuyo`; correo sin confirmar → `correo_sin_confirmar`.
+
+Después de los dos, producción sigue con **cero** carteras, conversiones,
+personas, pertenencias y cuentas de ensayo. Y `anon` sigue sin poder ejecutar
+ninguna función `security definer`.
