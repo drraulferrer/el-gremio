@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { rasgoDeTipo } from '../lib/plantilla'
 import Retrato from '../components/Retrato'
 import { Modal } from '../components/ui'
 import {
@@ -38,8 +39,12 @@ export default function DarGracias({ family, data, profile, genero = 'neutro', o
   // porque el catálogo de misiones no cubre la carga que no se ve.
   const [espontaneo, setEspontaneo] = useState(false)
 
-  const esPiso = family.tipo_gremio === 'piso'
-  const sinEncargo = espontaneo || esPiso
+  // «Encargos» es un eje del tipo (migración 053): en una casa con adultos y
+  // criaturas hay quien reparte tareas, y dar las gracias parte de una; en un
+  // piso o entre amigos no hay jerarquía que reparta, así que siempre es
+  // espontáneo. Sin plantilla, lo de siempre: mirar si es un piso.
+  const hayEncargos = rasgoDeTipo(data?.plantilla, 'encargos', family.tipo_gremio !== 'piso')
+  const sinEncargo = espontaneo || !hayEncargos
   const gente = aQuienPuedoDar(data.profiles, profile.id)
   const quedan = quedanHoy(data.reconocimientos, profile.id, dayKey(new Date(), family.timezone))
   const sugerencias = aQuien ? hechosDe(aQuien.id, data) : []
@@ -119,7 +124,7 @@ export default function DarGracias({ family, data, profile, genero = 'neutro', o
 
   return (
     <Modal titulo={`Gracias a ${aQuien.name}`} onClose={onClose}>
-      {!esPiso && sugerencias.length > 0 && (
+      {hayEncargos && sugerencias.length > 0 && (
         <>
           <p className="suave" style={{ marginTop: -4 }}>¿Por qué? Esto ha hecho estos días:</p>
           {sugerencias.map((h) => (
@@ -143,7 +148,7 @@ export default function DarGracias({ family, data, profile, genero = 'neutro', o
           los encargos porque lo normal es reconocer algo que se hizo; en
           un piso va de serie, que allí lo que se reparte mal es justo lo
           que nadie apuntó. */}
-      {!esPiso && (
+      {hayEncargos && (
         <button
           className={'btn btn-bloque btn-mini ' + (espontaneo ? '' : 'btn-fantasma')}
           style={{ marginTop: 4 }}

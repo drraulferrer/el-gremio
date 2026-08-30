@@ -5533,3 +5533,102 @@ mientras no se convierta nadie.
    real para convertirse.
 3. **Supabase Auth**: Redirect URLs y plantilla de confirmación.
 4. **Mirar la pantalla con una sesión real.**
+
+## 7bk. El tipo deja de ser un `if` (30 de agosto) · 2.33.6 · migración 053
+
+**Migración 053 EJECUTADA y ensayada.** Son las piezas **4.1** y **4.3** de la
+Fase 4. **Faltan la 4.2** (capacidades por rol) **y la 4.4** (país de
+operación).
+
+### Qué había, y por qué no podía crecer
+
+El tipo de gremio ya existía —`families.tipo_gremio`, 'familia' o 'piso' desde
+la 032— y ya cambiaba el comportamiento. Pero escrito como `tipo_gremio ===
+'piso'` a mano donde hiciera falta. Con dos tipos y dos efectos se aguanta; con
+los tres que vienen y siete ejes de efecto son decenas de `if` en sitios que
+nadie recuerda. **El mismo problema que la 050 resolvió con los números de la
+expansión.**
+
+Un apunte de realidad: la especificación habla de cuatro ficheros con
+condicionales. Vivos quedaban **dos** —el texto del mapa de zonas y si dar las
+gracias parte de un encargo—, los dos en el cliente.
+
+### Las tres capas, y cuál es esta
+
+El **núcleo común** no se toca. La **política de tipo** —esta plantilla— decide
+cómo nace un gremio y qué tiene encendido, y se aplica **una vez**, al crear. La
+**configuración** que el grupo edita después es suya.
+
+De ahí la regla que lo sostiene todo: **una plantilla mejorada no reescribe
+gremios existentes**, porque estaría pisando decisiones que ya no son suyas. Por
+eso cada gremio guarda `plantilla_version`, y por eso una plantilla publicada
+no se edita ni se borra: se publica otra versión.
+
+### Por qué los ejes van en `jsonb`
+
+Porque se leen **enteros y de una vez**, al abrir el gremio, y nadie los
+consulta por campo: nadie va a preguntar qué gremios tienen los encargos
+apagados. Siete tablas para eso serían siete `join` y ningún `check` que valga
+la pena. Lo que sí hace falta —que no cambien por detrás— lo da el mismo sello
+que la 050, no un `check`.
+
+Los **dos interruptores de Equipo** sí van en columnas propias, y el motivo
+importa: si el progreso de un equipo contara y se pudiera forjar desde ahí, un
+gremio de trabajo sería la vía más barata de subir de nivel y ganar monedas para
+gastarlas fuera. Eso no puede quedar enterrado en un `jsonb`.
+
+### Las cuatro plantillas, y solo una se ofrece
+
+| | | |
+|---|---|---|
+| **Hogar** | se ofrece | es el `familia` de siempre, con el nombre de la especificación |
+| **Hogar compartido** | no | tipo **legado**: son los `piso` que ya existen. **Hay uno real en producción**, y sigue exactamente igual |
+| **Amigos** | no | escrita, pero su catálogo está sin validar con un grupo real: un tipo que nace vacío es peor que un tipo que no está |
+| **Equipo** | no | especificada y **apagada** hasta su revisión jurídica |
+
+### Ningún gremio cambia de nada
+
+`'familia'` → `'hogar'` y `'piso'` → `'hogar_compartido'`. Es un cambio de
+nombre, no de comportamiento: mismos catálogos, mismos roles, mismos permisos,
+mismos datos. Y **`tipo_gremio` no se retira**: sigue siendo lo que lee el
+cliente viejo, y quitarla es el paso «contraer» de otra tanda.
+
+**Los textos sembrados son exactamente los que estaban escritos a mano**, y hay
+un test que lo comprueba: si el de la plantilla no es el que decía el cliente,
+alguien ha cambiado el producto sin querer.
+
+### Y el tipo es inmutable por decisión, no de casualidad
+
+Hasta hoy lo era «de hecho»: no había pantalla que lo tocara. Eso no es una
+garantía, es una ausencia. Ahora un disparador rechaza cambiar el tipo, la
+versión de plantilla **y el `tipo_gremio` viejo**.
+
+### Cómo se comprobó
+
+Respaldo (`respaldo-2026-08-30-182317`). `npm run verify`: **1332 tests en 76
+ficheros**.
+
+Contra la base: los **4 gremios migrados** (3 hogar, 1 hogar compartido), cero
+sin clasificar, la cuenta ve la plantilla de su gremio y solo `hogar` en los
+tipos ofrecidos, con su texto intacto. Y los **cinco rechazos**: cambiar
+`tipo_gremio`, cambiar `tipo_plantilla`, cambiar la versión, editar una
+plantilla publicada y borrarla. Renombrar el gremio —que tiene que seguir
+funcionando— sigue funcionando.
+
+### La deuda que cierra, y con test
+
+«Cero condicionales por tipo fuera de la plantilla» es un punto de la definición
+de hecho, y ahora lo defiende un test: **solo dos ficheros comparan el tipo**, y
+los dos únicamente como respaldo para cuando la plantilla no está. Un tercero
+hace caer la prueba.
+
+### Lo que falta de la Fase 4
+
+- **4.2 · capacidades por rol** (`CAP-01` a `CAP-17`). Hoy la única puerta sigue
+  siendo el PIN, como siempre. La etiqueta visible no autoriza nada, pero eso
+  todavía no está modelado.
+- **4.4 · país de operación**. La matriz tipo × país × estado ya existe desde la
+  050 (`disponibilidad_tipos`, `tipo_publicado()`); falta `families.pais` y la
+  ruta de declaración tardía para los gremios que ya existen — que **nunca**
+  reciben un país por inferencia y **nunca** se quedan bloqueados por no haberlo
+  declarado.

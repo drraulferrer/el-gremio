@@ -223,7 +223,13 @@ export default function App() {
       // y todos los premios en gris teniendo dinero. Va la última y en el
       // bloque degradable: sin la migración, la respuesta viene vacía y el
       // saldo se queda el de `profiles`, que es exactamente lo de siempre.
-      supabase.rpc('saldos_visibles')
+      supabase.rpc('saldos_visibles'),
+      // La plantilla del tipo de gremio (migración 053). Es lo que sustituye a
+      // los `if` por tipo repartidos por las pantallas: el vocabulario y los
+      // interruptores salen de aquí, no de comparar `tipo_gremio` a mano. En el
+      // bloque degradable como las demás: sin la migración viene vacía y cada
+      // pantalla cae a lo que hacía antes.
+      supabase.rpc('plantilla_de_gremio')
     ])
 
     const fallo = respuestas.slice(0, 7).find((r) => r.error)
@@ -234,7 +240,7 @@ export default function App() {
     }
     setErrorCarga('')
 
-    const [pr, ch, co, rw, rd, gl, bg, bo, pu, pl, pd, cl, zc, rc, sv] = respuestas
+    const [pr, ch, co, rw, rd, gl, bg, bo, pu, pl, pd, cl, zc, rc, sv, pt] = respuestas
     const metas = gl.data || []
 
     // El saldo que se puede gastar sustituye a `coins` en el objeto que ve la
@@ -248,6 +254,9 @@ export default function App() {
     )
 
     const next = {
+      // La plantilla de ESTE gremio, o null si la migración no está. Las
+      // pantallas la leen con `rasgoDeTipo`, que sabe caer a lo de siempre.
+      plantilla: (pt?.data || []).find((t) => t.family_id === fid) || null,
       profiles: perfiles,
       challenges: ch.data || [],
       completions: co.data || [],

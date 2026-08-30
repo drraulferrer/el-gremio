@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { supabase, mensajeDeError } from '../lib/supabase'
 import { perfilesActivos } from '../lib/miembros'
+import { textoDeTipo } from '../lib/plantilla'
 import Icono from '../components/Icono'
 import {
   PLANTILLAS_ZONA, IDS_PLANTILLA, ZONAS_POR_DEFECTO,
@@ -61,9 +62,14 @@ export default function Casa({ family, data, refresh }) {
   return (
     <div>
       <p className="suave" style={{ marginTop: 0 }}>
-        {family.tipo_gremio === 'piso'
-          ? 'Este gremio es de compañeros de piso: cada habitación tiene su dueño, y las campañas se la sugieren a esa persona.'
-          : 'El mapa del modo limpieza: de estas zonas salen las campañas de zona y de limpieza profunda.'}
+        {textoDeTipo(
+          data?.plantilla,
+          'zonas_intro',
+          // Sin plantilla, exactamente lo que decía antes.
+          family.tipo_gremio === 'piso'
+            ? 'Este gremio es de compañeros de piso: cada habitación tiene su dueño, y las campañas se la sugieren a esa persona.'
+            : 'El mapa del modo limpieza: de estas zonas salen las campañas de zona y de limpieza profunda.'
+        )}
       </p>
 
       {fallo && <p className="error-texto" role="alert">{fallo}</p>}

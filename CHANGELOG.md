@@ -18,6 +18,23 @@ verdad duele en esta app: que el esquema y el cliente dejen de encajar.
 
 ---
 
+## 2.33.6 · 30 de agosto de 2026
+
+**Nada que se vea, y ese es el objetivo.** El tipo de gremio —si es una casa o
+un piso compartido— dejaba de ser un `if` escrito a mano en cada pantalla que
+lo necesitaba y pasa a ser una plantilla que el servidor guarda. Los textos son
+exactamente los mismos, y hay una prueba que lo comprueba: si el de la
+plantilla no fuera el que decía la pantalla, alguien habría cambiado el
+producto sin querer.
+
+Se hace ahora porque con dos tipos y dos efectos se aguantaba, y con los tres
+que vienen —Hogar, Amigos, Equipo— y siete ejes de efecto serían decenas de
+condiciones repartidas por sitios que nadie recuerda.
+
+Cada gremio guarda además **la versión de plantilla con la que nació**, para
+que una plantilla mejorada no pueda reescribir un gremio que ya existe: lo que
+cada grupo edita después es suyo.
+
 ## 2.33.5 · 30 de agosto de 2026
 
 **La tienda dice cuánto falta.** El premio que todavía no se puede pagar lleva

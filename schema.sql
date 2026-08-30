@@ -41,6 +41,16 @@ create table if not exists public.families (
   -- puntos ni de validación: cambia el setup (una habitación privada por
   -- conviviente) y cómo se leen las zonas de la casa.
   tipo_gremio text not null default 'familia' check (tipo_gremio in ('familia','piso')),
+  -- El tipo, con el vocabulario de la especificación (migración 053), y la
+  -- versión de plantilla con la que este gremio nació. `tipo_gremio` sigue
+  -- existiendo: es lo que lee el cliente viejo, y retirarla es el paso
+  -- «contraer» de otra tanda.
+  --
+  -- Una plantilla mejorada NO reescribe gremios existentes: estaría pisando
+  -- decisiones que ya no son suyas. Por eso cada gremio guarda su versión.
+  tipo_plantilla text
+    check (tipo_plantilla is null or tipo_plantilla in ('hogar','amigos','equipo','hogar_compartido')),
+  plantilla_version text,
   created_at timestamptz not null default now()
 );
 
@@ -4799,6 +4809,249 @@ $fn$;
 revoke all on function public.saldos_visibles() from public;
 revoke all on function public.saldos_visibles() from anon;
 grant execute on function public.saldos_visibles() to authenticated;
+
+-- ---------------------------------------------------------------------
+-- El tipo de gremio deja de ser un `if` repetido (migración 053).
+--
+-- El tipo decide **cómo nace** un gremio y qué tiene encendido; lo que el
+-- grupo edita después es suyo. Por eso una plantilla mejorada no reescribe
+-- gremios existentes, y cada gremio guarda la versión con la que nació.
+--
+-- Los ejes van en `jsonb` porque se leen enteros al abrir el gremio y nadie
+-- los consulta por campo; lo que hace falta —que no cambien por detrás— lo
+-- da el mismo sello que la 050, no un `check`.
+--
+-- Razonamiento completo en migracion-053-el-tipo-deja-de-ser-un-if.sql.
+-- ---------------------------------------------------------------------
+
+create table if not exists public.plantillas_tipo (
+  -- Los cuatro nombres de `R-68` y `TIP-9`. 'hogar_compartido' es el tipo
+  -- LEGADO: son los 'piso' que ya existen, siguen funcionando igual, y no se
+  -- ofrece al crear un gremio nuevo.
+  tipo text not null check (tipo in ('hogar','amigos','equipo','hogar_compartido')),
+  -- Misma forma que la version de la configuracion de expansion: legible por
+  -- una persona, fecha mas orden dentro del dia.
+  version text not null check (version ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}(\.[0-9]+)?$'),
+
+  nombre_visible text not null check (length(btrim(nombre_visible)) between 2 and 40),
+  -- Si se ofrece al crear un gremio. El legado dice que no; Equipo tampoco,
+  -- hasta su revision juridica. Y no publicar NO apaga a nadie: los que ya
+  -- existen siguen funcionando.
+  se_ofrece boolean not null default false,
+
+  -- Los ejes. Se leen enteros al abrir el gremio; ver la cabecera.
+  vocabulario jsonb not null default '{}'::jsonb,
+  roles jsonb not null default '{}'::jsonb,
+  funciones jsonb not null default '{}'::jsonb,
+  limites jsonb not null default '{}'::jsonb,
+
+  -- Los dos interruptores que la especificacion pide explicitos y no metidos
+  -- en un jsonb, porque de ellos depende la economia entera: en Equipo el
+  -- progreso individual esta APAGADO y forjar llaves desde ahi esta PROHIBIDO.
+  -- Un gremio de trabajo no puede ser la via barata de subir de nivel.
+  progreso_individual boolean not null default true,
+  expansion_desde_tipo boolean not null default true,
+
+  motivo text not null check (length(btrim(motivo)) between 3 and 1000),
+  aprobada_por text not null check (length(btrim(aprobada_por)) between 2 and 200),
+  publicada_at timestamptz not null default now(),
+
+  primary key (tipo, version)
+);
+
+comment on table public.plantillas_tipo is
+  'Como NACE un gremio de cada tipo. Una fila por tipo y version; no se edita ni se borra, se publica otra version (TIP-3).';
+
+alter table public.plantillas_tipo enable row level security;
+
+-- Mismo patron que `configuracion_expansion`: RLS encendido y sin politicas.
+-- La plantilla no es de una familia, es del producto, y lo unico que hace
+-- falta fuera es lo que devuelva la funcion de lectura.
+revoke all on table public.plantillas_tipo from anon;
+revoke all on table public.plantillas_tipo from authenticated;
+
+create or replace function public.tg_plantilla_sellada()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $fn$
+begin
+  raise exception
+    'una plantilla de tipo no se edita ni se borra: se publica una version nueva (TIP-3)'
+    using errcode = 'restrict_violation';
+end $fn$;
+
+revoke all on function public.tg_plantilla_sellada() from anon;
+revoke all on function public.tg_plantilla_sellada() from authenticated;
+
+drop trigger if exists plantillas_tipo_sellada on public.plantillas_tipo;
+create trigger plantillas_tipo_sellada
+  before update or delete on public.plantillas_tipo
+  for each row execute function public.tg_plantilla_sellada();
+
+create or replace function public.tg_tipo_inmutable()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $fn$
+begin
+  if old.tipo_plantilla is not null and new.tipo_plantilla is distinct from old.tipo_plantilla then
+    raise exception 'el tipo de un gremio no se cambia (TIP-2)'
+      using errcode = 'restrict_violation';
+  end if;
+  if old.plantilla_version is not null and new.plantilla_version is distinct from old.plantilla_version then
+    raise exception 'un gremio conserva la version de plantilla con la que nacio (TIP-3)'
+      using errcode = 'restrict_violation';
+  end if;
+  -- Y el tipo viejo tampoco, que hasta hoy nadie lo defendia.
+  if new.tipo_gremio is distinct from old.tipo_gremio then
+    raise exception 'el tipo de un gremio no se cambia (TIP-2)'
+      using errcode = 'restrict_violation';
+  end if;
+  return new;
+end $fn$;
+
+revoke all on function public.tg_tipo_inmutable() from anon;
+revoke all on function public.tg_tipo_inmutable() from authenticated;
+
+drop trigger if exists families_tipo_inmutable on public.families;
+create trigger families_tipo_inmutable
+  before update on public.families
+  for each row execute function public.tg_tipo_inmutable();
+
+create or replace function public.plantilla_de_gremio()
+returns table (
+  family_id uuid,
+  tipo text,
+  version text,
+  nombre_visible text,
+  vocabulario jsonb,
+  roles jsonb,
+  funciones jsonb,
+  limites jsonb,
+  progreso_individual boolean,
+  expansion_desde_tipo boolean
+)
+language sql
+stable
+security definer
+set search_path = public
+as $fn$
+  select f.id, t.tipo, t.version, t.nombre_visible,
+         t.vocabulario, t.roles, t.funciones, t.limites,
+         t.progreso_individual, t.expansion_desde_tipo
+    from public.families f
+    join public.plantillas_tipo t
+      on t.tipo = f.tipo_plantilla and t.version = f.plantilla_version
+   where f.id in (select public.mis_gremios());
+$fn$;
+
+revoke all on function public.plantilla_de_gremio() from public;
+revoke all on function public.plantilla_de_gremio() from anon;
+grant execute on function public.plantilla_de_gremio() to authenticated;
+
+create or replace function public.tipos_ofrecidos()
+returns table (tipo text, version text, nombre_visible text)
+language sql
+stable
+security definer
+set search_path = public
+as $fn$
+  select t.tipo, t.version, t.nombre_visible
+    from public.plantillas_tipo t
+   where t.se_ofrece
+     and t.version = (select max(v.version) from public.plantillas_tipo v where v.tipo = t.tipo)
+   order by t.tipo;
+$fn$;
+
+revoke all on function public.tipos_ofrecidos() from public;
+revoke all on function public.tipos_ofrecidos() from anon;
+grant execute on function public.tipos_ofrecidos() to authenticated;
+
+insert into public.plantillas_tipo
+  (tipo, version, nombre_visible, se_ofrece, vocabulario, roles, funciones, limites,
+   progreso_individual, expansion_desde_tipo, motivo, aprobada_por)
+select * from (values
+  ('hogar', '2026-08-30.1', 'Hogar', true,
+   jsonb_build_object(
+     'zonas_intro', 'El mapa del modo limpieza: de estas zonas salen las campañas de zona y de limpieza profunda.'),
+   jsonb_build_object('visibles', jsonb_build_array('adulto','junior','peque','mascota'),
+                      'al_fundar', 'adulto'),
+   -- `encargos`: si dar las gracias parte de una tarea encargada. En una casa
+   -- con adultos y criaturas hay quien reparte; en un piso o entre amigos, no.
+   jsonb_build_object('encargos', true, 'zonas_privadas', false),
+   jsonb_build_object(), true, true,
+   'Primera version. Es el tipo ''familia'' de la 032 con el nombre de R-68, y sin un solo cambio de comportamiento.',
+   'producto · R-68, TIP-9'),
+
+  ('hogar_compartido', '2026-08-30.1', 'Hogar compartido', false,
+   jsonb_build_object(
+     'zonas_intro', 'Este gremio es de compañeros de piso: cada habitación tiene su dueño, y las campañas se la sugieren a esa persona.'),
+   jsonb_build_object('visibles', jsonb_build_array('adulto'), 'al_fundar', 'adulto'),
+   jsonb_build_object('encargos', false, 'zonas_privadas', true),
+   jsonb_build_object(), true, true,
+   'Tipo LEGADO: son los ''piso'' que ya existen. Siguen funcionando exactamente igual y no se ofrece al crear (R-78, TIP-9).',
+   'producto · R-78, TIP-9'),
+
+  ('amigos', '2026-08-30.1', 'Amigos', false,
+   jsonb_build_object(
+     'zonas_intro', 'Las zonas de este grupo: de aquí salen las campañas compartidas.'),
+   jsonb_build_object('visibles', jsonb_build_array('adulto'), 'al_fundar', 'adulto'),
+   jsonb_build_object('encargos', false, 'zonas_privadas', false),
+   jsonb_build_object(), true, true,
+   'Escrita pero SIN OFRECER: su catalogo de misiones y recompensas todavia esta sin validar con un grupo real, y un tipo que nace vacio es peor que un tipo que no esta.',
+   'producto · R-68'),
+
+  ('equipo', '2026-08-30.1', 'Equipo', false,
+   jsonb_build_object('zonas_intro', 'Las zonas de este equipo.'),
+   jsonb_build_object('visibles', jsonb_build_array('adulto'), 'al_fundar', 'adulto'),
+   jsonb_build_object('encargos', true, 'zonas_privadas', false),
+   jsonb_build_object(),
+   -- Los dos interruptores de TIP-13, y el motivo importa: si el progreso de un
+   -- equipo contara y se pudiera forjar desde ahi, un gremio de trabajo seria
+   -- la via mas barata de subir de nivel y ganar monedas para gastarlas fuera.
+   false, false,
+   'Especificada y APAGADA hasta su revision juridica (R-77). Progreso individual apagado y expansion prohibida (TIP-13, R-114).',
+   'producto · R-77, R-114, TIP-10')
+) as v(tipo, version, nombre_visible, se_ofrece, vocabulario, roles, funciones, limites,
+       progreso_individual, expansion_desde_tipo, motivo, aprobada_por)
+where not exists (
+  select 1 from public.plantillas_tipo p where p.tipo = v.tipo and p.version = v.version
+);
+
+create or replace function public.tg_plantilla_de_gremio_nuevo()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $fn$
+declare
+  v_tipo text;
+  v_version text;
+begin
+  if new.tipo_plantilla is not null and new.plantilla_version is not null then
+    return new;
+  end if;
+  v_tipo := coalesce(new.tipo_plantilla,
+                     case new.tipo_gremio when 'piso' then 'hogar_compartido' else 'hogar' end);
+  select max(version) into v_version from public.plantillas_tipo where tipo = v_tipo;
+  if v_version is null then
+    raise exception 'no hay plantilla publicada para el tipo %', v_tipo;
+  end if;
+  new.tipo_plantilla := v_tipo;
+  new.plantilla_version := v_version;
+  return new;
+end $fn$;
+
+revoke all on function public.tg_plantilla_de_gremio_nuevo() from anon;
+revoke all on function public.tg_plantilla_de_gremio_nuevo() from authenticated;
+
+drop trigger if exists families_plantilla on public.families;
+create trigger families_plantilla
+  before insert on public.families
+  for each row execute function public.tg_plantilla_de_gremio_nuevo();
 
 -- Y el barrido final de la 021, que tiene que quedarse SIEMPRE el último del
 -- fichero: retira el permiso de ejecución de toda función `security definer`,
