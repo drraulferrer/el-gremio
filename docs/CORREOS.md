@@ -21,11 +21,11 @@ De las cinco plantillas que ofrece Supabase, esta app solo dispara tres:
 
 | Plantilla | ¿La usa El Gremio? | Cuándo |
 |---|---|---|
-| Confirm sign up | **Sí** | Al crear la cuenta familiar, si «Confirm email» está encendido |
+| Confirm sign up | **Sí** | Al crear la cuenta familiar **y** al crearse una identidad personal (2.35.0). Las dos comparten plantilla: ver la nota de §1 |
 | Reset password | **Sí** | Al pulsar «He olvidado la contraseña» |
 | Change email address | **Sí** | Solo si alguien cambia el correo desde Supabase |
 | Magic link or OTP | No | La app entra con contraseña, nunca con enlace mágico |
-| Invite user | No | No hay invitaciones: una cuenta por familia |
+| Invite user | No | Las invitaciones a un gremio (migración 057) **no** pasan por Supabase Auth: son filas de `invitaciones` y se aceptan dentro de la app |
 
 Las dos últimas se dejan como están. Traducir una plantilla que nadie
 dispara es trabajo que hay que mantener a cambio de nada.
@@ -54,7 +54,20 @@ dispara es trabajo que hay que mantener a cambio de nada.
 
 ## 1. Confirm sign up
 
-**Subject:** `Confirma tu gremio`
+**Subject:** `Confirma tu correo`
+
+> **Reescrita el 30-ago-2026, y el motivo importa.** Supabase tiene **una sola**
+> plantilla de confirmación, y desde la 2.35.0 la disparan **dos cosas
+> distintas**: fundar un gremio con la clave compartida de la casa (`F-1a`) y
+> crearse una **identidad personal** para poder expandirse (`F-9`).
+>
+> El texto anterior decía «Alguien ha creado un gremio familiar con este correo.
+> Confírmalo y **podréis entrar todos**», que es verdad al fundar y es justo lo
+> contrario en una identidad personal: ahí el correo es de **una** persona y no
+> entra nadie más con él.
+>
+> Así que la copia nueva dice lo único que es cierto en los dos casos —este
+> correo se está dando de alta— y no promete quién entrará con él.
 
 ```html
 <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f2ec;padding:28px 12px;">
@@ -63,12 +76,12 @@ dispara es trabajo que hay que mantener a cambio de nada.
       <tr><td style="padding:32px 32px 8px;">
         <h1 style="margin:0;font-size:24px;color:#1e2140;">Ya casi está</h1>
         <p style="margin:16px 0 0;font-size:16px;line-height:1.55;color:#3d4275;">
-          Alguien ha creado un gremio familiar con este correo. Confírmalo y podréis entrar todos.
+          Este correo se está dando de alta en El Gremio. Confírmalo y ya podrás entrar con él.
         </p>
       </td></tr>
       <tr><td align="center" style="padding:24px 32px 8px;">
         <a href="{{ .ConfirmationURL }}" style="display:inline-block;background:#f5b841;color:#1e2140;font-size:17px;font-weight:700;text-decoration:none;padding:14px 30px;border-radius:12px;">
-          Confirmar el gremio
+          Confirmar mi correo
         </a>
       </td></tr>
       <tr><td style="padding:8px 32px 28px;">
@@ -78,7 +91,7 @@ dispara es trabajo que hay que mantener a cambio de nada.
         </p>
         <p style="margin:20px 0 0;font-size:13px;line-height:1.5;color:#6b70a0;">
           El enlace caduca dentro de una hora. Si no has sido tú, no hagas nada: sin
-          confirmar, el gremio no se crea.
+          confirmar no se activa nada.
         </p>
       </td></tr>
     </table>

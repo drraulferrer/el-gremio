@@ -6,10 +6,10 @@ trampas tiene.
 
 > **Y si solo vas a leer una línea antes de ponerte:** la **2.35.0 está EN
 > PRODUCCIÓN** (§7bq): expandirse a otro gremio, con la conversión a identidad
-> personal dentro. Es lo primero de toda esta tanda que la familia puede usar.
-> **Y lo primero que hay que arreglar es el correo:** la plantilla de
-> confirmación dice «podréis entrar todos», que es el texto de fundar una casa
-> y no el de crearse una identidad. Quien pulse esta noche lo recibirá así.
+> personal dentro. Es lo primero de toda esta tanda que la familia puede usar,
+> y el correo de confirmación ya dice un texto que vale para los dos casos.
+> Lo siguiente es la otra mitad de la 6.3: invitar, la bandeja, crear gremio
+> con la llave, salir y echar.
 
 Última actualización: **30 de agosto de 2026**, al cierre de la
 sesión de **recuperación ante desastres y terreno firme** (§7bb): migraciones
@@ -6224,13 +6224,24 @@ Redirect URLs»— **ya estaba**. Comprobado en el panel: Site URL
 `.claude/launch.json` y faltaba: sin ella, probar la conversión en local por ese
 puerto muere al volver del correo.
 
-**Lo que sí queda abierto, y es de producto:** la plantilla «Confirm sign up»
-dice *«Alguien ha creado un gremio familiar con este correo. Confírmalo y
-podréis entrar todos»*. Eso es la copia de **fundar una casa**, y Supabase tiene
-**una sola** plantilla de confirmación, así que la conversión la reutiliza: a
-quien está creando **su** identidad se le diría «podréis entrar todos», que
-sugiere justo lo contrario de lo que pasa. Hace falta un texto que valga para
-los dos casos.
+**Y la plantilla, reescrita el mismo día.** Decía *«Alguien ha creado un gremio
+familiar con este correo. Confírmalo y podréis entrar todos»*: la copia de
+**fundar una casa**. Supabase tiene **una sola** plantilla de confirmación y
+desde la 2.35.0 la disparan dos cosas distintas, así que a quien creaba **su**
+identidad se le prometía justo lo contrario de lo que pasa.
+
+Ahora dice lo único cierto en los dos casos, y no promete quién entrará:
+
+| | |
+|---|---|
+| Asunto | «Confirma tu correo» |
+| Texto | «Este correo se está dando de alta en El Gremio. Confírmalo y ya podrás entrar con él.» |
+| Botón | «Confirmar mi correo» |
+| Cierre | «…sin confirmar no se activa nada.» |
+
+El diseño no se tocó —se cambiaron tres líneas de texto plano— y la copia
+canónica de `docs/CORREOS.md` §1 está actualizada, que es lo que hay que pegar
+si algún día se rehace el proyecto.
 
 ### Cómo se comprobó
 
@@ -6331,12 +6342,10 @@ tablero. Es de la 6.3, cuando haya dónde ponerlo.
    comprobaciones de `CLAUDE.md` que lleva todo el día sin hacerse: el agente no
    introduce contraseñas y el modo demo no toca RLS. Lo visible de hoy es el
    «te faltan N Talis» de la tienda.
-2. **Supabase Auth · la plantilla de confirmación.** Las Redirect URLs **ya
-   están** (comprobado el 30-ago; se añadió además `localhost:5177`). Lo que
-   queda es la copia: «Confirm sign up» dice «Confírmalo y podréis entrar
-   todos», que es el texto de fundar una casa, y la conversión a identidad
-   personal reutiliza esa misma plantilla porque Supabase solo tiene una. Hace
-   falta un texto que valga para los dos casos.
+2. ~~**Supabase Auth**~~ **cerrado el 30-ago.** Las Redirect URLs estaban dadas
+   de alta (y se añadió `localhost:5177`, que faltaba), y la plantilla de
+   confirmación se reescribió para que valga tanto al fundar un gremio como al
+   crearse una identidad personal. Ver §7bq.
 3. **El `truncate` para `authenticated`**, abierto desde la Fase 0.
 4. **`zona_de_perfil`** es una función huérfana desde la 018: no la llama nadie.
 5. **`CAP-12` vs `saldos_visibles()`**: hoy la casa ve el saldo de sus
