@@ -75,23 +75,44 @@ decorativo: el script vuelve a abrir el fichero que acaba de escribir, cuenta la
 filas de cada tabla y las compara con las que había en la base. Si no cuadran,
 falla y no da la copia por buena.
 
-**4. Ponerlo en cron**, para que no dependa de acordarse:
+**4. Ponerlo en launchd**, para que no dependa de acordarse.
 
-**Ya está puesto** en este Mac desde el 23-ago. `crontab -l` lo enseña:
+**Ya está puesto** desde el 30-ago-2026, en
+`~/Library/LaunchAgents/com.elgremio.respaldo.plist`, a las 4:23. Se comprueba
+con `launchctl print gui/$UID/com.elgremio.respaldo`.
 
-```
-23 4 * * * /bin/zsh -lc "cd ~/el-gremio && node scripts/respaldo.mjs" >> ~/el-gremio-respaldos/respaldo.log 2>&1
-```
+### Por qué launchd y no cron, que es lo que había
 
-**Ojo con la línea que decía antes esta página**: llamaba a `/usr/bin/node`, y en
-este Mac **ese fichero no existe** —node vive en nvm, bajo
-`~/.nvm/versions/node/<versión>/bin`—. Cron habría fallado cada noche escribiendo
-«command not found» en un log que nadie mira, que es la peor forma de no tener
-copias: creyendo que las tienes.
+Costó tres días y cero copias averiguarlo, así que conviene que quede escrito.
+**Cron falla aquí por dos motivos independientes, y los dos en silencio:**
 
-Por eso va por shell de login (`zsh -lc`) en vez de con la ruta absoluta: así
-resuelve node por el perfil del usuario y sobrevive al próximo `nvm install`, que
-cambiaría la ruta.
+**1. Cron no llega al Llavero.** Corre fuera de la sesión de inicio, así que
+`security find-generic-password -w` no puede leer la contraseña de las copias.
+Las ejecuciones del 27 y del 29 de agosto sí arrancaron, y las dos murieron en
+«Falta la contraseña de respaldo en el Llavero». Es exactamente la misma
+lección que ya estaba aprendida en este Mac para `valida-edpain`, y que no se
+trajo aquí.
+
+**2. Cron no recupera lo que se pierde.** Si la máquina duerme a las 4:23 —lo
+normal en un portátil— esa noche no hay copia y no se vuelve a intentar. Faltan
+el 28 y el 30 justamente por eso: el Mac estaba en Deep Idle y no despertó
+hasta las 8:55.
+
+Juntando las dos: **hasta el 29-ago-2026 esta base no tuvo ni una sola copia
+automática.** Las noches que el Mac estaba despierto, cron corría y moría en el
+Llavero; las que dormía, ni siquiera corría. Y el log solo lo mira quien lo
+abre.
+
+Un LaunchAgent arregla los dos: corre en la sesión del usuario —así que alcanza
+el Llavero— y `StartCalendarInterval` **guarda el disparo pendiente y lo
+ejecuta al despertar**.
+
+Lo que sí se conserva de la versión de cron es el shell de login (`zsh -lc`):
+node vive en nvm, bajo `~/.nvm/versions/node/<versión>/bin`, y con una ruta
+absoluta esto se rompería en el próximo `nvm install`. La página anterior
+llegó a recomendar `/usr/bin/node`, que **en este Mac no existe**.
+
+El `crontab` quedó con un comentario que apunta aquí, para quien lo mire.
 
 El log no va en `dist/`: cada `vite build` vacía esa carpeta y se llevaría el
 historial justo cuando hiciera falta mirarlo.

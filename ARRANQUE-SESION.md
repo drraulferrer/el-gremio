@@ -4669,14 +4669,20 @@ Se fue a probar la restauración por primera vez —un respaldo que nunca se ha
 restaurado no es una protección— y **no funcionaba nada de ese camino**. Seis
 defectos, todos invisibles sin ejecutarlo:
 
-1. **No había ni una copia.** El cron de las 4:23 fallaba cada noche desde al
-   menos el 27-ago porque el comando documentado del Llavero omitía
-   `-T /usr/bin/security`. Crear el ítem y poder LEER su valor son dos
+1. **No había ni una copia, y por DOS motivos.** El primero: el comando
+   documentado del Llavero omitía `-T /usr/bin/security`. El segundo, que se vio
+   al día siguiente y es el que de verdad mandaba: **cron no llega al Llavero**
+   —corre fuera de la sesión de inicio— **y no recupera la ejecución que se
+   pierde mientras el Mac duerme**. Así que el `-T` era necesario pero no
+   habría bastado: cron habría seguido fallando igual. Desde el 30-ago el
+   respaldo va por **LaunchAgent** (`com.elgremio.respaldo`), que resuelve los
+   dos, y quedó comprobado con una copia real. Detalle completo en
+   `docs/RESPALDOS.md`. Crear el ítem y poder LEER su valor son dos
    permisos distintos: sin el `-T`, `find-generic-password` lo encuentra y el
    `-w` que usa el script falla. Y fallaba en un log que nadie mira.
-   Arreglado en `docs/RESPALDOS.md`, en la cabecera del script **y en el
-   mensaje de error**, que era lo único que leía quien tenía el problema y
-   decía justo el comando que no funciona.
+   El `-T` quedó arreglado en `docs/RESPALDOS.md`, en la cabecera del script
+   **y en el mensaje de error**, que era lo único que leía quien tenía el
+   problema y decía justo el comando que no funciona.
 2. **`--project-ref` no elige destino**, solo comprueba que sea el proyecto
    enlazado. Restaurar en otro proyecto era imposible. Ahora hay `--db-url`,
    que lee la cadena de `RESTAURAR_DB_URL` —en variable de entorno para que la
