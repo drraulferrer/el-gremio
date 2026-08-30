@@ -6546,6 +6546,94 @@ ensayo y **cero descuadres**.
 
 ---
 
+## 7bv. Quitar la llave de debajo del felpudo (31 de agosto) · SIN VERSIÓN · migración 060
+
+**Migración 060 EJECUTADA y ensayada.** Es la **7.2** (`F-12`) y **cierra la
+Fase 7**. Solo toca el servidor: la app sigue en la 2.38.0.
+
+### El fallo que esto podría haber sido
+
+Un gremio donde ya todo el mundo tiene identidad no necesita una clave común.
+Desactivarla parece una casilla, y **no lo es**: la credencial compartida entra
+al gremio por **dos** caminos, los dos en `mis_gremios()`:
+
+1. `families.owner = auth.uid()` — la cuenta **es** la dueña del gremio
+2. su fila de `credenciales`, con `clase = 'compartida'`
+
+Poner `activa = false` cierra el segundo y **deja el primero abierto de par en
+par**. Una desactivación que no corta el acceso no es una desactivación: es una
+promesa incumplida escrita en la interfaz.
+
+Por eso al desactivar **la titularidad del gremio pasa a la persona que lo
+hace** — que es exactamente la forma que ya tienen los gremios creados con
+llave desde la 057, donde `owner` es una cuenta personal. El gremio deja de
+tener dueña-llave y pasa a tener dueña-persona.
+
+Y `puede()` se reescribe por lo mismo: una credencial retirada no autoriza
+nada. Sin eso seguiría teniendo permisos de adulto con el PIN.
+
+En el ensayo se ve entero: después de desactivar, la clave vieja **ve 0
+gremios** y `puede()` le responde `no`.
+
+### Lo que `D-29` cambió, y por qué importa
+
+La versión anterior de la especificación exigía que no quedara **ningún**
+perfil sin identidad. En un hogar con una peque de tres años eso no pasa nunca:
+la función era letra muerta justo donde más se usa.
+
+Ahora los perfiles que **no pueden** tener identidad no bloquean por sí solos,
+siempre que quede una persona adulta con identidad propia que pueda operarlos.
+Lo que sigue bloqueando es un perfil **adulto** activo sin identidad: esa
+persona se quedaría fuera.
+
+El ensayo lo comprueba con las dos caras: la casa de hoy da `puede=false` con
+sus tres motivos; con una adulta con identidad y administración y **dos
+perfiles sin convertir** da `puede=true`.
+
+### La cuenta no se borra y la contraseña no se revela
+
+La fila se marca inactiva y la cuenta sigue existiendo: lo que se retira es el
+acceso, no el rastro. Se le caen las sesiones abiertas, porque si no el móvil
+que estaba dentro sigue dentro hasta que caduque el testigo.
+
+Y **la anterior no vuelve**. Reactivar es dar de alta una credencial nueva, con
+correo y contraseña nuevos; intentarlo con la vieja responde
+`cuenta_ya_clasificada`. Volver a encenderla sería resucitar una clave que
+alguien pudo compartir, que es de lo que se estaba huyendo.
+
+### Una trampa de los tests, y cómo se cerró
+
+La 060 **reescribe** `puede` y `mis_gremios`, así que `schema.sql` tiene dos
+definiciones de cada una. Los tests que comparaban «las dos copias» usaban
+`indexOf`, o sea la **primera** — la vieja—, y seguían pasando mientras
+comparaban lo que ya no manda.
+
+Se añadió `ultimaFuncion()`, que coge la última: la que queda viva al aplicar
+el fichero de arriba abajo. Es el criterio que este documento ya tenía escrito:
+«una migración registra lo que hizo ese día, no la versión vigente».
+
+### Cómo se comprobó
+
+Respaldo (`respaldo-2026-08-31-004611`). `npm run verify`: **1551 tests en 86
+ficheros**.
+
+| | |
+|---|---|
+| inventario de la casa de hoy | `puede=false` · 3 motivos · 2 adultos sin identidad |
+| la propia clave lo pide | `exige_identidad_personal` · `E-11.9` |
+| con una adulta con identidad y 2 sin convertir | `puede=true` · `D-29` |
+| desactivar | `ok` |
+| la titularidad | pasa a la persona |
+| la fila | marcada, **conservada** |
+| **la clave vieja** | ve **0 gremios** y `puede()` le dice `no` |
+| recrear con la vieja | `cuenta_ya_clasificada` |
+
+Después: 4 credenciales, **las 4 activas**, ningún perfil retirado, ninguna
+cuenta de ensayo y **cero descuadres**.
+
+
+---
+
 # CÓMO ARRANCAR LA SIGUIENTE SESIÓN
 
 **Estado al cerrar el 30-ago-2026, por la noche.**
@@ -6556,8 +6644,8 @@ ensayo y **cero descuadres**.
 |---|---|
 | Repositorio | `~/el-gremio`, rama `main` |
 | Versión desplegada | **2.38.0** · `npm run health` en verde · `1b07853`, supabase 17.6 |
-| Migraciones aplicadas | hasta la **059**. La siguiente libre es la **060** |
-| Tests | 1535 en 85 ficheros |
+| Migraciones aplicadas | hasta la **060**. La siguiente libre es la **061** |
+| Tests | 1551 en 86 ficheros |
 | Plan y especificación | `~/Library/Mobile Documents/com~apple~CloudDocs/ClaudeCode/specs/` |
 
 **Lo primero, siempre:** `git fetch` antes de elegir número de migración o de
@@ -6574,7 +6662,7 @@ versión. Hoy no ha hecho falta, pero el 30-ago por la mañana ya pasó una vez.
 | 4 · El tipo como plantilla | ✅ **cerrada** | 053, 054, 055 |
 | 5 · Hitos y llaves | ✅ **cerrada** | 056 |
 | 6 · Gremios múltiples | ✅ **cerrada** | 057, 058 |
-| 7 · Reclamación y credenciales | ◐ **7.1 hecha** · falta la 7.2 | 059 |
+| 7 · Reclamación y credenciales | ✅ **cerrada** (sin pantalla) | 059, 060 |
 | 8 en adelante | ☐ sin empezar | — |
 
 Y de propina, la **046**: el barrido de permisos que la 021 dejó escrito llevaba

@@ -110,7 +110,10 @@ describe('el aislamiento ya no pregunta de quién es la cuenta', () => {
 })
 
 describe('`mis_gremios()`, el predicado en un solo sitio', () => {
-  const fn = soloSql(funcion(schema, 'mis_gremios'))
+  // La ÚLTIMA, que desde la 060 lleva además `and c.activa`: una credencial
+  // compartida retirada no puede seguir abriendo el gremio.
+  const iUltima = schema.lastIndexOf('create or replace function public.mis_gremios(')
+  const fn = soloSql(funcion(schema.slice(iUltima), 'mis_gremios'))
 
   it('responde con las tres ramas', () => {
     // 1 · propiedad (temporal, se retira en el paso «contraer»)

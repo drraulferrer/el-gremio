@@ -33,7 +33,33 @@ function funcion(sql, nombre, delim = '$fn$') {
   return sql.slice(i, j + m.index + m[0].length)
 }
 
-const puede = soloSql(funcion(schema, 'puede'))
+/**
+ * La ÚLTIMA definición de una función, que es la que queda viva al aplicar
+ * `schema.sql` de arriba abajo.
+ *
+ * Hace falta desde que la 060 reescribe `puede` y `mis_gremios`: con
+ * `indexOf` se leía la copia vieja y el test pasaba comparando lo que ya no
+ * manda. Es el mismo criterio que el arranque dejó escrito: «una migración
+ * registra lo que hizo ese día, no la versión vigente».
+ */
+function ultimaFuncion(sql, nombre, delim = '$fn$') {
+  let i = -1
+  for (;;) {
+    const k = sql.indexOf(`create or replace function public.${nombre}(`, i + 1)
+    if (k < 0) break
+    i = k
+  }
+  if (i < 0) return ''
+  const j = sql.indexOf(`\nas ${delim}`, i)
+  const re = new RegExp(`\\n(?:end )?\\${delim[0]}${delim.slice(1).replace(/\$/g, '\\$')};`)
+  const m = re.exec(sql.slice(j))
+  return sql.slice(i, j + m.index + m[0].length)
+}
+
+const m060 = leer('migracion-060-quitar-la-llave-del-felpudo.sql')
+
+// La VIGENTE, que desde la 060 ya no es la de la 054.
+const puede = soloSql(ultimaFuncion(schema, 'puede'))
 
 /** El permiso que la matriz siembra para un rol y una capacidad. */
 function permiso(rol, cap) {
@@ -159,7 +185,12 @@ describe('el reparto es de la plantilla, y una publicada no se toca', () => {
 
 describe('las dos copias del esquema', () => {
   it('`puede` y las tres reescritas son idénticas en la migración y en el esquema', () => {
+    // `puede` la reescribió la 060 para que una credencial retirada no
+    // autorice nada, así que la copia viva se compara contra ESA. La de la
+    // 054 sigue en el fichero y se comprueba contra la primera del esquema:
+    // las dos tienen que seguir siendo fieles a su día.
     expect(funcion(m054, 'puede')).toBe(funcion(schema, 'puede'))
+    expect(ultimaFuncion(m060, 'puede')).toBe(ultimaFuncion(schema, 'puede'))
     for (const n of ['grant_manual_bonus', 'crear_campana_limpieza', 'cerrar_campana_limpieza']) {
       expect(funcion(m054, n), `${n} difiere entre la 054 y schema.sql`).toBe(funcion(schema, n))
     }
