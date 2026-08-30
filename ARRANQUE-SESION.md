@@ -4,11 +4,12 @@ Documento de continuidad. Si abres una sesión nueva sobre este proyecto,
 lee esto primero: dice dónde está todo, qué está hecho, qué falta y qué
 trampas tiene.
 
-> **Y si solo vas a leer una línea antes de ponerte:** la **2.36.0 está
-> construida y SIN PUBLICAR** (§7br). Con ella el camino entero funciona:
+> **Y si solo vas a leer una línea antes de ponerte:** la **2.36.0 está EN
+> PRODUCCIÓN** (§7br), y con ella el camino de la Fase 6 funciona entero:
 > forjar una llave, gastarla creando un gremio o aceptando una invitación, e
-> invitar desde el panel. Publicar es `git push && npm run vercel && npm run
-> health`.
+> invitar desde el panel. Lo que queda de la fase son dos cosas y están
+> nombradas al final de §7br: **salir de un gremio con su pantalla** y **los
+> avisos con varios gremios**.
 
 Última actualización: **30 de agosto de 2026**, al cierre de la
 sesión de **recuperación ante desastres y terreno firme** (§7bb): migraciones
@@ -6349,7 +6350,7 @@ a la vigente.
 | | |
 |---|---|
 | Repositorio | `~/el-gremio`, rama `main` |
-| Versión desplegada | **2.35.0** · la **2.36.0 está construida y sin publicar** |
+| Versión desplegada | **2.36.0** · `npm run health` en verde · `ff4794e`, supabase 17.6 |
 | Migraciones aplicadas | hasta la **057**. La siguiente libre es la **058** |
 | Tests | 1493 en 82 ficheros |
 | Plan y especificación | `~/Library/Mobile Documents/com~apple~CloudDocs/ClaudeCode/specs/` |
