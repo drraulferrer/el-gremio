@@ -4199,11 +4199,11 @@ security definer
 set search_path = public
 as $fn$
 begin
-  -- `now()` es el instante de INICIO de la transacción, no el del reloj:
-  -- por eso vale para reconocer después «esto se escribió en la misma tanda».
+  -- `now()` es el instante de INICIO de la transaccion, no el del reloj: por
+  -- eso vale para reconocer despues "esto se escribio en la misma tanda".
   new.publicada_at := now();
-  -- `coalesce` y no a secas: por PostgREST manda siempre `auth.uid()`, y
-  -- desde el SQL Editor —donde es nulo— vale lo que se declare a mano.
+  -- `coalesce` y no a secas: por PostgREST manda siempre `auth.uid()`, y desde el
+  -- SQL Editor --donde es nulo-- vale lo que se declare a mano.
   new.publicada_por := coalesce(auth.uid(), new.publicada_por);
   return new;
 end $fn$;
@@ -4329,10 +4329,10 @@ begin
     end if;
 
     if v_cfg.regla_crecimiento = 'geometrica' then
-      -- Al múltiplo de cinco más cercano, como el resto de la tienda. La
-      -- potencia no siempre da un entero: con 300 y x2,5 el cuarto escalón
-      -- sale 4687,5, y redondear a cinco evita estrenar una segunda regla
-      -- de redondeo para un solo caso.
+      -- Al multiplo de cinco mas cercano, como el resto de la tienda. La
+      -- potencia no siempre da un entero: con 300 y x2,5 el cuarto escalon
+      -- sale 4687,5, y redondear a cinco evita estrenar una segunda regla de
+      -- redondeo para un solo caso.
       v_esperado := (round(v_cfg.coste_base * power(v_cfg.factor, (r.orden - 1)::numeric) / 5) * 5)::integer;
       if r.coste <> v_esperado then
         raise exception 'escalon % de la version %: cuesta % y la regla geometrica declarada (% x %^k) da %',

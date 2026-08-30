@@ -5263,3 +5263,96 @@ que llevaba desde agosto cerrando media puerta) y el arreglo de la firma de
 
 Ya **no** está en esta lista `delete_my_account`, que era lo que bloqueaba el
 lanzamiento.
+
+## 7bh. Las reglas dejan de ser constantes (30 de agosto) · SIN VERSIÓN · migración 050
+
+**Migración 050 EJECUTADA y comprobada.** Es la pieza **3.1**, la primera de la
+Fase 3, y se desarrolló **en paralelo** en un worktree aparte (rama
+`fase-3-1`), sin tocar la base, mientras esta sesión hacía la 2.7. Integrada
+aquí después de revisarla.
+
+### Qué trae
+
+Los números de la expansión —hitos, costes, factor, límite global y
+caducidades— dejan de vivir en `src/lib` y pasan a **tres tablas versionadas**
+que el servidor puede leer al cobrar una llave: `configuracion_expansion`,
+`escalones_expansion` y `disponibilidad_tipos`.
+
+Las tres se escriben **juntas en una transacción** y después **no admiten
+`update` ni `delete`**: la historia de lo que cobraba cada versión no se
+reescribe. Y no basta con prohibir el `update`: añadir mañana un escalón a la
+versión de hoy no es un `update` y cambiaría lo que cobraba una versión ya
+usada, así que un tercer disparador exige que los escalones viajen con su
+cabecera.
+
+**Cinco funciones lectoras** `security definer` son la única puerta —las tablas
+no se conceden a nadie, patrón `operadores`—, así que `motivo` y
+`publicada_por` no salen por la API. Sin versión vigente la respuesta es **cero
+filas**, no un `null` que alguien recoja con un `coalesce` distraído.
+
+`tipo_publicado()` **no** se concede a `authenticated` a propósito: el país es
+un parámetro suyo, y un cliente no declara en qué país está para desbloquear un
+tipo.
+
+**Los costes se guardan uno a uno, no como fórmula.** Guardar solo la base y el
+factor obliga a calcular la potencia dos veces —servidor al cobrar, cliente al
+pintar— que es la segunda fuente de verdad que se acaba de quitar de la curva
+de nivel. Un validador comprueba al publicar que las filas cuadran con la regla
+declarada.
+
+Primera versión **`2026-08-30.1`** con los números aprobados sin retocar: hitos
+6-8-10-12, costes 300/750/1875/4690, ×2,5, límite 5, invitaciones 14 días,
+llaves sin caducidad. Y `tests/expansion.test.js` deja de llevarlos escritos:
+los lee de la migración, así que la calibración del 29-ago se defiende ahora
+contra la misma fuente que usa el servidor.
+
+### Lo que hubo que corregir al integrarla
+
+**Las dos copias del esquema diferían en los acentos de los comentarios de dos
+funciones.** El código era idéntico y la prosa seguía la convención de cada
+fichero, que parece lo correcto — pero **Postgres guarda el cuerpo tal cual,
+comentarios incluidos**, en `pg_proc.prosrc`. Dos copias que solo difieren en
+un acento producen objetos **distintos** en la base, y entonces comparar
+`md5(prosrc)` con el fichero —que es como se cazó esta misma mañana que
+`crear_campana_limpieza` y `spend_power` llevaban semanas desviadas— deja de
+servir.
+
+**La regla, para escribirla de una vez:** dentro de `$fn$ … $fn$` mandan los
+ficheros `.sql` nuevos, que van **sin acentos**, y `schema.sql` copia ese cuerpo
+tal cual. Fuera de las funciones, cada fichero conserva su estilo. Lo defiende
+ahora `tests/configuracion.test.js`, que compara los diez cuerpos byte a byte.
+
+### Cómo se comprobó
+
+Respaldo antes (`respaldo-2026-08-30-170939`). `npm run verify`: **1289 tests en
+73 ficheros**.
+
+Contra la base, después de aplicar: versión vigente `2026-08-30.1`, escala
+`1:n6/300 2:n8/750 3:n10/1875 4:n12/4690`, parámetros `5/4/geometrica/14/sin
+caducidad`, `hito_expansion(1)` = 300 y `hito_expansion(9)` = cero filas.
+`anon` no puede ejecutar nada, `authenticated` no puede leer las tablas ni
+llamar a `tipo_publicado`.
+
+Y los cuatro intentos de reescribir la historia, **los cuatro rechazados**: un
+`update` sobre un escalón, un `delete` sobre la versión, añadir un escalón a
+una versión ya publicada, y publicar una escala en la que el segundo coste no
+dobla al primero. Este último salta al **cerrar** la transacción, porque el
+validador es un disparador diferido — el primer ensayo lo dio por bueno y el
+fallo era del ensayo, no del código.
+
+Las diez funciones, **idénticas byte a byte** entre `schema.sql` y la base.
+
+### Lo que la 3.1 deja escrito y no hecho
+
+- **Las 72 horas de la 047 y la 048 siguen escritas a mano.** Son caducidades
+  de la conversión de identidad, no de la expansión, y redirigirlas obliga a
+  reescribir dos funciones ya en producción. Hacerlo la próxima vez que se
+  toquen.
+- **`MAX_PERFILES` y los límites por tipo no se han movido**: van en la
+  plantilla de tipo (Fase 4).
+- **No hay función de publicación**: las versiones nuevas se insertan desde el
+  SQL Editor. Cuando haya pantalla de operador, una RPC con `es_operador()`
+  delante; las comprobaciones ya están en disparadores.
+- Los nombres de tipo son los de la especificación (`hogar`, `amigos`,
+  `equipo`, `hogar_compartido`); traducirlos desde `families.tipo_gremio` es la
+  Fase 4.

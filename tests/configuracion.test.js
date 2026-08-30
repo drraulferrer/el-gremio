@@ -73,8 +73,7 @@ describe('las dos copias del esquema dicen lo mismo', () => {
     // La regla de la casa es que cada cambio de esquema se escribe dos veces.
     // El precio de esa regla es que se puede corregir una copia y olvidar la
     // otra, y entonces una base reconstruida desde `schema.sql` no es la de
-    // producción. Se comparan las líneas ejecutables, normalizando los acentos
-    // porque los `.sql` nuevos van sin ellos y `schema.sql` los conserva.
+    // producción.
     const normalizar = (sql) =>
       soloSql(sql)
         .split('\n')
@@ -85,6 +84,29 @@ describe('las dos copias del esquema dicen lo mismo', () => {
         .replace(/[̀-ͯ]/g, '')
 
     expect(normalizar(bloque(schema))).toBe(normalizar(bloque(m050)))
+  })
+
+  it('y los CUERPOS de las funciones son iguales hasta el último acento', () => {
+    // Comparar solo las líneas ejecutables no basta, y esto costó descubrirlo:
+    // Postgres guarda el cuerpo de una función TAL CUAL, comentarios incluidos,
+    // en `pg_proc.prosrc`. Dos copias que difieren solo en los acentos de un
+    // comentario producen objetos DISTINTOS en la base, y entonces comparar
+    // `md5(prosrc)` con el fichero —que es como se cazó el 30-ago-2026 que
+    // `crear_campana_limpieza` y `spend_power` llevaban semanas desviadas—
+    // deja de servir para nada.
+    //
+    // Así que dentro de `$fn$ … $fn$` mandan los ficheros `.sql` nuevos, que
+    // van sin acentos, y `schema.sql` copia ese cuerpo tal cual. Fuera de las
+    // funciones, cada fichero conserva su estilo.
+    for (const nombre of [
+      'configuracion_expansion_vigente', 'parametros_expansion', 'escala_expansion',
+      'hito_expansion', 'tipo_publicado', 'valida_escala_expansion',
+      'tg_configuracion_sellada', 'tg_configuracion_fechada',
+      'tg_hija_de_version_nueva', 'tg_valida_escala_expansion'
+    ]) {
+      expect(funcion(schema, nombre), `${nombre} difiere entre schema.sql y la 050`)
+        .toBe(funcion(m050, nombre))
+    }
   })
 
   it('la migración termina pegando el barrido de la 021', () => {
