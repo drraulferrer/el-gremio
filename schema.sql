@@ -2269,13 +2269,31 @@ begin
     return 'sin_sesion';
   end if;
 
+  -- Una identidad personal no borra casas. Tiene su propia puerta, que ensena
+  -- antes lo que va a pasar gremio por gremio.
+  if public.clase_credencial() = 'personal' then
+    return 'usa_borrar_identidad';
+  end if;
+
+  -- Y la clave de la casa tampoco, si dentro vive alguien con identidad
+  -- propia: su personaje, su historial y su cartera no son de quien tiene la
+  -- clave. Que la casa se disuelva no puede decidirse sin contar con ellas.
+  if exists (
+    select 1
+      from public.pertenencias p
+      join public.families f on f.id = p.family_id
+     where f.owner = v_uid and p.estado = 'activa'
+  ) then
+    return 'hay_personas_dentro';
+  end if;
+
   delete from public.families where owner = v_uid;
   get diagnostics v_gremios = row_count;
 
-  -- Los registros SIN familia no se tocan, y conviene saber por qué: son
-  -- errores anteriores a saber de qué casa era la sesión, no tienen forma
-  -- fiable de atribuirse a una cuenta, y borrarlos por sesión se llevaría
-  -- por delante los de otra gente. Los barre `purge_logs` por antigüedad.
+  -- Los registros SIN familia no se tocan, y conviene saber por que: son
+  -- errores anteriores a saber de que casa era la sesion, no tienen forma
+  -- fiable de atribuirse a una cuenta, y borrarlos por sesion se llevaria por
+  -- delante los de otra gente. Los barre `purge_logs` por antiguedad.
   delete from public.user_limits where user_id = v_uid;
   delete from auth.users where id = v_uid;
 
@@ -2917,6 +2935,10 @@ create table if not exists public.movimientos_coins (
     -- La salida del saldo local hacia la cartera (047). Una sola vez por
     -- personaje, y nunca vuelve.
     'conversion',
+    -- La cartera vuelve al personaje cuando se borra la identidad (049).
+    -- Simetrico de 'conversion', y por el mismo motivo: el saldo no puede
+    -- evaporarse porque alguien borre su cuenta.
+    'devolucion_conversion',
     -- Lo que mueva `coins` sin declarar su motivo. No deberia pasar, y por
     -- eso existe: un asiento raro es una pista; ningun asiento es un agujero.
     'desconocido'
@@ -3122,10 +3144,16 @@ create table if not exists public.conversiones (
   solicitada_at timestamptz not null default now(),
   caduca_at timestamptz not null,
   resuelta_at timestamptz,
-  -- Una completada tiene persona y fecha; una pendiente, ninguna de las dos.
+  -- Una completada tiene fecha; una pendiente no tiene ni fecha ni persona.
+  --
+  -- Y **una completada puede quedarse sin persona**, aunque suene raro: si esa
+  -- identidad se borra después (migración 049), la clave ajena pone `persona`
+  -- a null y la fila se queda como lo que es, el apunte de un movimiento que
+  -- ocurrió. Pedir aquí `persona is not null` hacía **fallar el borrado
+  -- entero**: lo descubrió el ensayo de la 049, no un test.
   constraint conversiones_completada_coherente check (
     case
-      when estado = 'completada' then persona is not null and resuelta_at is not null
+      when estado = 'completada' then resuelta_at is not null
       when estado = 'pendiente' then persona is null and resuelta_at is null
       else true
     end
@@ -3422,7 +3450,10 @@ create table if not exists public.migraciones_correo (
   id uuid primary key default gen_random_uuid(),
   family_id uuid not null references public.families(id) on delete cascade,
   -- La cuenta que hoy es la llave de la casa y mañana será una persona.
-  antigua uuid not null references auth.users(id) on delete cascade,
+  -- `set null` y no `cascade` (migración 049): que esa persona borre su
+  -- identidad no puede llevarse el registro de que la llave de esta casa
+  -- cambió de manos tal día. Eso es historia DEL GREMIO, no suya.
+  antigua uuid references auth.users(id) on delete set null,
   -- El personaje al que se vincula. Se elige a mano, como en toda conversión.
   profile_id uuid not null references public.profiles(id) on delete cascade,
   correo_nuevo text not null check (correo_nuevo = lower(correo_nuevo) and correo_nuevo like '%_@_%'),
@@ -3436,11 +3467,14 @@ create table if not exists public.migraciones_correo (
   probada_at timestamptz,
   caduca_at timestamptz not null,
   resuelta_at timestamptz,
-  -- Probada quiere decir que hay una cuenta detrás. Pendiente, que no.
+  -- Probada quiere decir que hubo una cuenta detrás, y de eso da fe la fecha.
+  -- `nueva` puede quedarse en null si esa cuenta se borra después: mismo caso
+  -- que `conversiones`, y por el mismo motivo, exigirlo aquí haría fallar el
+  -- borrado en vez de impedir un dato malo.
   constraint migraciones_correo_probada_coherente check (
     case
       when estado = 'pendiente' then nueva is null and probada_at is null
-      when estado in ('credencial_probada','completada') then nueva is not null and probada_at is not null
+      when estado in ('credencial_probada','completada') then probada_at is not null
       else true
     end
   )
@@ -3750,6 +3784,212 @@ end $fn$;
 revoke all on function public.cancelar_migracion_correo(uuid, text) from public;
 revoke all on function public.cancelar_migracion_correo(uuid, text) from anon;
 grant execute on function public.cancelar_migracion_correo(uuid, text) to authenticated;
+
+-- ---------------------------------------------------------------------
+-- Borrar la identidad personal sin llevarse la casa por delante
+-- (migración 049, flujo F-8d).
+--
+-- Son dos puertas distintas y conviene no confundirlas: borrar la
+-- **credencial compartida** es borrar la casa —y ahora se niega si dentro
+-- vive alguien con identidad propia—; borrar una **identidad personal** no
+-- borra ningún gremio, se sale de ellos, y el personaje se queda donde
+-- estaba, operable por la casa como antes de convertirse.
+--
+-- El efecto lo calcula el servidor entero, antes de preguntar nada: el
+-- cliente enseña lo que responde `efecto_de_borrarme()` y al confirmar
+-- manda solo DECISIONES, nunca la lista de gremios.
+--
+-- Razonamiento completo —incluido por qué hoy borrarse no cierra nunca un
+-- gremio— en migracion-049-borrar-mi-identidad-sin-borrar-la-casa.sql.
+-- ---------------------------------------------------------------------
+
+create or replace function public.efecto_de_borrarme()
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = public
+as $fn$
+declare
+  v_uid uuid := auth.uid();
+  v_clase text;
+  v_gremios jsonb := '[]'::jsonb;
+  v_cartera integer := 0;
+  g record;
+begin
+  if v_uid is null then
+    return jsonb_build_object('clase', 'sin_sesion', 'puede_seguir', false, 'gremios', '[]'::jsonb);
+  end if;
+
+  v_clase := public.clase_credencial();
+  select coalesce(c.saldo, 0) into v_cartera from public.carteras c where c.persona = v_uid;
+
+  for g in
+    select p.family_id,
+           f.name as nombre,
+           p.rol,
+           exists (select 1 from public.credenciales c
+                    where c.family_id = p.family_id and c.clase = 'compartida') as con_clave_de_casa,
+           (select count(*) from public.pertenencias o
+             where o.family_id = p.family_id and o.estado = 'activa' and o.persona <> v_uid) as otras_personas,
+           exists (select 1 from public.pertenencias o
+                    where o.family_id = p.family_id and o.estado = 'activa'
+                      and o.persona <> v_uid and o.rol in ('titular','gestor')) as otra_administracion
+      from public.pertenencias p
+      join public.families f on f.id = p.family_id
+     where p.persona = v_uid and p.estado = 'activa'
+     order by f.created_at
+  loop
+    v_gremios := v_gremios || jsonb_build_object(
+      'family_id', g.family_id,
+      'nombre', g.nombre,
+      'rol', g.rol,
+      'conserva_clave_de_casa', g.con_clave_de_casa,
+      'otras_personas', g.otras_personas,
+      'accion',
+        case
+          -- Un gremio con clave de casa nunca se queda sin administracion: un
+          -- perfil adulto con el PIN la tiene, como siempre.
+          when g.con_clave_de_casa then 'abandonar'
+          when g.otra_administracion then 'abandonar'
+          when g.otras_personas > 0 then 'transferir'
+          else 'cerrar'
+        end
+    );
+  end loop;
+
+  return jsonb_build_object(
+    'clase', v_clase,
+    'puede_seguir', v_clase = 'personal',
+    'cartera', v_cartera,
+    -- Con mas de un gremio, a donde vuelve la cartera deja de tener una
+    -- respuesta unica. No pasa hoy --una persona tiene un personaje-- y la
+    -- funcion de borrado se niega antes que repartir a ojo. Se resuelve en la
+    -- Fase 6, que es cuando puede ocurrir.
+    'cartera_resuelta', jsonb_array_length(v_gremios) <= 1,
+    'gremios', v_gremios
+  );
+end $fn$;
+
+revoke all on function public.efecto_de_borrarme() from public;
+revoke all on function public.efecto_de_borrarme() from anon;
+grant execute on function public.efecto_de_borrarme() to authenticated;
+
+create or replace function public.borrar_mi_identidad(
+  p_decisiones jsonb default '[]'::jsonb,
+  p_clave text default null
+)
+returns text
+language plpgsql
+security definer
+set search_path = public
+as $fn$
+declare
+  v_uid uuid := auth.uid();
+  v_efecto jsonb;
+  g jsonb;
+  v_family uuid;
+  v_accion text;
+  v_decision jsonb;
+  v_destino uuid;
+  v_saldo integer := 0;
+  v_perfil uuid;
+begin
+  if v_uid is null then return 'sin_sesion'; end if;
+  if public.clase_credencial() <> 'personal' then return 'no_es_personal'; end if;
+
+  -- Se calcula entero aqui, otra vez, aunque el cliente ya lo haya pedido para
+  -- pintarlo: entre una cosa y otra ha podido cambiar cualquier cosa, y lo que
+  -- diga el cliente no autoriza nada.
+  v_efecto := public.efecto_de_borrarme();
+
+  if not (v_efecto->>'cartera_resuelta')::boolean then
+    return 'varios_gremios_no_resuelto';
+  end if;
+
+  -- Primero se comprueban TODAS las decisiones. Si falta una, no se ha tocado
+  -- nada todavia: quedarse a medias aqui es dejar a alguien fuera de un gremio
+  -- que no llego a traspasar.
+  for g in select * from jsonb_array_elements(v_efecto->'gremios') loop
+    v_accion := g->>'accion';
+    if v_accion = 'abandonar' then continue; end if;
+
+    v_family := (g->>'family_id')::uuid;
+    select d into v_decision
+      from jsonb_array_elements(coalesce(p_decisiones, '[]'::jsonb)) d
+     where (d->>'family_id')::uuid = v_family limit 1;
+
+    if v_decision is null or (v_decision->>'accion') is distinct from v_accion then
+      return 'falta_decision';
+    end if;
+
+    if v_accion = 'transferir' then
+      v_destino := nullif(v_decision->>'a','')::uuid;
+      if v_destino is null or v_destino = v_uid
+         or not exists (select 1 from public.pertenencias o
+                         where o.family_id = v_family and o.persona = v_destino
+                           and o.estado = 'activa') then
+        return 'destino_invalido';
+      end if;
+    end if;
+  end loop;
+
+  -- Y ahora si.
+  for g in select * from jsonb_array_elements(v_efecto->'gremios') loop
+    v_family := (g->>'family_id')::uuid;
+    v_accion := g->>'accion';
+
+    if v_accion = 'transferir' then
+      select nullif(d->>'a','')::uuid into v_destino
+        from jsonb_array_elements(p_decisiones) d
+       where (d->>'family_id')::uuid = v_family limit 1;
+      update public.pertenencias
+         set rol = 'titular'
+       where family_id = v_family and persona = v_destino and estado = 'activa';
+    end if;
+
+    update public.pertenencias
+       set estado = 'abandonada', hasta = now()
+     where family_id = v_family and persona = v_uid and estado = 'activa';
+
+    -- Cerrar va al final del gremio y solo cuando no queda nadie: es la unica
+    -- rama que borra algo, y la unica que la persona ha tenido que escribir.
+    if v_accion = 'cerrar' then
+      delete from public.families where id = v_family;
+    end if;
+  end loop;
+
+  -- La cartera vuelve al personaje y el saldo local se reabre. Simetrico de la
+  -- conversion: el dinero del juego no se evapora porque alguien borre su
+  -- cuenta, y ese personaje se queda en la casa a la vista de todos.
+  select coalesce(saldo, 0) into v_saldo from public.carteras where persona = v_uid;
+  select id into v_perfil from public.profiles where persona = v_uid limit 1;
+
+  if v_perfil is not null then
+    if v_saldo > 0 then
+      perform public.motivo_coins('devolucion_conversion', null, p_clave);
+    end if;
+    update public.profiles
+       set coins = coins + v_saldo,
+           persona = null,
+           saldo_local_cerrado = false
+     where id = v_perfil;
+    update public.carteras set saldo = 0 where persona = v_uid;
+  end if;
+
+  -- Y la cuenta. La cascada se lleva su credencial, sus pertenencias y su
+  -- cartera --que son suyas-- y deja en pie el gremio, los perfiles, el
+  -- historial y la fila de `conversiones`, que se queda sin persona pero
+  -- conserva los importes.
+  delete from public.user_limits where user_id = v_uid;
+  delete from auth.users where id = v_uid;
+
+  return 'ok';
+end $fn$;
+
+revoke all on function public.borrar_mi_identidad(jsonb, text) from public;
+revoke all on function public.borrar_mi_identidad(jsonb, text) from anon;
+grant execute on function public.borrar_mi_identidad(jsonb, text) to authenticated;
 
 -- Y el barrido final de la 021, que tiene que quedarse SIEMPRE el último del
 -- fichero: retira el permiso de ejecución de toda función `security definer`,

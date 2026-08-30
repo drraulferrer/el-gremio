@@ -135,4 +135,17 @@ describe('mensajeDeBorrado', () => {
     expect(mensajeDeBorrado('sin_sesion')).toMatch(/sesión/i)
     expect(mensajeDeBorrado('lo_que_sea')).toMatch(/no se ha tocado nada/i)
   })
+
+  it('los dos casos de la 049 dicen qué hacer, y no «no se ha podido»', () => {
+    // El mensaje genérico es correcto y no sirve de nada: quien lo lee no
+    // sabe si ha fallado la red, si le falta un permiso o si tiene que hacer
+    // algo antes. Estos dos casos sí tienen respuesta, así que se dan.
+    const dentro = mensajeDeBorrado('hay_personas_dentro')
+    expect(dentro).toMatch(/personas/i)
+    expect(dentro).not.toMatch(/no se ha tocado nada/i)
+
+    const otra = mensajeDeBorrado('usa_borrar_identidad')
+    expect(otra).toMatch(/identidad personal/i)
+    expect(otra).not.toMatch(/no se ha tocado nada/i)
+  })
 })

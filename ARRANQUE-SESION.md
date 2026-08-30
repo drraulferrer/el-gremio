@@ -5146,3 +5146,120 @@ Sin cambios respecto a §7be, menos una: la 2.6 ya no es de la lista.
    que el correo vuelva a un sitio donde se llame a las funciones (§1 de
    `docs/CORREOS.md`).
 5. **Mirar la pantalla con una sesión real.**
+
+## 7bg. Borrarse sin llevarse la casa · LA FASE 2, CERRADA (30 de agosto) · SIN VERSIÓN · migración 049
+
+**Migración 049 EJECUTADA y ensayada contra producción.** Es la pieza **2.7**,
+el flujo **F-8d**, y **con ella la Fase 2 queda cerrada**: 2.1 a 2.7.
+
+### Lo que había, y por qué no podía quedarse
+
+`delete_my_account()` hacía, literalmente, `delete from public.families where
+owner = auth.uid()`. Con una cuenta por casa eso era exactamente lo que la
+persona pedía. Desde la 047 y la 048 deja de serlo: un gremio puede tener
+personas dentro con identidad propia, y esa línea se las lleva **todas** por la
+clave ajena en cascada —perfiles, misiones, canjes, insignias, historial— de
+gente que no ha pedido nada.
+
+### Dos puertas, que no son la misma
+
+- **Borrar la credencial compartida** es borrar la casa. Sigue haciendo lo de
+  siempre, con una condición nueva: **si dentro vive alguien con identidad
+  propia, se niega** (`hay_personas_dentro`). Que la casa se disuelva no puede
+  decidirlo quien tiene la clave sin contar con quien vive dentro.
+- **Borrar una identidad personal** no borra ningún gremio. Se sale de ellos, y
+  el personaje **se queda**, operable por la casa igual que antes de
+  convertirse. Es `borrar_mi_identidad()`, con `efecto_de_borrarme()` delante.
+
+El efecto lo calcula el servidor **entero**, y la lista de gremios **no llega
+del cliente**: el cliente enseña lo que devuelve `efecto_de_borrarme()` y al
+confirmar manda solo decisiones. La función las vuelve a calcular antes de
+tocar nada.
+
+### Por qué hoy borrarse no cierra nunca un gremio
+
+La especificación dice que la última persona administradora tiene que elegir:
+traspasar, cerrar o cancelar. Y también dice que los perfiles internos y la
+credencial compartida no se van con la identidad. Las dos cosas se juntan así:
+**un gremio que conserva clave de casa nunca se queda sin administración**,
+porque un perfil adulto con el PIN la tiene. Ahí la acción es siempre
+«abandonar».
+
+Como hoy **todos** los gremios tienen clave de casa, hoy borrarse no cierra
+ninguno. Las otras tres ramas están escritas y probadas porque en la Fase 6
+aparecerán gremios fundados por una persona, sin clave de casa detrás.
+
+### Y el dinero del juego no se evapora
+
+Al convertirse, el saldo pasó a la cartera. Al borrarse, **la cartera vuelve al
+personaje** y el saldo local se reabre, con su asiento
+(`devolucion_conversion`). Sin eso, quien borra su cuenta se lleva por delante
+los Talis de un personaje que se queda en la casa, a la vista de todos, con
+cero.
+
+### El ensayo encontró un fallo que ningún test habría visto
+
+Al borrar la cuenta, la clave ajena pone `conversiones.persona` a null — y el
+`CHECK` que escribí en la 047 exigía que una fila `completada` tuviera persona.
+**El borrado entero fallaba.** Lo mismo con `nueva` en `migraciones_correo`.
+
+La condición correcta es **la fecha, no la persona**: una conversión completada
+es el apunte de un movimiento que ocurrió, y que quien lo protagonizó haya
+borrado su identidad después no lo deshace. Los dos `CHECK` quedan corregidos
+en la 049. Lo que sí se sigue impidiendo —que una `pendiente` traiga persona o
+fecha— no se toca.
+
+**La lección, para la próxima:** los tests que leen el SQL como texto son
+buenos para las decisiones, y no habrían visto esto ni de lejos. Lo vio
+ejecutar el camino entero contra la base.
+
+### Cómo se comprobó
+
+Respaldo antes (`respaldo-2026-08-30-164736`). `npm run verify`: **1257 tests
+en 72 ficheros**, con `tests/borrado-identidad.test.js` (16) nuevo.
+
+Y el ensayo entero contra la base de verdad, deshecho al final: se convierte
+una persona real de 424 Talis; la clave de casa intenta borrarse y recibe
+**`hay_personas_dentro`** con el gremio intacto; la persona pide su efecto
+—clase personal, cartera 424, acción `abandonar`, conserva clave de casa— y se
+borra. Después:
+
+- **el gremio sigue vivo**, con sus **4 perfiles, 75 misiones, 181 misiones
+  completadas y 18 premios**, exactamente los mismos que antes;
+- el personaje vuelve con sus **424 Talis**, sin persona y con el saldo local
+  reabierto;
+- su pertenencia, su cartera y su cuenta se han ido con ella;
+- la fila de `conversiones` se queda **sin persona y con el importe intacto**;
+- hay **un** asiento de devolución;
+- y ya no queda ninguna persona dentro.
+
+Producción intacta después: 4 gremios, 13 perfiles, todo lo nuevo a cero,
+**ningún gremio sin administración** y `anon` sin poder ejecutar nada.
+
+### La Fase 2, cerrada
+
+| | |
+|---|---|
+| 2.1 · dos clases de credencial | 044 |
+| 2.2 · persona, pertenencia y vínculo | 044 |
+| 2.3 · migrar los gremios actuales | 044 |
+| 2.4 · aislamiento por pertenencia | 045 |
+| 2.5 · conversión de perfil a persona (F-9) | 047 |
+| 2.6 · migrar el correo compartido (F-13) | 048 |
+| 2.7 · borrar la identidad (F-8d) | 049 |
+
+Y de propina, dos que no eran de la fase: la **046** (el barrido de permisos
+que llevaba desde agosto cerrando media puerta) y el arreglo de la firma de
+`grant_manual_bonus`, que cortaba la reconstrucción de la base.
+
+### Lo que falta para que esto lo use alguien
+
+1. **La Fase 3**, y antes que la Fase 5: la cartera recibe pero todavía no se
+   llena sola.
+2. **La pantalla**, que llega con su disparo en la Fase 5.
+3. **Supabase Auth**: Redirect URLs y plantilla de confirmación
+   (`docs/CORREOS.md` §1).
+4. **Mirar la pantalla con una sesión real.**
+
+Ya **no** está en esta lista `delete_my_account`, que era lo que bloqueaba el
+lanzamiento.

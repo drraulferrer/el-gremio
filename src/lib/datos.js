@@ -119,8 +119,19 @@ export function confirmacionValida(escrito, nombreGremio) {
 }
 
 // Las respuestas de delete_my_account, en castellano.
+//
+// Las dos últimas llegaron con la migración 049, cuando borrar la cuenta dejó
+// de ser siempre lo mismo. Hoy no las puede ver nadie —hace falta que alguien
+// se haya convertido en persona, y todavía no hay por dónde— pero el día que
+// aparezcan, «no se ha podido borrar la cuenta» no le diría a nadie qué hacer.
 export function mensajeDeBorrado(respuesta) {
   if (respuesta === 'ok' || respuesta === 'ok_sin_gremio') return null
   if (respuesta === 'sin_sesion') return 'La sesión ha caducado. Vuelve a entrar e inténtalo otra vez.'
+  if (respuesta === 'hay_personas_dentro') {
+    return 'Hay personas con su propia cuenta dentro de este gremio. Borrar la clave de la casa se llevaría su historial por delante, así que no se hace: primero tienen que salir ellas.'
+  }
+  if (respuesta === 'usa_borrar_identidad') {
+    return 'Tu cuenta es una identidad personal, no la clave de la casa: se borra desde otro sitio, y ahí se te enseña antes qué pasa con cada gremio.'
+  }
   return 'No se ha podido borrar la cuenta. No se ha tocado nada.'
 }
