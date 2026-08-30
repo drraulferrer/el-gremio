@@ -6683,6 +6683,80 @@ prueba la mitad de la aplicación.
 
 ---
 
+## 7bx. En Equipo no se mide a nadie (31 de agosto) · SIN VERSIÓN · migración 061
+
+**Migración 061 EJECUTADA y ensayada.** Sale de la respuesta jurídica del
+31-ago (`specs/el-gremio-respuesta-legal.md`), que pone como criterio de salida
+del tipo Equipo, entre otras cosas: *«una prueba de que las APIs **también**
+bloquean toda métrica individual»*.
+
+### El hallazgo, antes de escribir el test
+
+`progreso_individual = false` estaba en la plantilla de Equipo **desde la
+053** y **no lo leía nadie**. Era una casilla que describía una intención sin
+impedir nada. Escribir la prueba habría sido escribir un test que falla.
+
+Así que primero hubo que cerrarlo, y el test viene detrás.
+
+### Disparadores y no un `if` en cada función
+
+Porque el criterio dice **las APIs**, no «las funciones». PostgREST expone las
+tablas: una guarda que solo viviera dentro de las RPC dejaría la puerta de al
+lado abierta, y con RLS por gremio un miembro de Equipo podría escribir su
+propia fila de `completions` sin pasar por ninguna función.
+
+Un disparador por tabla lo cierra a la vez para la API, para las RPC y para el
+SQL Editor. Misma decisión que la 043 con el libro de las monedas: **si la
+garantía depende de que quince sitios se acuerden, no es una garantía.**
+
+Son **siete tablas** —`completions`, `bonuses`, `profile_badges`,
+`reconocimientos`, `redemptions`, `movimientos_coins`, `power_uses`— más las
+tres columnas de `profiles` que *son* la métrica: `xp`, `xp_maxima` y `coins`.
+
+### Lo que NO se bloquea, y es a propósito
+
+- **Los personajes.** Un gremio de Equipo los tiene; lo que no hacen es
+  puntuar. Un disparador sobre el `insert` de `profiles` lo dejaría sin poder
+  tener a nadie dentro.
+- **Las metas.** Son progreso **colectivo**, que es lo único que Equipo sí
+  tiene (`R-113`).
+
+### Y por qué ahora, si Equipo está apagado
+
+Un gremio de Equipo hoy **no puede existir**: `se_ofrece` es false y
+`crear_gremio_con_llave` lo rechaza. Esto es puramente preventivo — y por eso
+mismo urgente. El valor del test no está en el día que llegue el dictamen: está
+en los meses de antes, cuando nadie va a repasar las quince funciones que tocan
+XP y monedas. **El test es quien mira.**
+
+Y la lista del bucle se compara **lista contra lista** con la del test: si
+alguien quita una tabla, cae; si añade una octava sin ponerla, también.
+
+### Cómo se comprobó
+
+Respaldo (`respaldo-2026-08-31-010325`). `npm run verify`: **1574 tests en 87
+ficheros**.
+
+Y el ensayo, con un gremio de Equipo **de verdad** creado a mano —saltándose
+`crear_gremio_con_llave` a propósito, porque lo que se prueba es la base y no
+la función— y deshecho al terminar:
+
+| | |
+|---|---|
+| disparadores | 7 |
+| `mide_a_las_personas` en ese gremio | `false` |
+| `completions` · `bonuses` · `profile_badges` · `movimientos_coins` | los cuatro rechazados |
+| subir la XP | rechazado |
+| **el personaje existe y se puede renombrar** | ✅ |
+| **una meta colectiva sí entra** | ✅ |
+| **y un Hogar sigue midiendo igual** | ✅ |
+
+Después: 4 gremios, ningún equipo, ninguna cuenta de ensayo, los 7 disparadores
+en su sitio y cero descuadres.
+
+
+---
+
 # CÓMO ARRANCAR LA SIGUIENTE SESIÓN
 
 **Estado al cerrar el 30-ago-2026, por la noche.**
@@ -6692,9 +6766,9 @@ prueba la mitad de la aplicación.
 | | |
 |---|---|
 | Repositorio | `~/el-gremio`, rama `main` |
-| Versión desplegada | **2.38.0** · la **2.39.0 está construida y sin publicar** |
-| Migraciones aplicadas | hasta la **060**. La siguiente libre es la **061** |
-| Tests | 1563 en 86 ficheros |
+| Versión desplegada | **2.39.0** · `npm run health` en verde · `cd9e3eb`, supabase 17.6 |
+| Migraciones aplicadas | hasta la **061**. La siguiente libre es la **062** |
+| Tests | 1574 en 87 ficheros |
 | Plan y especificación | `~/Library/Mobile Documents/com~apple~CloudDocs/ClaudeCode/specs/` |
 
 **Lo primero, siempre:** `git fetch` antes de elegir número de migración o de
@@ -6712,7 +6786,9 @@ versión. Hoy no ha hecho falta, pero el 30-ago por la mañana ya pasó una vez.
 | 5 · Hitos y llaves | ✅ **cerrada** | 056 |
 | 6 · Gremios múltiples | ✅ **cerrada** | 057, 058 |
 | 7 · Reclamación y credenciales | ✅ **cerrada, con pantallas** | 059, 060 |
-| 8 en adelante | ☐ sin empezar | — |
+| 8a · Puerta juniors | ☐ **condiciones escritas** · falta el dictamen firmado |
+| 8b · Puerta Equipo | ☐ **condiciones escritas** · la prueba de las APIs ya está (061) · faltan EIPD y contrato |
+| 9 · Observabilidad | ☐ sin empezar | — |
 
 Y de propina, la **046**: el barrido de permisos que la 021 dejó escrito llevaba
 desde agosto cerrando media puerta, porque quitaba `anon` pero no PUBLIC, del
