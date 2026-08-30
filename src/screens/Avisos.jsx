@@ -14,6 +14,7 @@
 import { useEffect, useState } from 'react'
 import { estadoDePush, activarAvisos, apagarAvisos } from '../lib/push'
 import { perfilesActivos } from '../lib/miembros'
+import { leerPerfil } from '../lib/gremios'
 
 const EXPLICACION = {
   imposible: {
@@ -45,7 +46,7 @@ export default function Avisos({ family, data }) {
     // El perfil por defecto es el que tiene elegido ESTE aparato: casi
     // siempre es el correcto, porque quien enciende los avisos en un móvil
     // es quien lo usa.
-    setQuien(localStorage.getItem('gremio_profile') || gente[0]?.id || '')
+    setQuien(leerPerfil(family?.id) || gente[0]?.id || '')
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function encender() {

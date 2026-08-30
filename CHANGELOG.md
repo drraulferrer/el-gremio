@@ -18,6 +18,24 @@ verdad duele en esta app: que el esquema y el cliente dejen de encajar.
 
 ---
 
+## 2.34.0 · 30 de agosto de 2026
+
+**Una persona puede tener más de un gremio.** Hasta hoy la app abría uno y solo
+uno: el más antiguo de la cuenta. Ahora abre el que estabas usando, y si tienes
+varios aparece un selector encima de «¿Quién juega?» para pasar de uno a otro.
+
+Con un solo gremio **la pantalla es exactamente la de siempre**, y eso es a
+propósito: no se le enseña a nadie una elección que no tiene.
+
+Dos cosas que se recuerdan **por aparato**, no en la cuenta: en qué gremio
+estabas, y qué personaje eres **en cada uno**. Antes el personaje era uno solo
+para todo, que funcionaba porque solo había un gremio. Quien ya tenía uno
+elegido no nota nada: se conserva.
+
+Y al cambiar de gremio no se arrastra nada: cambian el tablón, la tienda, las
+metas, la temporada, los precios, el PIN y el día —que se cuenta con la zona
+horaria de **ese** gremio—. La cartera no, que es de la persona.
+
 ## 2.33.6 · 30 de agosto de 2026
 
 **Nada que se vea, y ese es el objetivo.** El tipo de gremio —si es una casa o

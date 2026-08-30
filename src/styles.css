@@ -4286,3 +4286,46 @@ button.kid-avatar.latiendo { animation: latido-aviso 2.6s var(--ease-salida) inf
 .talis-mano-cifra .ficha-linea {
   filter: drop-shadow(0 4px 12px rgba(242, 179, 61, 0.35));
 }
+
+/* ------------------------------------------------------------------
+   Selector de gremio (6.2). Solo aparece con más de uno, así que la
+   pantalla de una familia con un solo gremio es exactamente la de
+   siempre. Cada chip lleva el tipo debajo del nombre porque `C-5` lo
+   pide: pasar de la casa al trabajo sin darse cuenta es el error de uso
+   más probable de esta funcionalidad, y el más incómodo.
+   ------------------------------------------------------------------ */
+.selector-gremio {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  margin: 4px 0 12px;
+}
+
+.chip-gremio {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 14px;
+  border: 1px solid var(--borde, #d8d2c4);
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.chip-gremio-activo {
+  border-color: currentColor;
+  font-weight: 600;
+  /* `color-mix` degrada solo: donde no exista, el chip activo se
+     distingue igual por el borde y la negrita. */
+  background: color-mix(in srgb, currentColor 8%, transparent);
+}
+
+.chip-gremio-tipo {
+  font-size: 0.7rem;
+  opacity: 0.6;
+}

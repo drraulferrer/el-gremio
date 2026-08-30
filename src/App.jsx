@@ -14,6 +14,10 @@ import { marcaDe, queCelebrar } from './lib/celebracion'
 import { generoDe } from './lib/genero'
 import { levelProgress } from './lib/supabase'
 import { perfilesActivos, estaActivo } from './lib/miembros'
+import {
+  elegirActivo, leerGremioActivo, recordarGremioActivo,
+  leerPerfil, recordarPerfil, olvidarPerfil
+} from './lib/gremios'
 import { RELEASE } from './lib/version'
 import { registrarServiceWorker, apuntarPerfil } from './lib/push'
 import { PinModal, Celebracion } from './components/ui'
@@ -40,9 +44,15 @@ const iconoUrl = import.meta.env.BASE_URL + 'assets/emblema-gremio.png'
 export default function App() {
   const [session, setSession] = useState(undefined) // undefined = comprobando
   const [family, setFamily] = useState(undefined) // undefined = cargando · null = aún no existe
+  // Todos mis gremios, para el selector. Con uno solo —que es el caso de
+  // hoy— la lista tiene un elemento y no se enseña ningún selector.
+  const [gremios, setGremios] = useState([])
   const [data, setData] = useState(null)
   const [errorCarga, setErrorCarga] = useState('')
-  const [profileId, setProfileId] = useState(() => localStorage.getItem('gremio_profile'))
+  // Ya NO se inicializa desde `localStorage` aquí: el personaje es por
+  // gremio, y hasta que no se sabe cuál es el activo no hay clave que leer.
+  // Lo pone `loadFamily`.
+  const [profileId, setProfileId] = useState(null)
   const [pidePin, setPidePin] = useState(false)
   // Los códigos recién concedidos a quien mira, para celebrarlos en UN
   // lote. `perfilActual` es la misma cosa en forma de ref porque
@@ -130,23 +140,35 @@ export default function App() {
   }, [])
 
   // Familia
-  const loadFamily = useCallback(async () => {
-    // Con orden explícito: la migración 017 impide que una cuenta tenga
-    // dos gremios, pero mientras alguna base vieja los tenga, `limit 1`
-    // sin orden abre uno u otro según le parezca a Postgres y la familia
-    // ve su gremio vacío. El más antiguo es siempre el bueno: el segundo
-    // solo puede venir de un alta que se quedó a medias.
+  //
+  // Desde la 6.2 se traen TODOS mis gremios y se abre el ACTIVO. El
+  // `limit 1` de antes no era un descuido: la migración 017 puso un índice
+  // único para que una cuenta no pudiera tener dos, y ese índice dejó de ser
+  // único en la 057. Desde la 045 la RLS ya deja leer `families` a quien
+  // pertenece, así que sin este cambio el segundo gremio no es que se viera
+  // mal: sería invisible.
+  const loadFamily = useCallback(async (preferido = null) => {
     const { data: fams, error } = await supabase
       .from('families')
       .select('*')
       .order('created_at')
-      .limit(1)
     if (error) {
       capturar(error, { origen: 'loadFamily' })
       setErrorCarga(mensajeDeError(error))
       return
     }
-    const gremio = fams && fams.length ? fams[0] : null
+    // Y el nombre visible de su tipo, para que el selector pueda decir en
+    // qué clase de sitio es cada uno (`C-5`). Sale de la PLANTILLA y no de
+    // una lista de nombres escrita aquí, que es la regla que la 053 dejó
+    // puesta. Degradable: sin la migración viene vacío y los chips salen
+    // solo con el nombre del gremio.
+    const { data: plantillas } = await supabase.rpc('plantilla_de_gremio')
+    const visibles = new Map((plantillas || []).map((t) => [t.family_id, t.nombre_visible]))
+    const mios = (fams || []).map((f) => ({ ...f, tipo_visible: visibles.get(f.id) || null }))
+    setGremios(mios)
+    // `elegirActivo` cae al más antiguo si el guardado ya no es mío, que es
+    // `C-3`: abandonar desde otro aparato no puede dejar la app en blanco.
+    const gremio = elegirActivo(mios, preferido || leerGremioActivo()) || null
 
     // El día de esta casa lo decide la familia, no el aparato. Se
     // configura aquí, en el único sitio por el que pasa siempre, y antes
@@ -156,6 +178,16 @@ export default function App() {
     // columna: en ese caso se queda la del dispositivo, que es lo que
     // había antes.
     configurarZona(gremio?.timezone)
+
+    // El personaje es de ESTE gremio. `leerPerfil` rescata además la clave
+    // global de antes de la 6.2, para que desplegar esto no expulse a nadie
+    // de su personaje.
+    if (gremio) {
+      recordarGremioActivo(gremio.id)
+      setProfileId(leerPerfil(gremio.id))
+    } else {
+      setProfileId(null)
+    }
 
     setFamily(gremio)
   }, [])
@@ -548,14 +580,41 @@ export default function App() {
   }
 
   function elegirPerfil(id) {
-    localStorage.setItem('gremio_profile', id)
+    recordarPerfil(family?.id, id)
     setProfileId(id)
   }
 
   function cambiarPerfil() {
-    localStorage.removeItem('gremio_profile')
+    olvidarPerfil(family?.id)
     setProfileId(null)
     setParentMode(false)
+  }
+
+  // Cambiar de gremio es una LECTURA, no una transacción: no cuesta, no
+  // caduca nada, no consume nada (`C-1`).
+  //
+  // Y no arrastra nada a medias (`C-6`): una validación pendiente, un canje
+  // sin confirmar o un panel abierto pertenecen al gremio donde se
+  // empezaron. Por eso se sueltan `data`, el personaje, el panel y las dos
+  // referencias de celebración antes de recargar. La zona horaria y la
+  // temporada se recalculan solas porque `loadFamily` vuelve a llamar a
+  // `configurarZona` y `loadAll` vuelve a traer las metas: es `C-4`, la
+  // trampa más probable de este flujo.
+  function cambiarGremio(id) {
+    if (!id || id === family?.id) return
+    log.info('gremio.cambiado', { family_id: id })
+    recordarGremioActivo(id)
+    setParentMode(false)
+    setProfileId(null)
+    setData(null)
+    setCeleb(null)
+    setLoteNuevo([])
+    setTalisAMano([])
+    ultimoVisto.current = null
+    historialSellos.current = null
+    setHistorialUI(null)
+    setFamily(undefined)
+    loadFamily(id)
   }
 
   // ---------------- render ----------------
@@ -654,6 +713,8 @@ export default function App() {
             onPick={elegirPerfil}
             onParent={() => setPidePin(true)}
             onReportar={() => setContandoFallo(true)}
+            gremios={gremios}
+            onCambiarGremio={cambiarGremio}
           />
         )}
 

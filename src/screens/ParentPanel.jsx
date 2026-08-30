@@ -55,6 +55,7 @@ import { talis } from '../lib/talis'
 import { flag } from '../lib/flags'
 import { campanaActiva, esDeOperacion, esfuerzoDeMision } from '../lib/limpieza'
 import ModoLimpieza from './ModoLimpieza'
+import { leerPerfil } from '../lib/gremios'
 
 export default function ParentPanel({ family, data, refresh, refreshFamily, onVerTutorial, onExit }) {
   const [tab, setTab] = useState('pendientes')
@@ -69,7 +70,7 @@ export default function ParentPanel({ family, data, refresh, refreshFamily, onVe
   // que lo único que se puede saber es de quién es ESTE aparato —la misma
   // señal que usa la pantalla de Avisos—. Si no consta, se guarda null:
   // mejor un hueco honesto que atribuirle el trabajo a alguien al azar.
-  const quien = data.profiles.find((p) => p.id === localStorage.getItem('gremio_profile')) || null
+  const quien = data.profiles.find((p) => p.id === leerPerfil(family?.id)) || null
   const [programar, setProgramar] = useState(false)
   const [celeb, setCeleb] = useState(null)
   const [aviso, setAviso] = useState('')

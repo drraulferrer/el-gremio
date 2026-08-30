@@ -11,6 +11,8 @@
 // llegar encendido a producción.
 // ------------------------------------------------------------------
 
+import { olvidarTodo } from './gremios'
+
 const CLAVE = 'gremio_demo_db'
 
 const TABLAS = [
@@ -984,5 +986,7 @@ export function migrarTitulosDemo() {
 export function reiniciarDemo() {
   localStorage.removeItem(CLAVE)
   localStorage.removeItem(CLAVE_SESION)
-  localStorage.removeItem('gremio_profile')
+  // Y las claves del gremio activo y de los personajes, que desde la 6.2
+  // son varias y no una.
+  olvidarTodo()
 }

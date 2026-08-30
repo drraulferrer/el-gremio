@@ -4,12 +4,10 @@ Documento de continuidad. Si abres una sesión nueva sobre este proyecto,
 lee esto primero: dice dónde está todo, qué está hecho, qué falta y qué
 trampas tiene.
 
-> **Y si solo vas a leer una línea antes de ponerte:** las Fases 4 y 5 están
-> cerradas y la **6.1 (el servidor) también** (§7bo, migración 057): ya se
-> puede forjar una llave, crear un gremio con ella, invitar y aceptar. Lo
-> siguiente es la **6.2, el cliente**, y antes de tocarlo lee
-> **`NOTAS-FASE-6.md`**: es el inventario de los ocho supuestos de gremio
-> único que hay repartidos por la app.
+> **Y si solo vas a leer una línea antes de ponerte:** la **2.34.0 está
+> construida y SIN PUBLICAR**. Trae el gremio activo y su selector (§7bp), y
+> con ella una persona puede por fin tener más de un gremio de punta a punta.
+> Publicar es `git push` y después `npm run vercel` (§7n), en ese orden.
 
 Última actualización: **30 de agosto de 2026**, al cierre de la
 sesión de **recuperación ante desastres y terreno firme** (§7bb): migraciones
@@ -6068,6 +6066,95 @@ Después: 4 gremios, 0 invitaciones, 0 pertenencias, 0 llaves, ninguna cuenta de
 ensayo y **cero descuadres**. Solo quedó lo que tenía que quedar: el índice de
 `owner`, que ya no es único.
 
+## 7bp. El gremio activo (30 de agosto) · 2.34.0 · sin migración
+
+**La 6.2: el cliente.** Es la primera pieza de toda la Fase 6 que **se ve y se
+despliega**, y la primera del día que toca `src/`. Sin migración: la base ya
+estaba lista desde la 057.
+
+### Lo que hacía la app, y por qué
+
+`loadFamily()` cargaba **un** gremio con `limit 1` y se quedaba con el más
+antiguo. No era un descuido: la 017 puso un índice único para que una cuenta no
+pudiera tener dos, y el `order('created_at')` estaba puesto justo para que ese
+`limit 1` fuera determinista. Ahora trae **todos** y abre el **activo**.
+
+El matiz que hacía urgente el cambio: desde la 045 la RLS ya deja leer
+`families` a quien **pertenece**, no solo a la cuenta dueña. Así que en cuanto
+existiera la primera pertenencia en un segundo gremio, esa consulta ya devolvía
+varias filas y se quedaba con la primera. El segundo gremio no es que se viera
+mal: **era invisible**.
+
+### Dos cosas se recuerdan por aparato
+
+En qué gremio estabas (`gremio_activo`) y **qué personaje eres en cada uno**
+(`gremio_perfil:<id>`). Van en `localStorage` y no en la base porque son
+preferencias de un aparato (`C-2`), el mismo criterio que la Crónica y el muro.
+
+La clave vieja era **una sola para todo**, `gremio_profile`, y la leían siete
+sitios. Con dos gremios apunta a un personaje que no está en el activo, y cada
+uno de los siete fallaba a su manera —unos con un `undefined` y los peores
+cogiendo el primero de la lista—. Están los siete migrados, y hay un test que
+comprueba que la clave global no reaparezca en ninguno.
+
+**Y se rescata.** La primera vez que un gremio pregunta por su personaje, si no
+tiene clave propia y existe la global, la adopta y la retira. Sin eso, desplegar
+esto expulsaría a toda la familia de su personaje y les haría volver a
+elegirlo. Que el rescate se lo lleve el primer gremio que pregunte no es un
+problema, y conviene tener claro por qué: **el día del despliegue nadie tiene
+dos gremios**. La 6.1 mantuvo esa invariante justo para que este momento fuera
+seguro.
+
+### Cambiar de gremio no arrastra nada
+
+`C-6`. Se sueltan los datos, el personaje, el panel parental, la celebración
+pendiente y **las dos referencias** —`ultimoVisto` e `historialSellos`—, que son
+`useRef` y no se limpian solas al cambiar de estado: arrastrarían la marca de un
+gremio al otro.
+
+Y `C-4`, que la especificación llama «la trampa más probable de este flujo»: la
+zona horaria y la temporada se recalculan porque `cambiarGremio` vuelve a llamar
+a `loadFamily`, que vuelve a llamar a `configurarZona`. Sin eso, el día se
+contaría en la zona del gremio anterior y **una racha viva se leería como
+rota**.
+
+### El selector solo aparece si hay a dónde ir
+
+Con un gremio, la pantalla es la de siempre. Cada chip lleva el **tipo** debajo
+del nombre (`C-5`): pasar de la casa al trabajo sin darse cuenta es el error de
+uso más probable de esta funcionalidad. El nombre del tipo sale de
+`plantilla_de_gremio()`, no de una lista escrita en el cliente, que es la regla
+que la 053 dejó puesta; y es degradable, así que sin la RPC el chip sale solo
+con el nombre del gremio.
+
+### Cómo se comprobó
+
+`npm run verify`: **1473 tests en 81 ficheros**. Y —que es la regla de la casa y
+lo que de verdad valía— **con la pantalla delante**, en `dev:demo` sembrado con
+dos gremios en zonas horarias distintas:
+
+| | |
+|---|---|
+| entrar con la clave **vieja** puesta | va directo al personaje de siempre, sin preguntar |
+| el selector | sale con los dos gremios, el activo marcado |
+| cambiar a «El piso de Ana» | cambia el título y la lista de personajes |
+| **recargar la página** | vuelve a El piso **y a Ana**: las dos claves funcionan juntas |
+| lo del otro gremio | no se cuela nada: ni el saldo, ni la meta, ni los personajes |
+
+Un susto que no lo era: en la captura leí «nivel 5» para un personaje de 420 XP,
+que con la curva del proyecto son 3. Leyendo el DOM en vez del píxel, dice 3.
+Cliente y `nivel_de_xp()` coinciden.
+
+### Lo que NO hace
+
+- **No hay pantalla para forjar, ni para invitar, ni para aceptar.** El servidor
+  las tiene todas desde la 056 y la 057, y nadie las llama todavía. Eso es la
+  6.3.
+- **Cambiar de gremio pasa por «Cambiar»**, o sea por el selector de personaje,
+  que al entrar suelta el del gremio que dejas. Un cambio de gremio directo
+  desde el tablero es de la 6.3, cuando haya dónde ponerlo.
+- **No toca los avisos.** Sigue siendo un aparato, un gremio.
+
 ---
 
 # CÓMO ARRANCAR LA SIGUIENTE SESIÓN
@@ -6079,9 +6166,9 @@ ensayo y **cero descuadres**. Solo quedó lo que tenía que quedar: el índice d
 | | |
 |---|---|
 | Repositorio | `~/el-gremio`, rama `main` |
-| Versión desplegada | **2.33.6** · `npm run health` en verde, supabase 17.6 |
+| Versión desplegada | **2.33.6** · la **2.34.0 está construida y sin publicar** |
 | Migraciones aplicadas | hasta la **057**. La siguiente libre es la **058** |
-| Tests | 1449 en 80 ficheros |
+| Tests | 1473 en 81 ficheros |
 | Plan y especificación | `~/Library/Mobile Documents/com~apple~CloudDocs/ClaudeCode/specs/` |
 
 **Lo primero, siempre:** `git fetch` antes de elegir número de migración o de
@@ -6097,7 +6184,7 @@ versión. Hoy no ha hecho falta, pero el 30-ago por la mañana ya pasó una vez.
 | 3 · Configuración y cartera | ✅ **cerrada** | 050, 051, 052 |
 | 4 · El tipo como plantilla | ✅ **cerrada** | 053, 054, 055 |
 | 5 · Hitos y llaves | ✅ **cerrada** | 056 |
-| 6 · Gremios múltiples | ◐ **6.1 (servidor) hecha** · falta el cliente | 057 |
+| 6 · Gremios múltiples | ◐ **6.1 y 6.2 hechas** · faltan las pantallas (6.3) | 057 |
 | 7 en adelante | ☐ sin empezar | — |
 
 Y de propina, la **046**: el barrido de permisos que la 021 dejó escrito llevaba
@@ -6106,34 +6193,41 @@ que `anon` hereda.
 
 ## Por dónde seguir
 
-**La 6.2 · el cliente**, que es la primera pieza de todo esto con **versión y
-despliegue**. El servidor ya está: forjar, crear con llave, invitar, aceptar,
-salir, echar y volver funcionan y están ensayados contra la base.
+**Publicar la 2.34.0**, que está construida y sin subir. Una sola tanda, sin
+migración de por medio:
 
-**Empieza por `NOTAS-FASE-6.md`.** Es el inventario que el plan exigía, hecho
-hoy, y tiene ocho puntos. Los tres que ordenan el trabajo:
+```
+git push && npm run vercel && npm run health
+```
 
-1. **`loadFamily()` carga con `limit 1`** (`src/App.jsx:131`). Desde la 045,
-   `families` ya devuelve por RLS todos los gremios de quien pertenece, así que
-   en cuanto exista una segunda pertenencia el segundo gremio **no es que se vea
-   mal: es invisible**. Hace falta un gremio activo explícito, recordado por
-   dispositivo (`C-2`), y `loadAll()` colgando de él. `mis_pertenencias()` ya
-   devuelve lo que el selector necesita: cada gremio con su tipo, su personaje y
-   su nivel.
-2. **`gremio_profile` en `localStorage` es global** y lo leen siete sitios. Con
-   dos gremios apunta a un personaje que no está en el activo. Tiene que llevar
-   el gremio dentro, y el valor viejo leerse una vez como el del gremio inicial
-   para no expulsar a nadie de su personaje al desplegar.
-3. **Zona horaria y temporada se recalculan al cambiar** (`C-4`, y está en la
-   definición de hecho). `configurarZona()` es un singleton de módulo que hoy se
-   fija una vez; sin volver a llamarlo, el día se cuenta en la zona del gremio
-   anterior y **una racha viva se lee como rota**.
+Y después mirarla con una sesión real, que es lo único que no se ha podido
+hacer desde aquí. Lo visible es el selector, y solo sale si hay más de un
+gremio: para la familia de hoy la pantalla es idéntica a la de siempre, así que
+lo que hay que comprobar es justo eso —que **nada** ha cambiado— y que su
+personaje sigue elegido al entrar.
 
-Y **una decisión aplazada a la 6.3**: con varios gremios, un aparato solo puede
-estar suscrito a uno (`push_subs.endpoint` es único). O la suscripción pasa a
-ser por `(aparato, gremio)`, o los avisos se dirigen a la persona y el gremio
-pasa a ser un dato del mensaje. La segunda es más correcta y toca la Edge
-Function.
+Después, la **6.3 · las pantallas**. El servidor tiene desde la 056 y la 057
+todo lo que hace falta y **nadie lo llama todavía**:
+
+| Qué falta pintar | Con qué |
+|---|---|
+| Forjar una llave, y «cuánto te falta» | `oportunidades_expansion()` · `forjar_llave()` |
+| Mis llaves | `mis_llaves()` |
+| Invitar, y las invitaciones del gremio | `invitar()` · `invitaciones_del_gremio()` · `revocar_invitacion()` |
+| La bandeja, que es **de la persona** y no del gremio activo | `mis_invitaciones()` · `aceptar_invitacion()` · `rechazar_invitacion()` |
+| Crear un gremio con llave, con su tipo y su país | `tipos_ofrecidos()` · `crear_gremio_con_llave()` |
+| Salir y echar | `abandonar_gremio()` · `expulsar_de_gremio()` |
+
+Y con ella, **la decisión de los avisos** que quedó aplazada: hoy un aparato
+solo puede estar suscrito a un gremio (`push_subs.endpoint` es único). O la
+suscripción pasa a ser por `(aparato, gremio)`, o los avisos se dirigen a la
+persona y el gremio pasa a ser un dato del mensaje. La segunda es más correcta y
+toca la Edge Function.
+
+Un detalle de uso que se ve en cuanto lo pruebas: **cambiar de gremio pasa hoy
+por «Cambiar»**, o sea por el selector de personaje, que al entrar suelta el del
+gremio que dejas. Funciona, pero el sitio natural de un cambio de gremio es el
+tablero. Es de la 6.3, cuando haya dónde ponerlo.
 
 ## Lo que sigue abierto, y no es de ninguna fase
 

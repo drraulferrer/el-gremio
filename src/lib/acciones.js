@@ -9,6 +9,7 @@
 
 import { supabase, operacion } from './supabase'
 import { log, nuevoRequestId } from './log'
+import { olvidarTodo } from './gremios'
 
 // ------------------------------------------------------------------
 // La clave que evita cobrar dos veces.
@@ -636,11 +637,11 @@ export async function cerrarSesion() {
 
   // Se limpia aunque `signOut` falle: si la sesión no se ha podido cerrar
   // en el servidor, dejar además el perfil apuntado no arregla nada.
-  try {
-    localStorage.removeItem('gremio_profile')
-  } catch {
-    // Modo privado de Safari y poco más. No es motivo para no salir.
-  }
+  //
+  // Y se va el personaje de TODOS los gremios, no solo el del activo (6.2):
+  // dejar apuntado en un aparato compartido quién era alguien en un gremio
+  // del que ya no hay sesión es justo lo que esta limpieza venía a evitar.
+  olvidarTodo()
 
   return error ? { ok: false, mensaje } : { ok: true, mensaje: '' }
 }

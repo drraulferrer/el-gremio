@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { leerPerfil } from '../lib/gremios'
 import { perfilesActivos } from '../lib/miembros'
 import { Modal, Talis } from '../components/ui'
 import Icono from '../components/Icono'
@@ -93,7 +94,10 @@ function CierreDeCampana({ cierre, onClose }) {
 // Puede no ser un adulto, o no constar: en ese caso el desplegable
 // arranca vacío y hay que elegir, que es mejor que atribuirlo al azar.
 function adultoDelAparato(perfiles) {
-  const p = perfiles.find((x) => x.id === localStorage.getItem('gremio_profile'))
+  // El gremio sale de los propios perfiles y no de una prop nueva: `loadAll`
+  // los trae filtrados por el gremio activo, así que todos son de él. No es
+  // un atajo, es el mismo dato por otro camino.
+  const p = perfiles.find((x) => x.id === leerPerfil(perfiles[0]?.family_id))
   return p?.role === 'adulto' ? p.id : ''
 }
 
