@@ -3991,6 +3991,565 @@ revoke all on function public.borrar_mi_identidad(jsonb, text) from public;
 revoke all on function public.borrar_mi_identidad(jsonb, text) from anon;
 grant execute on function public.borrar_mi_identidad(jsonb, text) to authenticated;
 
+-- ------------------------------------------------------------------
+-- La configuración de la expansión (migración 050).
+--
+-- Pieza 3.1 de la Fase 3 · especificación §11.4, `R-16`, `R-66`, `D-10`,
+-- `CFG-1` a `CFG-7`, `DEP-4`.
+--
+-- Hasta aquí los números de la expansión —qué nivel habilita la primera
+-- llave, cuánto cuesta, cuántos gremios puede tener una persona, cuánto
+-- duran las cosas— no vivían en ningún sitio consultable: constantes de un
+-- módulo de JavaScript que el servidor no lee, y literales dentro de
+-- funciones SQL que nadie puede consultar sin leerse el cuerpo. Eso vale
+-- mientras nadie decida nada con ellos; cuando la Fase 5 empiece a cobrar
+-- 300 monedas por una llave, el número tiene que estar donde el servidor lo
+-- lea al cobrar (`CFG-2`), poder cambiar sin reescribir el pasado (`CFG-3`,
+-- `CFG-5`) y dejar dicho quién lo cambió y por qué (`CFG-4`).
+--
+-- LA FORMA · una versión es un bloque, y un bloque no se toca. Cabecera,
+-- escalones y matriz de disponibilidad se escriben JUNTOS, en una
+-- transacción, y después ninguna de las tres tablas admite `update` ni
+-- `delete`. Cambiar una regla es publicar otra versión. `CAM-1` a `CAM-6`
+-- dicen que subir un umbral no retira una llave comprada y que subir un
+-- coste no cobra la diferencia: la forma barata de cumplirlo es que la
+-- llave guarde su versión (`S-12`) y que esa versión siga existiendo tal
+-- cual. Si la configuración se editara encima, el recibo de ayer mentiría.
+--
+-- SIN CONFIGURACIÓN VÁLIDA NO SE EXPANDE NADIE (`CFG-6`). Por eso ninguna
+-- función de lectura devuelve un valor por defecto: `parametros_expansion`,
+-- `escala_expansion` y `hito_expansion` devuelven CERO FILAS, y
+-- `tipo_publicado` devuelve `false`. Cero filas no se confunde con un
+-- permiso ni se recoge con un `coalesce` distraído.
+--
+-- POR QUÉ LOS COSTES SE GUARDAN UNO A UNO. La regla aprobada es geométrica
+-- (300 x 2,5^(k-1)), pero guardar solo la fórmula obligaría a calcular la
+-- potencia dos veces —el servidor al cobrar, el cliente al pintar— y esa es
+-- la segunda fuente de verdad que `CFG-1` prohíbe; es el error que ya
+-- existe con la curva de nivel. Manda la fila: `escalones_expansion` guarda
+-- el coste que se cobra. `coste_base`, `factor` y `regla_crecimiento` se
+-- guardan al lado porque `R-66` los pide como campo mínimo —son la
+-- procedencia del número, no el número— y un disparador comprueba que las
+-- filas siguen cuadrando con la regla declarada.
+--
+-- LOS NÚMEROS son los de la calibración del 29-ago-2026 (§11.2, `R-59`,
+-- `R-85`), que ya defendía `tests/expansion.test.js`. Este bloque no los
+-- cambia: los mueve a donde el servidor pueda leerlos, y ese test los lee
+-- ahora de aquí.
+-- ------------------------------------------------------------------
+
+create table if not exists public.configuracion_expansion (
+  -- El identificador que se graba en cada llave (`I-4`, `S-12`). Legible
+  -- por una persona a propósito: en un incidente se lee un recibo, no se
+  -- cruza un uuid contra una tabla.
+  version text primary key check (version ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}(\.[0-9]+)?$'),
+  -- Desde cuándo rige. Única, porque dos versiones que empiezan en el mismo
+  -- instante dejan sin respuesta a «cuál es la vigente», y esa respuesta es
+  -- lo que se cobra.
+  vigente_desde timestamptz not null,
+
+  -- Pertenencias activas simultáneas por persona, el gremio inicial
+  -- incluido (`R-23`, `R-60`). Bajarlo NO expulsa a nadie (`R-25`,
+  -- `CAM-4`): quien esté por encima se queda y no puede adquirir más. Eso
+  -- lo cumple quien compra; aquí solo vive el número.
+  limite_global integer not null check (limite_global between 1 and 50),
+  -- Cuántas oportunidades puede dar UN MISMO gremio de origen, si se quiere
+  -- acotar. Puesto al número de escalones no acota nada, que es lo decidido.
+  escalones_por_gremio integer not null check (escalones_por_gremio between 1 and 20),
+
+  -- Procedencia del coste, no el coste.
+  regla_crecimiento text not null check (regla_crecimiento in ('geometrica','explicita')),
+  coste_base integer not null check (coste_base > 0),
+  factor numeric(6,3) check (factor > 1),
+
+  -- Las caducidades de la expansión (`R-62`, `R-80`, `D-07`, `D-22`).
+  invitacion_dias integer not null check (invitacion_dias between 1 and 365),
+  -- NULO quiere decir QUE NO CADUCA, y no es un olvido: es la decisión de
+  -- `R-62`. Una llave comprada y caducada es dinero perdido sin haber
+  -- recibido nada. Solo se revierte por soporte, nunca por un reloj.
+  llave_dias integer check (llave_dias is null or llave_dias > 0),
+  solicitud_junior_dias integer not null check (solicitud_junior_dias between 1 and 365),
+  autorizacion_adulta_horas integer not null check (autorizacion_adulta_horas between 1 and 720),
+
+  -- Auditoría (`CFG-4`): qué se cambió, quién lo aprobó, quién lo escribió
+  -- y cuándo. Solo el uid admite nulos.
+  motivo text not null check (length(btrim(motivo)) between 3 and 1000),
+  -- Quién o QUÉ lo aprobó: una persona, una decisión de la especificación,
+  -- un acuerdo. Es texto porque la mayoría de las veces no es una cuenta.
+  aprobada_por text not null check (length(btrim(aprobada_por)) between 2 and 200),
+  -- SIN clave ajena a `auth.users`, y es deliberado. Con `on delete set
+  -- null`, borrar la cuenta de quien publicó dispararía un `update` sobre
+  -- esta tabla —que el disparador de abajo prohíbe, así que el borrado
+  -- fallaría— y además reescribiría el rastro. Con `no action` fallaría el
+  -- borrado por la clave ajena. Un apunte de auditoría tiene que sobrevivir
+  -- a la cuenta que nombra: mismo criterio que `movimientos_coins.referencia`.
+  publicada_por uuid,
+  publicada_at timestamptz not null default now(),
+
+  constraint configuracion_factor_coherente check (
+    -- En `case` y no con `and`/`or`, por lo mismo que mordió en
+    -- `credenciales_alcance`: un CHECK que da NULL PASA.
+    case when regla_crecimiento = 'geometrica' then factor is not null else true end
+  )
+);
+
+create unique index if not exists idx_configuracion_expansion_vigencia
+  on public.configuracion_expansion (vigente_desde);
+
+comment on table public.configuracion_expansion is
+  'Una fila por version de las reglas de expansion. No se edita ni se borra: publicar una regla nueva es insertar otra version (CFG-3).';
+
+create table if not exists public.escalones_expansion (
+  -- `restrict` y no `cascade`: borrar una versión es lo que esto impide.
+  version text not null references public.configuracion_expansion(version) on delete restrict,
+  -- Cuál es: el primer gremio extra, el segundo… Consecutivos desde 1.
+  orden integer not null check (orden between 1 and 20),
+  -- Nivel del personaje EN EL GREMIO DE ORIGEN que habilita el escalón
+  -- (`R-10`, `R-12`). Nunca 1: `R-13` exige que no se alcance al empezar.
+  nivel_exigido integer not null check (nivel_exigido between 2 and 200),
+  -- Monedas que cuesta convertir la oportunidad en llave (`R-15`). Es el
+  -- número que se cobra, y el único sitio donde vive.
+  coste integer not null check (coste > 0),
+  primary key (version, orden)
+);
+
+comment on table public.escalones_expansion is
+  'La escala de expansion de una version. El coste que se cobra sale de aqui, no de recalcular la formula (CFG-1).';
+
+-- La matriz tipo x país x estado de publicación (`R-89`, `R-94`, `R-109`).
+-- Va aquí y no en el código porque el lanzamiento es país a país y cada
+-- país repite su aprobación: eso cambia más veces que el esquema. Lo que no
+-- está declarado NO está publicado: una fila que falta deniega, no concede.
+create table if not exists public.disponibilidad_tipos (
+  version text not null references public.configuracion_expansion(version) on delete restrict,
+  -- Los nombres de `R-68` y `TIP-9`. Los `families.tipo_gremio` de hoy
+  -- ('familia' y 'piso') se corresponden con 'hogar' y 'hogar_compartido',
+  -- y quien hace esa traducción es la Fase 4.3, no esta tabla.
+  tipo text not null check (tipo in ('hogar','amigos','equipo','hogar_compartido')),
+  pais text not null check (pais ~ '^[A-Z]{2}$'),
+  estado text not null check (estado in ('publicado','no_publicado')),
+  primary key (version, tipo, pais)
+);
+
+comment on table public.disponibilidad_tipos is
+  'Matriz tipo x pais x estado de publicacion de una version (R-109). Lo que no aparece, no esta publicado.';
+
+-- Mismo patrón que `operadores` y `salud_diaria`: RLS encendido y SIN
+-- políticas. La configuración no es de una familia, es del producto, y lo
+-- único que una familia necesita es lo que devuelvan las funciones de
+-- lectura de abajo. Así `publicada_por` y `motivo` no salen de la base por
+-- una petición cualquiera.
+alter table public.configuracion_expansion enable row level security;
+alter table public.escalones_expansion enable row level security;
+alter table public.disponibilidad_tipos enable row level security;
+
+revoke all on table public.configuracion_expansion from anon;
+revoke all on table public.configuracion_expansion from authenticated;
+revoke all on table public.escalones_expansion from anon;
+revoke all on table public.escalones_expansion from authenticated;
+revoke all on table public.disponibilidad_tipos from anon;
+revoke all on table public.disponibilidad_tipos from authenticated;
+
+-- La historia no se reescribe (`CFG-3`). Tres disparadores, y hacen falta
+-- los tres:
+--   a) `update` y `delete` no existen para estas tres tablas, tampoco para
+--      `postgres` desde el SQL Editor. Si alguna vez hay que borrar una
+--      versión de verdad hay que retirar el disparador a mano, y eso es lo
+--      que se quiere: que cueste y que se note.
+--   b) `publicada_at` la pone el servidor y no se puede pasar de fuera. La
+--      usa (c) para saber si una versión se está escribiendo AHORA.
+--   c) los escalones y la disponibilidad solo se insertan en la misma
+--      transacción que su cabecera. Sin esto (a) no cierra nada: añadir
+--      mañana un escalón a la versión de hoy no es un `update`, pero cambia
+--      lo que cobraba una versión ya usada.
+create or replace function public.tg_configuracion_sellada()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $fn$
+begin
+  raise exception
+    'la configuracion de expansion no se edita ni se borra: se publica una version nueva (CFG-3)'
+    using errcode = 'restrict_violation';
+end $fn$;
+
+revoke all on function public.tg_configuracion_sellada() from anon;
+revoke all on function public.tg_configuracion_sellada() from authenticated;
+
+drop trigger if exists configuracion_expansion_sellada on public.configuracion_expansion;
+create trigger configuracion_expansion_sellada
+  before update or delete on public.configuracion_expansion
+  for each row execute function public.tg_configuracion_sellada();
+
+drop trigger if exists escalones_expansion_sellados on public.escalones_expansion;
+create trigger escalones_expansion_sellados
+  before update or delete on public.escalones_expansion
+  for each row execute function public.tg_configuracion_sellada();
+
+drop trigger if exists disponibilidad_tipos_sellada on public.disponibilidad_tipos;
+create trigger disponibilidad_tipos_sellada
+  before update or delete on public.disponibilidad_tipos
+  for each row execute function public.tg_configuracion_sellada();
+
+create or replace function public.tg_configuracion_fechada()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $fn$
+begin
+  -- `now()` es el instante de INICIO de la transacción, no el del reloj:
+  -- por eso vale para reconocer después «esto se escribió en la misma tanda».
+  new.publicada_at := now();
+  -- `coalesce` y no a secas: por PostgREST manda siempre `auth.uid()`, y
+  -- desde el SQL Editor —donde es nulo— vale lo que se declare a mano.
+  new.publicada_por := coalesce(auth.uid(), new.publicada_por);
+  return new;
+end $fn$;
+
+revoke all on function public.tg_configuracion_fechada() from anon;
+revoke all on function public.tg_configuracion_fechada() from authenticated;
+
+drop trigger if exists configuracion_expansion_fechada on public.configuracion_expansion;
+create trigger configuracion_expansion_fechada
+  before insert on public.configuracion_expansion
+  for each row execute function public.tg_configuracion_fechada();
+
+create or replace function public.tg_hija_de_version_nueva()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $fn$
+declare
+  v_publicada timestamptz;
+begin
+  select c.publicada_at into v_publicada
+    from public.configuracion_expansion c where c.version = new.version;
+
+  if v_publicada is null then
+    raise exception 'la version % no existe: una escala no vive sin su cabecera', new.version
+      using errcode = 'foreign_key_violation';
+  end if;
+
+  if v_publicada <> now() then
+    raise exception
+      'la version % ya esta publicada: sus escalones y su disponibilidad se escriben con ella, no despues (CFG-3)',
+      new.version
+      using errcode = 'restrict_violation';
+  end if;
+
+  return new;
+end $fn$;
+
+revoke all on function public.tg_hija_de_version_nueva() from anon;
+revoke all on function public.tg_hija_de_version_nueva() from authenticated;
+
+drop trigger if exists escalones_expansion_de_version_nueva on public.escalones_expansion;
+create trigger escalones_expansion_de_version_nueva
+  before insert on public.escalones_expansion
+  for each row execute function public.tg_hija_de_version_nueva();
+
+drop trigger if exists disponibilidad_tipos_de_version_nueva on public.disponibilidad_tipos;
+create trigger disponibilidad_tipos_de_version_nueva
+  before insert on public.disponibilidad_tipos
+  for each row execute function public.tg_hija_de_version_nueva();
+
+-- Una escala incoherente no llega a publicarse. Lo que se comprueba:
+--   · al menos un escalón —una versión sin escala parece que tiene reglas y
+--     no habilita nada, que es peor que no tenerla (`CFG-6`)—;
+--   · órdenes consecutivos desde 1, sin huecos: «el escalón 3» tiene que
+--     querer decir «el tercero»;
+--   · nivel estrictamente creciente (`R-14`);
+--   · cada coste al menos EL DOBLE del anterior. `R-15` dice
+--     «significativamente más cara» sin número; el doble es el mínimo que
+--     fijó `tests/expansion.test.js` al aprobar la calibración, y aquí pasa
+--     de ser un test sobre unos números a ser un límite sobre cualquier
+--     versión futura;
+--   · el primer escalón cuesta el coste base y, si la regla declarada es
+--     geométrica, todos cuadran con ella. Declarar una fórmula y guardar
+--     otra cosa es la peor versión de las dos fuentes de verdad: la que
+--     miente.
+-- Se comprueba al CERRAR la transacción —disparador de restricción
+-- diferido— porque una escala se inserta fila a fila y a mitad no cuadra.
+create or replace function public.valida_escala_expansion(p_version text)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $fn$
+declare
+  v_cfg public.configuracion_expansion%rowtype;
+  v_n integer;
+  v_min integer;
+  v_max integer;
+  r record;
+  v_esperado integer;
+begin
+  select * into v_cfg from public.configuracion_expansion c where c.version = p_version;
+  if v_cfg.version is null then return; end if;
+
+  select count(*), min(orden), max(orden) into v_n, v_min, v_max
+    from public.escalones_expansion e where e.version = p_version;
+
+  if v_n = 0 then
+    raise exception 'la version % no declara ni un escalon (CFG-6)', p_version;
+  end if;
+  if v_min <> 1 or v_max <> v_n then
+    raise exception 'los escalones de la version % no son consecutivos desde 1: % filas, de % a %',
+      p_version, v_n, v_min, v_max;
+  end if;
+  if v_cfg.escalones_por_gremio > v_n then
+    raise exception 'la version % permite % escalones por gremio y solo declara %',
+      p_version, v_cfg.escalones_por_gremio, v_n;
+  end if;
+
+  for r in
+    select e.orden, e.nivel_exigido, e.coste,
+           lag(e.nivel_exigido) over (order by e.orden) as nivel_previo,
+           lag(e.coste)         over (order by e.orden) as coste_previo
+      from public.escalones_expansion e
+     where e.version = p_version
+     order by e.orden
+  loop
+    if r.nivel_previo is not null and r.nivel_exigido <= r.nivel_previo then
+      raise exception 'escalon % de la version %: el nivel exigido (%) no supera al del anterior (%) [R-14]',
+        r.orden, p_version, r.nivel_exigido, r.nivel_previo;
+    end if;
+
+    if r.coste_previo is not null and r.coste < r.coste_previo * 2 then
+      raise exception 'escalon % de la version %: % no es el doble de % [R-15]',
+        r.orden, p_version, r.coste, r.coste_previo;
+    end if;
+
+    if r.orden = 1 and r.coste <> v_cfg.coste_base then
+      raise exception 'la version % declara coste base % y su primer escalon cuesta %',
+        p_version, v_cfg.coste_base, r.coste;
+    end if;
+
+    if v_cfg.regla_crecimiento = 'geometrica' then
+      -- Al múltiplo de cinco más cercano, como el resto de la tienda. La
+      -- potencia no siempre da un entero: con 300 y x2,5 el cuarto escalón
+      -- sale 4687,5, y redondear a cinco evita estrenar una segunda regla
+      -- de redondeo para un solo caso.
+      v_esperado := (round(v_cfg.coste_base * power(v_cfg.factor, (r.orden - 1)::numeric) / 5) * 5)::integer;
+      if r.coste <> v_esperado then
+        raise exception 'escalon % de la version %: cuesta % y la regla geometrica declarada (% x %^k) da %',
+          r.orden, p_version, r.coste, v_cfg.coste_base, v_cfg.factor, v_esperado;
+      end if;
+    end if;
+  end loop;
+end $fn$;
+
+revoke all on function public.valida_escala_expansion(text) from public;
+revoke all on function public.valida_escala_expansion(text) from anon;
+revoke all on function public.valida_escala_expansion(text) from authenticated;
+
+create or replace function public.tg_valida_escala_expansion()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $fn$
+begin
+  perform public.valida_escala_expansion(new.version);
+  return null;
+end $fn$;
+
+revoke all on function public.tg_valida_escala_expansion() from anon;
+revoke all on function public.tg_valida_escala_expansion() from authenticated;
+
+-- Desde los dos lados: publicar una cabecera sin escala falla, y publicar
+-- una escala torcida también. Una sola de las dos deja media puerta.
+drop trigger if exists configuracion_expansion_coherente on public.configuracion_expansion;
+create constraint trigger configuracion_expansion_coherente
+  after insert on public.configuracion_expansion
+  deferrable initially deferred
+  for each row execute function public.tg_valida_escala_expansion();
+
+drop trigger if exists escalones_expansion_coherentes on public.escalones_expansion;
+create constraint trigger escalones_expansion_coherentes
+  after insert on public.escalones_expansion
+  deferrable initially deferred
+  for each row execute function public.tg_valida_escala_expansion();
+
+-- Leer la vigente. `security definer` a propósito y no por comodidad: la
+-- respuesta a «cuánto cuesta la primera llave» tiene que ser la MISMA para
+-- todo el mundo y no depender de qué políticas alcance la sesión que
+-- pregunta. Por eso las tablas no se conceden a nadie y estas funciones son
+-- la única puerta. La vigente es la de mayor `vigente_desde` que ya haya
+-- empezado: una versión con fecha futura se deja escrita y no rige hasta su día.
+create or replace function public.configuracion_expansion_vigente()
+returns text
+language sql
+stable
+security definer
+set search_path = public
+as $fn$
+  select c.version
+    from public.configuracion_expansion c
+   where c.vigente_desde <= now()
+   order by c.vigente_desde desc
+   limit 1;
+$fn$;
+
+revoke all on function public.configuracion_expansion_vigente() from public;
+revoke all on function public.configuracion_expansion_vigente() from anon;
+grant execute on function public.configuracion_expansion_vigente() to authenticated;
+
+-- Los parámetros globales. Cero filas si no hay versión vigente, y eso es
+-- la denegación (`CFG-6`). No devuelve `coste_base` ni `factor`: el coste ya
+-- viaja hecho en `escala_expansion()`, y quien no recibe la fórmula no la
+-- puede recalcular mal.
+create or replace function public.parametros_expansion()
+returns table (
+  version text,
+  vigente_desde timestamptz,
+  limite_global integer,
+  escalones_por_gremio integer,
+  regla_crecimiento text,
+  invitacion_dias integer,
+  llave_dias integer,
+  solicitud_junior_dias integer,
+  autorizacion_adulta_horas integer
+)
+language sql
+stable
+security definer
+set search_path = public
+as $fn$
+  select c.version, c.vigente_desde, c.limite_global, c.escalones_por_gremio,
+         c.regla_crecimiento, c.invitacion_dias, c.llave_dias,
+         c.solicitud_junior_dias, c.autorizacion_adulta_horas
+    from public.configuracion_expansion c
+   where c.version = public.configuracion_expansion_vigente();
+$fn$;
+
+revoke all on function public.parametros_expansion() from public;
+revoke all on function public.parametros_expansion() from anon;
+grant execute on function public.parametros_expansion() to authenticated;
+
+-- La escala entera, para que la pantalla pueda decir «te falta esto». El
+-- cliente SOLO MUESTRA (`SEC-1`): que reciba la escala no le da voz en lo
+-- que se cobra, que se decide con `hito_expansion()` en servidor.
+create or replace function public.escala_expansion()
+returns table (version text, orden integer, nivel_exigido integer, coste integer)
+language sql
+stable
+security definer
+set search_path = public
+as $fn$
+  select e.version, e.orden, e.nivel_exigido, e.coste
+    from public.escalones_expansion e
+   where e.version = public.configuracion_expansion_vigente()
+   order by e.orden;
+$fn$;
+
+revoke all on function public.escala_expansion() from public;
+revoke all on function public.escala_expansion() from anon;
+grant execute on function public.escala_expansion() to authenticated;
+
+-- Un escalón concreto de la vigente: lo que consultará la función que forje
+-- en la Fase 5. Cero filas quiere decir «no hay configuración o no hay tal
+-- escalón», y las dos cosas se responden igual: no se puede comprar.
+create or replace function public.hito_expansion(p_orden integer)
+returns table (version text, orden integer, nivel_exigido integer, coste integer)
+language sql
+stable
+security definer
+set search_path = public
+as $fn$
+  select e.version, e.orden, e.nivel_exigido, e.coste
+    from public.escalones_expansion e
+   where e.version = public.configuracion_expansion_vigente()
+     and e.orden = p_orden
+     and p_orden <= (
+       select c.escalones_por_gremio from public.configuracion_expansion c
+        where c.version = public.configuracion_expansion_vigente()
+     );
+$fn$;
+
+revoke all on function public.hito_expansion(integer) from public;
+revoke all on function public.hito_expansion(integer) from anon;
+grant execute on function public.hito_expansion(integer) to authenticated;
+
+-- La disponibilidad, resuelta en SERVIDOR (`R-108`, `SEC-29`). Y a
+-- propósito SIN conceder a `authenticated`: el país es un parámetro, y
+-- `R-108` dice que un cliente no declara en qué país está para desbloquear
+-- un tipo. Quien la llame tiene que ser otra función del servidor —la que
+-- cree gremios, en la Fase 4.4—, que sabrá de dónde sacar el país de verdad.
+create or replace function public.tipo_publicado(p_tipo text, p_pais text)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $fn$
+  select exists (
+    select 1 from public.disponibilidad_tipos d
+     where d.version = public.configuracion_expansion_vigente()
+       and d.tipo = p_tipo
+       and d.pais = upper(btrim(p_pais))
+       and d.estado = 'publicado'
+  );
+$fn$;
+
+revoke all on function public.tipo_publicado(text, text) from public;
+revoke all on function public.tipo_publicado(text, text) from anon;
+revoke all on function public.tipo_publicado(text, text) from authenticated;
+
+-- La primera versión. En un solo `do` y no en tres `insert` sueltos porque
+-- los disparadores de arriba exigen que cabecera, escalones y
+-- disponibilidad viajen en la MISMA transacción; un `do` es una sentencia.
+-- Idempotente por la comprobación de la versión.
+do $$
+declare
+  v_version text := '2026-08-30.1';
+begin
+  if exists (select 1 from public.configuracion_expansion where version = v_version) then
+    return;
+  end if;
+
+  insert into public.configuracion_expansion (
+    version, vigente_desde,
+    limite_global, escalones_por_gremio,
+    regla_crecimiento, coste_base, factor,
+    invitacion_dias, llave_dias, solicitud_junior_dias, autorizacion_adulta_horas,
+    motivo, aprobada_por
+  ) values (
+    v_version,
+    timestamptz '2026-08-30 00:00:00+00',
+    5,      -- R-60 · cinco pertenencias activas, el gremio inicial incluido
+    4,      -- tantas como escalones: hoy un gremio de origen no acota nada
+    'geometrica', 300, 2.5,
+    14,     -- R-62 · las invitaciones caducan a los 14 dias naturales
+    null,   -- R-62 · las llaves NO caducan en el MVP
+    14,     -- R-80 · la solicitud de expansion de un junior, 14 dias
+    72,     -- R-80 · la autorizacion adulta, 72 horas
+    'Primera version. Traslada a la base los numeros de la calibracion del 29-ago-2026 (spec 11.2, propuestas 1 a 3) sin cambiar ninguno: hasta hoy vivian en tests/expansion.test.js y el servidor no podia leerlos (H-40, CFG-2).',
+    'producto · D-05, D-06, D-07, D-10, D-22, R-59, R-85'
+  );
+
+  -- Hitos 6-8-10-12 y coste 300 x 2,5^(k-1). El cuarto sale 4687,5 y se
+  -- redondea al múltiplo de cinco: 4690.
+  insert into public.escalones_expansion (version, orden, nivel_exigido, coste) values
+    (v_version, 1,  6,  300),
+    (v_version, 2,  8,  750),
+    (v_version, 3, 10, 1875),
+    (v_version, 4, 12, 4690);
+
+  -- La matriz de §11.4. 'hogar_compartido' es el tipo legado: los `piso`
+  -- que ya existen siguen funcionando —esta tabla no apaga nada— pero no se
+  -- ofrece para crear gremios nuevos (`R-78`, `TIP-9`), y eso es lo que
+  -- dice 'no_publicado' aquí.
+  insert into public.disponibilidad_tipos (version, tipo, pais, estado) values
+    (v_version, 'hogar',            'ES', 'publicado'),
+    (v_version, 'amigos',           'ES', 'publicado'),
+    (v_version, 'equipo',           'ES', 'no_publicado'),
+    (v_version, 'hogar_compartido', 'ES', 'no_publicado');
+end $$;
+
 -- Y el barrido final de la 021, que tiene que quedarse SIEMPRE el último del
 -- fichero: retira el permiso de ejecución de toda función `security definer`,
 -- incluidas las que se añadan por debajo de aquí. Nada de esto se pierde para

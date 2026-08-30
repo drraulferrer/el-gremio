@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest'
+import { readFileSync } from 'node:fs'
 import { SUPUESTOS, xpPorDia, monedasPorDia, precioObjetivo } from '../src/lib/economia'
 import { xpForLevel, levelFromXp } from '../src/lib/supabase'
 
@@ -22,24 +23,52 @@ import { xpForLevel, levelFromXp } from '../src/lib/supabase'
 //   · cada llave siguiente cuesta bastante más que la anterior, y no de
 //     forma lineal.
 //
-// LOS TRES NÚMEROS, aprobados el 29-ago-2026 tras ejecutar la
-// calibración contra los valores reales del repositorio. Viven aquí de
-// momento a propósito: cuando exista la configuración versionada que
-// pide R-66 (fase 3 del plan), el test los leerá de ahí y este bloque
-// desaparece. Escribirlos ahora en un módulo nuevo crearía una segunda
-// fuente de verdad, que es justo lo que R-16 prohíbe.
+// DE DÓNDE SALEN LOS NÚMEROS, desde la migración 050.
+//
+// Estaban escritos aquí desde el 29-ago-2026, y con una nota que decía
+// que se mudarían en cuanto existiera la configuración versionada que
+// pide R-66. Ya existe: viven en `configuracion_expansion` y en
+// `escalones_expansion`, que es donde el servidor puede leerlos al
+// cobrar una llave (CFG-2). Este fichero los lee de la semilla de esa
+// migración, y por eso siguen siendo UNA sola fuente (CFG-1): si alguien
+// publica una versión con otros números y descoloca el hito, aquí se ve.
+//
+// Se lee el SQL como texto, igual que en `configuracion.test.js`. Lo que
+// este fichero defiende no es que los números estén escritos, sino que
+// el hito que producen siga cayendo donde se prometió.
 // ------------------------------------------------------------------
 
-const HITOS = [6, 8, 10, 12]
-const COSTE_BASE = 300
-const FACTOR = 2.5
+const semilla = readFileSync(
+  new URL('../migracion-050-las-reglas-dejan-de-ser-constantes.sql', import.meta.url),
+  'utf8'
+)
+
+/** Los escalones sembrados: `(v_version, orden, nivel_exigido, coste)`. */
+const ESCALA = [
+  ...semilla
+    .slice(semilla.indexOf('insert into public.escalones_expansion'))
+    .matchAll(/\(v_version,\s*(\d+),\s*(\d+),\s*(\d+)\)/g)
+].map(([, orden, nivel, coste]) => ({ orden: +orden, nivel: +nivel, coste: +coste }))
+
+const HITOS = ESCALA.map((e) => e.nivel)
+const COSTE_BASE = ESCALA[0].coste
 
 /** Días que tarda un rol en alcanzar un nivel con la economía estándar. */
 function diaDeNivel(nivel, rol = 'adulto') {
   return xpForLevel(nivel) / xpPorDia(rol)
 }
 
-const costeDe = (k) => COSTE_BASE * Math.pow(FACTOR, k - 1)
+/** El coste del escalón k, tal cual está guardado. No se recalcula: CFG-1. */
+const costeDe = (k) => ESCALA[k - 1].coste
+
+describe('los números salen de la configuración, no de aquí', () => {
+  it('la escala sembrada tiene cuatro escalones', () => {
+    // Si el parseo fallara, `ESCALA` saldría vacía y todo lo de abajo
+    // pasaría por comparar `undefined` con `undefined`. Esto lo caza.
+    expect(ESCALA).toHaveLength(4)
+    expect(ESCALA.map((e) => e.orden)).toEqual([1, 2, 3, 4])
+  })
+})
 
 describe('el primer hito cae hacia la mitad de la primera temporada', () => {
   const mitad = SUPUESTOS.cadenciaMeta / 2
@@ -117,7 +146,10 @@ describe('la escala crece, y no en línea recta', () => {
   })
 
   it('los costes son múltiplos de cinco, como el resto de la tienda', () => {
-    for (let k = 1; k <= 3; k++) expect(costeDe(k) % 5).toBe(0)
+    // Antes solo se comprobaban los tres primeros, porque el cuarto salía
+    // 4687,5 de la fórmula. Ahora el coste es un entero guardado y la
+    // configuración lo redondea al múltiplo de cinco: se comprueban los cuatro.
+    for (let k = 1; k <= ESCALA.length; k++) expect(costeDe(k) % 5).toBe(0)
   })
 })
 
