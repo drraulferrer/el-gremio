@@ -18,6 +18,35 @@ verdad duele en esta app: que el esquema y el cliente dejen de encajar.
 
 ---
 
+## 2.33.4 · 30 de agosto de 2026
+
+**Tres mensajes que hoy no puede leer nadie.** Es lo único que cambia en la
+app: el resto del trabajo de hoy —siete migraciones, de la 044 a la 050— vive
+entero en el servidor y ya estaba aplicado.
+
+Los tres explican situaciones que la base ya sabe distinguir y la pantalla
+todavía no: que los Talis de un personaje están ahora en la cartera de su
+persona, que no se puede borrar la clave de la casa si dentro vive alguien con
+cuenta propia, y que una identidad personal se borra desde otro sitio. Ninguna
+puede ocurrir hoy —hace falta haberse convertido en persona, y aún no hay por
+dónde—, pero el mensaje genérico que había («no se ha podido borrar la cuenta»)
+no le diría a nadie qué hacer el día que aparezcan.
+
+Se publica ahora, y no cuando exista la conversión, por una razón sencilla:
+así el cliente que corre en los móviles y el esquema que hay en la base dejan
+de estar desalineados, aunque nadie note la diferencia.
+
+Detrás, ya en producción y sin nada que desplegar:
+
+- **044 · 045** · el aislamiento deja de ser «este gremio es de mi cuenta» y
+  pasa a ser «pertenezco a este gremio», con las dos clases de credencial.
+- **046** · el barrido de permisos de la 021 llevaba desde agosto cerrando
+  media puerta: quitaba `anon` pero no PUBLIC, del que `anon` hereda.
+- **047 · 048 · 049** · convertirse en persona, migrar el correo compartido de
+  la casa, y borrar la identidad sin llevarse el gremio por delante.
+- **050** · las reglas de la expansión dejan de ser constantes en `src/lib` y
+  pasan a una configuración versionada que el servidor puede leer.
+
 ## 2.33.3 · 30 de agosto de 2026
 
 **El doble clic deja de cobrar dos veces.** Hasta hoy, pulsar dos veces
