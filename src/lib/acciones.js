@@ -10,6 +10,45 @@
 import { supabase, operacion } from './supabase'
 import { log, nuevoRequestId } from './log'
 
+// ------------------------------------------------------------------
+// La clave que evita cobrar dos veces.
+//
+// El servidor guarda un asiento por clave y, si la clave ya existe, devuelve
+// el resultado de la primera sin volver a mover nada (migraciones 042 y 043).
+// Para que eso proteja de un doble clic, las DOS peticiones tienen que
+// llevar la MISMA clave, asi que no vale un identificador nuevo por llamada:
+// se deriva de la intencion —que premio, para quien— mas una ventana de
+// tiempo.
+//
+// LA VENTANA, y su pega, que conviene conocer: dentro de esos diez segundos,
+// dos intentos identicos se consideran el mismo. Eso es lo que se busca con
+// un doble clic o con un reintento tras una respuesta perdida. Pero si
+// alguien canjea a proposito el mismo premio dos veces seguidas en menos de
+// diez segundos, la segunda devuelve `ok` sin cobrar. Es raro y se arregla
+// esperando un momento; a cambio, el caso comun queda cubierto sin pedirle
+// al resto de la aplicacion que lleve la cuenta de nada.
+//
+// Diez segundos y no mas: cuanto mas ancha la ventana, mas probable el falso
+// positivo. Cuanto mas estrecha, menos reintentos cubre.
+// ------------------------------------------------------------------
+
+export const VENTANA_CLAVE_MS = 10_000
+
+/** Huella corta y estable de un texto. No es seguridad: es para distinguir. */
+export function huella(texto = '') {
+  let h = 5381
+  for (let i = 0; i < String(texto).length; i++) h = ((h << 5) + h + String(texto).charCodeAt(i)) | 0
+  return (h >>> 0).toString(36)
+}
+
+/**
+ * La clave de una intencion. `ahora` es un parametro para que los tests no
+ * dependan de caer o no en el mismo lado de una ventana.
+ */
+export function claveDe(partes, ahora = Date.now()) {
+  return [...partes, Math.floor(ahora / VENTANA_CLAVE_MS)].join(':').slice(0, 120)
+}
+
 /** Pide una misión: queda pendiente de validación. */
 export async function pedirMision({ family, profile, reto }) {
   const requestId = nuevoRequestId()
@@ -300,7 +339,11 @@ export async function canjearPremio({ premio, profile }) {
   const requestId = nuevoRequestId()
   const { data, error, mensaje } = await operacion(
     'premio.canje.error',
-    () => supabase.rpc('redeem_reward', { rw_id: premio.id, p_id: profile.id }),
+    () => supabase.rpc('redeem_reward', {
+      rw_id: premio.id,
+      p_id: profile.id,
+      p_clave: claveDe(['canje', premio.id, profile.id])
+    }),
     { request_id: requestId, reward_id: premio.id }
   )
 
@@ -342,7 +385,10 @@ export async function premioAMano({ profileId, monedas, motivo, otorgadoPor }) {
         p_id: profileId,
         p_coins: Number(monedas),
         p_motivo: motivo,
-        p_otorgado_por: otorgadoPor
+        p_otorgado_por: otorgadoPor,
+        // El motivo entra en la clave: dos premios a mano de la misma
+        // cantidad y distinta razon son dos cosas distintas.
+        p_clave: claveDe(['manual', profileId, Number(monedas), huella(motivo)])
       }),
     { request_id: requestId, profile_id: profileId, monedas: Number(monedas) }
   )
