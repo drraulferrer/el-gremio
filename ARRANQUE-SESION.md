@@ -2,7 +2,14 @@
 
 Documento de continuidad. Si abres una sesión nueva sobre este proyecto,
 lee esto primero: dice dónde está todo, qué está hecho, qué falta y qué
-trampas tiene. Última actualización: **30 de agosto de 2026**, al cierre de la
+trampas tiene.
+
+> **Y si solo vas a leer una línea antes de ponerte:** la **Fase 4 está
+> cerrada**. La migración 055 (§7bm, el país de operación) está ejecutada y
+> ensayada, y `families.pais` existe, nulo para los cuatro gremios. Lo
+> siguiente es la **Fase 5**.
+
+Última actualización: **30 de agosto de 2026**, al cierre de la
 sesión de **recuperación ante desastres y terreno firme** (§7bb): migraciones
 **041, 042 y 043 ejecutadas** y **2.33.3 publicada y comprobada**. Esa sesión
 descubrió que **la restauración de un respaldo nunca había funcionado** y
@@ -5701,6 +5708,113 @@ capacidades), `adulto/CAP-09` = `pin`, `peque/CAP-09` = `no`, `adulto/CAP-13`
 gasto—, `adulto/CAP-17` (convertirse) = `si`, y `no` para: sin personaje, gremio
 ajeno y capacidad inventada.
 
+## 7bm. El país se declara, nunca se deduce (30 de agosto) · SIN VERSIÓN · migración 055
+
+**Migración 055 EJECUTADA y ensayada.** Es la pieza **4.4**, y con ella **la
+Fase 4 queda cerrada**. Solo toca el servidor, así que la app sigue en la
+2.33.6.
+
+### Qué había, y qué faltaba
+
+La matriz tipo × país × estado existe desde la 050 y `tipo_publicado()` la
+contesta. Lo que no había era **el país**: la matriz sabía responder «qué tipos
+hay publicados en ES» y no había manera de saber si un gremio opera en ES.
+
+Por eso `tipo_publicado()` se dejó sin conceder a `authenticated`: el país es un
+parámetro suyo, y un cliente no declara en qué país está para desbloquear un
+tipo (`R-108`, `SEC-29`). Quien la llame tiene que ser una función del servidor
+que sepa de dónde sacar el país de verdad. Esa función ya existe, y el país de
+verdad es `families.pais`.
+
+### La tentación era `timezone`
+
+La columna está ahí desde la 018, dice `Europe/Madrid` para los cuatro gremios
+que existen, y sacar `'ES'` de ahí es **una línea**. Sería un país inventado por
+el servidor con apariencia de dato declarado, y el día que alguien opere desde
+Madrid para un gremio de otra jurisdicción, esa línea habría decidido su régimen
+legal sola. Un test lo prohíbe explícitamente: ninguna de las cinco funciones
+nuevas puede nombrar `timezone`.
+
+La columna nace **nula para todos**, y nula quiere decir «sin declarar», que es
+la verdad. Mismo criterio que `legal_version` en la 022.
+
+### Y no se bloquea a nadie
+
+Sin `not null`, sin valor por defecto, y **ninguna función viva empieza a exigir
+un país**. `exige_pais()` existe y hoy no la llama nadie —igual que
+`exige_persona()` en la 044 existió antes que su primer uso—, y hay un test que
+cuenta sus llamadas dentro de los cuerpos de función: si alguien la enchufa sin
+darse cuenta, la prueba cae. Se le pedirá el país al gremio la primera vez que
+intente algo que dependa de él, y eso es la Fase 5.
+
+### Tres respuestas, porque «sin país» no es «no»
+
+`disponibilidad_de_tipo(gremio, tipo)` devuelve `'si'`, `'no'` o **`'sin_pais'`**.
+El tercero es `R-117` entero: es lo único que dispara la pregunta. Quien lo trate
+como un `'no'` estaría bloqueando un gremio por no haber declarado, que es justo
+lo que la regla prohíbe.
+
+Y fíjate en lo que la función **no** tiene: un parámetro `pais`. Recibe el gremio
+y el país lo saca ella de la base. Eso es `R-108` escrito en la firma, y es la
+razón de que esta sí se pueda conceder a `authenticated`.
+
+### El `update` a mano también cierra
+
+La comprobación de capacidad habría sido decorativa. La política `familia_owner`
+es `for all`, así que la cuenta del gremio escribe en `families` por la API y se
+pondría el país sin pasar por `CAP-04`. El disparador exige un pestillo de
+transacción —`set_config('app.declarando_pais', …, true)`, el mismo mecanismo que
+`motivo_coins` desde la 043— **con el id del gremio dentro**: un pestillo abierto
+para A no abre B. Es la lección de la 054 aplicada aquí: si la única guarda está
+en una función que se puede rodear, no es una guarda.
+
+### `CAP-04`, y no una capacidad nueva
+
+Declarar el país es cambiar un ajuste del gremio. Inventar `CAP-18` tendría
+además un efecto que solo se ve leyendo la 054: **lo que no está declarado no
+está permitido**, así que ninguna plantilla ya publicada la tendría y la
+declaración habría sido imposible para todo el mundo. `CAP-04` reparte hoy `pin`
+a titular, gestor y adulto: el perfil adulto con el PIN y la persona con
+administración de `R-117`, palabra por palabra.
+
+### Declarar dos veces
+
+El mismo país devuelve `ok` —un doble clic no es un error—. Uno **distinto** se
+ignora, no cambia nada y el intento se anota en `app_logs` como aviso (`E-12.6`).
+El apunte permanente —quién declaró, cuándo y qué— vive en `families` y no
+caduca; `app_logs` es para lo que hay que mirar, no para lo que hay que guardar
+siempre.
+
+### Cómo se comprobó
+
+Respaldo (`respaldo-2026-08-30-190109`). `npm run verify`: **1375 tests en 78
+ficheros**.
+
+Contra la base: **4 gremios, los 4 sin declarar** —que es lo correcto, porque
+esta migración no declara el país de nadie—, las cinco funciones creadas, el
+disparador puesto, y los permisos exactos: las cuatro públicas concedidas a
+`authenticated` y no a `anon` ni a PUBLIC, el disparador a nadie, y
+`tipo_publicado()` **sigue sin `authenticated`**, que es lo que la 050 dejó
+dicho.
+
+Y el ensayo —once comprobaciones en un bloque que termina en
+`raise exception 'ENSAYO…'` y lo deshace todo—:
+
+| | |
+|---|---|
+| `update` a mano | rechazado |
+| pestillo de **otro** gremio | rechazado · un pestillo abierto para A no abre B |
+| por la puerta | declarado = `ES` |
+| cambiarlo después | rechazado |
+| retirarlo | rechazado |
+| reescribir el apunte | rechazado |
+| **renombrar el gremio** | sigue funcionando |
+| `hogar/ES` · `equipo/ES` · `hogar/FR` | `true` · `false` · `false` |
+| `declarar_pais()` desde el SQL Editor | `sin_sesion` |
+
+Después del ensayo los cuatro gremios seguían sin país y `app_logs` sin ningún
+`pais_ya_declarado`: no quedó nada detrás.
+
 ---
 
 # CÓMO ARRANCAR LA SIGUIENTE SESIÓN
@@ -5711,10 +5825,10 @@ ajeno y capacidad inventada.
 
 | | |
 |---|---|
-| Repositorio | `~/el-gremio`, rama `main`, limpio y sincronizado |
+| Repositorio | `~/el-gremio`, rama `main` |
 | Versión desplegada | **2.33.6** · `npm run health` en verde, supabase 17.6 |
-| Migraciones aplicadas | hasta la **054**. La siguiente libre es la **055** |
-| Tests | 1349 en 77 ficheros |
+| Migraciones aplicadas | hasta la **055**. La siguiente libre es la **056** |
+| Tests | 1375 en 78 ficheros |
 | Plan y especificación | `~/Library/Mobile Documents/com~apple~CloudDocs/ClaudeCode/specs/` |
 
 **Lo primero, siempre:** `git fetch` antes de elegir número de migración o de
@@ -5728,7 +5842,7 @@ versión. Hoy no ha hecho falta, pero el 30-ago por la mañana ya pasó una vez.
 | 1 · Terreno firme | ✅ cerrada | 041-043 |
 | 2 · Identidad y pertenencia | ✅ **cerrada** | 044, 045, 047, 048, 049 |
 | 3 · Configuración y cartera | ✅ **cerrada** | 050, 051, 052 |
-| 4 · El tipo como plantilla | ◐ **4.1, 4.2 y 4.3 hechas** | 053, 054 |
+| 4 · El tipo como plantilla | ✅ **cerrada** | 053, 054, 055 |
 | 5 en adelante | ☐ sin empezar | — |
 
 Y de propina, la **046**: el barrido de permisos que la 021 dejó escrito llevaba
@@ -5737,20 +5851,25 @@ que `anon` hereda.
 
 ## Por dónde seguir
 
-**La 4.4 · país de operación**, que es lo único que le falta a la Fase 4:
+**La Fase 5** (hitos y llaves), que es la primera que trae **pantalla** y el
+primer motivo real para convertirse en persona.
 
-- La matriz tipo × país × estado **ya existe** desde la 050
-  (`disponibilidad_tipos`, `tipo_publicado()`). Lo que falta es `families.pais`
-  y la ruta de declaración tardía.
-- **Ningún gremio recibe un país por inferencia.** Ni por idioma, ni por zona
-  horaria, ni por IP, ni por correo, ni por dispositivo. A los que ya existen se
-  les pregunta **la primera vez que intenten algo que dependa de ello**, y hasta
-  entonces no se les bloquea nada.
-- La puede declarar un perfil adulto con el PIN, no solo una identidad
-  personal: los gremios que existen hoy pueden no tener ninguna dentro.
+Y es también la primera que tendrá algo que **depende del país**: forjar. Ahí es
+donde `exige_pais()` deja de estar sin uso, y donde hay que acordarse de que
+`'sin_pais'` **no es un `'no'`**: es la señal de pedir el país, no de denegar.
+Un gremio que no ha declarado no puede quedarse sin poder forjar por silencio;
+tiene que ver la pregunta.
 
-Después, la **Fase 5** (hitos y llaves), que es la primera que trae **pantalla**
-y el primer motivo real para convertirse en persona.
+Lo que la 055 dejó puesto, para no tener que leerla entera: `families.pais` nulo
+para los cuatro gremios y nunca inferido, `declarar_pais()` por `CAP-04` —el
+perfil adulto con el PIN, que es lo único que hay en los gremios de hoy—,
+`pais_de_gremio()` para que la pantalla sepa si tiene que preguntar,
+`disponibilidad_de_tipo()` que resuelve la matriz **sin recibir un país como
+parámetro**, y `exige_pais()`, que hoy no la llama nadie.
+
+Falta también, y es de la Fase 5 o de la 6: **la pantalla que pregunta el
+país**. Hoy el servidor sabe contestar «hay que preguntar» y no hay nadie que
+pregunte.
 
 ## Lo que sigue abierto, y no es de ninguna fase
 
