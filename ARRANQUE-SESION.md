@@ -6463,6 +6463,89 @@ demo no implementa `mis_pertenencias`, así que no había forma de provocarlo ah
 
 ---
 
+## 7bu. Reclamar un perfil que ya era tuyo (31 de agosto) · SIN VERSIÓN · migración 059
+
+**Migración 059 EJECUTADA y ensayada.** Es la **7.1** de la Fase 7 (`F-11`,
+`R-81`). Falta la **7.2**: desactivar y volver a crear la credencial
+compartida. Solo toca el servidor, así que la app sigue en la 2.38.0.
+
+### El caso que faltaba
+
+Alguien que **ya es persona** en el gremio A y que además lleva meses siendo un
+perfil interno del gremio B. No tiene que empezar de cero ni pagar una llave
+por algo que ya era suyo: el perfil, su historial y su relación con el gremio
+**existían antes** de que activara su identidad.
+
+### No cuesta llave, pero ocupa plaza
+
+Las dos mitades tiran en direcciones distintas y las dos importan (`R-86`,
+`D-28`):
+
+- **No cuesta llave** porque no se crea una relación nueva, se formaliza una
+  que ya existía. Cobrarla sería cobrar por la historia que esa persona ya
+  tenía.
+- **Ocupa plaza** porque el límite mide *gremios a los que se pertenece de
+  forma activa*, no la vía por la que se llegó. Si no ocupara, hacerse perfil
+  interno de cinco gremios y reclamarlos sería **la manera de saltarse la
+  progresión, las llaves y el coste de expansión enteros**.
+
+Y el límite se comprueba **dentro de la transacción que aprueba**, no en la que
+pide: entre una cosa y otra pueden pasar días.
+
+### Dos pasos, porque lo aprueba el destino
+
+Sin la aprobación del gremio de destino, cualquiera con el identificador de un
+perfil podría apropiárselo — y ese identificador viaja en cuanto alguien lo
+pega en un chat. En el ensayo se ve: Ana pide, y cuando intenta aprobarse a sí
+misma recibe `no_es_tuyo`.
+
+### La respuesta no delata (`SEC-9`)
+
+`solicitar_reclamacion` devuelve **el mismo código** cuando el perfil no existe
+y cuando existe pero no se puede reclamar. Distinguirlos la convertiría en un
+detector de perfiles: se prueban identificadores hasta que uno responde
+distinto, y eso dice quién está en qué gremio. Comprobado con un uuid
+inventado: `no_reclamable`, igual que un perfil real no reclamable.
+
+Y «ya la ha pedido alguien» tampoco distingue de quién.
+
+### Dos aprobaciones a la vez
+
+`E-11.4`. El perfil se bloquea con `for update` **antes** de mirarlo: la
+segunda espera, y cuando entra ve `persona` puesta y devuelve `ya_reclamado`.
+Sin ese cerrojo las dos leerían `persona is null` y las dos escribirían.
+
+### Los juniors no, todavía
+
+`R-81` exige autorización adulta concreta (`R-57`) para un perfil junior, y eso
+es la Fase 8a, bloqueada por su revisión jurídica. Se rechaza con su propio
+código en vez de colarlo: **un permiso que no existe no se da por supuesto**.
+
+### Cómo se comprobó
+
+Respaldo (`respaldo-2026-08-31-003734`). `npm run verify`: **1535 tests en 85
+ficheros**.
+
+Y el ensayo de punta a punta, deshecho al terminar:
+
+| | |
+|---|---|
+| con la clave compartida | `exige_identidad_personal` |
+| uuid inventado | `no_reclamable` · igual que uno real no reclamable |
+| pedir · pedir otra vez | `ok` · `ya_solicitada` |
+| **Ana intenta aprobarse** | `no_es_tuyo` |
+| la administración aprueba | `ok` |
+| resultado | 1 pertenencia, origen `reclamacion`, **0 llaves gastadas** |
+| el saldo local | cartera = **77**, el que tenía el personaje, y **1** asiento de conversión |
+| la XP del personaje | intacta |
+| aprobar por segunda vez | `ya_resuelta` |
+
+Después: 0 reclamaciones, 0 pertenencias, 0 conversiones, ninguna cuenta de
+ensayo y **cero descuadres**.
+
+
+---
+
 # CÓMO ARRANCAR LA SIGUIENTE SESIÓN
 
 **Estado al cerrar el 30-ago-2026, por la noche.**
@@ -6473,8 +6556,8 @@ demo no implementa `mis_pertenencias`, así que no había forma de provocarlo ah
 |---|---|
 | Repositorio | `~/el-gremio`, rama `main` |
 | Versión desplegada | **2.38.0** · `npm run health` en verde · `1b07853`, supabase 17.6 |
-| Migraciones aplicadas | hasta la **058**. La siguiente libre es la **059** |
-| Tests | 1516 en 84 ficheros |
+| Migraciones aplicadas | hasta la **059**. La siguiente libre es la **060** |
+| Tests | 1535 en 85 ficheros |
 | Plan y especificación | `~/Library/Mobile Documents/com~apple~CloudDocs/ClaudeCode/specs/` |
 
 **Lo primero, siempre:** `git fetch` antes de elegir número de migración o de
@@ -6491,7 +6574,8 @@ versión. Hoy no ha hecho falta, pero el 30-ago por la mañana ya pasó una vez.
 | 4 · El tipo como plantilla | ✅ **cerrada** | 053, 054, 055 |
 | 5 · Hitos y llaves | ✅ **cerrada** | 056 |
 | 6 · Gremios múltiples | ✅ **cerrada** | 057, 058 |
-| 7 en adelante | ☐ sin empezar | — |
+| 7 · Reclamación y credenciales | ◐ **7.1 hecha** · falta la 7.2 | 059 |
+| 8 en adelante | ☐ sin empezar | — |
 
 Y de propina, la **046**: el barrido de permisos que la 021 dejó escrito llevaba
 desde agosto cerrando media puerta, porque quitaba `anon` pero no PUBLIC, del
