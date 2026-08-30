@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { supabase, hashPin, mensajeDeError } from '../lib/supabase'
+import ClaveComun from './ClaveComun'
 import { validarPin, PIN_MINIMO, PIN_MAXIMO } from '../lib/pin'
 import { log } from '../lib/log'
 
@@ -120,6 +121,11 @@ export default function Seguridad({ family, onCambiado }) {
           servidor, no contra una copia local.
         </p>
       </div>
+      {/* Va en la sección del PIN porque es lo mismo: cómo se entra en este
+          gremio. El PIN protege el panel; la clave común abre la casa entera,
+          y quitarla es la decisión mayor de las dos. */}
+      <ClaveComun family={family} />
+
     </div>
   )
 }

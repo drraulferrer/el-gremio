@@ -2,9 +2,10 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import {
   leerInvitacionesDelGremio, invitar, revocarInvitacion,
-  leerPersonasDelGremio, expulsarDeGremio
+  leerPersonasDelGremio, expulsarDeGremio,
+  leerReclamacionesDelGremio, aprobarReclamacion, rechazarReclamacion
 } from '../lib/acciones'
-import { mensajeDeInvitar } from '../lib/expansion'
+import { mensajeDeInvitar, mensajeDeAprobar } from '../lib/expansion'
 import { leerPerfil } from '../lib/gremios'
 
 // ------------------------------------------------------------------
@@ -25,6 +26,7 @@ import { leerPerfil } from '../lib/gremios'
 export default function GenteDeFuera({ family, data, refresh }) {
   const [invitaciones, setInvitaciones] = useState([])
   const [personas, setPersonas] = useState([])
+  const [reclamaciones, setReclamaciones] = useState([])
   const [correo, setCorreo] = useState('')
   const [aviso, setAviso] = useState('')
   const [ocupado, setOcupado] = useState(false)
@@ -36,13 +38,15 @@ export default function GenteDeFuera({ family, data, refresh }) {
   const quien = leerPerfil(family?.id)
 
   async function cargar() {
-    const [i, p, sesion] = await Promise.all([
+    const [i, p, rec, sesion] = await Promise.all([
       leerInvitacionesDelGremio(family.id),
       leerPersonasDelGremio(family.id),
+      leerReclamacionesDelGremio(family.id),
       supabase.auth.getUser()
     ])
     setInvitaciones(i)
     setPersonas(p)
+    setReclamaciones(rec)
     setYo(sesion?.data?.user?.id || null)
   }
 
@@ -76,6 +80,21 @@ export default function GenteDeFuera({ family, data, refresh }) {
   }
 
   const pendientes = invitaciones.filter((i) => i.estado === 'pendiente')
+  const porAprobar = reclamaciones.filter((r) => r.estado === 'pendiente')
+
+  async function aprobar(id) {
+    setAviso('')
+    const codigo = await aprobarReclamacion(id, quien)
+    const mensaje = mensajeDeAprobar(codigo)
+    if (mensaje) setAviso(mensaje)
+    cargar()
+    refresh?.()
+  }
+
+  async function rechazarRec(id) {
+    await rechazarReclamacion(id, quien)
+    cargar()
+  }
 
   if (!abriendo) {
     return (
@@ -128,6 +147,35 @@ export default function GenteDeFuera({ family, data, refresh }) {
                 <button className="btn btn-mini btn-fantasma" onClick={() => revocar(i.id)}>
                   Retirar
                 </button>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+
+      {/* Reclamaciones: alguien que YA tiene identidad y que además es un
+          perfil de esta casa. No es lo mismo que una invitación —esa persona
+          ya estaba aquí— y por eso se aprueba en vez de invitarse. */}
+      {porAprobar.length > 0 && (
+        <>
+          <h4 style={{ marginTop: 16 }}>Quieren reclamar su personaje</h4>
+          <p className="suave">
+            Ya tienen identidad propia y dicen que este personaje es suyo. Si lo apruebas,
+            entran en el gremio con él: conserva su nivel, su historial y sus Talis.
+          </p>
+          <ul className="lista-invitaciones">
+            {porAprobar.map((r) => (
+              <li key={r.id}>
+                <span>
+                  <strong>{r.personaje_nombre}</strong>
+                  <span className="chip">{r.correo}</span>
+                </span>
+                <div className="fila-botones">
+                  <button className="btn btn-mini" onClick={() => aprobar(r.id)}>Aprobar</button>
+                  <button className="btn btn-mini btn-fantasma" onClick={() => rechazarRec(r.id)}>
+                    No
+                  </button>
+                </div>
               </li>
             ))}
           </ul>

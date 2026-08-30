@@ -226,3 +226,97 @@ export function mensajeDeInvitar(codigo) {
 export function aceptables(invitaciones = []) {
   return invitaciones.filter((i) => i.estado === 'pendiente')
 }
+
+// ------------------------------------------------------------------
+// Fase 7: reclamar un perfil, y la credencial compartida.
+// ------------------------------------------------------------------
+
+export const RESPUESTAS_RECLAMAR = {
+  ok: null,
+  sin_sesion: 'Se ha cerrado la sesión. Vuelve a entrar.',
+  exige_identidad_personal: 'Para reclamar un personaje necesitas una identidad propia.',
+  // El mismo mensaje para «no existe» y para «existe y no se puede», porque
+  // el servidor devuelve el mismo código a propósito (`SEC-9`). Escribir dos
+  // frases distintas aquí desharía en el cliente lo que allí se cuidó.
+  no_reclamable: 'Ese identificador no sirve para reclamar ningún personaje.',
+  junior_bloqueado: 'Los personajes de menores todavía no se pueden reclamar.',
+  ya_tienes_personaje: 'Ya tienes un personaje en ese gremio.',
+  ya_estas_dentro: 'Ya perteneces a ese gremio.',
+  ya_solicitada: 'Ya hay una solicitud en marcha para ese personaje.',
+  sin_configuracion: 'No se ha podido preparar la solicitud. Inténtalo dentro de un rato.'
+}
+
+export function mensajeDeReclamar(codigo) {
+  return codigo in RESPUESTAS_RECLAMAR
+    ? RESPUESTAS_RECLAMAR[codigo]
+    : 'No se ha podido pedir. Inténtalo dentro de un rato.'
+}
+
+export const RESPUESTAS_APROBAR = {
+  ok: null,
+  sin_sesion: 'Se ha cerrado la sesión. Vuelve a entrar.',
+  no_existe: 'Esa solicitud ya no existe.',
+  no_es_tuyo: 'Ese gremio no es tuyo.',
+  no_puede: 'No tienes permiso para aprobar esto.',
+  ya_resuelta: 'Esa solicitud ya estaba resuelta.',
+  caducada: 'La solicitud ha caducado. Que la vuelvan a pedir.',
+  perfil_no_disponible: 'Ese personaje ya no está disponible.',
+  ya_reclamado: 'Ese personaje ya tiene una identidad detrás.',
+  sin_configuracion: 'No se ha podido comprobar el límite. Inténtalo dentro de un rato.',
+  // Es de la persona que reclama, no de quien aprueba, y conviene decirlo:
+  // si no, la administración cree que el fallo es suyo.
+  en_el_limite: 'Esa persona está en su límite de gremios. No se puede aprobar hasta que deje uno.',
+  sin_cuenta: 'Esa persona ya no tiene cuenta.'
+}
+
+export function mensajeDeAprobar(codigo) {
+  return codigo in RESPUESTAS_APROBAR
+    ? RESPUESTAS_APROBAR[codigo]
+    : 'No se ha podido aprobar. Inténtalo dentro de un rato.'
+}
+
+/**
+ * Por qué no se puede quitar la clave compartida.
+ *
+ * Los motivos vienen del inventario del servidor, y cada uno se explica con
+ * la salida: decir solo «no se puede» deja a alguien atascado sin saber qué
+ * le falta.
+ */
+export const MOTIVOS_CREDENCIAL = {
+  no_es_tuyo: 'Este gremio no es tuyo.',
+  sin_persona_con_administracion:
+    'Hace falta al menos una persona con identidad propia que administre el gremio. ' +
+    'Sin ella, nadie podría entrar a gestionarlo.',
+  adultos_sin_identidad:
+    'Hay perfiles de personas adultas sin identidad propia. Si se quita la clave común, ' +
+    'se quedarían fuera: primero tienen que crearse la suya.',
+  nadie_para_operarlos:
+    'Quedan perfiles que no pueden tener identidad —peques, mascotas— y nadie con ' +
+    'identidad propia que se ocupe de ellos.'
+}
+
+export function motivoDeCredencial(codigo) {
+  return MOTIVOS_CREDENCIAL[codigo] || 'No se puede quitar todavía.'
+}
+
+export const RESPUESTAS_CREDENCIAL = {
+  ok: null,
+  sin_sesion: 'Se ha cerrado la sesión. Vuelve a entrar.',
+  exige_identidad_personal: 'Esto lo tiene que hacer una persona con su propia identidad.',
+  no_es_tuyo: 'Este gremio no es tuyo.',
+  no_puede: 'No tienes permiso para esto.',
+  ya_desactivada: 'Este gremio ya no tiene clave común.',
+  ya_hay_una: 'Este gremio ya tiene una clave común.',
+  cuenta_no_existe: 'No hay ninguna cuenta con ese correo. Créala antes y confirma el correo.',
+  correo_sin_confirmar: 'Esa cuenta todavía no ha confirmado su correo.',
+  cuenta_ya_clasificada: 'Ese correo ya se usa para otra cosa. La clave nueva tiene que ser una cuenta nueva.'
+}
+
+export function mensajeDeCredencial(codigo) {
+  if (typeof codigo === 'string' && codigo.startsWith('bloqueada:')) {
+    return motivoDeCredencial(codigo.slice('bloqueada:'.length))
+  }
+  return codigo in RESPUESTAS_CREDENCIAL
+    ? RESPUESTAS_CREDENCIAL[codigo]
+    : 'No se ha podido. Inténtalo dentro de un rato.'
+}

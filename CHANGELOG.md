@@ -18,6 +18,30 @@ verdad duele en esta app: que el esquema y el cliente dejen de encajar.
 
 ---
 
+## 2.39.0 · 31 de agosto de 2026
+
+**Reclamar un personaje que ya era tuyo.** Si en otro gremio hay un personaje
+que llevas usando y todavía no es de nadie, puedes pedir que sea tuyo desde la
+bandeja de invitaciones. No cuesta ninguna llave —ese personaje y su historia ya
+existían— pero sí ocupa una plaza de tu límite de gremios.
+
+Lo aprueba quien administra ese gremio, desde Miembros. Y conserva su nivel, su
+historial y sus Talis: no empieza de cero.
+
+No hay buscador ni sugerencias, a propósito: hace falta que alguien de dentro te
+dé el identificador. Nadie propone un personaje por parecido de nombre.
+
+**Quitar la clave común.** En ⚙️ → PIN. Cuando cada persona adulta del gremio
+tiene ya su identidad, esa clave sobra: es una llave de más debajo del felpudo.
+
+La pantalla enseña el inventario —quién tiene identidad, quién no, y quién se
+quedaría a cargo de las peques y las mascotas— y, si todavía no se puede, dice
+exactamente qué falta. Los perfiles que no pueden tener identidad no lo impiden,
+mientras quede una persona adulta que los opere.
+
+La contraseña anterior no se recupera nunca. Si algún día hace falta otra clave
+común, será una nueva.
+
 ## 2.38.0 · 31 de agosto de 2026
 
 **Se puede dejar un gremio.** En ⚙️ → Datos, justo encima de borrar la cuenta,

@@ -6634,6 +6634,55 @@ cuenta de ensayo y **cero descuadres**.
 
 ---
 
+## 7bw. Las pantallas de la Fase 7 (31 de agosto) · 2.39.0 · sin migración
+
+Reclamar un personaje y quitar la clave común. Sin migración: el servidor lo
+tenía todo desde la 059 y la 060.
+
+### Reclamar va en la bandeja, y sin buscador
+
+Va ahí porque es **la otra manera de entrar en un gremio**, y quien la necesita
+está pensando en eso mismo. La diferencia con una invitación: ahí te llaman;
+aquí eres tú quien dice «ese de ahí soy yo».
+
+**No hay buscador ni sugerencias** (`CNV-5`, `SEC-9`), y las dos razones se
+sostienen la una a la otra: nadie propone un personaje por parecido de nombre, y
+además **no se puede listar lo que hay en un gremio ajeno**, así que un buscador
+sería imposible de alimentar. Por eso el campo pide un identificador, que te da
+alguien de dentro.
+
+Y la frase de `no_reclamable` **no explica de más**: el servidor devuelve el
+mismo código para «no existe» y para «existe y no se puede», y escribir dos
+frases distintas aquí desharía en el cliente lo que allí se cuidó. Hay un test
+que lo vigila.
+
+### La clave común no suma por su cuenta
+
+El inventario que se pinta es **el mismo** que el servidor vuelve a calcular al
+desactivar (`R-88`). Si la pantalla contara por su cuenta podría enseñar un
+botón que el servidor va a rechazar.
+
+Y cuando no se puede —que es el caso de casi todo el mundo— **dice qué falta**,
+con la salida. Un «no se puede» a secas deja a alguien atascado. El servidor
+devuelve `bloqueada:<motivo>` justo para eso (`E-11.6`), y hay un test que
+comprueba que ese motivo no cae en el mensaje genérico: sería perder en el
+último paso el trabajo que se hizo en el primero.
+
+### Cómo se comprobó
+
+`npm run verify`: **1563 tests en 86 ficheros**. En `dev:demo`, la pantalla de
+reclamar entera.
+
+**Y una limitación que ya es un patrón:** la demo **no tiene capa de RPC**, así
+que ninguna pantalla de las Fases 5 a 7 se puede ver ahí funcionando. Todas las
+verificaciones de esas fases han sido «el caso negativo en pantalla, el positivo
+por tests». Cerrar ese hueco en `src/lib/fakeBackend.js` es probablemente el
+trabajo más rentable que queda: la demo es donde se prueba, y ahora mismo no
+prueba la mitad de la aplicación.
+
+
+---
+
 # CÓMO ARRANCAR LA SIGUIENTE SESIÓN
 
 **Estado al cerrar el 30-ago-2026, por la noche.**
@@ -6643,9 +6692,9 @@ cuenta de ensayo y **cero descuadres**.
 | | |
 |---|---|
 | Repositorio | `~/el-gremio`, rama `main` |
-| Versión desplegada | **2.38.0** · `npm run health` en verde · `1b07853`, supabase 17.6 |
+| Versión desplegada | **2.38.0** · la **2.39.0 está construida y sin publicar** |
 | Migraciones aplicadas | hasta la **060**. La siguiente libre es la **061** |
-| Tests | 1551 en 86 ficheros |
+| Tests | 1563 en 86 ficheros |
 | Plan y especificación | `~/Library/Mobile Documents/com~apple~CloudDocs/ClaudeCode/specs/` |
 
 **Lo primero, siempre:** `git fetch` antes de elegir número de migración o de
@@ -6662,7 +6711,7 @@ versión. Hoy no ha hecho falta, pero el 30-ago por la mañana ya pasó una vez.
 | 4 · El tipo como plantilla | ✅ **cerrada** | 053, 054, 055 |
 | 5 · Hitos y llaves | ✅ **cerrada** | 056 |
 | 6 · Gremios múltiples | ✅ **cerrada** | 057, 058 |
-| 7 · Reclamación y credenciales | ✅ **cerrada** (sin pantalla) | 059, 060 |
+| 7 · Reclamación y credenciales | ✅ **cerrada, con pantallas** | 059, 060 |
 | 8 en adelante | ☐ sin empezar | — |
 
 Y de propina, la **046**: el barrido de permisos que la 021 dejó escrito llevaba

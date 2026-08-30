@@ -7,6 +7,9 @@ import {
   RESPUESTAS_CREAR, mensajeDeCrear,
   RESPUESTAS_ACEPTAR, mensajeDeAceptar,
   RESPUESTAS_INVITAR, mensajeDeInvitar,
+  RESPUESTAS_RECLAMAR, mensajeDeReclamar,
+  RESPUESTAS_APROBAR, mensajeDeAprobar,
+  RESPUESTAS_CREDENCIAL, MOTIVOS_CREDENCIAL, mensajeDeCredencial,
   aceptables
 } from '../src/lib/expansion'
 
@@ -219,5 +222,125 @@ describe('gastar la llave y las invitaciones', () => {
       { id: '5', estado: 'pendiente' }
     ]
     expect(aceptables(invitaciones).map((i) => i.id)).toEqual(['1', '5'])
+  })
+})
+
+
+// ------------------------------------------------------------------
+// Fase 7: reclamar un perfil, y la credencial compartida.
+// ------------------------------------------------------------------
+
+/** La ÚLTIMA definición: la que queda viva al aplicar `schema.sql` entero. */
+function ultima(sql, nombre) {
+  const i = sql.lastIndexOf(`create or replace function public.${nombre}(`)
+  if (i < 0) return ''
+  const j = sql.indexOf('\nas $fn$', i)
+  const m = /\n(?:end )?\$fn\$;/.exec(sql.slice(j))
+  return sql.slice(i, j + m.index + m[0].length)
+}
+
+describe('las pantallas de la Fase 7 conocen lo que contesta el servidor', () => {
+  const PUERTAS = [
+    ['solicitar_reclamacion', RESPUESTAS_RECLAMAR],
+    ['aprobar_reclamacion', RESPUESTAS_APROBAR],
+    ['desactivar_credencial_compartida', RESPUESTAS_CREDENCIAL],
+    ['crear_credencial_compartida', RESPUESTAS_CREDENCIAL]
+  ]
+
+  it('cada código tiene su frase', () => {
+    for (const [nombre, tabla] of PUERTAS) {
+      const cuerpo = ultima(schema, nombre)
+      expect(cuerpo.length, `no se ha encontrado ${nombre}`).toBeGreaterThan(200)
+      const codigos = [...cuerpo.matchAll(/return '([a-z_]+)'/g)].map((m) => m[1])
+      expect(codigos.length, `${nombre} no devuelve códigos`).toBeGreaterThan(2)
+      for (const c of codigos) {
+        expect(tabla, `${nombre}: falta la frase de '${c}'`).toHaveProperty(c)
+      }
+    }
+  })
+
+  it('y cada motivo del inventario también', () => {
+    // Los motivos salen de `inventario_credencial` como texto suelto dentro
+    // de un array, así que se buscan por su forma.
+    const cuerpo = ultima(schema, 'inventario_credencial')
+    const motivos = [...cuerpo.matchAll(/jsonb_build_array\('([a-z_]+)'\)/g)].map((m) => m[1])
+    expect(motivos.length).toBeGreaterThan(2)
+    for (const m of motivos) {
+      expect(MOTIVOS_CREDENCIAL, `falta el motivo '${m}'`).toHaveProperty(m)
+    }
+  })
+
+  it('el «bloqueada:motivo» se traduce al motivo, no a un error genérico', () => {
+    // `desactivar_credencial_compartida` devuelve `bloqueada:<motivo>` para que
+    // la pantalla pueda decir QUÉ lo impide (`E-11.6`). Si eso cayera en el
+    // mensaje por defecto, el trabajo del servidor se perdería en el último paso.
+    expect(mensajeDeCredencial('bloqueada:adultos_sin_identidad')).toContain('se quedarían fuera')
+    expect(mensajeDeCredencial('bloqueada:sin_persona_con_administracion')).toContain('administre')
+  })
+
+  it('«no reclamable» no explica de más', () => {
+    // El servidor devuelve el mismo código para «no existe» y para «existe y
+    // no se puede» (`SEC-9`). Escribir dos frases distintas aquí desharía en
+    // el cliente lo que allí se cuidó.
+    const m = mensajeDeReclamar('no_reclamable')
+    expect(m).not.toMatch(/no existe|ya tiene|vinculad/i)
+  })
+
+  it('y «en el límite» al aprobar dice de QUIÉN es el límite', () => {
+    // Es de la persona que reclama, no de quien aprueba. Sin decirlo, la
+    // administración cree que el fallo es suyo.
+    expect(mensajeDeAprobar('en_el_limite')).toContain('Esa persona')
+  })
+
+  it('los `ok` callan', () => {
+    expect(mensajeDeReclamar('ok')).toBe(null)
+    expect(mensajeDeAprobar('ok')).toBe(null)
+    expect(mensajeDeCredencial('ok')).toBe(null)
+  })
+})
+
+/** Sin comentarios: si no, se busca en la explicación en vez de en el código. */
+const sinComentarios = (js) =>
+  js.split('\n').filter((l) => !l.trimStart().startsWith('//') && !l.trimStart().startsWith('*')).join('\n')
+
+describe('la pantalla de reclamar no sugiere nada', () => {
+  const pantalla = sinComentarios(
+    readFileSync(new URL('../src/screens/Invitaciones.jsx', import.meta.url), 'utf8')
+  )
+
+  it('pide un identificador, no un nombre', () => {
+    // `CNV-5`: nunca se propone un vínculo por parecido de nombre. Y no se
+    // puede listar lo que hay en un gremio ajeno, así que un buscador sería
+    // además imposible de alimentar.
+    expect(pantalla).toContain('Identificador del personaje')
+    expect(pantalla).not.toMatch(/buscar|sugerenc/i)
+  })
+
+  it('y dice lo que cuesta: nada de llave, pero una plaza', () => {
+    expect(pantalla).toContain('No cuesta ninguna')
+    expect(pantalla).toContain('ocupa una')
+  })
+})
+
+describe('la pantalla de la clave común', () => {
+  const pantalla = readFileSync(new URL('../src/screens/ClaveComun.jsx', import.meta.url), 'utf8')
+
+  it('no suma por su cuenta: pinta el inventario del servidor', () => {
+    // Si contara aquí, podría enseñar un botón que el servidor va a rechazar.
+    expect(pantalla).toContain('leerInventarioCredencial')
+    expect(pantalla).toContain('inv.adultos_con_identidad')
+    expect(pantalla).not.toMatch(/\.filter\(.*role === 'adulto'/)
+  })
+
+  it('el botón solo sale si el servidor dice que se puede', () => {
+    expect(pantalla).toContain('{inv.puede && !abierto && (')
+  })
+
+  it('y cuando no, explica el motivo con su salida', () => {
+    expect(pantalla).toContain('motivoDeCredencial((inv.motivos || [])[0])')
+  })
+
+  it('avisa de que la contraseña no se recupera', () => {
+    expect(pantalla).toContain('no se recupera')
   })
 })

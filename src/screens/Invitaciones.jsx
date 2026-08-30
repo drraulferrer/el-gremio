@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react'
 import { Modal } from '../components/ui'
-import { leerInvitaciones, leerLlaves, aceptarInvitacion, rechazarInvitacion } from '../lib/acciones'
-import { aceptables, llavesDisponibles, mensajeDeAceptar } from '../lib/expansion'
+import {
+  leerInvitaciones, leerLlaves, aceptarInvitacion, rechazarInvitacion,
+  solicitarReclamacion, leerMisReclamaciones
+} from '../lib/acciones'
+import { aceptables, llavesDisponibles, mensajeDeAceptar, mensajeDeReclamar } from '../lib/expansion'
 
 // ------------------------------------------------------------------
 // La bandeja de invitaciones.
@@ -27,6 +30,7 @@ const COMO_SE_LEE = {
 }
 
 export default function Invitaciones({ onClose, onIrAlGremio }) {
+  const [reclamaciones, setReclamaciones] = useState([])
   const [cargando, setCargando] = useState(true)
   const [invitaciones, setInvitaciones] = useState([])
   const [llaves, setLlaves] = useState([])
@@ -34,9 +38,12 @@ export default function Invitaciones({ onClose, onIrAlGremio }) {
   const [ocupada, setOcupada] = useState(null)
 
   async function cargar() {
-    const [i, l] = await Promise.all([leerInvitaciones(), leerLlaves()])
+    const [i, l, r] = await Promise.all([
+      leerInvitaciones(), leerLlaves(), leerMisReclamaciones()
+    ])
     setInvitaciones(i)
     setLlaves(l)
+    setReclamaciones(r)
     setCargando(false)
   }
 
@@ -124,6 +131,8 @@ export default function Invitaciones({ onClose, onIrAlGremio }) {
         })}
       </ul>
 
+      <Reclamar reclamaciones={reclamaciones} onHecho={cargar} />
+
       {pendientes.length > 0 && sinUsar.length === 0 && (
         <p className="suave">
           Para entrar en un gremio más hace falta una llave, salvo que sea el primero al
@@ -132,5 +141,97 @@ export default function Invitaciones({ onClose, onIrAlGremio }) {
         </p>
       )}
     </Modal>
+  )
+}
+
+/**
+ * Reclamar un personaje que ya era tuyo.
+ *
+ * Va en la bandeja porque es **la otra manera de entrar en un gremio**, y la
+ * persona que la necesita está pensando en eso mismo. La diferencia con una
+ * invitación: ahí te llaman; aquí eres tú quien dice «ese de ahí soy yo».
+ *
+ * NO HAY BUSCADOR NI SUGERENCIAS, y es deliberado (`CNV-5`, `SEC-9`). Nadie
+ * propone un personaje por parecido de nombre, y no se puede listar lo que hay
+ * en un gremio ajeno: el identificador te lo da alguien de dentro. Por eso el
+ * campo pide un identificador y no un nombre, y por eso el servidor responde
+ * lo mismo ante uno inventado que ante uno que existe y no se puede reclamar.
+ */
+function Reclamar({ reclamaciones, onHecho }) {
+  const [abierto, setAbierto] = useState(false)
+  const [id, setId] = useState('')
+  const [ocupado, setOcupado] = useState(false)
+  const [aviso, setAviso] = useState('')
+
+  const pendientes = reclamaciones.filter((r) => r.estado === 'pendiente')
+
+  async function pedir() {
+    setOcupado(true)
+    setAviso('')
+    const codigo = await solicitarReclamacion(id.trim())
+    setOcupado(false)
+    const mensaje = mensajeDeReclamar(codigo)
+    if (mensaje) return setAviso(mensaje)
+    setId('')
+    setAbierto(false)
+    onHecho?.()
+  }
+
+  return (
+    <div style={{ marginTop: 16 }}>
+      {pendientes.length > 0 && (
+        <>
+          <h4>Esperando aprobación</h4>
+          <ul className="lista-invitaciones">
+            {pendientes.map((r) => (
+              <li key={r.id}>
+                <span>
+                  <strong>{r.personaje}</strong>, en {r.gremio}
+                  <span className="chip">pendiente</span>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+
+      {!abierto && (
+        <button className="enlace-suave" onClick={() => setAbierto(true)}>
+          Ya tengo un personaje en otro gremio
+        </button>
+      )}
+
+      {abierto && (
+        <>
+          <h4>Reclamar un personaje</h4>
+          <p className="suave">
+            Si en otro gremio hay un personaje que llevas usando y todavía no está
+            vinculado a nadie, puedes pedir que sea tuyo. <strong>No cuesta ninguna
+            llave</strong>: ese personaje y su historia ya existían. Pero sí ocupa una
+            plaza de tu límite de gremios.
+          </p>
+          <p className="suave">
+            Pídele su identificador a alguien de ese gremio, y que después aprueben la
+            solicitud desde su panel.
+          </p>
+
+          <label className="campo">
+            <span>Identificador del personaje</span>
+            <input value={id} autoComplete="off" onChange={(e) => setId(e.target.value)} />
+          </label>
+
+          {aviso && <p className="aviso" role="alert">{aviso}</p>}
+
+          <div className="fila-botones">
+            <button className="btn" disabled={id.trim().length < 30 || ocupado} onClick={pedir}>
+              {ocupado ? 'Un momento…' : 'Pedirlo'}
+            </button>
+            <button className="btn btn-fantasma" onClick={() => { setAbierto(false); setAviso('') }}>
+              Cerrar
+            </button>
+          </div>
+        </>
+      )}
+    </div>
   )
 }

@@ -886,3 +886,97 @@ export async function abandonarGremio(familyId) {
   log.info('pertenencias.abandonar', { request_id: requestId, family_id: familyId, resultado: data })
   return data
 }
+
+// ------------------------------------------------------------------
+// Reclamar un perfil, y la credencial compartida (Fase 7).
+// ------------------------------------------------------------------
+
+export async function solicitarReclamacion(profileId) {
+  const requestId = nuevoRequestId()
+  const { data, error } = await supabase.rpc('solicitar_reclamacion', { p_profile: profileId })
+  if (error) {
+    log.error('reclamacion.solicitud.error', { request_id: requestId, detalle: String(error.message || error) })
+    return 'error'
+  }
+  log.info('reclamacion.solicitud', { request_id: requestId, resultado: data })
+  return data
+}
+
+export async function leerMisReclamaciones() {
+  const { data, error } = await supabase.rpc('mis_reclamaciones')
+  if (error) {
+    log.warn('reclamacion.mias.error', { detalle: String(error.message || error) })
+    return []
+  }
+  return data || []
+}
+
+export async function leerReclamacionesDelGremio(familyId) {
+  const { data, error } = await supabase.rpc('reclamaciones_del_gremio', { p_family: familyId })
+  if (error) {
+    log.warn('reclamacion.gremio.error', { detalle: String(error.message || error) })
+    return []
+  }
+  return data || []
+}
+
+export async function aprobarReclamacion(id, profileId) {
+  const requestId = nuevoRequestId()
+  const { data, error } = await supabase.rpc('aprobar_reclamacion', {
+    p_reclamacion: id, p_profile: profileId || null
+  })
+  if (error) {
+    log.error('reclamacion.aprobar.error', { request_id: requestId, detalle: String(error.message || error) })
+    return 'error'
+  }
+  log.info('reclamacion.aprobar', { request_id: requestId, resultado: data })
+  return data
+}
+
+export async function rechazarReclamacion(id, profileId) {
+  const { data, error } = await supabase.rpc('rechazar_reclamacion', {
+    p_reclamacion: id, p_profile: profileId || null
+  })
+  if (error) {
+    log.error('reclamacion.rechazar.error', { detalle: String(error.message || error) })
+    return 'error'
+  }
+  return data
+}
+
+/** El inventario de R-88, calculado entero en servidor. */
+export async function leerInventarioCredencial(familyId) {
+  const { data, error } = await supabase.rpc('inventario_credencial', { p_family: familyId })
+  if (error) {
+    log.warn('credencial.inventario.error', { detalle: String(error.message || error) })
+    return null
+  }
+  return data
+}
+
+export async function desactivarCredencialCompartida(familyId, profileId) {
+  const requestId = nuevoRequestId()
+  const { data, error } = await supabase.rpc('desactivar_credencial_compartida', {
+    p_family: familyId, p_profile: profileId || null
+  })
+  if (error) {
+    log.error('credencial.desactivar.error', { request_id: requestId, detalle: String(error.message || error) })
+    return 'error'
+  }
+  log.info('credencial.desactivar', { request_id: requestId, family_id: familyId, resultado: data })
+  return data
+}
+
+export async function crearCredencialCompartida(familyId, correo, profileId) {
+  const requestId = nuevoRequestId()
+  const { data, error } = await supabase.rpc('crear_credencial_compartida', {
+    p_family: familyId, p_correo: correo, p_profile: profileId || null
+  })
+  if (error) {
+    log.error('credencial.crear.error', { request_id: requestId, detalle: String(error.message || error) })
+    return 'error'
+  }
+  // El correo NO se registra, igual que en la conversion y en las invitaciones.
+  log.info('credencial.crear', { request_id: requestId, family_id: familyId, resultado: data })
+  return data
+}
