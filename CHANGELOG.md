@@ -18,6 +18,26 @@ verdad duele en esta app: que el esquema y el cliente dejen de encajar.
 
 ---
 
+## 2.33.5 · 30 de agosto de 2026
+
+**La tienda dice cuánto falta.** El premio que todavía no se puede pagar lleva
+ahora un «te faltan 30 Talis» al lado del precio, antes de pulsar. Decir solo
+«no tienes suficientes» obligaba a restar de cabeza para saber si era cuestión
+de una misión o de una semana.
+
+Y por debajo, un cambio que hoy no se nota y que evita una avería futura: la
+app pregunta al servidor **lo que cada personaje puede gastar de verdad**, en
+vez de mirar su columna de monedas. Los dos números son idénticos mientras
+nadie tenga identidad personal —o sea, hoy, para todo el mundo—, pero desde la
+migración 051 el saldo de quien se convierte vive en su cartera, y la tienda le
+habría enseñado cero Talis teniendo dinero. Va en el bloque que degrada solo:
+si esa consulta falla, el saldo vuelve a ser el de siempre.
+
+Detrás, ya en producción y sin nada que desplegar, las tres migraciones que
+cierran la Fase 3: **050** (las reglas de la expansión dejan de ser constantes
+y pasan a una configuración versionada), **051** (la cartera cobra y paga, y el
+libro de las monedas cuadra por primera vez) y **052** (esto).
+
 ## 2.33.4 · 30 de agosto de 2026
 
 **Tres mensajes que hoy no puede leer nadie.** Es lo único que cambia en la

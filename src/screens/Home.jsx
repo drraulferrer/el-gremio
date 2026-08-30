@@ -534,7 +534,15 @@ function Tienda({ data, profile, ocupado, onCanjear }) {
             <div className="avatar">{r.emoji}</div>
             <div className="crece">
               <strong>{r.title}</strong>
-              <div className="suave"><Talis n={r.cost} /></div>
+              <div className="suave">
+                <Talis n={r.cost} />
+                {/* Cuánto falta, y no solo que falta. «No tienes suficientes»
+                    obliga a restar de cabeza para saber si es cuestión de una
+                    misión o de una semana. */}
+                {profile.coins < r.cost && (
+                  <> · te faltan <Talis n={r.cost - profile.coins} /></>
+                )}
+              </div>
             </div>
             <button
               className="btn btn-mini"

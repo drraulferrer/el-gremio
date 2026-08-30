@@ -5450,3 +5450,86 @@ carteras y cero cuentas de ensayo.
 
 Solo la **3.3**: que el precio sea el del gremio donde se gasta. Hoy no cambia
 nada porque una persona tiene un gremio; empieza a importar en la Fase 6.
+
+## 7bj. El precio es el del gremio · LA FASE 3, CERRADA (30 de agosto) · 2.33.5 · migración 052
+
+**Migración 052 EJECUTADA.** Es la pieza **3.3**, la última de la Fase 3, y con
+ella **la fase queda cerrada**.
+
+### Lo primero: casi todo lo que pedía `R-53` ya pasaba
+
+«Los TALIS se gastan siempre al precio vigente del gremio donde se gasta, con
+su temporada y sus reglas.» Eso ya era verdad, y no por casualidad:
+
+- cada premio es de un gremio, y la 041 comprueba que el premio y quien lo
+  canjea sean de la misma casa;
+- `redeem_reward` cobra `rw.cost` y nada más — el cliente **no tiene por dónde**
+  declarar un coste, así que no puede declarar uno menor (`E-5.4`);
+- y **la temporada ya está dentro de ese número**: la subida del 30 % no se
+  calcula al cobrar, la escribe un adulto sobre `rewards.cost` al abrir
+  temporada. El precio guardado ES el vigente.
+
+Así que aquí no había nada que arreglar. Lo que sí hacía falta eran **pruebas
+que lo sujeten**: lo que se cumple sin que nadie lo defienda es lo que se rompe
+sin que nadie lo note, y basta con que alguien añada un parámetro de coste «para
+la vista previa».
+
+### Lo que sí faltaba, y era consecuencia de la 051
+
+**La tienda lee `profiles.coins`, y desde la 051 eso vale cero para un personaje
+convertido**: su dinero está en la cartera. La tienda le enseñaría cero Talis y
+todos los premios en gris con 429 en el bolsillo. Nadie puede verlo hoy, pero
+era una avería servida para el día que exista la pantalla.
+
+`saldos_visibles()` devuelve, para cada personaje de mis gremios, lo que de
+verdad puede gastar. La app la llama en el bloque degradable de `loadAll` y
+sustituye `coins` **solo en lo que se pinta**: la columna de la base no se toca,
+y si la migración no estuviera, el saldo se queda el de siempre. Ninguna
+pantalla se entera de que hay dos monederos.
+
+### Una decisión que la Fase 6 tiene que revisar
+
+`saldos_visibles()` devuelve los personajes de **mis gremios**, no solo el
+propio. Es lo que sostiene `CNV-7` —convertirse no saca al personaje del
+selector de la casa, que lo sigue viendo y operando igual— y hoy no choca con
+nada, porque un gremio es una casa y quien opera ese personaje ya veía su saldo
+ayer.
+
+Pero `CAP-12` dice que el saldo es «solo propio». **En la Fase 6 hay que volver
+aquí**: enseñarle a un desconocido cuánto tiene en la cartera alguien de su
+gremio de amigos no es lo mismo que enseñárselo a su madre.
+
+### Y la tienda dice cuánto falta
+
+`E-5.3` pide que el rechazo indique **cuánto falta**, no solo que falta. Ahora
+el premio que no se puede pagar lleva su «te faltan N» al lado del precio, antes
+de pulsar. «No tienes suficientes» obligaba a restar de cabeza para saber si era
+cuestión de una misión o de una semana.
+
+### La Fase 3, cerrada
+
+| | |
+|---|---|
+| 3.1 · configuración versionada | 050 |
+| 3.2 · cartera híbrida | 051 |
+| 3.3 · el precio del gremio donde se gasta | 052 |
+
+Definición de hecho, punto por punto: `E-5.3` ✅ · `E-5.4` ✅ (estructural: el
+cliente no puede declarar coste) · **descuadre saldo/asientos: cero** ✅ · la
+tienda no cambia de precio para nadie ✅ · ningún número de expansión vive ya en
+`src/lib` ✅.
+
+### Cómo se comprobó
+
+Respaldo (`respaldo-2026-08-30-180454`). `npm run verify`: **1317 tests en 75
+ficheros**. Y contra la base: la cuenta de una casa ve **sus 4 personajes y
+ninguno de otra**, con saldos idénticos a `profiles.coins` — que es lo correcto
+mientras no se convierta nadie.
+
+### Lo que falta para que esto lo use alguien
+
+1. **Fase 4** — el tipo de gremio como plantilla.
+2. **Fase 5** — hitos y llaves, y **con ella la pantalla**: es el primer motivo
+   real para convertirse.
+3. **Supabase Auth**: Redirect URLs y plantilla de confirmación.
+4. **Mirar la pantalla con una sesión real.**

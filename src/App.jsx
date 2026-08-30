@@ -216,7 +216,14 @@ export default function App() {
       supabase.from('reconocimientos').select('*')
         .eq('family_id', fid)
         .order('created_at', { ascending: false })
-        .limit(400)
+        .limit(400),
+      // Lo que de verdad puede gastar cada personaje (migración 052). Desde la
+      // 051, quien tiene identidad personal tiene su saldo en la cartera y su
+      // `profiles.coins` vale cero: sin esto, la tienda le enseñaría cero Talis
+      // y todos los premios en gris teniendo dinero. Va la última y en el
+      // bloque degradable: sin la migración, la respuesta viene vacía y el
+      // saldo se queda el de `profiles`, que es exactamente lo de siempre.
+      supabase.rpc('saldos_visibles')
     ])
 
     const fallo = respuestas.slice(0, 7).find((r) => r.error)
@@ -227,10 +234,21 @@ export default function App() {
     }
     setErrorCarga('')
 
-    const [pr, ch, co, rw, rd, gl, bg, bo, pu, pl, pd, cl, zc, rc] = respuestas
+    const [pr, ch, co, rw, rd, gl, bg, bo, pu, pl, pd, cl, zc, rc, sv] = respuestas
     const metas = gl.data || []
+
+    // El saldo que se puede gastar sustituye a `coins` en el objeto que ve la
+    // interfaz. Es lo que TODAS las pantallas quieren decir cuando dicen
+    // «coins», así que ninguna tiene que enterarse de que hay dos monederos:
+    // la tienda, el tablero de la peque y la lista de miembros siguen igual.
+    // La columna de la base no se toca; esto es solo lo que se pinta.
+    const saldos = new Map((sv?.data || []).map((s) => [s.profile_id, s.saldo]))
+    const perfiles = (pr.data || []).map((p) =>
+      saldos.has(p.id) && saldos.get(p.id) !== p.coins ? { ...p, coins: saldos.get(p.id) } : p
+    )
+
     const next = {
-      profiles: pr.data || [],
+      profiles: perfiles,
       challenges: ch.data || [],
       completions: co.data || [],
       rewards: rw.data || [],

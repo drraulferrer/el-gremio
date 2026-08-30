@@ -4765,6 +4765,41 @@ revoke all on function public.descuadre_saldos() from public;
 revoke all on function public.descuadre_saldos() from anon;
 revoke all on function public.descuadre_saldos() from authenticated;
 
+-- ---------------------------------------------------------------------
+-- El saldo que ve la tienda (migración 052).
+--
+-- La tienda lee `profiles.coins`, y desde la 051 eso vale cero para un
+-- personaje convertido: su dinero está en la cartera. Esta función devuelve
+-- lo que de verdad puede gastar cada personaje de mis gremios, mire donde
+-- mire su saldo.
+--
+-- El alcance —los personajes de mis gremios, no solo el propio— sostiene
+-- `CNV-7`: convertirse no saca al personaje del selector de la casa. Choca
+-- de lado con `CAP-12` («solo propio»), y hoy no importa porque un gremio es
+-- una casa. **Hay que volver aquí en la Fase 6**, cuando un gremio pueda
+-- tener personas que no viven juntas.
+-- ---------------------------------------------------------------------
+
+create or replace function public.saldos_visibles()
+returns table (profile_id uuid, saldo integer)
+language sql
+stable
+security definer
+set search_path = public
+as $fn$
+  select p.id,
+         case
+           when p.persona is null then p.coins
+           else coalesce((select c.saldo from public.carteras c where c.persona = p.persona), 0)
+         end
+    from public.profiles p
+   where p.family_id in (select public.mis_gremios());
+$fn$;
+
+revoke all on function public.saldos_visibles() from public;
+revoke all on function public.saldos_visibles() from anon;
+grant execute on function public.saldos_visibles() to authenticated;
+
 -- Y el barrido final de la 021, que tiene que quedarse SIEMPRE el último del
 -- fichero: retira el permiso de ejecución de toda función `security definer`,
 -- incluidas las que se añadan por debajo de aquí. Nada de esto se pierde para
