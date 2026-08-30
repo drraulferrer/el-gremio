@@ -5,7 +5,7 @@ import { modoDemo } from '../lib/supabase'
 
 export default function ProfilePicker({
   family, profiles, onPick, onParent, onReportar,
-  gremios = [], onCambiarGremio
+  gremios = [], onCambiarGremio, onVerInvitaciones
 }) {
   // El selector solo aparece si hay a dónde ir. Con un gremio —el caso de
   // todo el mundo hoy— la pantalla es exactamente la de siempre, y eso es
@@ -53,6 +53,14 @@ export default function ProfilePicker({
       <button className="btn btn-fantasma" style={{ marginTop: 8 }} onClick={onParent}>
         🔒 Panel parental
       </button>
+
+      {/* La bandeja va aquí y no dentro de un gremio: una invitación a B llega
+          mientras estás en A, y si solo se viera desde B no se vería nunca. */}
+      {onVerInvitaciones && (
+        <button className="enlace-suave" onClick={onVerInvitaciones}>
+          Invitaciones
+        </button>
+      )}
 
       {/* Contar un fallo vive aquí y no detrás del PIN a propósito: quien
           se tropieza con uno suele ser quien NO tiene el PIN, y esta

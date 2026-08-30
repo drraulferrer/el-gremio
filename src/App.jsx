@@ -29,6 +29,7 @@ import Login from './screens/Login'
 import NuevaClave from './screens/NuevaClave'
 import { esRecuperacion } from './lib/acceso'
 import Onboarding from './screens/Onboarding'
+import Invitaciones from './screens/Invitaciones'
 import ProfilePicker from './screens/ProfilePicker'
 import ReportarFallo from './screens/ReportarFallo'
 import { useVersionNueva } from './lib/actualizacion'
@@ -95,6 +96,8 @@ export default function App() {
   // sobreviva a que el selector se recargue por realtime mientras alguien
   // está escribiendo: perder lo escrito es perder el informe.
   const [contandoFallo, setContandoFallo] = useState(false)
+  // La bandeja es de la PERSONA, así que vive aquí y no dentro de un gremio.
+  const [viendoInvitaciones, setViendoInvitaciones] = useState(false)
   // Si hay publicada una versión distinta de la que corre aquí. No
   // recarga sola: avisa. Ver src/lib/actualizacion.js.
   const versionNueva = useVersionNueva()
@@ -702,6 +705,7 @@ export default function App() {
             onParent={() => setPidePin(true)}
             historial={historialUI}
             onCelebrar={setCeleb}
+            onIrAlGremio={cambiarGremio}
           />
         ) : (
           <ProfilePicker
@@ -715,6 +719,16 @@ export default function App() {
             onReportar={() => setContandoFallo(true)}
             gremios={gremios}
             onCambiarGremio={cambiarGremio}
+            onVerInvitaciones={() => setViendoInvitaciones(true)}
+          />
+        )}
+
+        {viendoInvitaciones && (
+          <Invitaciones
+            onClose={() => setViendoInvitaciones(false)}
+            /* Aceptar deja dentro de un gremio nuevo, así que lo natural es
+               abrirlo. Es el mismo camino que el selector. */
+            onIrAlGremio={(id) => { loadFamily(id); recordarGremioActivo(id) }}
           />
         )}
 

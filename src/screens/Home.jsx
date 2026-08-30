@@ -31,7 +31,7 @@ import Estandarte from '../components/Estandarte'
 import Panorama from './Panorama'
 import { semana, etiquetaDeSemana, validadasDe, resumenDeSemana, semanasConDatos } from '../lib/historial'
 
-export default function Home({ family, data, profile, refresh, onSwitchProfile, onParent, historial, onCelebrar }) {
+export default function Home({ family, data, profile, refresh, onSwitchProfile, onParent, historial, onCelebrar, onIrAlGremio }) {
   const genero = generoDe(profile)
   // Abre por el Panorama y no por las misiones. Abrir por la lista de
   // deberes decía lo mismo el día de quince misiones y el de ninguna, y
@@ -196,6 +196,7 @@ export default function Home({ family, data, profile, refresh, onSwitchProfile, 
           profile={profile}
           refresh={refresh}
           onClose={() => setExpandiendo(false)}
+          onIrAlGremio={onIrAlGremio}
         />
       )}
 

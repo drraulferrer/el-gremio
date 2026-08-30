@@ -4386,3 +4386,32 @@ button.kid-avatar.latiendo { animation: latido-aviso 2.6s var(--ease-salida) inf
 .campo input {
   width: 100%;
 }
+
+/* La bandeja de invitaciones (6.3). */
+.lista-invitaciones {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+}
+
+.lista-invitaciones li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 10px 12px;
+  border: 1px solid var(--borde, #d8d2c4);
+  border-radius: 12px;
+  margin-bottom: 8px;
+}
+
+.lista-invitaciones p {
+  margin: 2px 0 0;
+  font-size: 0.85rem;
+}
+
+.fila-botones {
+  display: flex;
+  gap: 8px;
+}

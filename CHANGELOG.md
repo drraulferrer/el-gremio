@@ -18,6 +18,33 @@ verdad duele en esta app: que el esquema y el cliente dejen de encajar.
 
 ---
 
+## 2.36.0 · 30 de agosto de 2026
+
+**Ya se puede gastar la llave, y ya se puede invitar.** Con esto el camino
+entero funciona: se forja una llave en el gremio donde has llegado al nivel, y
+con ella abres uno nuevo o entras en uno al que te inviten.
+
+**Crear un gremio con la llave.** Sale en Expandirse en cuanto tienes una sin
+usar. Eliges qué clase de gremio es —sin nada preseleccionado: es una decisión,
+no un trámite—, su nombre, el país donde opera y un PIN propio. No cuesta nada
+más: ya se pagó al forjar.
+
+Y empiezas de cero ahí dentro. Ni nivel, ni misiones, ni premios, ni Talis del
+gremio de origen: eso es de allí. Tu cartera sí es tuya y te acompaña.
+
+**Invitaciones.** Una bandeja nueva, en el selector de personaje, con las
+invitaciones que te han hecho. Está ahí y no dentro de un gremio a propósito:
+una invitación te llega mientras estás en otro sitio, y si solo se viera desde
+el gremio que invita no se vería nunca. Cada una dice de qué clase de gremio es.
+
+Entrar en el primero es gratis; a partir del segundo hace falta una llave.
+
+**Invitar desde el panel**, en Miembros. Se distingue de «añadir miembro» y
+merece leerse: un miembro es un perfil de esta casa y entra con la clave
+compartida; quien entra por invitación trae su propia cuenta, su propio saldo y
+su propio historial, y se los lleva si se va. Desde ahí también se retiran
+invitaciones y se puede echar a alguien.
+
 ## 2.35.0 · 30 de agosto de 2026
 
 **Expandirse a otro gremio.** En Progreso hay un botón nuevo: enseña los

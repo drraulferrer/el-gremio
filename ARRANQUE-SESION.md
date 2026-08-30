@@ -4,12 +4,11 @@ Documento de continuidad. Si abres una sesión nueva sobre este proyecto,
 lee esto primero: dice dónde está todo, qué está hecho, qué falta y qué
 trampas tiene.
 
-> **Y si solo vas a leer una línea antes de ponerte:** la **2.35.0 está EN
-> PRODUCCIÓN** (§7bq): expandirse a otro gremio, con la conversión a identidad
-> personal dentro. Es lo primero de toda esta tanda que la familia puede usar,
-> y el correo de confirmación ya dice un texto que vale para los dos casos.
-> Lo siguiente es la otra mitad de la 6.3: invitar, la bandeja, crear gremio
-> con la llave, salir y echar.
+> **Y si solo vas a leer una línea antes de ponerte:** la **2.36.0 está
+> construida y SIN PUBLICAR** (§7br). Con ella el camino entero funciona:
+> forjar una llave, gastarla creando un gremio o aceptando una invitación, e
+> invitar desde el panel. Publicar es `git push && npm run vercel && npm run
+> health`.
 
 Última actualización: **30 de agosto de 2026**, al cierre de la
 sesión de **recuperación ante desastres y terreno firme** (§7bb): migraciones
@@ -6266,6 +6265,81 @@ con ellas, la decisión de los avisos.
 
 ---
 
+## 7br. Gastar la llave, e invitar (30 de agosto) · 2.36.0 · sin migración
+
+**La 6.3, segunda parte, y con ella la Fase 6 queda completa de punta a
+punta.** Se forja, se gasta, se invita y se entra. Sin migración: el servidor
+lo tenía todo desde la 057.
+
+### El bucle, cerrado
+
+Hasta la 2.35.0 se podía forjar una llave y no había forma de gastarla, que es
+haber pagado por nada. Ahora:
+
+| Qué | Dónde | Con qué |
+|---|---|---|
+| Crear un gremio con la llave | Expandirse, cuando hay una sin usar | `tipos_ofrecidos()` · `crear_gremio_con_llave()` |
+| La bandeja de invitaciones | El selector de personaje | `mis_invitaciones()` · `aceptar_invitacion()` · `rechazar_invitacion()` |
+| Invitar, retirar y echar | Panel → Miembros | `invitar()` · `revocar_invitacion()` · `expulsar_de_gremio()` |
+
+### Tres decisiones de sitio, que no son estéticas
+
+**La bandeja va en el selector, no dentro de un gremio.** Es de la PERSONA
+(`F-2` paso 3): una invitación a B llega mientras estás en A, y si solo se
+viera desde B no se vería nunca.
+
+**Invitar va en un bloque aparte de «añadir miembro»**, y el texto explica la
+diferencia porque es la que más confunde: un **miembro** es un perfil de esta
+casa que entra con la clave compartida; quien entra **por invitación** trae su
+propia cuenta, su propio saldo y su propio historial, y se los lleva si se va.
+
+**Crear el gremio no lleva tipo preseleccionado** (`R-42`). Sin elegir no se
+continúa, y es un cambio deliberado respecto al alta de hoy, que elige por ti:
+estás decidiendo qué cara tendrá el producto, no rellenando un trámite.
+
+### Y una que es de contenido
+
+El formulario **dice que no cuesta nada**. Después de haber pagado 300 por la
+llave, un formulario que pide un PIN y un nombre se parece mucho a una segunda
+caja, y no lo es: el pago fue al forjar y cobrar aquí sería cobrar dos veces.
+
+### La llave se manda solo si la hay
+
+Al aceptar una invitación, el cliente adjunta una llave **únicamente si tiene
+alguna disponible**. Si es la primera pertenencia de esa persona el servidor no
+la pide (`S-10`), y mandarla gastaría una de más por una puerta que era gratis.
+
+### Cómo se comprobó
+
+`npm run verify`: **1493 tests en 82 ficheros**. Los cinco nuevos siguen el
+mismo patrón que los de la 2.35.0: extraen de `schema.sql` **todos** los
+códigos que devuelven `crear_gremio_con_llave`, `aceptar_invitacion` e
+`invitar` —las dos formas, `return 'x'` y `resultado := 'x'`— y exigen que cada
+uno tenga frase.
+
+Y con la pantalla delante, en `dev:demo`: la bandeja abre y dice «No tienes
+ninguna invitación»; el bloque «Gente de fuera» abre dentro de Miembros con su
+explicación, su campo de correo y su botón. Para entrar al panel hubo que
+sembrar el PIN y la versión legal en la demo — queda anotado por si hace falta
+otra vez: `hashPin('1234')` en `families.parent_pin_hash` y `legal_version`
+a la vigente.
+
+### Lo que queda de la Fase 6
+
+- **Salir de un gremio** (`abandonar_gremio`). La acción está escrita en
+  `acciones.js` y **no tiene botón**: su sitio natural es Ajustes → Datos, junto
+  a borrar la identidad, y ahí conviene enseñar antes qué pasa —igual que hace
+  `efecto_de_borrarme()`—, no soltar un botón rojo.
+- **Los avisos.** Un aparato sigue pudiendo estar suscrito a un solo gremio
+  (`push_subs.endpoint` es único). O la suscripción pasa a ser por `(aparato,
+  gremio)`, o los avisos se dirigen a la persona y el gremio pasa a ser un dato
+  del mensaje. La segunda es más correcta y toca la Edge Function.
+- **El catálogo del gremio nuevo.** Nace desnudo: sin misiones, sin premios,
+  sin zonas y sin meta. Es `D-14`, y para Hogar vive hoy en `src/lib/setup.js`.
+
+
+---
+
 # CÓMO ARRANCAR LA SIGUIENTE SESIÓN
 
 **Estado al cerrar el 30-ago-2026, por la noche.**
@@ -6275,9 +6349,9 @@ con ellas, la decisión de los avisos.
 | | |
 |---|---|
 | Repositorio | `~/el-gremio`, rama `main` |
-| Versión desplegada | **2.35.0** · `npm run health` en verde · `7b6c766`, supabase 17.6 |
+| Versión desplegada | **2.35.0** · la **2.36.0 está construida y sin publicar** |
 | Migraciones aplicadas | hasta la **057**. La siguiente libre es la **058** |
-| Tests | 1488 en 82 ficheros |
+| Tests | 1493 en 82 ficheros |
 | Plan y especificación | `~/Library/Mobile Documents/com~apple~CloudDocs/ClaudeCode/specs/` |
 
 **Lo primero, siempre:** `git fetch` antes de elegir número de migración o de
@@ -6293,7 +6367,7 @@ versión. Hoy no ha hecho falta, pero el 30-ago por la mañana ya pasó una vez.
 | 3 · Configuración y cartera | ✅ **cerrada** | 050, 051, 052 |
 | 4 · El tipo como plantilla | ✅ **cerrada** | 053, 054, 055 |
 | 5 · Hitos y llaves | ✅ **cerrada** | 056 |
-| 6 · Gremios múltiples | ◐ **6.1, 6.2 y media 6.3** · faltan invitaciones y avisos | 057 |
+| 6 · Gremios múltiples | ◐ **6.1, 6.2 y 6.3** · faltan salir con pantalla y los avisos | 057 |
 | 7 en adelante | ☐ sin empezar | — |
 
 Y de propina, la **046**: el barrido de permisos que la 021 dejó escrito llevaba

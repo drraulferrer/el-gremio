@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { supabase, mensajeDeError, EMOJIS, COLORS, ROLE_LABEL } from '../lib/supabase'
+import GenteDeFuera from './GenteDeFuera'
 import {
   perfilesActivos,
   perfilesRetirados,
@@ -154,6 +155,12 @@ export default function Miembros({ family, data, refresh }) {
       >
         + Añadir miembro
       </button>
+
+      {/* Invitar es otra cosa que añadir un miembro, y conviene que se vea:
+          un miembro es un PERFIL de esta casa, que opera con la clave
+          compartida. Invitar trae a una PERSONA con su propia cuenta, su
+          propio saldo y su propio historial. */}
+      <GenteDeFuera family={family} data={data} refresh={refresh} />
 
       {/* Dos cuentas, porque son dos cupos: la validación ya los separa
           y un solo «2 de 8» haría creer que el perro ocupa el sitio de

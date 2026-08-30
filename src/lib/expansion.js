@@ -141,3 +141,88 @@ export function mensajeDeConversion(codigo) {
     ? RESPUESTAS_CONVERSION[codigo]
     : 'No se ha podido empezar. Inténtalo dentro de un rato.'
 }
+
+// ------------------------------------------------------------------
+// Gastar la llave, e invitar (6.3, segunda mitad).
+//
+// Mismo criterio que arriba: están TODOS los códigos, incluidos los que la
+// pantalla no debería poder provocar. Un `sin_pertenencia` en la bandeja
+// significa que pantalla y servidor han dejado de estar de acuerdo, y un
+// mensaje genérico lo escondería justo cuando hay que verlo.
+// ------------------------------------------------------------------
+
+export const RESPUESTAS_CREAR = {
+  ok: null,
+  sin_sesion: 'Se ha cerrado la sesión. Vuelve a entrar.',
+  exige_identidad_personal: 'Para crear un gremio necesitas una identidad propia.',
+  nombre_invalido: 'El nombre tiene que tener entre 2 y 60 caracteres.',
+  pin_invalido: 'Hace falta un PIN para el gremio nuevo.',
+  pais_invalido: 'Elige un país.',
+  tipo_no_ofrecido: 'Ese tipo de gremio no se puede crear todavía.',
+  tipo_no_publicado_ahi: 'Ese tipo de gremio no está disponible en ese país.',
+  sin_configuracion: 'No se ha podido comprobar el límite. Inténtalo dentro de un rato.',
+  en_el_limite: 'Estás en el límite de gremios. Deja uno antes de crear otro.',
+  llave_no_existe: 'Esa llave ya no existe.',
+  llave_ajena: 'Esa llave no es tuya.',
+  llave_no_disponible: 'Esa llave ya se ha usado.'
+}
+
+export function mensajeDeCrear(codigo) {
+  return codigo in RESPUESTAS_CREAR
+    ? RESPUESTAS_CREAR[codigo]
+    : 'No se ha podido crear el gremio. Inténtalo dentro de un rato.'
+}
+
+export const RESPUESTAS_ACEPTAR = {
+  ok: null,
+  sin_sesion: 'Se ha cerrado la sesión. Vuelve a entrar.',
+  exige_identidad_personal: 'Para entrar en otro gremio necesitas una identidad propia.',
+  no_existe: 'Esa invitación ya no existe.',
+  no_es_tuya: 'Esa invitación no es para este correo.',
+  ya_resuelta: 'Esa invitación ya se había resuelto.',
+  // No es un fallo de nadie: es el reloj. Por eso se dice con la fecha y no
+  // como un error.
+  caducada: 'La invitación ha caducado. Pide que te la manden otra vez.',
+  ya_estas_dentro: 'Ya estás en ese gremio.',
+  sin_configuracion: 'No se ha podido comprobar el límite. Inténtalo dentro de un rato.',
+  en_el_limite: 'Estás en el límite de gremios. Deja uno para poder entrar en otro.',
+  hace_falta_llave: 'Para entrar en un gremio más necesitas una llave. Fórjala desde Progreso.',
+  llave_no_existe: 'Esa llave ya no existe.',
+  llave_ajena: 'Esa llave no es tuya.',
+  llave_no_disponible: 'Esa llave ya se ha usado.'
+}
+
+export function mensajeDeAceptar(codigo) {
+  return codigo in RESPUESTAS_ACEPTAR
+    ? RESPUESTAS_ACEPTAR[codigo]
+    : 'No se ha podido aceptar. Inténtalo dentro de un rato.'
+}
+
+export const RESPUESTAS_INVITAR = {
+  ok: null,
+  sin_sesion: 'Se ha cerrado la sesión. Vuelve a entrar.',
+  no_es_tuyo: 'Ese gremio no es tuyo.',
+  no_puede: 'No tienes permiso para invitar en este gremio.',
+  correo_invalido: 'Ese correo no tiene buena pinta. Repásalo.',
+  ya_esta_dentro: 'Esa persona ya está en el gremio.',
+  ya_invitada: 'Ya hay una invitación en marcha para ese correo.',
+  gremio_lleno: 'El gremio está lleno.',
+  sin_configuracion: 'No se ha podido preparar la invitación. Inténtalo dentro de un rato.'
+}
+
+export function mensajeDeInvitar(codigo) {
+  return codigo in RESPUESTAS_INVITAR
+    ? RESPUESTAS_INVITAR[codigo]
+    : 'No se ha podido invitar. Inténtalo dentro de un rato.'
+}
+
+/**
+ * Si una invitación se puede aceptar todavía.
+ *
+ * El estado ya viene resuelto del servidor —una pendiente vencida se lee
+ * como caducada— así que aquí no se vuelve a mirar el reloj: mirarlo sería
+ * tener dos relojes, y `T-3` dice que el que manda es el del servidor.
+ */
+export function aceptables(invitaciones = []) {
+  return invitaciones.filter((i) => i.estado === 'pendiente')
+}

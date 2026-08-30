@@ -1,9 +1,12 @@
 import { useEffect, useState } from 'react'
 import { Modal, Talis } from '../components/ui'
 import { supabase, hashPin } from '../lib/supabase'
-import { leerOportunidades, leerLlaves, forjarLlave, solicitarConversion } from '../lib/acciones'
 import {
-  loQueFalta, llavesDisponibles, mensajeDeForja, mensajeDeConversion
+  leerOportunidades, leerLlaves, forjarLlave, solicitarConversion,
+  leerTiposOfrecidos, crearGremioConLlave
+} from '../lib/acciones'
+import {
+  loQueFalta, llavesDisponibles, mensajeDeForja, mensajeDeConversion, mensajeDeCrear
 } from '../lib/expansion'
 
 // ------------------------------------------------------------------
@@ -27,7 +30,7 @@ import {
 // enseña lo que haya contestado.
 // ------------------------------------------------------------------
 
-export default function Expandirse({ family, profile, onClose, refresh }) {
+export default function Expandirse({ family, profile, onClose, refresh, onIrAlGremio }) {
   const [cargando, setCargando] = useState(true)
   const [esPersonal, setEsPersonal] = useState(false)
   const [oportunidades, setOportunidades] = useState([])
@@ -116,6 +119,16 @@ export default function Expandirse({ family, profile, onClose, refresh }) {
           {aviso && <p className="aviso" role="alert">{aviso}</p>}
 
           <MisLlaves llaves={llaves} />
+
+          {/* Y lo que se puede hacer con ella. Una llave que no se puede
+              gastar es haber pagado por nada, así que en cuanto hay una sin
+              usar esto aparece debajo. */}
+          {llavesDisponibles(llaves).length > 0 && (
+            <UsarLaLlave
+              llave={llavesDisponibles(llaves)[0]}
+              onCreado={(id) => { onIrAlGremio?.(id); onClose?.() }}
+            />
+          )}
         </>
       )}
     </Modal>
@@ -147,6 +160,121 @@ function MisLlaves({ llaves }) {
           </li>
         ))}
       </ul>
+    </div>
+  )
+}
+
+/**
+ * Gastar la llave creando un gremio.
+ *
+ * Es UNA de las dos cosas que se pueden hacer con ella (`R-19`); la otra es
+ * aceptar una invitación, y esa vive en la bandeja porque llega de fuera. Se
+ * dice aquí, para que nadie se quede pensando que solo sirve para esto.
+ *
+ * **No cuesta nada**: el pago fue al forjar, y cobrar aquí sería cobrar dos
+ * veces. El texto lo dice, porque un formulario que pide un PIN y un nombre
+ * después de haber pagado 300 se parece mucho a una segunda caja.
+ */
+function UsarLaLlave({ llave, onCreado }) {
+  const [abierto, setAbierto] = useState(false)
+  const [tipos, setTipos] = useState([])
+  const [tipo, setTipo] = useState('')
+  const [nombre, setNombre] = useState('')
+  const [pais, setPais] = useState('ES')
+  const [pin, setPin] = useState('')
+  const [personaje, setPersonaje] = useState('')
+  const [ocupado, setOcupado] = useState(false)
+  const [aviso, setAviso] = useState('')
+
+  useEffect(() => {
+    if (abierto) leerTiposOfrecidos().then(setTipos)
+  }, [abierto])
+
+  // Sin preselección de tipo (`R-42`): sin elegir no se continúa. Es un
+  // cambio deliberado respecto al alta de hoy, que elige por ti.
+  const puede = tipo && nombre.trim().length >= 2 && pin.length >= 4 && /^[A-Za-z]{2}$/.test(pais)
+
+  async function crear() {
+    setOcupado(true)
+    setAviso('')
+    const { resultado, familyId } = await crearGremioConLlave({
+      llave: llave.id,
+      nombre: nombre.trim(),
+      tipo,
+      pais: pais.toUpperCase(),
+      pinHash: await hashPin(pin),
+      personaje: personaje.trim()
+    })
+    setOcupado(false)
+    const mensaje = mensajeDeCrear(resultado)
+    if (mensaje) return setAviso(mensaje)
+    onCreado?.(familyId)
+  }
+
+  if (!abierto) {
+    return (
+      <div style={{ marginTop: 16 }}>
+        <p className="suave">
+          Tienes una llave sin usar. Puedes <strong>crear un gremio nuevo</strong> con ella,
+          o guardarla para entrar en uno al que te inviten.
+        </p>
+        <button className="btn btn-bloque" onClick={() => setAbierto(true)}>
+          Crear un gremio con esta llave
+        </button>
+      </div>
+    )
+  }
+
+  return (
+    <div style={{ marginTop: 16 }}>
+      <h4>Un gremio nuevo</h4>
+      <p className="suave">
+        Ya está pagado: la llave se gastó al forjarla y esto no cuesta nada más.
+      </p>
+
+      <label className="campo">
+        <span>Qué clase de gremio</span>
+        <select value={tipo} onChange={(e) => setTipo(e.target.value)}>
+          <option value="">Elige…</option>
+          {tipos.map((t) => (
+            <option key={t.tipo} value={t.tipo}>{t.nombre_visible}</option>
+          ))}
+        </select>
+      </label>
+
+      <label className="campo">
+        <span>Cómo se llama</span>
+        <input value={nombre} maxLength={60} onChange={(e) => setNombre(e.target.value)} />
+      </label>
+
+      <label className="campo">
+        {/* Se elige, no se deduce (`R-102`). Ni del idioma, ni de la hora, ni
+            del correo. Y no se podrá cambiar. */}
+        <span>País donde opera · no se podrá cambiar</span>
+        <input
+          value={pais}
+          maxLength={2}
+          onChange={(e) => setPais(e.target.value.toUpperCase())}
+        />
+      </label>
+
+      <label className="campo">
+        <span>Un PIN para este gremio</span>
+        <input type="password" inputMode="numeric" value={pin} onChange={(e) => setPin(e.target.value)} />
+      </label>
+
+      <label className="campo">
+        <span>Tu nombre ahí dentro</span>
+        {/* Empiezas de cero: ni nivel, ni misiones, ni Talis del gremio de
+            origen se copian (`R-03`). El nombre sí lo eliges. */}
+        <input value={personaje} maxLength={40} onChange={(e) => setPersonaje(e.target.value)} />
+      </label>
+
+      {aviso && <p className="aviso" role="alert">{aviso}</p>}
+
+      <button className="btn btn-bloque" disabled={!puede || ocupado} onClick={crear}>
+        {ocupado ? 'Creando…' : 'Crear el gremio'}
+      </button>
     </div>
   )
 }

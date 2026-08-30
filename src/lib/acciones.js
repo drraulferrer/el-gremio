@@ -720,3 +720,159 @@ export async function solicitarConversion(profileId, correo, pinHash) {
   log.info('conversion.solicitud', { request_id: requestId, profile_id: profileId, resultado: data })
   return data
 }
+
+// ------------------------------------------------------------------
+// Gastar la llave, e invitar (Fase 6.3, segunda mitad).
+// ------------------------------------------------------------------
+
+/** Los tipos de gremio que se pueden crear hoy. Lo decide el servidor. */
+export async function leerTiposOfrecidos() {
+  const { data, error } = await supabase.rpc('tipos_ofrecidos')
+  if (error) {
+    log.warn('gremios.tipos.error', { detalle: String(error.message || error) })
+    return []
+  }
+  return data || []
+}
+
+/**
+ * Crear un gremio con una llave. Devuelve `{ resultado, familyId }`.
+ *
+ * No cobra nada: el pago fue al forjar. Y la llave se consume DENTRO de la
+ * misma transaccion que crea el gremio, asi que si algo falla no se pierde.
+ */
+export async function crearGremioConLlave({ llave, nombre, tipo, pais, pinHash, personaje }) {
+  const requestId = nuevoRequestId()
+  const { data, error } = await supabase.rpc('crear_gremio_con_llave', {
+    p_llave: llave,
+    p_nombre: nombre,
+    p_tipo: tipo,
+    p_pais: pais,
+    p_pin_hash: pinHash,
+    p_personaje: personaje || null
+  })
+  if (error) {
+    log.error('gremios.crear.error', { request_id: requestId, detalle: String(error.message || error) })
+    return { resultado: 'error', familyId: null }
+  }
+  const fila = (data || [])[0] || {}
+  log.info('gremios.crear', { request_id: requestId, resultado: fila.resultado })
+  return { resultado: fila.resultado, familyId: fila.family_id || null }
+}
+
+/** Mis invitaciones. Son de la PERSONA, no del gremio activo. */
+export async function leerInvitaciones() {
+  const { data, error } = await supabase.rpc('mis_invitaciones')
+  if (error) {
+    log.warn('invitaciones.leer.error', { detalle: String(error.message || error) })
+    return []
+  }
+  return data || []
+}
+
+/** Aceptar. Devuelve `{ resultado, familyId }`. */
+export async function aceptarInvitacion(invitacion, llave, personaje) {
+  const requestId = nuevoRequestId()
+  const { data, error } = await supabase.rpc('aceptar_invitacion', {
+    p_invitacion: invitacion,
+    p_llave: llave || null,
+    p_personaje: personaje || null
+  })
+  if (error) {
+    log.error('invitaciones.aceptar.error', { request_id: requestId, detalle: String(error.message || error) })
+    return { resultado: 'error', familyId: null }
+  }
+  const fila = (data || [])[0] || {}
+  log.info('invitaciones.aceptar', { request_id: requestId, resultado: fila.resultado })
+  return { resultado: fila.resultado, familyId: fila.family_id || null }
+}
+
+export async function rechazarInvitacion(invitacion) {
+  const { data, error } = await supabase.rpc('rechazar_invitacion', { p_invitacion: invitacion })
+  if (error) {
+    log.error('invitaciones.rechazar.error', { detalle: String(error.message || error) })
+    return 'error'
+  }
+  return data
+}
+
+/** Las que ha emitido este gremio, para quien lo administra. */
+export async function leerInvitacionesDelGremio(familyId) {
+  const { data, error } = await supabase.rpc('invitaciones_del_gremio', { p_family: familyId })
+  if (error) {
+    log.warn('invitaciones.gremio.error', { detalle: String(error.message || error) })
+    return []
+  }
+  return data || []
+}
+
+export async function invitar(familyId, correo, profileId) {
+  const requestId = nuevoRequestId()
+  const { data, error } = await supabase.rpc('invitar', {
+    p_family: familyId,
+    p_correo: correo,
+    p_profile: profileId || null
+  })
+  if (error) {
+    log.error('invitaciones.invitar.error', { request_id: requestId, detalle: String(error.message || error) })
+    return 'error'
+  }
+  // El correo NO se registra, igual que en la conversion.
+  log.info('invitaciones.invitar', { request_id: requestId, family_id: familyId, resultado: data })
+  return data
+}
+
+export async function revocarInvitacion(invitacion, profileId) {
+  const { data, error } = await supabase.rpc('revocar_invitacion', {
+    p_invitacion: invitacion,
+    p_profile: profileId || null
+  })
+  if (error) {
+    log.error('invitaciones.revocar.error', { detalle: String(error.message || error) })
+    return 'error'
+  }
+  return data
+}
+
+/**
+ * Las personas de un gremio. Se lee la tabla directamente: `pertenencias`
+ * tiene politica para quien pertenece (045), asi que no hace falta una RPC.
+ */
+export async function leerPersonasDelGremio(familyId) {
+  const { data, error } = await supabase
+    .from('pertenencias')
+    .select('persona, rol, origen, desde')
+    .eq('family_id', familyId)
+    .eq('estado', 'activa')
+  if (error) {
+    log.warn('pertenencias.leer.error', { detalle: String(error.message || error) })
+    return []
+  }
+  return data || []
+}
+
+export async function expulsarDeGremio(familyId, persona, profileId) {
+  const requestId = nuevoRequestId()
+  const { data, error } = await supabase.rpc('expulsar_de_gremio', {
+    p_family: familyId,
+    p_persona: persona,
+    p_profile: profileId || null
+  })
+  if (error) {
+    log.error('pertenencias.expulsar.error', { request_id: requestId, detalle: String(error.message || error) })
+    return 'error'
+  }
+  log.info('pertenencias.expulsar', { request_id: requestId, family_id: familyId, resultado: data })
+  return data
+}
+
+export async function abandonarGremio(familyId) {
+  const requestId = nuevoRequestId()
+  const { data, error } = await supabase.rpc('abandonar_gremio', { p_family: familyId })
+  if (error) {
+    log.error('pertenencias.abandonar.error', { request_id: requestId, detalle: String(error.message || error) })
+    return 'error'
+  }
+  log.info('pertenencias.abandonar', { request_id: requestId, family_id: familyId, resultado: data })
+  return data
+}
