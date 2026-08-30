@@ -98,9 +98,11 @@ export async function activarAvisos({ family, profile }) {
       applicationServerKey: aBytes(CLAVE_PUBLICA)
     }))
 
+  // La clave es (aparato, personaje) desde la 058: un móvil puede estar
+  // suscrito a varios personajes, uno por gremio.
   const { error } = await supabase.from('push_subs').upsert(
     { family_id: family.id, profile_id: profile.id, ...comoJson(sub), activa: true, fallos: 0 },
-    { onConflict: 'endpoint' }
+    { onConflict: 'endpoint,profile_id' }
   )
 
   if (error) return { ok: false, mensaje: 'No se pudo guardar el aviso: ' + error.message }
@@ -127,23 +129,53 @@ export async function apagarAvisos() {
 }
 
 /**
- * Al cambiar de perfil, este aparato pasa a ser de otra persona.
+ * Al cambiar de personaje, a quién avisa este aparato.
  *
- * Sin esto, la tablet compartida seguiría recibiendo los avisos de quien
- * la encendió hace tres semanas. No pide permisos ni suscribe: si no hay
- * suscripción, no hace nada.
+ * AQUÍ ESTÁ LA DECISIÓN de los avisos con varios gremios, y son dos casos
+ * que se parecen y no son el mismo:
+ *
+ *   · **Otra persona coge el aparato.** Es la tablet de la casa pasando de
+ *     mano en mano. La suscripción SE SUSTITUYE: sin esto, la tablet
+ *     seguiría avisando a quien la encendió hace tres semanas, que es
+ *     justo para lo que se escribió esta función.
+ *
+ *   · **La misma persona cambia de gremio.** Su personaje es otro, pero
+ *     quien mira el móvil es la misma. La suscripción SE SUMA: quitarle los
+ *     avisos de un gremio por haber abierto el otro es perder cosas sin
+ *     avisar, que es el fallo que esta migración viene a corregir.
+ *
+ * Se distinguen por la identidad: si el personaje nuevo lleva detrás MI
+ * cuenta, soy yo en otro sitio. Si no lleva ninguna —los personajes de una
+ * casa con clave compartida— el aparato ha cambiado de manos.
+ *
+ * No pide permisos ni suscribe: si no hay suscripción, no hace nada.
  */
-export async function apuntarPerfil({ family, profile }) {
+export async function apuntarPerfil({ family, profile, persona = null }) {
   if (!sePuedeNotificar() || !family || !profile) return
   const registro = await navigator.serviceWorker.getRegistration()
   const sub = registro && (await registro.pushManager.getSubscription())
   if (!sub) return
 
   const { endpoint } = comoJson(sub)
-  await supabase
-    .from('push_subs')
-    .update({ profile_id: profile.id, family_id: family.id })
-    .eq('endpoint', endpoint)
+  const esMio = Boolean(persona) && profile.persona === persona
+
+  if (esMio) {
+    // Se suma. `upsert` y no `insert` porque volver a un gremio que ya
+    // tenías no puede fallar por duplicado.
+    await supabase.from('push_subs').upsert(
+      { family_id: family.id, profile_id: profile.id, ...comoJson(sub), activa: true, fallos: 0 },
+      { onConflict: 'endpoint,profile_id' }
+    )
+    return
+  }
+
+  // Cambió de manos: se van las de este aparato y queda la nueva. Se borra
+  // en vez de marcar inactiva por lo mismo que `apagarAvisos`: una fila que
+  // nadie va a volver a usar solo acumula basura.
+  await supabase.from('push_subs').delete().eq('endpoint', endpoint)
+  await supabase.from('push_subs').insert(
+    { family_id: family.id, profile_id: profile.id, ...comoJson(sub), activa: true, fallos: 0 }
+  )
 }
 
 /**

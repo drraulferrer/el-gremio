@@ -18,6 +18,20 @@ verdad duele en esta app: que el esquema y el cliente dejen de encajar.
 
 ---
 
+## 2.37.0 · 31 de agosto de 2026
+
+**Los avisos dejan de ser de un solo gremio.** Hasta ahora un móvil solo podía
+estar suscrito a un personaje: al cambiar de gremio, los avisos del anterior
+dejaban de llegar sin decírtelo. Ahora un aparato puede recibir los de cada
+gremio en el que estés.
+
+Y sigue distinguiendo lo que hay que distinguir: si el aparato **cambia de
+manos** —la tablet de la casa, que la coge otra persona— la suscripción se
+sustituye, como siempre. Si eres **tú en otro gremio**, se suma.
+
+No llegan más avisos por gremio de los que llegaban: sigue habiendo como mucho
+uno por personaje y franja.
+
 ## 2.36.0 · 30 de agosto de 2026
 
 **Ya se puede gastar la llave, y ya se puede invitar.** Con esto el camino

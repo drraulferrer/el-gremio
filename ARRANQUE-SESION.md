@@ -6341,6 +6341,70 @@ a la vigente.
 
 ---
 
+## 7bs. Un aparato, varios personajes (31 de agosto) · 2.37.0 · migración 058
+
+**Los avisos con varios gremios**, que era lo último que quedaba de la Fase 6
+en el servidor. Migración **058 EJECUTADA y ensayada**.
+
+### La pregunta que parecía ser, y la que era
+
+Esto se apuntó tres veces como «decidir si los avisos son del gremio o de la
+persona». Al mirar cómo funciona el envío de verdad, esa pregunta **no tenía
+sentido**:
+
+- `notificar` ya elegía a quién avisar **por `profile_id`**. Los avisos son de
+  un **personaje** desde siempre.
+- Y no pueden ser «de la persona»: lo que dicen es «hoy te falta una misión» o
+  «tu racha», calculado en el **día de ese gremio, con su zona horaria**. Una
+  persona en tres gremios tiene tres días y tres rachas distintas. No hay
+  versión personal de ese mensaje.
+
+Lo único que estorbaba era que `push_subs.endpoint` fuese **único**: una fila
+por aparato. Así que la clave pasa a ser **(endpoint, profile_id)** y ya está.
+
+**La Edge Function no se ha tocado**, y eso es lo que convierte esto en un
+índice en vez de un rediseño. Hay un test que lo vigila: si alguien la cambiara
+a `family_id`, un aparato recibiría los avisos de **todos** los personajes de
+un gremio en vez de los suyos.
+
+### La decisión de verdad estaba en el cliente
+
+`apuntarPerfil` repuntaba la fila en cada cambio de personaje, y eso son dos
+casos que se parecen y no son el mismo:
+
+| | |
+|---|---|
+| **Otra persona coge el aparato** | La tablet de la casa. La suscripción **se sustituye** — es justo para lo que se escribió esa función |
+| **La misma persona cambia de gremio** | Su personaje es otro, pero quien mira el móvil es la misma. **Se suma** |
+
+Se distinguen por la identidad: si el personaje nuevo lleva detrás **mi**
+cuenta, soy yo en otro sitio. Si no lleva ninguna —los personajes de una casa
+con clave compartida, que es lo que hay hoy— el aparato ha cambiado de manos y
+se comporta **exactamente como siempre**.
+
+### El ruido ya estaba acotado
+
+`push_log` lleva un apunte por (personaje, día, franja), así que un aparato con
+tres personajes recibe como mucho **uno de cada uno** por franja, no tres del
+mismo. No hizo falta añadir nada.
+
+### Cómo se comprobó
+
+Respaldo (`respaldo-2026-08-31-001408`). `npm run verify`: **1504 tests en 83
+ficheros**.
+
+Contra la base, antes y después: **5 suscripciones en 5 aparatos, todas
+activas**. Nadie cambió de estado, que era la propiedad importante — las filas
+que existen se quedan como están y nadie queda suscrito a nada a lo que no lo
+estuviera.
+
+Y el ensayo, deshecho al terminar: el mismo aparato aceptó **dos personajes**
+(antes imposible), el duplicado exacto siguió rechazado, y apagar borró las dos
+de golpe.
+
+
+---
+
 # CÓMO ARRANCAR LA SIGUIENTE SESIÓN
 
 **Estado al cerrar el 30-ago-2026, por la noche.**
@@ -6350,9 +6414,9 @@ a la vigente.
 | | |
 |---|---|
 | Repositorio | `~/el-gremio`, rama `main` |
-| Versión desplegada | **2.36.0** · `npm run health` en verde · `ff4794e`, supabase 17.6 |
-| Migraciones aplicadas | hasta la **057**. La siguiente libre es la **058** |
-| Tests | 1493 en 82 ficheros |
+| Versión desplegada | **2.36.0** · la **2.37.0 está construida y sin publicar** |
+| Migraciones aplicadas | hasta la **058**. La siguiente libre es la **059** |
+| Tests | 1504 en 83 ficheros |
 | Plan y especificación | `~/Library/Mobile Documents/com~apple~CloudDocs/ClaudeCode/specs/` |
 
 **Lo primero, siempre:** `git fetch` antes de elegir número de migración o de
@@ -6368,7 +6432,7 @@ versión. Hoy no ha hecho falta, pero el 30-ago por la mañana ya pasó una vez.
 | 3 · Configuración y cartera | ✅ **cerrada** | 050, 051, 052 |
 | 4 · El tipo como plantilla | ✅ **cerrada** | 053, 054, 055 |
 | 5 · Hitos y llaves | ✅ **cerrada** | 056 |
-| 6 · Gremios múltiples | ◐ **6.1, 6.2 y 6.3** · faltan salir con pantalla y los avisos | 057 |
+| 6 · Gremios múltiples | ◐ casi cerrada · falta **salir con pantalla** | 057, 058 |
 | 7 en adelante | ☐ sin empezar | — |
 
 Y de propina, la **046**: el barrido de permisos que la 021 dejó escrito llevaba

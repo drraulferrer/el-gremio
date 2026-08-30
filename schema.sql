@@ -2373,7 +2373,12 @@ create table if not exists public.push_subs (
   profile_id uuid not null references public.profiles(id) on delete cascade,
   -- La URL que da el navegador. Es la identidad del aparato: si se
   -- reinstala la app o se limpia el sitio, cambia y entra como nueva.
-  endpoint text not null unique,
+  --
+  -- Dejó de ser única en la migración 058: un aparato puede estar suscrito a
+  -- VARIOS personajes, uno por gremio. Lo único que hay es un índice único
+  -- por (endpoint, profile_id), más abajo. Antes, cambiar de gremio
+  -- repuntaba la fila y te dejaba sin los avisos del otro sin decírtelo.
+  endpoint text not null,
   p256dh text not null,
   auth text not null,
   -- Para poder retirar sin borrar, igual que con los perfiles: una baja
@@ -2386,6 +2391,16 @@ create table if not exists public.push_subs (
 
 create index if not exists idx_push_subs_family on public.push_subs (family_id, activa);
 create index if not exists idx_push_subs_profile on public.push_subs (profile_id, activa);
+
+-- Migración 058. Un aparato, varios personajes: uno por gremio. La Edge
+-- Function no cambió porque ya elegía a quién avisar por `profile_id`.
+create unique index if not exists idx_push_subs_aparato_personaje
+  on public.push_subs (endpoint, profile_id);
+
+-- Y `endpoint` conserva índice, no único: apagar los avisos de este aparato
+-- borra TODAS sus filas de golpe, y esa consulta filtra solo por endpoint.
+create index if not exists idx_push_subs_endpoint
+  on public.push_subs (endpoint);
 
 alter table public.push_subs enable row level security;
 

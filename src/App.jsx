@@ -521,11 +521,17 @@ export default function App() {
     })
   }, [family?.id, profile?.id, profile?.role])
 
-  // Este aparato pasa a ser de quien lo esté usando. Sin esto, la tablet
-  // compartida seguiría recibiendo los avisos de quien la encendió hace
-  // tres semanas. No pide permisos: si no hay suscripción, no hace nada.
+  // A quién avisa este aparato. Desde la 058 hay dos casos y `apuntarPerfil`
+  // los distingue: si el personaje nuevo lleva detrás MI cuenta soy yo en
+  // otro gremio —y la suscripción se suma—; si no, el aparato ha cambiado de
+  // manos y se sustituye. Por eso hace falta pasarle quién soy.
   useEffect(() => {
-    if (family && profile) apuntarPerfil({ family, profile })
+    if (!family || !profile) return
+    let vivo = true
+    supabase.auth.getUser().then(({ data }) => {
+      if (vivo) apuntarPerfil({ family, profile, persona: data?.user?.id || null })
+    })
+    return () => { vivo = false }
   }, [family?.id, profile?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ¿Han caído Talis a mano sin avisar? Se mira aquí y no dentro de Home
