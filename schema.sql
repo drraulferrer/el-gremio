@@ -830,33 +830,40 @@ begin
 end $$;
 
 -- Canjear un premio: descuenta monedas y crea el canje pendiente de entrega.
-create or replace function public.redeem_reward(rw_id uuid, p_id uuid)
+create or replace function public.redeem_reward(rw_id uuid, p_id uuid, p_clave text default null)
 returns text
 language plpgsql
 security invoker
 as $$
-declare rw public.rewards%rowtype; p public.profiles%rowtype;
+declare
+  rw public.rewards%rowtype;
+  p public.profiles%rowtype;
+  v_previo text;
 begin
+  -- Idempotencia, antes de tocar nada. Mismo intento, misma respuesta.
+  if p_clave is not null then
+    select resultado into v_previo from public.movimientos_coins where clave = p_clave;
+    if found then return v_previo; end if;
+  end if;
+
   select * into rw from public.rewards where id = rw_id and active = true;
   if not found then return 'no_disponible'; end if;
   select * into p from public.profiles where id = p_id for update;
   if not found then return 'no_disponible'; end if;
-  -- El premio y quien lo canjea tienen que ser de la MISMA casa.
-  --
-  -- Hoy esto no lo puede provocar nadie: el RLS solo deja ver un gremio, asi
-  -- que los dos identificadores salen siempre del mismo. Se comprueba igual
-  -- porque esa garantia es del borde, no de la funcion, y el dia que el RLS
-  -- pase a "alguno de mis gremios" —que es a donde va el proyecto— esta
-  -- funcion dejaria pagar un premio de una casa con el saldo de otra.
-  --
-  -- Devuelve `no_disponible` y no un codigo nuevo: no hay que decirle a quien
-  -- pregunta que el premio existe en otro sitio, y los codigos de esta funcion
-  -- los lee el cliente.
+  -- El premio y quien lo canjea, de la misma casa (041).
   if rw.family_id is distinct from p.family_id then return 'no_disponible'; end if;
-  if p.coins < rw.cost then return 'sin_monedas'; end if;
+
+  if p.coins < rw.cost then
+    -- Un intento fallido tambien es historia: sin el, un pico de gente que
+    -- no llega al premio no se ve en ninguna parte.
+    perform public.anota_coins(p_id, 'canje', -rw.cost, p.coins, p.coins, 'sin_monedas', rw.id, p_clave);
+    return 'sin_monedas';
+  end if;
+
   update public.profiles set coins = coins - rw.cost where id = p_id;
   insert into public.redemptions (family_id, reward_id, profile_id, cost)
     values (rw.family_id, rw.id, p_id, rw.cost);
+  perform public.anota_coins(p_id, 'canje', -rw.cost, p.coins, p.coins - rw.cost, 'ok', rw.id, p_clave);
   return 'ok';
 end $$;
 
@@ -2551,6 +2558,114 @@ grant execute on function public.actividad_reciente(integer) to authenticated;
 -- ------------------------------------------------------------------
 -- select id, email from auth.users;                          -- busca el tuyo
 -- insert into public.operadores values ('<tu-uuid-de-ahí>');
+
+-- ------------------------------------------------------------------
+-- El libro de las monedas (migración 042).
+--
+-- Hasta aquí había libro de ALTAS (`bonuses`) pero no de BAJAS: los gastos
+-- se hacían con un `update` y lo único que quedaba era la fila del canje.
+-- Y nada impedía cobrar dos veces: el `for update` serializa, que no es lo
+-- mismo que evitar.
+--
+-- El libro ES el registro de idempotencia: cada movimiento puede traer una
+-- `clave` única, y antes de mover nada se mira si esa clave ya tiene
+-- asiento. Si lo tiene, se devuelve SU resultado y no se toca nada.
+--
+-- LA REGLA DE LA SUMA: la suma de los asientos con resultado 'ok'
+-- reproduce el saldo. Los intentos rechazados también se anotan —un pico
+-- de «sin_monedas» dice algo— pero llevan saldo_antes = saldo_después.
+--
+-- ⚠ DE MOMENTO SOLO `redeem_reward` ESCRIBE AQUÍ. Las otras siete
+-- funciones que mueven `coins` todavía no anotan, así que **este libro no
+-- es la verdad del saldo y nadie debe leerlo como tal** hasta que estén
+-- todas. Se enganchan de una en una a propósito: son ocho funciones vivas
+-- de la economía de una casa real.
+-- ------------------------------------------------------------------
+
+create table if not exists public.movimientos_coins (
+  id uuid primary key default gen_random_uuid(),
+  family_id uuid not null references public.families(id) on delete cascade,
+  profile_id uuid not null references public.profiles(id) on delete cascade,
+  -- Que clase de movimiento. La lista crece segun se van enganchando las
+  -- otras funciones; va en un check para que un tipo mal escrito falle al
+  -- escribirlo y no dentro de seis meses al leer un informe.
+  tipo text not null check (tipo in (
+    'canje', 'devolucion_canje', 'mision', 'deshacer_mision',
+    'bonus_diario', 'bonus_manual', 'botin_limpieza', 'racha'
+  )),
+  -- Con signo: positivo entra, negativo sale. En un intento rechazado es lo
+  -- que se PRETENDIA mover, no lo que se movio: por eso la suma se hace
+  -- filtrando por resultado.
+  importe integer not null,
+  saldo_antes integer not null,
+  saldo_despues integer not null,
+  -- 'ok' o el codigo por el que no se hizo ('sin_monedas'...). Se guarda el
+  -- mismo texto que devuelve la funcion, para que el libro y la respuesta
+  -- que vio la persona digan lo mismo.
+  resultado text not null default 'ok',
+  -- El canje, la completacion, la campana... segun el tipo. Sin clave ajena
+  -- a proposito: apunta a tablas distintas y un asiento no debe morir
+  -- porque se borre aquello a lo que se refiere.
+  referencia uuid,
+  -- Idempotencia. Nula cuando quien llama no manda ninguna, que es lo que
+  -- pasa mientras el cliente no las genere.
+  clave text check (clave is null or length(clave) between 8 and 120),
+  created_at timestamptz not null default now()
+);
+
+-- La unicidad ES la garantia. Parcial porque hoy casi todas son nulas.
+create unique index if not exists idx_movimientos_clave
+  on public.movimientos_coins (clave) where clave is not null;
+
+create index if not exists idx_movimientos_gremio
+  on public.movimientos_coins (family_id, created_at desc);
+create index if not exists idx_movimientos_perfil
+  on public.movimientos_coins (profile_id, created_at desc);
+
+alter table public.movimientos_coins enable row level security;
+
+drop policy if exists familia_miembro on public.movimientos_coins;
+create policy familia_miembro on public.movimientos_coins
+  for all to authenticated
+  using (family_id in (select id from public.families where owner = auth.uid()))
+  with check (family_id in (select id from public.families where owner = auth.uid()));
+
+-- Como las tablas nuevas desde la 028: el grant a anon existe para que una
+-- lectura sin sesion devuelva [] por RLS en vez de un 401, que es lo que
+-- hace que las comprobaciones externas digan la verdad.
+grant select on public.movimientos_coins to anon;
+grant select, insert on public.movimientos_coins to authenticated;
+
+-- ------------------------------------------------------------------
+-- El apunte. Una sola forma de escribir en el libro, para que las ocho
+-- funciones no inventen ocho maneras distintas.
+--
+-- `security invoker` a proposito: asi el RLS de arriba sigue mandando y una
+-- casa no puede escribir un asiento en el libro de otra.
+-- ------------------------------------------------------------------
+create or replace function public.anota_coins(
+  p_profile uuid,
+  p_tipo text,
+  p_importe integer,
+  p_antes integer,
+  p_despues integer,
+  p_resultado text default 'ok',
+  p_referencia uuid default null,
+  p_clave text default null
+)
+returns void
+language plpgsql
+security invoker
+as $$
+declare v_family uuid;
+begin
+  select family_id into v_family from public.profiles where id = p_profile;
+  if v_family is null then return; end if;
+  insert into public.movimientos_coins
+    (family_id, profile_id, tipo, importe, saldo_antes, saldo_despues, resultado, referencia, clave)
+  values
+    (v_family, p_profile, p_tipo, p_importe, p_antes, p_despues, p_resultado, p_referencia, p_clave);
+end $$;
 
 -- Y el barrido final de la 021, que tiene que quedarse SIEMPRE el último
 -- del fichero: retira `anon` de toda función `security definer`, incluidas
