@@ -18,6 +18,25 @@ verdad duele en esta app: que el esquema y el cliente dejen de encajar.
 
 ---
 
+## 2.35.0 · 30 de agosto de 2026
+
+**Expandirse a otro gremio.** En Progreso hay un botón nuevo: enseña los
+escalones de este gremio, cuánto te falta para cada uno —en experiencia o en
+Talis, con el número— y te deja **forjar una llave** cuando llegas.
+
+Una llave abre un gremio nuevo, o te deja entrar en uno al que te inviten. Se
+paga una sola vez, al forjarla.
+
+Y ahí aparece, por primera vez, la **identidad propia**. Hasta hoy una casa
+entra con una clave que comparte todo el mundo, y eso vale para jugar juntos;
+pero un gremio nuevo es tuyo, no de la casa, así que hace falta saber quién lo
+abre. Se pide **solo aquí**, cuando hace falta de verdad, y no al entrar ni «por
+si acaso».
+
+Lo que no cambia al crearla, que es la duda real: la casa sigue entrando como
+siempre, tu personaje es el mismo, y no pierdes nivel, historial ni Talis —esos
+pasan a ser tuyos y te acompañan a cualquier gremio.
+
 ## 2.34.0 · 30 de agosto de 2026
 
 **Una persona puede tener más de un gremio.** Hasta hoy la app abría uno y solo

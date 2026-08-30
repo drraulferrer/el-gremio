@@ -24,6 +24,7 @@ import { flag } from '../lib/flags'
 import { premiosParaMayores, ordenarPorPrecio, leerOrdenTienda, alternarOrdenTienda, ORDEN_TIENDA } from '../lib/premios'
 import { muroDe, hayNuevo, leerVisita, sellarVisita } from '../lib/muro'
 import DarGracias from './DarGracias'
+import Expandirse from './Expandirse'
 import { retratoDe } from '../lib/retrato'
 import Muro from '../components/Muro'
 import Estandarte from '../components/Estandarte'
@@ -47,6 +48,7 @@ export default function Home({ family, data, profile, refresh, onSwitchProfile, 
   const elogios = muroDe({ completions: data.completions, reconocimientos: data.reconocimientos, perfiles: data.profiles }, profile.id)
   const [visto, setVisto] = useState(() => leerVisita(profile.id))
   const [dandoGracias, setDandoGracias] = useState(false)
+  const [expandiendo, setExpandiendo] = useState(false)
   const muroNuevo = hayNuevo(elogios, visto)
   const [ocupado, setOcupado] = useState(null)
   const [aviso, setAviso] = useState('')
@@ -180,6 +182,20 @@ export default function Home({ family, data, profile, refresh, onSwitchProfile, 
           muroNuevo={muroNuevo}
           onDarGracias={() => setDandoGracias(true)}
           alVerMuro={sellarMuro}
+          onExpandirse={() => setExpandiendo(true)}
+        />
+      )}
+
+      {/* Expandirse vive en un modal y no en una pestaña propia: se abre
+          desde Progreso porque de ahí depende —el escalón lo da el nivel—,
+          y una pestaña más para algo que se usa cuatro veces en la vida
+          ensucia la barra de todos los días. */}
+      {expandiendo && (
+        <Expandirse
+          family={family}
+          profile={profile}
+          refresh={refresh}
+          onClose={() => setExpandiendo(false)}
         />
       )}
 
@@ -612,7 +628,7 @@ function TuRetrato({ profile, genero, refresh }) {
   )
 }
 
-function Progreso({ data, profile, genero, refresh, historial, elogios = [], alVerMuro, onDarGracias, muroNuevo = false }) {
+function Progreso({ data, profile, genero, refresh, historial, elogios = [], alVerMuro, onDarGracias, muroNuevo = false, onExpandirse }) {
   // El historial va por semanas y no en una lista infinita: una lista que
   // solo crece deja de leerse al mes. Nada se archiva de verdad —los datos
   // siguen en la base—, solo sale de la vista.
@@ -648,6 +664,15 @@ function Progreso({ data, profile, genero, refresh, historial, elogios = [], alV
       <TuRetrato profile={profile} genero={genero} refresh={refresh} />
 
       <CaminoRacha data={data} profile={profile} refresh={refresh} />
+
+      {/* El único sitio de la app donde se sale de este gremio. Va aquí y
+          no en el panel parental porque no es administrar la casa: es algo
+          que se gana jugando, y quien lo gana es quien mira esta pantalla. */}
+      {onExpandirse && (
+        <button className="btn btn-fantasma btn-bloque" onClick={onExpandirse}>
+          🗝️ Expandirse a otro gremio
+        </button>
+      )}
 
       <div className="titulo-seccion">Tus habilidades</div>
 

@@ -6158,6 +6158,102 @@ Cliente y `nivel_de_xp()` coinciden.
 
 ---
 
+## 7bq. Expandirse, y la identidad donde toca (30 de agosto) · 2.35.0 · sin migración
+
+**La 6.3, primera parte.** La pantalla de expandirse, con la conversión a
+identidad personal **dentro**. Sin migración: el servidor lo tenía todo desde
+la 056.
+
+### Por qué la conversión va aquí y no en su propia pantalla
+
+Antes de escribir nada se vio esto: el cliente **no llamaba a ninguna** función
+de identidad ni de expansión. Ni `forjar_llave`, ni `invitar`, ni
+`solicitar_conversion`. Y las tres primeras exigen identidad personal, que nadie
+tiene.
+
+Empezar por la pantalla de forjar habría contestado `exige_identidad_personal`
+al 100 % de la gente para siempre. La especificación ya lo había resuelto:
+`F-4` paso 3 dice que la identidad se pide **justo ahí**, al ir a expandirse,
+«no antes, no *por si acaso*» (`R-48`); y el plan de la Fase 2 dejó escrito que
+la pantalla de conversión no se hacía entonces porque **su disparo llegaba en la
+Fase 5**. Llegó.
+
+Así que son dos pantallas en una: quien no tiene identidad no ve una lista de
+escalones que no puede tocar, ve por qué le hace falta y cómo se crea.
+
+### Lo que la conversión dice, y lo que calla
+
+El texto no dice «regístrate». Dice qué se gana y —lo que de verdad se pregunta
+alguien a quien le piden un correo por primera vez en esta app— **qué no
+cambia**: la casa sigue entrando igual, el personaje es el mismo, y ni el nivel,
+ni el historial, ni los Talis se pierden.
+
+Y el orden de las dos llamadas importa: primero `solicitar_conversion` —que
+comprueba el PIN y aparta el correo— y **después** `signUp`. Al revés, un PIN
+mal tecleado dejaría una cuenta creada que después habría que limpiar.
+
+### La frontera, escrita en un módulo aparte
+
+`src/lib/expansion.js` traduce a frases lo que contesta el servidor, y no decide
+nada: `SEC-1`, el cliente solo muestra. Dos tests lo atan a `schema.sql`:
+
+- los **estados** de `oportunidades_expansion()` son los mismos y **en el mismo
+  orden** —que es el orden de prioridad con el que el servidor decide qué decir
+  primero, para que la pantalla no diga una cosa y el servidor otra—;
+- **todos** los códigos de retorno de `forjar_llave()` y de
+  `solicitar_conversion()` tienen frase. Si mañana el servidor devuelve uno
+  nuevo y nadie se lo escribe, el test cae en vez de salir como «algo ha
+  fallado».
+
+### Dos fallos que cazaron las pruebas
+
+- **`null ?? x` devuelve `x`.** La tabla de mensajes tiene `ok: null` a
+  propósito —«no digas nada»—, así que con el operador cómodo el caso BUENO de
+  forjar salía con el mensaje genérico de error. Se arregló con `in`.
+- **Una clase de CSS inventada.** `btn-principal` no existe; `tests/estetica.js`
+  la cazó. Las que hay son `btn`, `btn-bloque`, `btn-fantasma`, `btn-mini`,
+  `btn-exito`, `btn-peligro` y `btn-icono`.
+
+### Y lo de Supabase, que estaba hecho
+
+El punto que este documento llevaba abierto desde el 25-ago —«dar de alta las
+Redirect URLs»— **ya estaba**. Comprobado en el panel: Site URL
+`https://elgremioapp.com/` y cuatro redirecciones, con la del dominio y la de
+`www`. Se ha añadido `http://localhost:5177/**`, que es el puerto de
+`.claude/launch.json` y faltaba: sin ella, probar la conversión en local por ese
+puerto muere al volver del correo.
+
+**Lo que sí queda abierto, y es de producto:** la plantilla «Confirm sign up»
+dice *«Alguien ha creado un gremio familiar con este correo. Confírmalo y
+podréis entrar todos»*. Eso es la copia de **fundar una casa**, y Supabase tiene
+**una sola** plantilla de confirmación, así que la conversión la reutiliza: a
+quien está creando **su** identidad se le diría «podréis entrar todos», que
+sugiere justo lo contrario de lo que pasa. Hace falta un texto que valga para
+los dos casos.
+
+### Cómo se comprobó
+
+`npm run verify`: **1488 tests en 82 ficheros**. Y en `dev:demo`, que es donde
+se ve el caso real —la demo no implementa `clase_credencial`, así que cae del
+lado de «sin identidad», exactamente como la familia de hoy—: el botón sale en
+Progreso, el modal abre en la puerta de la conversión, los tres campos están con
+sus etiquetas y el botón nace deshabilitado hasta que la validación pasa.
+
+**Con una salvedad honesta:** el panel de capturas del navegador se quedó
+sirviendo un fotograma viejo, así que lo de arriba está comprobado leyendo el
+DOM —geometría, colores, textos y estados—, no mirando una imagen. Contraste
+comprobado también por ahí: fondo `rgba(46,46,84,.78)` con texto
+`rgb(234,234,244)`.
+
+### Lo que falta de la 6.3
+
+Invitar, la bandeja de invitaciones, crear un gremio con la llave, y salir y
+echar. El servidor las tiene desde la 057 y **siguen sin llamarlas nadie**. Y
+con ellas, la decisión de los avisos.
+
+
+---
+
 # CÓMO ARRANCAR LA SIGUIENTE SESIÓN
 
 **Estado al cerrar el 30-ago-2026, por la noche.**
@@ -6167,9 +6263,9 @@ Cliente y `nivel_de_xp()` coinciden.
 | | |
 |---|---|
 | Repositorio | `~/el-gremio`, rama `main` |
-| Versión desplegada | **2.34.0** · `npm run health` en verde · `5e5b65a`, supabase 17.6 |
+| Versión desplegada | **2.34.0** · la **2.35.0 está construida y sin publicar** |
 | Migraciones aplicadas | hasta la **057**. La siguiente libre es la **058** |
-| Tests | 1473 en 81 ficheros |
+| Tests | 1488 en 82 ficheros |
 | Plan y especificación | `~/Library/Mobile Documents/com~apple~CloudDocs/ClaudeCode/specs/` |
 
 **Lo primero, siempre:** `git fetch` antes de elegir número de migración o de
@@ -6185,7 +6281,7 @@ versión. Hoy no ha hecho falta, pero el 30-ago por la mañana ya pasó una vez.
 | 3 · Configuración y cartera | ✅ **cerrada** | 050, 051, 052 |
 | 4 · El tipo como plantilla | ✅ **cerrada** | 053, 054, 055 |
 | 5 · Hitos y llaves | ✅ **cerrada** | 056 |
-| 6 · Gremios múltiples | ◐ **6.1 y 6.2 hechas** · faltan las pantallas (6.3) | 057 |
+| 6 · Gremios múltiples | ◐ **6.1, 6.2 y media 6.3** · faltan invitaciones y avisos | 057 |
 | 7 en adelante | ☐ sin empezar | — |
 
 Y de propina, la **046**: el barrido de permisos que la 021 dejó escrito llevaba
@@ -6234,9 +6330,12 @@ tablero. Es de la 6.3, cuando haya dónde ponerlo.
    comprobaciones de `CLAUDE.md` que lleva todo el día sin hacerse: el agente no
    introduce contraseñas y el modo demo no toca RLS. Lo visible de hoy es el
    «te faltan N Talis» de la tienda.
-2. **Supabase Auth**: dar de alta las Redirect URLs y repasar la plantilla de
-   confirmación (`docs/CORREOS.md` §1), sin lo cual la conversión no puede
-   terminar aunque el servidor esté listo.
+2. **Supabase Auth · la plantilla de confirmación.** Las Redirect URLs **ya
+   están** (comprobado el 30-ago; se añadió además `localhost:5177`). Lo que
+   queda es la copia: «Confirm sign up» dice «Confírmalo y podréis entrar
+   todos», que es el texto de fundar una casa, y la conversión a identidad
+   personal reutiliza esa misma plantilla porque Supabase solo tiene una. Hace
+   falta un texto que valga para los dos casos.
 3. **El `truncate` para `authenticated`**, abierto desde la Fase 0.
 4. **`zona_de_perfil`** es una función huérfana desde la 018: no la llama nadie.
 5. **`CAP-12` vs `saldos_visibles()`**: hoy la casa ve el saldo de sus

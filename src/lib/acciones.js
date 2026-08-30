@@ -645,3 +645,78 @@ export async function cerrarSesion() {
 
   return error ? { ok: false, mensaje } : { ok: true, mensaje: '' }
 }
+
+// ------------------------------------------------------------------
+// Expandirse (Fase 6.3).
+//
+// Las tres llamadas que la pantalla de expansión necesita. Van aquí y no
+// dentro de la pantalla por lo mismo que el resto: para que quede
+// registrado lo que pasa y para que el mensaje presentable se decida en un
+// solo sitio.
+// ------------------------------------------------------------------
+
+/** Los escalones del gremio activo, con cuánto falta para cada uno. */
+export async function leerOportunidades(familyId) {
+  const { data, error } = await supabase.rpc('oportunidades_expansion', { p_family: familyId })
+  if (error) {
+    log.warn('expansion.oportunidades.error', { detalle: String(error.message || error) })
+    return []
+  }
+  return data || []
+}
+
+/** Mis llaves, de todos mis gremios. */
+export async function leerLlaves() {
+  const { data, error } = await supabase.rpc('mis_llaves')
+  if (error) {
+    log.warn('expansion.llaves.error', { detalle: String(error.message || error) })
+    return []
+  }
+  return data || []
+}
+
+/**
+ * Forjar. La clave de idempotencia se deriva de la intención —este gremio,
+ * este escalón— más la ventana de diez segundos, igual que un canje: un
+ * doble clic no puede pagar dos llaves.
+ */
+export async function forjarLlave(familyId, orden) {
+  const requestId = nuevoRequestId()
+  const clave = claveDe(['forja', familyId, orden])
+  const { data, error } = await supabase.rpc('forjar_llave', {
+    p_family: familyId,
+    p_orden: orden,
+    p_clave: clave
+  })
+  if (error) {
+    log.error('expansion.forja.error', { request_id: requestId, detalle: String(error.message || error) })
+    return 'error'
+  }
+  log.info('expansion.forja', { request_id: requestId, family_id: familyId, orden, resultado: data })
+  return data
+}
+
+/**
+ * Pedir una identidad propia. Es el paso 1 de la conversion (F-9): deja la
+ * solicitud, comprueba el PIN y aparta el correo. La cuenta la crea despues
+ * la pantalla con `signUp`, y la conversion TERMINA al volver del enlace.
+ *
+ * Va primero a proposito: si el PIN no vale o el correo no esta disponible,
+ * no se ha creado ninguna cuenta que despues haya que limpiar.
+ */
+export async function solicitarConversion(profileId, correo, pinHash) {
+  const requestId = nuevoRequestId()
+  const { data, error } = await supabase.rpc('solicitar_conversion', {
+    p_profile: profileId,
+    p_correo: correo,
+    p_pin_hash: pinHash
+  })
+  if (error) {
+    log.error('conversion.solicitud.error', { request_id: requestId, detalle: String(error.message || error) })
+    return 'error'
+  }
+  // El correo NO se registra: `log.js` lo filtra igual, pero no darselo es
+  // mas barato que confiar en el filtro.
+  log.info('conversion.solicitud', { request_id: requestId, profile_id: profileId, resultado: data })
+  return data
+}

@@ -4329,3 +4329,60 @@ button.kid-avatar.latiendo { animation: latido-aviso 2.6s var(--ease-salida) inf
   font-size: 0.7rem;
   opacity: 0.6;
 }
+
+/* ------------------------------------------------------------------
+   Expandirse (6.3). Cada escalón dice cuánto falta; el que ya se puede
+   forjar se distingue por el borde, no solo por tener botón: quien mira
+   de reojo tiene que ver dónde está la novedad.
+   ------------------------------------------------------------------ */
+.lista-escalones,
+.lista-llaves {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+}
+
+.escalon {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--borde, #d8d2c4);
+  border-radius: 12px;
+  margin-bottom: 8px;
+}
+
+.escalon p {
+  margin: 2px 0 0;
+  font-size: 0.85rem;
+}
+
+.escalon-listo {
+  border-color: currentColor;
+}
+
+.lista-llaves li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 6px 0;
+  font-size: 0.9rem;
+}
+
+.campo {
+  display: block;
+  margin: 12px 0;
+}
+
+.campo > span {
+  display: block;
+  font-size: 0.8rem;
+  opacity: 0.75;
+  margin-bottom: 4px;
+}
+
+.campo input {
+  width: 100%;
+}
