@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { supabase, mensajeDeError, zonaDelDispositivo, esColumnaQueNoExiste, configurarZona } from '../lib/supabase'
+import DejarElGremio from './DejarElGremio'
 import {
   TABLAS_EXPORTADAS, construirExportacion, nombreFichero,
   resumenDeBorrado, confirmacionValida, mensajeDeBorrado
@@ -261,6 +262,12 @@ export default function Datos({ family, onCambiada, onCuentaBorrada }) {
           Están en ⚙️ → Estado.
         </p>
       </div>
+
+      {/* Va ANTES de borrar la cuenta y no después, y no es casual: quien
+          entra aquí buscando la salida suele querer irse de UN gremio, no
+          disolver la casa entera. Si lo primero que encuentra es el botón
+          rojo, la puerta que ve es la que no quería. */}
+      <DejarElGremio family={family} />
 
       <div className="titulo-seccion">Borrar la cuenta</div>
 

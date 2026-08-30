@@ -665,6 +665,16 @@ export async function leerOportunidades(familyId) {
   return data || []
 }
 
+/** Mis pertenencias activas: cada gremio con su personaje y su nivel. */
+export async function leerPertenencias() {
+  const { data, error } = await supabase.rpc('mis_pertenencias')
+  if (error) {
+    log.warn('pertenencias.mias.error', { detalle: String(error.message || error) })
+    return []
+  }
+  return data || []
+}
+
 /** Mis llaves, de todos mis gremios. */
 export async function leerLlaves() {
   const { data, error } = await supabase.rpc('mis_llaves')

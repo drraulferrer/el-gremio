@@ -6403,6 +6403,62 @@ de golpe.
 
 ---
 
+## 7bt. Dejar un gremio (31 de agosto) · 2.38.0 · sin migración
+
+**La última pieza de la Fase 6**, y con ella la fase queda cerrada. Sin
+migración: `abandonar_gremio()` estaba en la 057 y solo le faltaba pantalla.
+
+### Por qué no se parece a borrar la cuenta
+
+Están uno al lado del otro en ⚙️ → Datos y hacen cosas muy distintas. Borrar es
+definitivo y se lleva el gremio entero con todo el mundo dentro, y por eso pide
+escribir el nombre. Salir **retira** tu personaje y lo puedes recuperar: si te
+vuelven a invitar vuelve con su nivel, su historial y sus insignias (`R-63`).
+
+Darle a salir la misma fricción que a borrar sugeriría una gravedad que no
+tiene. Así que no pide escribir nada: enseña una lista de lo que pasa y un
+botón. Hay un test que vigila las dos cosas —que salir no herede la fricción y
+que **borrar no la pierda**.
+
+### Lo que la lista dice, y por qué esas cinco
+
+| | |
+|---|---|
+| El personaje se retira, no se borra | Es lo que casi todo el mundo teme, y es falso |
+| Volver te devuelve ese mismo personaje… **pero cuesta una llave nueva** | `R-63`. Callarlo sería vender una salida más barata de lo que es |
+| Tus Talis son tuyos y van contigo | `R-06`: la cartera es de la persona |
+| No se devuelve nada por salir | Ni llaves ni Talis. Decirlo después sería tarde |
+| Liberas una plaza de tu límite | Es la única consecuencia buena, y conviene saberla |
+
+### Solo aparece si hay algo que dejar
+
+Quien opera con la clave compartida **no tiene pertenencia**: no pertenece al
+gremio, ES el gremio. Para esa cuenta la salida es borrar, que está justo
+debajo. Enseñarle además un «dejar el gremio» que no le corresponde solo sería
+una forma de asustar.
+
+Y el estado arranca en `null` y no en `false`, para que no parpadee un botón de
+salida durante la primera pasada.
+
+### Después de salir, la app arranca de cero
+
+Salir cambia a la vez el gremio activo, el personaje, el PIN, la zona horaria y
+todos los datos. `elegirActivo` ya sabe caer a otro de los míos cuando el
+guardado deja de serlo (`C-3`), así que recargar es **el camino que esa regla
+describe**, no un atajo.
+
+### Cómo se comprobó
+
+`npm run verify`: **1516 tests en 84 ficheros**.
+
+Y en `dev:demo`, el caso que importa hoy: con la clave compartida el bloque
+**no aparece**, y las secciones de Datos siguen siendo las cuatro de siempre.
+El caso positivo —con pertenencia— lo cubren los tests, no la pantalla: la
+demo no implementa `mis_pertenencias`, así que no había forma de provocarlo ahí.
+
+
+---
+
 # CÓMO ARRANCAR LA SIGUIENTE SESIÓN
 
 **Estado al cerrar el 30-ago-2026, por la noche.**
@@ -6412,9 +6468,9 @@ de golpe.
 | | |
 |---|---|
 | Repositorio | `~/el-gremio`, rama `main` |
-| Versión desplegada | **2.37.0** · `npm run health` en verde · `0ae2f8a`, supabase 17.6 |
+| Versión desplegada | **2.37.0** · la **2.38.0 está construida y sin publicar** |
 | Migraciones aplicadas | hasta la **058**. La siguiente libre es la **059** |
-| Tests | 1504 en 83 ficheros |
+| Tests | 1516 en 84 ficheros |
 | Plan y especificación | `~/Library/Mobile Documents/com~apple~CloudDocs/ClaudeCode/specs/` |
 
 **Lo primero, siempre:** `git fetch` antes de elegir número de migración o de
@@ -6430,7 +6486,7 @@ versión. Hoy no ha hecho falta, pero el 30-ago por la mañana ya pasó una vez.
 | 3 · Configuración y cartera | ✅ **cerrada** | 050, 051, 052 |
 | 4 · El tipo como plantilla | ✅ **cerrada** | 053, 054, 055 |
 | 5 · Hitos y llaves | ✅ **cerrada** | 056 |
-| 6 · Gremios múltiples | ◐ casi cerrada · falta **salir con pantalla** | 057, 058 |
+| 6 · Gremios múltiples | ✅ **cerrada** | 057, 058 |
 | 7 en adelante | ☐ sin empezar | — |
 
 Y de propina, la **046**: el barrido de permisos que la 021 dejó escrito llevaba

@@ -18,6 +18,22 @@ verdad duele en esta app: que el esquema y el cliente dejen de encajar.
 
 ---
 
+## 2.38.0 · 31 de agosto de 2026
+
+**Se puede dejar un gremio.** En ⚙️ → Datos, justo encima de borrar la cuenta,
+y solo si perteneces a alguno: quien entra con la clave de la casa no lo ve,
+porque para esa cuenta la salida es otra.
+
+Antes de salir se dice lo que pasa, que no es lo que la gente teme: tu
+personaje **se retira, no se borra**, y si te vuelven a invitar vuelve con su
+nivel, su historial y sus insignias. Lo que cuesta volver es una llave nueva, y
+eso también se dice.
+
+Tus Talis son tuyos y se van contigo. No se devuelve nada por salir.
+
+Y si eres quien titula el gremio y no hay nadie más que lo administre, no te
+deja salir sin más: antes hay que pasar la titularidad o cerrarlo.
+
 ## 2.37.0 · 31 de agosto de 2026
 
 **Los avisos dejan de ser de un solo gremio.** Hasta ahora un móvil solo podía
