@@ -4765,3 +4765,138 @@ Esto es la **Fase 1** de un plan de implementación que vive fuera del repo, en
 - `el-gremio-briefing-legal-equipo.md` y `-menores.md` — listos para enviar,
   sin encargar. Son el camino crítico de las fases 8a y 8b.
 - `el-gremio-catalogo-amigos.md` — borrador sin validar con un grupo real.
+
+## 7bc. Identidad y pertenencia, el cimiento (30 de agosto) · SIN VERSIÓN · migraciones 044 y 045
+
+**Lo que hay que saber en una línea:** las migraciones **044 y 045 están
+EJECUTADAS** y comprobadas contra producción. **No hay versión nueva ni
+despliegue**: no cambia una sola línea de `src/`, y la app que corre hoy
+(2.33.3, `fff2a2e`) sigue siendo la correcta.
+
+Esto es la **Fase 2** del plan, y de sus siete piezas van las cuatro primeras:
+2.1 (dos clases de credencial), 2.2 (modelo de persona y pertenencia), 2.3
+(migrar los gremios actuales) y 2.4 (aislamiento por pertenencia en todas las
+políticas). Quedan 2.5 (F-9, conversión de perfil a persona), 2.6 (F-13,
+migrar el correo compartido) y 2.7 (F-8d, borrar la identidad), que son las
+que tienen pantalla.
+
+### El cambio, en una frase
+
+Hasta ayer, el permiso lo daba **ser la dueña de la cuenta del gremio**. Desde
+hoy lo da **llegar al gremio**, y llegar tiene tres formas. Hoy las tres
+apuntan al mismo sitio para todo el mundo: es el paso «convivir», y ese es el
+objetivo.
+
+### Lo que se creó (044)
+
+- **`credenciales`** · una fila por cuenta, y la cuenta es la clave primaria:
+  un correo es **credencial compartida de gremio** o **identidad personal**,
+  nunca las dos. Por construcción, no por una comprobación que alguien tenga
+  que acordarse de hacer. Las cuatro cuentas que existen quedaron
+  clasificadas como `compartida` — que es lo que son: la clave de una casa no
+  representa a una persona.
+- **`pertenencias`** · persona, gremio, rol (`titular`/`gestor`/`miembro`),
+  estado (`activa`/`abandonada`/`expulsada`), **cómo se entró** y desde
+  cuándo. Índice único **parcial** para la activa: entre un `select` y un
+  `insert` cabe otra petición, y abandonar y volver tiene que poder dejar dos
+  filas. **Cero filas hoy**, y es correcto: una pertenencia es de una persona
+  y todavía no hay ninguna.
+- **`profiles.persona`** · el vínculo opcional, nulo en los trece perfiles.
+  Con índice único por `(family_id, persona)` —una persona, un personaje por
+  gremio— y un disparador que **rechaza vincular una credencial compartida**:
+  si se pudiera, la clave de la casa se convertiría en la identidad de quien
+  la usara primero.
+- **`mis_gremios()`**, `es_mi_gremio()`, `clase_credencial()` y
+  `exige_persona()`. La última no la llama nadie todavía, y está escrita a
+  propósito **antes** que la primera operación de persona: una garantía que
+  llega después se le olvida a alguien y no se entera nadie.
+
+### Lo que cambió (045)
+
+Las **veintiuna** políticas que decían
+`family_id in (select id from families where owner = auth.uid())` ahora dicen
+`family_id in (select public.mis_gremios())`. Y **las seis funciones
+`security definer`** que llevaban esa comprobación escrita a mano por dentro
+—`grant_daily_bonus`, `grant_manual_bonus`, `crear_campana_limpieza`,
+`cerrar_campana_limpieza`, `spend_power`, `claim_streak`— preguntan ahora por
+`es_mi_gremio(v_family)`.
+
+**Las funciones importaban tanto como las políticas, y por un motivo que no
+se ve:** un `security definer` se salta el RLS, así que esa línea no era una
+copia de la política, era la **única** autorización que había ahí dentro. Sin
+cambiarla, la primera persona que se convierta y entre con su correo propio
+recibiría `no_es_tuyo` al pedir su estrella diaria, con pertenencia activa y
+todo.
+
+**Dónde vive ahora el paso «contraer»:** la rama de propiedad está DENTRO de
+`mis_gremios()`. Cuando no queden clientes viejos, se borra **una rama de una
+función** y no se toca ninguna política. Y no antes: retirarla con clientes
+viejos en la calle deja a esas casas viendo su gremio vacío, que es el fallo
+que documenta la 017.
+
+### Dos cosas que aparecieron al comparar el fichero con producción
+
+Ninguna era de esta fase, y las dos llevaban semanas.
+
+1. **`grant_manual_bonus` se revocaba con la firma de CUATRO argumentos**, y
+   tiene cinco desde la 042. Una firma que no existe no da un aviso: `revoke`
+   contesta «function does not exist» y **corta la reconstrucción de la base
+   ahí mismo**. El síntoma en producción era que ese `revoke ... from public`
+   nunca llegó a ejecutarse, y PUBLIC seguía en su lista de permisos.
+2. **`revoke ... from public` no quita la concesión explícita que Supabase da
+   a `anon`** por privilegios por defecto. Por eso `crear_campana_limpieza`,
+   `cerrar_campana_limpieza` y `grant_manual_bonus` se podían llamar **sin
+   haber entrado**. No escribían nada —`auth.uid()` es nulo y devolvían
+   `no_es_tuyo`— pero contestaban, y la clave anon es pública. Añadido el
+   `from anon` a las seis y a los dos disparadores nuevos.
+
+Las dos las defiende ahora `tests/permisos.test.js`, y las dos están escritas
+en `docs/RUNBOOK.md` §6b, al lado de la trampa de las sobrecargas, que es de
+la misma familia.
+
+**Y una tercera, menor:** `crear_campana_limpieza` y `spend_power` tenían en
+producción **los comentarios viejos**, anteriores a la limpieza de la 2.33.2.
+Solo comentarios —el código ejecutable era idéntico byte a byte— pero era
+deriva de esquema de verdad, y la 045 la deja resuelta: las seis funciones
+son ahora idénticas en `schema.sql` y en la base.
+
+### Cómo se comprobó
+
+- **`npm run respaldo` antes de tocar nada** (`respaldo-2026-08-30-132515`,
+  abierto y comprobado por el propio script).
+- `npm run verify`: **1195 tests en verde**, 69 ficheros. Los dos nuevos
+  —`tests/pertenencia.test.js` (23) y `tests/permisos.test.js` (5)— se
+  probaron **contra el esquema viejo** antes de darlos por buenos: 20 de 23
+  fallan, que es lo que se quería.
+- **El conjunto de gremios no cambia para nadie**: un bloque con `set_config`
+  de la sesión, cuenta por cuenta, comparando el predicado viejo con
+  `mis_gremios()`. **4 iguales, 0 distintas.**
+- **El RLS de verdad, con el rol `authenticated` puesto**: 4 gremios × 14
+  tablas = **56 comprobaciones en verde**, cada cuenta viendo exactamente las
+  filas de su casa y ni una más.
+- Las seis funciones, **idénticas byte a byte** entre `schema.sql` y la base
+  (md5 de `prosrc`).
+- `get_advisors`: ninguna alerta nueva. Las tres funciones de la economía
+  desaparecen de la lista de «anon puede ejecutar».
+- `npm run health`: web 2.33.3 (`fff2a2e`), supabase 17.6.
+
+**Lo que NO se pudo comprobar**, y hace falta: entrar de verdad con la clave
+de la casa y mirar la pantalla. El agente no introduce contraseñas, y el modo
+demo no toca RLS —usa `fakeBackend`—, así que las 56 comprobaciones de arriba
+son lo más cerca que se llega desde aquí. **Con la app abierta, mirar que el
+tablón, la tienda, el historial y el panel siguen igual.**
+
+### Lo que queda abierto
+
+- **La revisión de grants**, que ya venía de la Fase 0 con el `truncate` para
+  `authenticated`. Siete funciones `security definer` siguen sin `revoke ...
+  from anon`; cuatro están expuestas hoy (`zona_de_perfil` y tres `tg_*`) y
+  tres solo lo estarían en una base reconstruida (`purge_logs`,
+  `delete_my_account`, `streak_days`). La lista está en `PENDIENTES`, dentro
+  de `tests/permisos.test.js`, y el test falla si crece.
+- **`redeem_reward` la puede llamar `anon`** también, pero es `security
+  invoker`: el RLS la protege. Entra en la misma revisión.
+- **La Fase 2 va por la mitad.** Lo siguiente es **2.5**, la conversión de
+  perfil a persona (F-9): es la primera que crea una identidad personal de
+  verdad y, con ella, la primera fila de `pertenencias`. Ahí es donde el
+  cambio de hoy deja de ser un no-op.

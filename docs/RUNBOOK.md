@@ -409,6 +409,25 @@ función debe hacer `drop function if exists ...(firma vieja);` antes del
 `create or replace`. Pasó de verdad con `resolve_completion` en la 004 y
 tumbó la estrella inmediata de la peque.
 
+**Y su hermana, que muerde más tarde**: al cambiar la firma hay que
+actualizar también las líneas de `revoke` y `grant` de esa función. Una firma
+que no existe no da un aviso: `revoke` responde «function does not exist» y
+**corta la reconstrucción de la base ahí mismo**. `grant_manual_bonus` llevó
+así desde la 042 —que le añadió `p_clave`— hasta que se vio el 30-ago-2026, y
+el síntoma en producción era que su `revoke ... from public` nunca se había
+ejecutado, así que PUBLIC seguía en su lista de permisos. Lo defiende
+`tests/permisos.test.js`, que compara cada línea de permisos con la firma
+declarada en el fichero.
+
+**Y una tercera, de la misma familia**: `revoke ... from public` **no** quita
+la concesión explícita que Supabase da a `anon` por privilegios por defecto.
+Para que una función `security definer` no se pueda llamar sin haber entrado
+hacen falta las dos líneas, `from public` y `from anon`. Ese era el motivo de
+que `crear_campana_limpieza`, `cerrar_campana_limpieza` y `grant_manual_bonus`
+se pudieran llamar sin sesión —devolvían `no_es_tuyo`, pero contestaban—. El
+mismo test lleva la lista de las que todavía no la tienen, y solo puede
+menguar.
+
 Comprobación rápida de que la convención se ha respetado:
 
 ```bash

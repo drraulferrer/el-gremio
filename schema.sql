@@ -139,6 +139,13 @@ create table if not exists public.profiles (
   -- segunda, o sea `NULL or FALSE` = NULL. Y **un CHECK que da NULL PASA**:
   -- solo rechaza cuando da FALSE. La lógica de tres valores de SQL vuelve a
   -- morder justo donde uno cree que ha cubierto los dos casos.
+  -- El vínculo opcional con una identidad personal (migración 044). Lo
+  -- normal es que sea nulo: una peque de tres años no tiene correo, una
+  -- junior no debería necesitarlo para pedir su estrella, y una mascota
+  -- no lo va a tener nunca. La identidad se gana cuando hace falta cruzar
+  -- el límite de un gremio, y nunca se infiere por nombre, edad ni orden
+  -- de creación: se elige, se confirma y queda auditada.
+  persona uuid references auth.users(id) on delete set null,
   constraint profiles_especie_coherente check (
     case
       when role = 'mascota' then species is not null and species in ('perro','gato')
@@ -585,8 +592,8 @@ create index if not exists idx_badges_family on public.profile_badges (family_id
 create index if not exists idx_goals_family_activa on public.family_goals (family_id, achieved, starts_at desc);
 
 -- ⚠️ El índice más importante del fichero, y el último en llegar
--- (migración 017). Cada política de aquí abajo termina en la misma
--- subconsulta —`select id from families where owner = auth.uid()`—, así
+-- (migración 017). Cada política de aquí abajo pregunta a `mis_gremios()`,
+-- y la primera rama de esa función es `families.owner = auth.uid()`, así
 -- que sin este índice CADA petición de CADA casa recorre la tabla de
 -- familias entera. Con una familia dentro no se nota; es justo el tipo de
 -- cosa que solo aparece cuando ya hay gente usándolo.
@@ -595,6 +602,283 @@ create index if not exists idx_goals_family_activa on public.family_goals (famil
 -- una cuenta con dos gremios abre uno u otro según el día. Mientras eso
 -- siga así, dos gremios por cuenta son un error, no una función.
 create unique index if not exists idx_families_owner on public.families (owner);
+
+-- ---------------------------------------------------------------------
+-- Persona, pertenencia y las dos clases de credencial (migración 044).
+--
+-- Hoy el aislamiento es PROPIEDAD: «este gremio es de mi cuenta». Con
+-- gremios múltiples el sujeto pasa a ser PERTENENCIA: «pertenezco a este
+-- gremio». Para poder decir eso hace falta antes decir QUIÉN pertenece,
+-- que es lo que estas dos tablas traen: un `profiles` no sabe de quién
+-- es, y la cuenta de la casa no es una persona, es una llave que
+-- comparten seis.
+--
+-- Razonamiento completo en migracion-044-persona-y-pertenencia.sql.
+-- ---------------------------------------------------------------------
+
+-- Una fila por cuenta, y la cuenta es la clave primaria: por construcción
+-- un correo no puede ser credencial compartida e identidad personal a la
+-- vez. La exclusión no es una comprobación que alguien tenga que
+-- acordarse de hacer.
+create table if not exists public.credenciales (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  -- 'compartida' es el correo de la casa: da acceso a UN gremio y a su
+  -- selector de perfiles, y no representa a nadie. Es lo que hay hoy y
+  -- todo lo que hay hoy. 'personal' es el correo de UNA persona: da
+  -- acceso a sus pertenencias, a su cartera y a sus llaves.
+  clase text not null check (clase in ('compartida','personal')),
+  -- Solo lo tiene la compartida: una credencial personal no vive atada a
+  -- un gremio, sus gremios son sus pertenencias.
+  family_id uuid references public.families(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  -- En `case` y no en la forma obvia con `and`/`or`, por lo mismo que
+  -- mordió en `profiles_especie_coherente`: con un nulo por medio esa
+  -- expresión da NULL, y un CHECK que da NULL PASA.
+  constraint credenciales_alcance check (
+    case
+      when clase = 'compartida' then family_id is not null
+      else family_id is null
+    end
+  )
+);
+
+create index if not exists idx_credenciales_gremio
+  on public.credenciales (family_id) where family_id is not null;
+
+alter table public.credenciales enable row level security;
+
+-- Escribe el servidor, siempre. Que una sesión pudiera clasificarse a sí
+-- misma sería justo el parámetro del cliente que esto viene a impedir.
+revoke all on table public.credenciales from anon;
+revoke all on table public.credenciales from authenticated;
+grant select on table public.credenciales to authenticated;
+
+-- El vínculo que hoy no existe. Guarda rol, estado, cuándo y **cómo se
+-- obtuvo**, y es el nuevo sujeto del aislamiento de datos.
+create table if not exists public.pertenencias (
+  id uuid primary key default gen_random_uuid(),
+  -- Apunta a `auth.users` y no a `credenciales` para que la cascada siga
+  -- la misma línea que el resto del esquema; que sea de clase personal lo
+  -- defiende `tg_persona_es_personal` sobre `profiles`, y las funciones
+  -- que crean pertenencias.
+  persona uuid not null references auth.users(id) on delete cascade,
+  family_id uuid not null references public.families(id) on delete cascade,
+  -- Vocabulario de la especificación (§9.2). El reparto de capacidades
+  -- por rol llega con la plantilla de tipo; aquí el rol solo se guarda.
+  rol text not null default 'miembro' check (rol in ('titular','gestor','miembro')),
+  -- Nada se borra: salir es un estado, no una fila menos. Y ninguna
+  -- transición a abandonada o expulsada puede dispararse por un cambio de
+  -- configuración, solo por un acto humano explícito.
+  estado text not null default 'activa' check (estado in ('activa','abandonada','expulsada')),
+  origen text not null check (origen in ('fundacion','llave','invitacion','reclamacion')),
+  desde timestamptz not null default now(),
+  hasta timestamptz,
+  constraint pertenencias_baja_fechada check (
+    case when estado = 'activa' then hasta is null else hasta is not null end
+  )
+);
+
+-- Una pertenencia ACTIVA por persona y gremio, con un índice y no con un
+-- `select` previo: entre el select y el insert cabe otra petición. Es el
+-- mismo oficio que hace `idx_bonuses_uno_al_dia`. Parcial, porque
+-- abandonar y volver a entrar tiene que poder dejar dos filas.
+create unique index if not exists idx_pertenencia_activa
+  on public.pertenencias (persona, family_id) where estado = 'activa';
+
+create index if not exists idx_pertenencias_gremio
+  on public.pertenencias (family_id, estado);
+
+alter table public.pertenencias enable row level security;
+
+revoke all on table public.pertenencias from anon;
+revoke all on table public.pertenencias from authenticated;
+grant select on table public.pertenencias to authenticated;
+
+-- Un personaje, una persona (lo garantiza la columna, que es una sola). Y
+-- una persona, un personaje por gremio (lo garantiza este índice).
+create unique index if not exists idx_profiles_persona_unica
+  on public.profiles (family_id, persona) where persona is not null;
+
+-- Una credencial COMPARTIDA no puede quedar detrás de un personaje: no
+-- representa a nadie, y si se pudiera vincular, la clave de la casa se
+-- convertiría en la identidad de quien la usara primero.
+create or replace function public.tg_persona_es_personal()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $fn$
+begin
+  if new.persona is null then
+    return new;
+  end if;
+  if not exists (
+    select 1 from public.credenciales c
+     where c.user_id = new.persona and c.clase = 'personal'
+  ) then
+    raise exception 'la persona de un personaje tiene que ser una identidad personal';
+  end if;
+  return new;
+end $fn$;
+
+drop trigger if exists profiles_persona_personal on public.profiles;
+create trigger profiles_persona_personal
+  before insert or update of persona on public.profiles
+  for each row execute function public.tg_persona_es_personal();
+
+-- Un disparador no necesita que nadie tenga permiso de ejecucion: lo invoca
+-- el motor, y el permiso solo hace falta para CREAR el disparador. Sin este
+-- revoke, los privilegios por defecto de Supabase dejan la funcion colgando
+-- de /rest/v1/rpc/ para cualquiera, con o sin sesion. Las tres tg_* que ya
+-- existian tienen el mismo problema y se quedan como estan: son de otra
+-- revision (la de grants que dejo abierta la Fase 0), no de esta.
+revoke all on function public.tg_persona_es_personal() from anon;
+revoke all on function public.tg_persona_es_personal() from authenticated;
+
+-- ---------------------------------------------------------------------
+-- «A qué gremios llego yo», en un solo sitio.
+--
+-- Todas las políticas de aquí abajo preguntan a esta función y a nadie
+-- más: el día que haya que retirar la propiedad (paso «contraer») se
+-- borra una rama de aquí y no se tocan catorce políticas.
+--
+--   1 · PROPIEDAD · lo de hoy. Es TEMPORAL: se retira cuando no quede
+--       ningún cliente viejo en la calle. Retirarla antes de tiempo deja
+--       a esas casas viendo su gremio vacío y creyendo que han perdido el
+--       historial, que es el fallo que documenta la migración 017.
+--   2 · CREDENCIAL COMPARTIDA · lo mismo que la 1, dicho por la tabla
+--       nueva. Conviven a propósito durante todo el paso «convivir».
+--   3 · PERTENENCIA ACTIVA · el sujeto de verdad.
+-- ---------------------------------------------------------------------
+create or replace function public.mis_gremios()
+returns setof uuid
+language sql
+stable
+security definer
+set search_path = public
+as $fn$
+  select f.id from public.families f where f.owner = auth.uid()
+  union
+  select c.family_id from public.credenciales c
+   where c.user_id = auth.uid() and c.clase = 'compartida' and c.family_id is not null
+  union
+  select p.family_id from public.pertenencias p
+   where p.persona = auth.uid() and p.estado = 'activa';
+$fn$;
+
+revoke all on function public.mis_gremios() from public;
+revoke all on function public.mis_gremios() from anon;
+grant execute on function public.mis_gremios() to authenticated;
+
+-- La misma pregunta en booleano, para las funciones que ya reciben un
+-- gremio y tienen que decidir si lo dejan pasar.
+create or replace function public.es_mi_gremio(p_family uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $fn$
+  select p_family is not null
+     and exists (select 1 from public.mis_gremios() g where g = p_family);
+$fn$;
+
+revoke all on function public.es_mi_gremio(uuid) from public;
+revoke all on function public.es_mi_gremio(uuid) from anon;
+grant execute on function public.es_mi_gremio(uuid) to authenticated;
+
+-- La propia siempre; las del gremio, quien está dentro. `mis_gremios()`
+-- es security definer y por eso no vuelve a entrar por esta política.
+drop policy if exists pertenencia_visible on public.pertenencias;
+create policy pertenencia_visible on public.pertenencias
+  for select to authenticated
+  using (persona = auth.uid() or family_id in (select public.mis_gremios()));
+
+-- Se lee la propia y nada más. De qué clase es la sesión lo necesita la
+-- interfaz para decidir qué enseña; la de otro no le hace falta a nadie y
+-- diría a qué gremio pertenece un correo.
+drop policy if exists credencial_propia on public.credenciales;
+create policy credencial_propia on public.credenciales
+  for select to authenticated
+  using (user_id = auth.uid());
+
+-- Una cuenta sin fila devuelve 'sin_clasificar': existe, no ha fundado
+-- nada y todavía no es nada. Es el estado de quien se acaba de registrar.
+create or replace function public.clase_credencial()
+returns text
+language sql
+stable
+security definer
+set search_path = public
+as $fn$
+  select coalesce(
+    (select c.clase from public.credenciales c where c.user_id = auth.uid()),
+    'sin_clasificar'
+  );
+$fn$;
+
+revoke all on function public.clase_credencial() from public;
+revoke all on function public.clase_credencial() from anon;
+grant execute on function public.clase_credencial() to authenticated;
+
+-- La puerta que tienen que cruzar las operaciones de persona: forjar una
+-- llave, usarla, ver la cartera, cambiar de gremio, aceptar una
+-- invitación. Existe antes que la primera operación que la necesita a
+-- propósito: una garantía que llega después se le olvida a alguien y no
+-- se entera nadie.
+create or replace function public.exige_persona()
+returns void
+language plpgsql
+stable
+security definer
+set search_path = public
+as $fn$
+begin
+  if auth.uid() is null then
+    raise exception 'sin_sesion';
+  end if;
+  if public.clase_credencial() <> 'personal' then
+    -- El mensaje no dice quién es ni de qué gremio: solo que esta puerta
+    -- no es la suya.
+    raise exception 'exige_identidad_personal';
+  end if;
+end $fn$;
+
+revoke all on function public.exige_persona() from public;
+revoke all on function public.exige_persona() from anon;
+grant execute on function public.exige_persona() to authenticated;
+
+-- Cada gremio que existe tiene detrás una cuenta que es su credencial
+-- compartida. Se dice aquí, una vez. `do nothing` y no `do update`: si
+-- una cuenta ya estuviera clasificada como personal, reescribirla a
+-- compartida sería justo el accidente que la clave primaria impide.
+insert into public.credenciales (user_id, clase, family_id)
+select f.owner, 'compartida', f.id
+  from public.families f
+on conflict (user_id) do nothing;
+
+-- Y lo mismo para el gremio que se funde mañana, sin tocar el cliente.
+create or replace function public.tg_credencial_de_gremio()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $fn$
+begin
+  insert into public.credenciales (user_id, clase, family_id)
+  values (new.owner, 'compartida', new.id)
+  on conflict (user_id) do nothing;
+  return new;
+end $fn$;
+
+drop trigger if exists families_credencial on public.families;
+create trigger families_credencial
+  after insert on public.families
+  for each row execute function public.tg_credencial_de_gremio();
+
+revoke all on function public.tg_credencial_de_gremio() from anon;
+revoke all on function public.tg_credencial_de_gremio() from authenticated;
+
 
 -- ---------------------------------------------------------------------
 -- Seguridad por filas (RLS): todo queda aislado por familia.
@@ -632,6 +916,20 @@ create policy familia_owner on public.families
   for all to authenticated
   using (owner = auth.uid()) with check (owner = auth.uid());
 
+-- Y quien pertenece al gremio LO LEE, aunque la cuenta no sea suya
+-- (migración 045). Va aparte y solo para `select` a propósito: pertenecer
+-- da acceso a los datos, no da la potestad de renombrar el gremio,
+-- cambiarle la zona horaria ni borrarlo. Eso sigue siendo de la cuenta
+-- que lo fundó hasta que exista el modelo de capacidades.
+--
+-- Las dos políticas son permisivas y se suman: quien es dueña conserva
+-- todo lo que tenía. Y hoy, sin ninguna pertenencia creada, esta política
+-- no añade ni una fila a nadie: es exactamente el paso «convivir».
+drop policy if exists familia_miembro_lee on public.families;
+create policy familia_miembro_lee on public.families
+  for select to authenticated
+  using (id in (select public.mis_gremios()));
+
 do $$
 declare t text;
 begin
@@ -641,8 +939,8 @@ begin
     execute format($f$
       create policy familia_miembro on public.%I
         for all to authenticated
-        using (family_id in (select id from public.families where owner = auth.uid()))
-        with check (family_id in (select id from public.families where owner = auth.uid()))
+        using (family_id in (select public.mis_gremios()))
+        with check (family_id in (select public.mis_gremios()))
     $f$, t);
   end loop;
 end $$;
@@ -940,7 +1238,7 @@ alter table public.app_logs enable row level security;
 drop policy if exists logs_lectura on public.app_logs;
 create policy logs_lectura on public.app_logs
   for select to authenticated
-  using (family_id in (select id from public.families where owner = auth.uid()));
+  using (family_id in (select public.mis_gremios()));
 
 -- La escritura admite family_id nulo: hay errores que ocurren antes de
 -- saber a qué familia pertenece la sesión (por ejemplo, al cargar).
@@ -949,7 +1247,7 @@ create policy logs_escritura on public.app_logs
   for insert to authenticated
   with check (
     auth.uid() is not null
-    and (family_id is null or family_id in (select id from public.families where owner = auth.uid()))
+    and (family_id is null or family_id in (select public.mis_gremios()))
   );
 
 -- Retención: los logs no son un archivo histórico. Bórralos a los 30 días.
@@ -1029,8 +1327,8 @@ alter table public.rate_limits enable row level security;
 drop policy if exists ritmo_familia on public.rate_limits;
 create policy ritmo_familia on public.rate_limits
   for all to authenticated
-  using (family_id in (select id from public.families where owner = auth.uid()))
-  with check (family_id in (select id from public.families where owner = auth.uid()));
+  using (family_id in (select public.mis_gremios()))
+  with check (family_id in (select public.mis_gremios()));
 
 -- La misma cuenta, pero por CUENTA y no por familia (migración 017).
 -- Existe por un hueco concreto: `rate_guard` se rinde cuando la familia es
@@ -1244,7 +1542,7 @@ alter table public.bonuses enable row level security;
 drop policy if exists bonuses_lectura on public.bonuses;
 create policy bonuses_lectura on public.bonuses
   for select to authenticated
-  using (family_id in (select id from public.families where owner = auth.uid()));
+  using (family_id in (select public.mis_gremios()));
 
 -- Sin política de insert a propósito: solo se entra por las dos funciones
 -- de abajo, que son `security definer`. Con insert abierto, cualquiera con
@@ -1270,9 +1568,7 @@ begin
     return 'no_existe';
   end if;
 
-  if not exists (
-    select 1 from public.families f where f.id = v_family and f.owner = auth.uid()
-  ) then
+  if not public.es_mi_gremio(v_family) then
     return 'no_es_tuyo';
   end if;
 
@@ -1294,6 +1590,7 @@ begin
 end $fn$;
 
 revoke all on function public.grant_daily_bonus(uuid, text) from public;
+revoke all on function public.grant_daily_bonus(uuid, text) from anon;
 grant execute on function public.grant_daily_bonus(uuid, text) to authenticated;
 
 -- El premio a mano. Tres reglas que se garantizan AQUÍ y no solo en el
@@ -1338,9 +1635,7 @@ begin
     return 'no_existe';
   end if;
 
-  if not exists (
-    select 1 from public.families f where f.id = v_family and f.owner = auth.uid()
-  ) then
+  if not public.es_mi_gremio(v_family) then
     return 'no_es_tuyo';
   end if;
 
@@ -1369,8 +1664,16 @@ begin
   return 'ok';
 end $fn$;
 
-revoke all on function public.grant_manual_bonus(uuid, integer, text, uuid) from public;
-grant execute on function public.grant_manual_bonus(uuid, integer, text, uuid) to authenticated;
+-- La firma lleva CINCO argumentos desde la 042, que le añadió `p_clave`.
+-- Estas dos líneas se quedaron con la de cuatro, y una firma que no existe no
+-- es un aviso: `revoke` falla con "function does not exist" y **corta la
+-- reconstrucción de la base ahi mismo**. Encontrado el 30-ago-2026 al
+-- comparar el fichero con producción, donde ademas se veia el efecto: es la
+-- única de las seis con PUBLIC todavia en la lista de permisos, justo porque
+-- ese `revoke` nunca llego a ejecutarse.
+revoke all on function public.grant_manual_bonus(uuid, integer, text, uuid, text) from public;
+revoke all on function public.grant_manual_bonus(uuid, integer, text, uuid, text) from anon;
+grant execute on function public.grant_manual_bonus(uuid, integer, text, uuid, text) to authenticated;
 
 -- ------------------------------------------------------------------
 -- Modo limpieza (migración 031): lanzar y cerrar campañas.
@@ -1427,9 +1730,7 @@ begin
     from public.profiles where id = p_activada_por and active;
   if v_family is null then return 'quien_no_existe'; end if;
 
-  if not exists (
-    select 1 from public.families f where f.id = v_family and f.owner = auth.uid()
-  ) then
+  if not public.es_mi_gremio(v_family) then
     return 'no_es_tuyo';
   end if;
 
@@ -1506,6 +1807,7 @@ begin
 end $fn$;
 
 revoke all on function public.crear_campana_limpieza(uuid, text, text, text, text, integer, jsonb) from public;
+revoke all on function public.crear_campana_limpieza(uuid, text, text, text, text, integer, jsonb) from anon;
 grant execute on function public.crear_campana_limpieza(uuid, text, text, text, text, integer, jsonb) to authenticated;
 
 -- Cierra una campaña, y el desenlace lo decide la base, no el botón:
@@ -1545,9 +1847,7 @@ begin
     from public.campanas_limpieza where id = p_campana;
   if v_family is null then return 'no_existe'; end if;
 
-  if not exists (
-    select 1 from public.families f where f.id = v_family and f.owner = auth.uid()
-  ) then
+  if not public.es_mi_gremio(v_family) then
     return 'no_es_tuyo';
   end if;
 
@@ -1617,6 +1917,7 @@ begin
 end $fn$;
 
 revoke all on function public.cerrar_campana_limpieza(uuid, uuid) from public;
+revoke all on function public.cerrar_campana_limpieza(uuid, uuid) from anon;
 grant execute on function public.cerrar_campana_limpieza(uuid, uuid) to authenticated;
 
 
@@ -1650,7 +1951,7 @@ alter table public.power_uses enable row level security;
 drop policy if exists power_uses_lectura on public.power_uses;
 create policy power_uses_lectura on public.power_uses
   for select to authenticated
-  using (family_id in (select id from public.families where owner = auth.uid()));
+  using (family_id in (select public.mis_gremios()));
 
 -- Sin política de insert: se entra por la función, que es la que cuenta.
 
@@ -1831,9 +2132,7 @@ begin
     return 'no_existe';
   end if;
 
-  if not exists (
-    select 1 from public.families f where f.id = v_family and f.owner = auth.uid()
-  ) then
+  if not public.es_mi_gremio(v_family) then
     return 'no_es_tuyo';
   end if;
 
@@ -1893,6 +2192,7 @@ begin
 end $fn$;
 
 revoke all on function public.spend_power(uuid, text, text, integer, integer, uuid, text) from public;
+revoke all on function public.spend_power(uuid, text, text, integer, integer, uuid, text) from anon;
 grant execute on function public.spend_power(uuid, text, text, integer, integer, uuid, text) to authenticated;
 
 
@@ -2016,8 +2316,8 @@ alter table public.push_subs enable row level security;
 drop policy if exists push_subs_familia on public.push_subs;
 create policy push_subs_familia on public.push_subs
   for all to authenticated
-  using (family_id in (select id from public.families where owner = auth.uid()))
-  with check (family_id in (select id from public.families where owner = auth.uid()));
+  using (family_id in (select public.mis_gremios()))
+  with check (family_id in (select public.mis_gremios()));
 
 -- ------------------------------------------------------------------
 -- 2. El tope de una al día
@@ -2049,7 +2349,7 @@ alter table public.push_log enable row level security;
 drop policy if exists push_log_lectura on public.push_log;
 create policy push_log_lectura on public.push_log
   for select to authenticated
-  using (family_id in (select id from public.families where owner = auth.uid()));
+  using (family_id in (select public.mis_gremios()));
 
 -- Sin política de insert: solo escribe la función de envío, que es
 -- `security definer`. Que el navegador pueda marcar un día como «ya
@@ -2207,9 +2507,7 @@ begin
     return 'no_existe';
   end if;
 
-  if not exists (
-    select 1 from public.families f where f.id = v_family and f.owner = auth.uid()
-  ) then
+  if not public.es_mi_gremio(v_family) then
     return 'no_es_tuyo';
   end if;
 
@@ -2233,6 +2531,7 @@ begin
 end $fn$;
 
 revoke all on function public.claim_streak(uuid, integer) from public;
+revoke all on function public.claim_streak(uuid, integer) from anon;
 grant execute on function public.claim_streak(uuid, integer) to authenticated;
 
 -- ------------------------------------------------------------------
@@ -2644,8 +2943,8 @@ alter table public.movimientos_coins enable row level security;
 drop policy if exists familia_miembro on public.movimientos_coins;
 create policy familia_miembro on public.movimientos_coins
   for all to authenticated
-  using (family_id in (select id from public.families where owner = auth.uid()))
-  with check (family_id in (select id from public.families where owner = auth.uid()));
+  using (family_id in (select public.mis_gremios()))
+  with check (family_id in (select public.mis_gremios()));
 
 -- Como las tablas nuevas desde la 028: el grant a anon existe para que una
 -- lectura sin sesion devuelva [] por RLS en vez de un 401, que es lo que
