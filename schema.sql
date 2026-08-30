@@ -3,7 +3,17 @@
 -- Pega este fichero completo en el SQL Editor de tu proyecto y ejecútalo.
 -- =====================================================================
 
+-- Las funciones `language sql` se validan al crearlas, y `zona_de_perfil()`
+-- consulta public.profiles unas líneas antes de que la tabla exista. Sobre una
+-- base que ya tiene las tablas da igual; sobre una VACÍA, que es el caso de
+-- reconstruir tras un desastre, aborta el fichero entero. Visto el 29-ago-2026,
+-- la primera vez que se aplicó este fichero de cero.
+set check_function_bodies = off;
+
 create extension if not exists pgcrypto;
+-- Hace falta para el cron.schedule() del final. No estaba, así que este fichero
+-- tampoco se podía aplicar de cero por aquí: «schema "cron" does not exist».
+create extension if not exists pg_cron;
 
 -- ---------------------------------------------------------------------
 -- Tablas
@@ -600,6 +610,12 @@ alter table public.redemptions enable row level security;
 alter table public.family_goals enable row level security;
 alter table public.profile_badges enable row level security;
 alter table public.plan_diario enable row level security;
+-- La 028 la enciende (su línea 168) y producción la tiene. Aquí faltaba, y eso
+-- significa que CUALQUIER base creada desde este fichero nacía con la tabla sin
+-- RLS y con `grant select` para anon: expuesta. La política ya estaba —está en
+-- el bucle de abajo—, pero una política sin RLS no se aplica. Encontrado al
+-- reconstruir la base de cero por primera vez, el 29-ago-2026.
+alter table public.mission_families enable row level security;
 alter table public.campanas_limpieza enable row level security;
 alter table public.zonas_casa enable row level security;
 alter table public.informes_fallo enable row level security;
