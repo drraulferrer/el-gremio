@@ -786,6 +786,7 @@ begin
     where id = c_id;
 
   if new_status = 'aprobado' then
+    perform public.motivo_coins('mision', c.id);
     update public.profiles set xp = xp + c.xp, coins = coins + c.coins where id = c.profile_id;
   end if;
 end $$;
@@ -819,6 +820,7 @@ begin
   end if;
 
   if c.status = 'aprobado' then
+    perform public.motivo_coins('deshacer_mision', c.id);
     update public.profiles
       set xp = greatest(0, xp - c.xp),
           coins = greatest(0, coins - c.coins)
@@ -860,10 +862,10 @@ begin
     return 'sin_monedas';
   end if;
 
+  perform public.motivo_coins('canje', rw.id, p_clave);
   update public.profiles set coins = coins - rw.cost where id = p_id;
   insert into public.redemptions (family_id, reward_id, profile_id, cost)
     values (rw.family_id, rw.id, p_id, rw.cost);
-  perform public.anota_coins(p_id, 'canje', -rw.cost, p.coins, p.coins - rw.cost, 'ok', rw.id, p_clave);
   return 'ok';
 end $$;
 
@@ -882,6 +884,7 @@ begin
   if not found then return; end if;
   update public.redemptions set status = new_status, resolved_at = now() where id = r_id;
   if new_status = 'cancelado' then
+    perform public.motivo_coins('devolucion_canje', r.id);
     update public.profiles set coins = coins + r.cost where id = r.profile_id;
   end if;
 end $$;
@@ -1285,6 +1288,7 @@ begin
     return 'ya_hoy';
   end;
 
+  perform public.motivo_coins('bonus_diario');
   update public.profiles set coins = coins + v_coins where id = p_id;
   return 'ok';
 end $fn$;
@@ -1299,7 +1303,8 @@ create or replace function public.grant_manual_bonus(
   p_id uuid,
   p_coins integer,
   p_motivo text,
-  p_otorgado_por uuid
+  p_otorgado_por uuid,
+  p_clave text default null
 )
 returns text
 language plpgsql
@@ -1312,6 +1317,12 @@ declare
   v_rol_quien text;
   v_family_quien uuid;
 begin
+  -- Idempotencia. Es la UNICA de las ocho sin guarda propia: un premio a
+  -- mano se puede repetir a proposito, y por eso el indice unico de bonuses
+  -- excluye el tipo 'manual'. Sin clave, un doble clic regala dos veces.
+  if p_clave is not null and exists (select 1 from public.movimientos_coins where clave = p_clave) then
+    return 'ok';
+  end if;
   -- Tope contra el dedo gordo: teclear 500 donde iban 50 descuadra la
   -- economía de un mes, y eso sí pasa. No es antifraude.
   if p_coins is null or p_coins <= 0 or p_coins > 200 then
@@ -1352,6 +1363,7 @@ begin
 
   -- Solo monedas. La XP no se toca a propósito: marca el nivel y alimenta
   -- la meta, y las dos están calculadas contra un ritmo.
+  perform public.motivo_coins('bonus_manual', null, p_clave);
   update public.profiles set coins = coins + p_coins where id = p_id;
 
   return 'ok';
@@ -1572,6 +1584,7 @@ begin
           insert into public.bonuses (family_id, profile_id, tipo, coins, motivo, otorgado_por, dia)
           values (v_family, r.profile_id, 'limpieza:' || p_campana::text, r.botin,
                   'Botín de «' || v_titulo || '»', p_quien, v_hoy);
+          perform public.motivo_coins('botin_limpieza', p_campana);
           update public.profiles set coins = coins + r.botin where id = r.profile_id;
         end if;
       end loop;
@@ -2213,6 +2226,7 @@ begin
     return 'ya_cobrado';
   end;
 
+  perform public.motivo_coins('racha');
   update public.profiles set coins = coins + v_coins where id = p_id;
 
   return 'ok';
@@ -2591,7 +2605,10 @@ create table if not exists public.movimientos_coins (
   -- escribirlo y no dentro de seis meses al leer un informe.
   tipo text not null check (tipo in (
     'canje', 'devolucion_canje', 'mision', 'deshacer_mision',
-    'bonus_diario', 'bonus_manual', 'botin_limpieza', 'racha'
+    'bonus_diario', 'bonus_manual', 'botin_limpieza', 'racha',
+    -- Lo que mueva `coins` sin declarar su motivo. No deberia pasar, y por
+    -- eso existe: un asiento raro es una pista; ningun asiento es un agujero.
+    'desconocido'
   )),
   -- Con signo: positivo entra, negativo sale. En un intento rechazado es lo
   -- que se PRETENDIA mover, no lo que se movio: por eso la suma se hace
@@ -2643,6 +2660,70 @@ grant select, insert on public.movimientos_coins to authenticated;
 -- `security invoker` a proposito: asi el RLS de arriba sigue mandando y una
 -- casa no puede escribir un asiento en el libro de otra.
 -- ------------------------------------------------------------------
+-- El motivo del movimiento que viene a continuacion, para la transaccion en
+-- curso. Lo declara cada funcion justo antes de tocar `coins`, y lo consume el
+-- disparador de abajo.
+create or replace function public.motivo_coins(
+  p_tipo text,
+  p_ref uuid default null,
+  p_clave text default null
+)
+returns void
+language plpgsql
+as $$
+begin
+  perform set_config('app.coins_tipo', coalesce(p_tipo, ''), true);
+  perform set_config('app.coins_ref', coalesce(p_ref::text, ''), true);
+  perform set_config('app.coins_clave', coalesce(p_clave, ''), true);
+end $$;
+
+-- ------------------------------------------------------------------
+-- El disparador, que es lo que hace que esto sea una garantia y no una
+-- costumbre.
+--
+-- La alternativa era llamar al libro a mano en las ocho funciones que mueven
+-- `coins`. Funciona mientras nadie se olvide, y el dia que alguien anada la
+-- novena el saldo deja de cuadrar sin que nadie se entere. Asi, en cambio, no
+-- hay forma de mover una moneda sin dejar asiento: si la funcion no declaro su
+-- motivo, el asiento sale como 'desconocido', que es ruidoso y localizable.
+--
+-- `security definer` a proposito: escribir en el libro no puede fallar por los
+-- permisos de quien llama.
+-- ------------------------------------------------------------------
+create or replace function public.tg_movimiento_coins()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare v_ref text;
+begin
+  if new.coins is not distinct from old.coins then return new; end if;
+  v_ref := nullif(current_setting('app.coins_ref', true), '');
+
+  insert into public.movimientos_coins
+    (family_id, profile_id, tipo, importe, saldo_antes, saldo_despues, resultado, referencia, clave)
+  values (
+    new.family_id, new.id,
+    coalesce(nullif(current_setting('app.coins_tipo', true), ''), 'desconocido'),
+    new.coins - old.coins, old.coins, new.coins, 'ok',
+    v_ref::uuid,
+    nullif(current_setting('app.coins_clave', true), '')
+  );
+
+  -- El motivo se consume. Si el siguiente movimiento de la misma transaccion
+  -- no declara el suyo, sale 'desconocido' en vez de heredar uno ajeno.
+  perform set_config('app.coins_tipo', '', true);
+  perform set_config('app.coins_ref', '', true);
+  perform set_config('app.coins_clave', '', true);
+  return new;
+end $$;
+
+drop trigger if exists trg_movimiento_coins on public.profiles;
+create trigger trg_movimiento_coins
+  after update of coins on public.profiles
+  for each row execute function public.tg_movimiento_coins();
+
 create or replace function public.anota_coins(
   p_profile uuid,
   p_tipo text,
