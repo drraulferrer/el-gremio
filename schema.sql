@@ -150,6 +150,11 @@ create table if not exists public.profiles (
   -- el límite de un gremio, y nunca se infiere por nombre, edad ni orden
   -- de creación: se elige, se confirma y queda auditada.
   persona uuid references auth.users(id) on delete set null,
+  -- La marca no puede desviarse de la persona (migración 051): quien manda
+  -- es `persona`, y esto impide que las dos digan cosas distintas.
+  constraint profiles_marca_de_cartera check (
+    saldo_local_cerrado = (persona is not null)
+  ),
   constraint profiles_especie_coherente check (
     case
       when role = 'mascota' then species is not null and species in ('perro','gato')
@@ -1102,7 +1107,9 @@ returns text
 language plpgsql
 security invoker
 as $$
-declare c public.completions%rowtype;
+declare
+  c public.completions%rowtype;
+  v_quitar integer;
 begin
   select * into c from public.completions where id = c_id for update;
   if not found then return 'no_existe'; end if;
@@ -1122,10 +1129,13 @@ begin
   end if;
 
   if c.status = 'aprobado' then
+    -- Nunca mas de lo que hay, mire donde mire el saldo. Con saldo local esto
+    -- da exactamente lo mismo que el `greatest(0, ...)` de antes.
+    v_quitar := least(c.coins, public.saldo_de(c.profile_id));
     perform public.motivo_coins('deshacer_mision', c.id);
     update public.profiles
       set xp = greatest(0, xp - c.xp),
-          coins = greatest(0, coins - c.coins)
+          coins = coins - v_quitar
       where id = c.profile_id;
   end if;
 
@@ -1143,6 +1153,7 @@ declare
   rw public.rewards%rowtype;
   p public.profiles%rowtype;
   v_previo text;
+  v_saldo integer;
 begin
   -- Idempotencia, antes de tocar nada. Mismo intento, misma respuesta.
   if p_clave is not null then
@@ -1157,15 +1168,14 @@ begin
   -- El premio y quien lo canjea, de la misma casa (041).
   if rw.family_id is distinct from p.family_id then return 'no_disponible'; end if;
 
-  -- El saldo de este personaje vive en la cartera de su persona desde que se
-  -- convirtió (047). `coins` ya no es una segunda fuente gastable, y decir
-  -- «no tienes suficientes» a quien tiene 300 en la cartera sería mentir.
-  if p.saldo_local_cerrado then return 'saldo_en_cartera'; end if;
+  -- El saldo de verdad: el local si no hay persona detras, y la cartera si la
+  -- hay (051). Mirar `p.coins` aqui daria cero para todo el mundo convertido.
+  v_saldo := public.saldo_de(p_id);
 
-  if p.coins < rw.cost then
+  if v_saldo < rw.cost then
     -- Un intento fallido tambien es historia: sin el, un pico de gente que
     -- no llega al premio no se ve en ninguna parte.
-    perform public.anota_coins(p_id, 'canje', -rw.cost, p.coins, p.coins, 'sin_monedas', rw.id, p_clave);
+    perform public.anota_coins(p_id, 'canje', -rw.cost, v_saldo, v_saldo, 'sin_monedas', rw.id, p_clave);
     return 'sin_monedas';
   end if;
 
@@ -2935,6 +2945,10 @@ create table if not exists public.movimientos_coins (
     -- La salida del saldo local hacia la cartera (047). Una sola vez por
     -- personaje, y nunca vuelve.
     'conversion',
+    -- Lo que había el día que empezó a haber libro (051). Un asiento por
+    -- personaje, una sola vez, y solo para los que ya tenían saldo: sin él la
+    -- comprobación de descuadre nace dando falsos positivos.
+    'apertura',
     -- La cartera vuelve al personaje cuando se borra la identidad (049).
     -- Simetrico de 'conversion', y por el mismo motivo: el saldo no puede
     -- evaporarse porque alguien borre su cuenta.
@@ -2960,8 +2974,16 @@ create table if not exists public.movimientos_coins (
   -- Idempotencia. Nula cuando quien llama no manda ninguna, que es lo que
   -- pasa mientras el cliente no las genere.
   clave text check (clave is null or length(clave) between 8 and 120),
+  -- De qué monedero salió (migración 051). `profile_id` dice sobre qué
+  -- personaje se movió; esto, de quién era el saldo. Nula quiere decir saldo
+  -- local. Sin ella, sumar el libro por personaje mezclaría los dos monederos
+  -- en cuanto alguien se convierta.
+  persona uuid references auth.users(id) on delete set null,
   created_at timestamptz not null default now()
 );
+
+create index if not exists idx_movimientos_persona
+  on public.movimientos_coins (persona, created_at desc) where persona is not null;
 
 -- La unicidad ES la garantia. Parcial porque hoy casi todas son nulas.
 create unique index if not exists idx_movimientos_clave
@@ -3071,14 +3093,17 @@ returns void
 language plpgsql
 security invoker
 as $$
-declare v_family uuid;
+declare
+  v_family uuid;
+  v_persona uuid;
 begin
-  select family_id into v_family from public.profiles where id = p_profile;
+  select family_id, persona into v_family, v_persona
+    from public.profiles where id = p_profile;
   if v_family is null then return; end if;
   insert into public.movimientos_coins
-    (family_id, profile_id, tipo, importe, saldo_antes, saldo_despues, resultado, referencia, clave)
+    (family_id, profile_id, persona, tipo, importe, saldo_antes, saldo_despues, resultado, referencia, clave)
   values
-    (v_family, p_profile, p_tipo, p_importe, p_antes, p_despues, p_resultado, p_referencia, p_clave);
+    (v_family, p_profile, v_persona, p_tipo, p_importe, p_antes, p_despues, p_resultado, p_referencia, p_clave);
 end $$;
 
 -- ---------------------------------------------------------------------
@@ -3401,8 +3426,15 @@ begin
          saldo_local_cerrado = true
    where id = c.profile_id;
 
-  update public.carteras set saldo = saldo + v_saldo where persona = v_uid
-    returning saldo into v_cartera;
+  -- Por la unica puerta que mueve carteras (051): asi la ENTRADA del saldo en
+  -- la cartera deja su asiento, igual que la salida del saldo local lo deja
+  -- arriba. Una transferencia entre dos monederos son dos apuntes, y hasta la
+  -- 051 solo se anotaba uno.
+  -- Sin la clave a proposito: la lleva la pata de salida, que escribe
+  -- `tg_movimiento_coins` unas lineas arriba, y el indice de idempotencia es
+  -- unico en todo el libro. Las dos patas de un traspaso son UNA operacion, y
+  -- la garantia de "una sola vez" ya la da `conversiones.clave`.
+  v_cartera := public.mover_cartera(v_uid, c.profile_id, 'conversion', v_saldo, c.id, null);
 
   -- 5 · El asiento de la conversion, que es esta misma fila.
   update public.conversiones
@@ -3706,8 +3738,9 @@ begin
          saldo_local_cerrado = true
    where id = m.profile_id;
 
-  update public.carteras set saldo = saldo + v_saldo where persona = v_uid
-    returning saldo into v_cartera;
+  -- Por la unica puerta que mueve carteras (051), igual que la conversion.
+  -- Sin clave, por lo mismo que en la conversion: la lleva la pata de salida.
+  v_cartera := public.mover_cartera(v_uid, m.profile_id, 'conversion', v_saldo, m.id, null);
 
   -- 3 · El asiento de la conversion va donde van todos, y no aqui.
   insert into public.conversiones
@@ -3974,7 +4007,9 @@ begin
            persona = null,
            saldo_local_cerrado = false
      where id = v_perfil;
-    update public.carteras set saldo = 0 where persona = v_uid;
+    -- Y la salida de la cartera, por su puerta y con su asiento (051): sin
+    -- el, el libro diria que esa cartera sigue teniendo lo que ya no tiene.
+    perform public.mover_cartera(v_uid, v_perfil, 'devolucion_conversion', -v_saldo, null, null);
   end if;
 
   -- Y la cuenta. La cascada se lleva su credencial, sus pertenencias y su
@@ -4549,6 +4584,186 @@ begin
     (v_version, 'equipo',           'ES', 'no_publicado'),
     (v_version, 'hogar_compartido', 'ES', 'no_publicado');
 end $$;
+
+-- ---------------------------------------------------------------------
+-- El saldo de quien tiene identidad vive en su cartera (migración 051).
+--
+-- `D-02` en su opción C: quien tiene identidad personal cobra y paga de su
+-- **cartera**; quien no la tiene —una peque, una junior, una mascota, un
+-- perfil sin convertir— conserva su **saldo local** exactamente como hoy. Y
+-- el saldo de una peque nunca se mezcla con la cartera de nadie.
+--
+-- Se encamina en un disparador y no tocando las ocho funciones que mueven
+-- monedas, por lo mismo que el libro lo escribe un disparador desde la 043:
+-- hacerlo a mano funciona mientras nadie se olvide.
+--
+-- Razonamiento completo, y la excepción de cuando cambia `persona`, en
+-- migracion-051-la-cartera-cobra-y-paga.sql.
+-- ---------------------------------------------------------------------
+
+create or replace function public.saldo_de(p_profile uuid)
+returns integer
+language sql
+stable
+security definer
+set search_path = public
+as $fn$
+  select case
+           when p.persona is null then p.coins
+           else coalesce((select c.saldo from public.carteras c where c.persona = p.persona), 0)
+         end
+    from public.profiles p
+   where p.id = p_profile;
+$fn$;
+
+revoke all on function public.saldo_de(uuid) from public;
+revoke all on function public.saldo_de(uuid) from anon;
+revoke all on function public.saldo_de(uuid) from authenticated;
+
+create or replace function public.mover_cartera(
+  p_persona uuid,
+  p_profile uuid,
+  p_tipo text,
+  p_importe integer,
+  p_referencia uuid default null,
+  p_clave text default null
+)
+returns integer
+language plpgsql
+security definer
+set search_path = public
+as $fn$
+declare
+  v_antes integer;
+  v_despues integer;
+  v_family uuid;
+begin
+  if p_persona is null then
+    raise exception 'mover_cartera sin persona';
+  end if;
+
+  -- El cerrojo es lo que impide que dos peticiones simultaneas lean el mismo
+  -- saldo y escriban las dos.
+  select saldo into v_antes from public.carteras where persona = p_persona for update;
+  if v_antes is null then
+    insert into public.carteras (persona, saldo) values (p_persona, 0)
+    on conflict (persona) do nothing;
+    v_antes := 0;
+  end if;
+
+  if p_importe = 0 then
+    return v_antes;
+  end if;
+
+  v_despues := v_antes + p_importe;
+  if v_despues < 0 then
+    raise exception 'la cartera no llega: % + % (comprueba con saldo_de antes de cobrar)', v_antes, p_importe
+      using errcode = 'check_violation';
+  end if;
+
+  update public.carteras set saldo = v_despues where persona = p_persona;
+
+  select family_id into v_family from public.profiles where id = p_profile;
+
+  insert into public.movimientos_coins
+    (family_id, profile_id, persona, tipo, importe, saldo_antes, saldo_despues, resultado, referencia, clave)
+  values (v_family, p_profile, p_persona,
+          coalesce(nullif(p_tipo, ''), 'desconocido'),
+          p_importe, v_antes, v_despues, 'ok', p_referencia, p_clave);
+
+  return v_despues;
+end $fn$;
+
+revoke all on function public.mover_cartera(uuid, uuid, text, integer, uuid, text) from public;
+revoke all on function public.mover_cartera(uuid, uuid, text, integer, uuid, text) from anon;
+revoke all on function public.mover_cartera(uuid, uuid, text, integer, uuid, text) from authenticated;
+
+create or replace function public.tg_encaminar_coins()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $fn$
+declare
+  v_delta integer;
+begin
+  -- Si `persona` cambia en este mismo update, quien lo hace es la conversion o
+  -- el borrado de identidad, y esas dos mueven las dos partes por su cuenta.
+  -- Meterse aqui seria leer "acaba de gastar 424" donde pone "su saldo se ha
+  -- mudado de monedero".
+  if new.persona is distinct from old.persona then
+    return new;
+  end if;
+
+  -- Sin persona detras, saldo local: todo sigue como siempre y el asiento lo
+  -- escribe `tg_movimiento_coins` despues.
+  if new.persona is null then
+    return new;
+  end if;
+
+  v_delta := new.coins - old.coins;
+  if v_delta = 0 then
+    return new;
+  end if;
+
+  perform public.mover_cartera(
+    new.persona, new.id,
+    coalesce(nullif(current_setting('app.coins_tipo', true), ''), 'desconocido'),
+    v_delta,
+    nullif(current_setting('app.coins_ref', true), '')::uuid,
+    nullif(current_setting('app.coins_clave', true), '')
+  );
+
+  -- El motivo se consume, igual que en `tg_movimiento_coins`: si el siguiente
+  -- movimiento de la misma transaccion no declara el suyo, sale 'desconocido'
+  -- en vez de heredar uno ajeno.
+  perform set_config('app.coins_tipo', '', true);
+  perform set_config('app.coins_ref', '', true);
+  perform set_config('app.coins_clave', '', true);
+
+  -- Y el saldo local NO se mueve. Al dejar `coins` como estaba,
+  -- `tg_movimiento_coins` --que corre despues-- sale por su rama corta y no
+  -- escribe un segundo asiento.
+  new.coins := old.coins;
+  return new;
+end $fn$;
+
+revoke all on function public.tg_encaminar_coins() from anon;
+revoke all on function public.tg_encaminar_coins() from authenticated;
+
+drop trigger if exists trg_encaminar_coins on public.profiles;
+create trigger trg_encaminar_coins
+  before update of coins on public.profiles
+  for each row execute function public.tg_encaminar_coins();
+
+create or replace function public.descuadre_saldos()
+returns table (monedero text, quien uuid, saldo integer, segun_el_libro bigint)
+language sql
+stable
+security definer
+set search_path = public
+as $fn$
+  select 'personaje', p.id, p.coins,
+         coalesce(sum(m.importe) filter (where m.resultado = 'ok'), 0)
+    from public.profiles p
+    left join public.movimientos_coins m
+      on m.profile_id = p.id and m.persona is null
+   group by p.id, p.coins
+  having p.coins <> coalesce(sum(m.importe) filter (where m.resultado = 'ok'), 0)
+
+  union all
+
+  select 'cartera', c.persona, c.saldo,
+         coalesce(sum(m.importe) filter (where m.resultado = 'ok'), 0)
+    from public.carteras c
+    left join public.movimientos_coins m on m.persona = c.persona
+   group by c.persona, c.saldo
+  having c.saldo <> coalesce(sum(m.importe) filter (where m.resultado = 'ok'), 0);
+$fn$;
+
+revoke all on function public.descuadre_saldos() from public;
+revoke all on function public.descuadre_saldos() from anon;
+revoke all on function public.descuadre_saldos() from authenticated;
 
 -- Y el barrido final de la 021, que tiene que quedarse SIEMPRE el último del
 -- fichero: retira el permiso de ejecución de toda función `security definer`,

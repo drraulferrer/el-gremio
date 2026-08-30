@@ -131,13 +131,19 @@ describe('lo que se dice cuando el correo no sirve', () => {
 describe('la transferencia del saldo', () => {
   it('sale del personaje y entra en la cartera, con su motivo declarado', () => {
     expect(completar).toContain("public.motivo_coins('conversion'")
-    expect(completar).toContain('update public.carteras set saldo = saldo +')
+    // Por la única puerta que mueve carteras, para que la ENTRADA deje asiento
+    // igual que la salida: una transferencia entre monederos son dos apuntes.
+    expect(completar).toContain("public.mover_cartera(v_uid, c.profile_id, 'conversion'")
   })
 
   it('el saldo local queda cerrado, y cerrado quiere decir que no se gasta', () => {
     expect(completar).toContain('saldo_local_cerrado = true')
-    // Si `redeem_reward` no mirara la marca, la columna no marcaría nada.
-    expect(canjear).toContain("if p.saldo_local_cerrado then return 'saldo_en_cartera'; end if;")
+    // La 051 cambió cómo se defiende esto, y para mejor: `redeem_reward` ya no
+    // rechaza el canje de quien tiene el saldo en la cartera —ahora la cartera
+    // paga—, así que lo que hay que comprobar es que lee el saldo por donde
+    // toca. Mirar `p.coins` daría cero para todo el mundo convertido.
+    expect(canjear).toContain('v_saldo := public.saldo_de(p_id);')
+    expect(canjear).not.toContain("'saldo_en_cartera'")
   })
 
   it('el libro conoce el motivo, en las dos copias del esquema', () => {
@@ -203,12 +209,21 @@ describe('una solicitud viva por personaje y por correo', () => {
 
 describe('las dos copias del esquema', () => {
   it('las funciones de la conversión son idénticas en la migración y en el esquema', () => {
-    for (const n of ['solicitar_conversion', 'cancelar_conversion', 'completar_conversion']) {
+    for (const n of ['solicitar_conversion', 'cancelar_conversion']) {
       expect(funcion(m047, n), `${n} difiere entre la 047 y schema.sql`)
         .toBe(funcion(schema, n))
     }
-    expect(funcion(m047, 'redeem_reward', '$$'))
-      .toBe(funcion(schema, 'redeem_reward', '$$'))
+    // OJO: `completar_conversion` ya no se compara aquí. La 051 la volvió a escribir para
+    // que la entrada del saldo en la cartera pase por `mover_cartera` y deje
+    // asiento. Una migración registra lo que hizo ese día; quien manda es la
+    // última que la tocó, y editar una ya aplicada es justo lo que no se hace.
+    // La comparación viva está en `tests/cartera.test.js`, contra la 051.
+    // `redeem_reward` NO se compara aquí, y conviene entender por qué: la 051
+    // volvió a escribirla para que lea el saldo por `saldo_de`. Una migración
+    // es el registro de lo que hizo ese día, no la versión vigente; quien
+    // manda es la última que la tocó. Comparar contra la 047 exigiría editar
+    // una migración ya aplicada, que es justo lo que no se hace.
+    // La comparación viva está en `tests/cartera.test.js`, contra la 051.
   })
 
   it('las tablas nuevas están en los dos ficheros', () => {

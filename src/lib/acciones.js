@@ -350,14 +350,6 @@ export async function canjearPremio({ premio, profile }) {
   if (error) return { ok: false, mensaje }
   if (data === 'sin_monedas') return { ok: false, mensaje: 'Todavía no tienes suficientes Talis. Completa nuevas misiones para conseguirlos.' }
   if (data === 'no_disponible') return { ok: false, mensaje: 'Ese premio ya no está disponible.' }
-  // Migración 047: quien se convierte en persona pasa su saldo a la cartera, y
-  // el del personaje deja de ser gastable. Hoy no lo puede ver nadie —no hay
-  // forma de convertirse todavía— pero decir «no tienes suficientes» a quien
-  // tiene el saldo en otro sitio sería mentir, y el día que exista la
-  // conversión esta rama es la normal.
-  if (data === 'saldo_en_cartera') {
-    return { ok: false, mensaje: 'Tus Talis están ahora en tu cartera personal, no en este personaje.' }
-  }
 
   log.info('premio.canjeado', { request_id: requestId, reward_id: premio.id, coste: premio.cost })
   return { ok: true, mensaje: '' }

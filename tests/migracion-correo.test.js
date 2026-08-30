@@ -107,7 +107,7 @@ describe('el cambio de llave, en una sola transacción', () => {
   it('el saldo se transfiere y el local queda cerrado', () => {
     expect(completar).toContain("public.motivo_coins('conversion'")
     expect(completar).toContain('saldo_local_cerrado = true')
-    expect(completar).toContain('update public.carteras set saldo = saldo +')
+    expect(completar).toContain("public.mover_cartera(v_uid, m.profile_id, 'conversion'")
   })
 
   it('misma clave, misma respuesta', () => {
@@ -160,10 +160,14 @@ describe('quién puede pedirlo', () => {
 
 describe('las dos copias del esquema', () => {
   it('las cuatro funciones son idénticas en la migración y en el esquema', () => {
+    // OJO: `completar_migracion_correo` ya no se compara aquí. La 051 la volvió a escribir para
+    // que la entrada del saldo en la cartera pase por `mover_cartera` y deje
+    // asiento. Una migración registra lo que hizo ese día; quien manda es la
+    // última que la tocó, y editar una ya aplicada es justo lo que no se hace.
+    // La comparación viva está en `tests/cartera.test.js`, contra la 051.
     for (const n of [
       'solicitar_migracion_correo',
       'probar_credencial_nueva',
-      'completar_migracion_correo',
       'cancelar_migracion_correo'
     ]) {
       expect(funcion(m048, n), `${n} difiere entre la 048 y schema.sql`)

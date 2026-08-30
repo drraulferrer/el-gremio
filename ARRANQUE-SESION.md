@@ -5356,3 +5356,97 @@ Las diez funciones, **idénticas byte a byte** entre `schema.sql` y la base.
 - Los nombres de tipo son los de la especificación (`hogar`, `amigos`,
   `equipo`, `hogar_compartido`); traducirlos desde `families.tipo_gremio` es la
   Fase 4.
+
+## 7bi. La cartera cobra y paga (30 de agosto) · SIN VERSIÓN · migración 051
+
+**Migración 051 EJECUTADA y ensayada.** Es la pieza **3.2**, el modelo híbrido
+de saldo. No cambia nada en `src/` salvo retirar un mensaje que ya no puede
+ocurrir, así que la app sigue en la 2.33.4 y no hay nada que desplegar.
+
+### Qué faltaba
+
+La 047 creó la cartera y le pasó el saldo al convertirse, pero ahí se acababa:
+las ocho funciones que mueven monedas seguían escribiendo en `profiles.coins`.
+A partir del día siguiente, esa persona **ganaba en un monedero y tenía el
+dinero en el otro**. Por eso la 047 se escribió con la conversión sin disparo y
+con el aviso de que la Fase 3 tenía que llegar antes que la Fase 5.
+
+La regla es `D-02` en su opción C: quien tiene identidad **cobra y paga de su
+cartera**; quien no la tiene —una peque, una junior, una mascota, un perfil sin
+convertir— conserva su **saldo local** exactamente como hoy. Y el saldo de una
+peque nunca se mezcla con la cartera de nadie.
+
+### Dónde se encamina, y la excepción que lo hace posible
+
+En un disparador `before update of coins on profiles`, no tocando las ocho
+funciones: es lo que la 043 ya descartó para el libro, y por lo mismo.
+
+Y la línea que hay que entender: **si `persona` cambia en el mismo `update`, el
+disparador no se mete.** Hay dos operaciones cuyo trabajo es precisamente mover
+el dinero de un monedero al otro —la conversión y el borrado de identidad— y
+las dos cambian `persona` y `coins` a la vez, en direcciones opuestas. Si el
+disparador mirara `new.persona`, leería la conversión como «acaba de gastar
+424» y se lo restaría a una cartera todavía vacía.
+
+### Dos fallos que encontró el ensayo, y ninguno era del ensayo
+
+1. **Una transferencia entre monederos son DOS asientos, y solo se anotaba
+   uno.** La conversión apuntaba la salida del saldo local y la entrada en la
+   cartera no dejaba rastro en el libro: la cartera tenía 424 y `descuadre_saldos()`
+   decía 0. Arreglado poniendo **una sola puerta que toca `carteras`**
+   (`mover_cartera`), que mueve y anota juntos — misma decisión que la 043. Las
+   tres funciones de transferencia dejan de tocar la tabla a mano.
+2. **La clave de idempotencia es única en todo el libro**, así que las dos patas
+   de un traspaso no pueden llevar la misma. La lleva la de salida; el «una sola
+   vez» del traspaso ya lo garantiza `conversiones.clave`. Chocó en el segundo
+   ensayo, con violación de índice.
+
+### Y el libro empieza a cuadrar de verdad
+
+`CON-5` pide que la suma de los asientos reproduzca el saldo. **No lo hacía para
+nadie**, y no por un fallo: el libro nació con la 042 y los saldos son
+anteriores. Los cuatro perfiles con dinero (559, 424, 320 y 45) no tenían ni un
+asiento detrás.
+
+Se les escribió uno de **apertura**, que dice la verdad: «esto es lo que había
+el día que empezó a haber libro». Sin él, `descuadre_saldos()` nace dando
+falsos positivos para todo el mundo y nadie la vuelve a mirar.
+
+Además, `saldo_local_cerrado` deja de poder mentir: un `CHECK` la ata a
+`persona`, que es quien manda. Tenerlas por separado era tener dos fuentes de
+la misma verdad.
+
+### Las dos funciones que leían mal
+
+`redeem_reward` miraba `p.coins`, que para un convertido vale cero: ahora lee
+`saldo_de()` y **deja de rechazar** a quien tiene el saldo en la cartera —ahora
+la cartera paga—, así que el código `saldo_en_cartera` desaparece. Y
+`undo_completion` recortaba con `greatest(0, coins - c.coins)`: ese cero es el
+del saldo local, así que deshacer una misión no le quitaba nada al convertido y
+la cartera se quedaba con monedas de un trabajo que la base ya no considera
+hecho.
+
+### Cómo se comprobó
+
+Respaldo (`respaldo-2026-08-30-174813`). `npm run verify`: **1308 tests en 74
+ficheros**.
+
+Y el ciclo entero contra la base, deshecho al final: se convierte una adulta de
+424 · estrella diaria → 429 · premio a mano → 449 · canje de 15 → 434 · **el
+mismo canje repetido con la misma clave → sigue en 434** · un canje que no puede
+pagar → `sin_monedas` · deshacer una misión de 5 → 429. **El saldo local de la
+adulta se queda en 0 todo el rato.** Y la peque, en la misma casa, pasa de 45 a
+50 **en su saldo local, con cero carteras**.
+
+Su libro al terminar, por partida doble:
+`apertura/+424/local · conversion/−424/local · conversion/+424/cartera ·
+bonus_diario/+5 · bonus_manual/+20 · canje/−15 · canje/−1434 (rechazado) ·
+deshacer_mision/−5`. **Descuadres: 0.**
+
+Producción intacta después: 4 gremios, 1348 Talis, 4 asientos de apertura, cero
+carteras y cero cuentas de ensayo.
+
+### Lo que queda de la Fase 3
+
+Solo la **3.3**: que el precio sea el del gremio donde se gasta. Hoy no cambia
+nada porque una persona tiene un gremio; empieza a importar en la Fase 6.

@@ -154,7 +154,12 @@ describe('lo que sobrevive a la persona', () => {
 
 describe('las dos copias del esquema', () => {
   it('las tres funciones son idénticas en la migración y en el esquema', () => {
-    for (const n of ['efecto_de_borrarme', 'borrar_mi_identidad', 'delete_my_account']) {
+    // OJO: `borrar_mi_identidad` ya no se compara aquí. La 051 la volvió a escribir para
+    // que la entrada del saldo en la cartera pase por `mover_cartera` y deje
+    // asiento. Una migración registra lo que hizo ese día; quien manda es la
+    // última que la tocó, y editar una ya aplicada es justo lo que no se hace.
+    // La comparación viva está en `tests/cartera.test.js`, contra la 051.
+    for (const n of ['efecto_de_borrarme', 'delete_my_account']) {
       expect(funcion(m049, n), `${n} difiere entre la 049 y schema.sql`)
         .toBe(funcion(schema, n))
     }
