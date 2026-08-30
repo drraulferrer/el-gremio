@@ -4,11 +4,12 @@ Documento de continuidad. Si abres una sesión nueva sobre este proyecto,
 lee esto primero: dice dónde está todo, qué está hecho, qué falta y qué
 trampas tiene.
 
-> **Y si solo vas a leer una línea antes de ponerte:** las **Fases 4 y 5 están
-> cerradas**. Se puede **forjar una llave** (§7bn, migración 056) aunque
-> todavía no haya dónde gastarla, y `families.pais` existe sin declarar
-> (§7bm, 055). Lo siguiente es la **Fase 6**, que es la que gasta la llave y
-> la primera con pantalla de verdad.
+> **Y si solo vas a leer una línea antes de ponerte:** las Fases 4 y 5 están
+> cerradas y la **6.1 (el servidor) también** (§7bo, migración 057): ya se
+> puede forjar una llave, crear un gremio con ella, invitar y aceptar. Lo
+> siguiente es la **6.2, el cliente**, y antes de tocarlo lee
+> **`NOTAS-FASE-6.md`**: es el inventario de los ocho supuestos de gremio
+> único que hay repartidos por la app.
 
 Última actualización: **30 de agosto de 2026**, al cierre de la
 sesión de **recuperación ante desastres y terreno firme** (§7bb): migraciones
@@ -5943,6 +5944,130 @@ identidad personal completa y lo deshizo todo al terminar:
 Después: 0 llaves, 0 pertenencias, 0 carteras, 4 gremios, ninguna cuenta de
 ensayo y **cero descuadres**. No quedó nada detrás.
 
+## 7bo. Una persona, varios gremios (30 de agosto) · SIN VERSIÓN · migración 057
+
+**Migración 057 EJECUTADA y ensayada.** Es la **6.1** de la Fase 6: el
+servidor. Invitaciones con caducidad, crear un gremio con llave, aceptar con
+llave, abandonar, expulsar y reingresar. **No toca el cliente**, y eso es
+deliberado: mientras nadie tenga dos gremios, la familia que usa la app hoy no
+nota nada. La app sigue en la 2.33.6.
+
+### Antes de tocar nada: el inventario
+
+El plan ponía una condición —«hay que inventariar **antes** los supuestos de
+gremio único del cliente»— y está hecha, en **`NOTAS-FASE-6.md`**. Salieron los
+cuatro que el plan nombraba y **cuatro más**. Léelo antes de la 6.2; aquí solo
+va el que mandaba.
+
+### El índice que había que quitar, y por qué no antes
+
+`idx_families_owner` era único desde la 017, y su comentario decía por qué: «la
+app carga el gremio con `limit 1` sin orden, así que una cuenta con dos gremios
+abre uno u otro según el día. **Mientras eso siga así, dos gremios por cuenta
+son un error, no una función.**»
+
+Sigue siendo verdad. Por eso el índice **deja de ser único y no desaparece**
+—la primera rama de `mis_gremios()` es `families.owner = auth.uid()`, y sin él
+cada petición recorrería la tabla de familias entera—, y por eso **nadie tiene
+dos gremios hasta que la 6.2 esté desplegada**.
+
+No es teoría: el ensayo de la 056 se topó de frente con ese índice al intentar
+crear gremios de mentira, y hubo que darle a cada uno una cuenta propia.
+
+### Quién es el `owner` de un gremio creado con llave
+
+Hasta hoy `families.owner` era la **credencial compartida**: la cuenta de la
+casa. Un gremio creado con llave lo crea una **persona**, y `credenciales`
+prohíbe que una personal lleve `family_id`. Así que ese gremio **nace sin
+credencial compartida** y su `owner` es la cuenta personal. Crearle una —para
+que entre gente sin cuenta, como en una casa— es la Fase 7.
+
+Y hay una función que esto podría haber convertido en un desastre:
+`delete_my_account()` borra los gremios de los que la cuenta es dueña, y con una
+persona dueña de tres eso serían tres casas. **Ya estaba cerrado**: la 049 le
+puso delante `if clase_credencial() = 'personal' then return
+'usa_borrar_identidad'`. Hay un test que vigila que siga puesto.
+
+### Volver no cuesta el historial
+
+`R-63` es la regla menos evidente de la fase: al reingresar **no nace un
+personaje nuevo, vuelve el anterior** con su XP, su marca de agua, sus insignias
+y su historial. «Empezar desde cero en cada gremio» es la primera vez que
+entras, no cada vez (`R-64`). Sin eso, volver a casa sería un castigo por
+haberse ido.
+
+En el ensayo se ve entero: la amiga entra, llega a 250 de XP, se va —el
+personaje se retira, no se borra—, la vuelven a invitar, acepta, y sale **un
+solo personaje con sus 250 de XP**, aunque al reingresar diera otro nombre.
+
+### La llave y la puerta se deshacen juntas
+
+`consumir_llave()` se llama **después** de que la entrada haya funcionado y
+**dentro de la misma transacción** (`R-20`, `T-10`). Si lanzara —una carrera con
+otra petición usando la misma llave— se deshace todo: la pertenencia, la
+invitación y el consumo. Eso no es una comprobación, es dónde vive el código, y
+un test vigila que ninguna de las dos puertas capture esa excepción.
+
+En el ensayo: dos intentos de crear con la llave 2 fallaron —país sin publicar y
+tipo no ofrecido— y **la llave 2 siguió disponible**.
+
+### El país, aquí sí llega como parámetro
+
+Y no contradice a `R-108`. `R-102` dice que el país se **elige explícitamente**
+al crear; lo que `R-108` prohíbe es que un país declarado por el cliente
+**autorice** algo. Por eso la elección se cruza contra `tipo_publicado()`, que
+es la matriz del servidor: declarar `FR` no desbloquea nada, deniega. Esta es la
+primera función que llama a `tipo_publicado()`, que la 050 escribió para este
+momento y dejó sin conceder a `authenticated` exactamente por esto.
+
+### Lo que NO hace, y hay que tenerlo claro
+
+- **El gremio nuevo nace desnudo.** Sin misiones, sin premios, sin zonas y sin
+  meta. Qué lleva cada catálogo es `D-14`, sigue sin resolver para Amigos, y
+  para Hogar vive hoy en `src/lib/setup.js`, o sea en el cliente. Decidido así
+  a propósito: inventarlo desde una migración sería decidir producto.
+- **No hay tope de miembros.** `R-74` dice ocho humanos, y ese número vive en el
+  cliente. Su sitio es `plantillas_tipo.limites`, que sigue vacío desde la 053.
+  `invitar()` lee ese `jsonb` y, si no dice nada, no limita: escribir un 8 ahí
+  sería repetir la constante repartida que la 050 y la 053 vinieron a retirar.
+- **No toca los avisos.** Un aparato sigue teniendo una fila por `endpoint` con
+  su `family_id`, así que con varios gremios solo recibiría de uno. Es el punto
+  7 del inventario y **es una decisión de producto**, aplazada a la 6.3 con la
+  pantalla delante.
+- **No ofrece Amigos**, y no por falta de código: el `check` de
+  `families.tipo_gremio` solo conoce `'familia'` y `'piso'`, que es lo que lee
+  el cliente viejo. Ensanchar esa columna —o retirarla, el paso «contraer» que
+  la 053 dejó anotado— es requisito para publicar Amigos.
+
+### Cómo se comprobó
+
+Respaldo (`respaldo-2026-08-30-210653`). `npm run verify`: **1449 tests en 80
+ficheros**.
+
+Y el ensayo de punta a punta, con dos identidades personales de mentira y todo
+deshecho al terminar:
+
+| | |
+|---|---|
+| forjar dos llaves | `ok` · `ok` |
+| crear gremio con la 1 | `ok`, llave **consumida** |
+| el gremio nuevo | `pais=ES`, `tipo=hogar`, `owner` es la **persona** |
+| su personaje | **a cero**, y la pertenencia `titular` |
+| crear en `FR` | `tipo_no_publicado_ahi` |
+| crear de tipo `equipo` | `tipo_no_ofrecido` |
+| **la llave 2, tras los dos fallos** | **sigue `disponible`** |
+| titular sale estando sola | `eres_quien_titula` |
+| invitar · invitar otra vez | `ok` · `ya_invitada` |
+| bandeja de la invitada | 1 (con el correo en mayúsculas normalizado) |
+| aceptar sin llave, siendo su primera | `ok` · `S-10` |
+| abandonar | `ok`, personaje **retirado**, no borrado |
+| reinvitar y volver | `ok` · **1 personaje, XP 250 conservada** |
+| invitación vencida | `caducada`, y **ese intento cierra la fila** |
+
+Después: 4 gremios, 0 invitaciones, 0 pertenencias, 0 llaves, ninguna cuenta de
+ensayo y **cero descuadres**. Solo quedó lo que tenía que quedar: el índice de
+`owner`, que ya no es único.
+
 ---
 
 # CÓMO ARRANCAR LA SIGUIENTE SESIÓN
@@ -5955,8 +6080,8 @@ ensayo y **cero descuadres**. No quedó nada detrás.
 |---|---|
 | Repositorio | `~/el-gremio`, rama `main` |
 | Versión desplegada | **2.33.6** · `npm run health` en verde, supabase 17.6 |
-| Migraciones aplicadas | hasta la **056**. La siguiente libre es la **057** |
-| Tests | 1413 en 79 ficheros |
+| Migraciones aplicadas | hasta la **057**. La siguiente libre es la **058** |
+| Tests | 1449 en 80 ficheros |
 | Plan y especificación | `~/Library/Mobile Documents/com~apple~CloudDocs/ClaudeCode/specs/` |
 
 **Lo primero, siempre:** `git fetch` antes de elegir número de migración o de
@@ -5972,7 +6097,8 @@ versión. Hoy no ha hecho falta, pero el 30-ago por la mañana ya pasó una vez.
 | 3 · Configuración y cartera | ✅ **cerrada** | 050, 051, 052 |
 | 4 · El tipo como plantilla | ✅ **cerrada** | 053, 054, 055 |
 | 5 · Hitos y llaves | ✅ **cerrada** | 056 |
-| 6 en adelante | ☐ sin empezar | — |
+| 6 · Gremios múltiples | ◐ **6.1 (servidor) hecha** · falta el cliente | 057 |
+| 7 en adelante | ☐ sin empezar | — |
 
 Y de propina, la **046**: el barrido de permisos que la 021 dejó escrito llevaba
 desde agosto cerrando media puerta, porque quitaba `anon` pero no PUBLIC, del
@@ -5980,30 +6106,34 @@ que `anon` hereda.
 
 ## Por dónde seguir
 
-**La Fase 6 · gremios múltiples**, que es donde todo lo construido desde la 044
-empieza a servir para algo. Trae tres cosas y las tres tienen ya su puerta
-escrita esperándolas:
+**La 6.2 · el cliente**, que es la primera pieza de todo esto con **versión y
+despliegue**. El servidor ya está: forjar, crear con llave, invitar, aceptar,
+salir, echar y volver funcionan y están ensayados contra la base.
 
-1. **Crear un gremio con una llave** (`F-6`) y **aceptar una invitación con
-   ella** (`F-7`). Las dos llaman a `consumir_llave()` **dentro de su propia
-   transacción**, nunca antes: `R-20` y `T-10` dicen que la llave se consume
-   solo cuando la operación de destino ha terminado bien, y la única forma de
-   garantizarlo es que las dos cosas se deshagan juntas si algo falla.
-2. **El país, aquí sí** (`R-102`). Crear un gremio es lo que elige jurisdicción,
-   y ahí `exige_pais()` deja de estar sin uso. Acuérdate de que `'sin_pais'`
-   **no es un `'no'`**: es la señal de pedir el país. Un gremio que no ha
-   declarado no puede quedarse fuera por silencio, tiene que ver la pregunta.
-   Y al crear hay que cruzar el tipo con `disponibilidad_tipos` (`R-103`), que
-   es lo que `tipos_ofrecidos()` todavía no hace.
-3. **La pantalla.** Es la primera fase con interfaz de verdad, y ya tiene los
-   datos: `oportunidades_expansion()` dice cuánto falta y por qué, `mis_llaves()`
-   dice qué tengo, y `pais_de_gremio()` dice si hay que preguntar el país. Nada
-   de eso autoriza nada: la pantalla solo muestra (`SEC-1`).
+**Empieza por `NOTAS-FASE-6.md`.** Es el inventario que el plan exigía, hecho
+hoy, y tiene ocho puntos. Los tres que ordenan el trabajo:
 
-**Una trampa que ya está puesta y conviene no descubrir a la mala:**
-`consumir_llave()` **lanza** en vez de devolver un código, y no se concede a
-`authenticated`. Las dos cosas son a propósito. Quien la llame tiene que estar
-preparado para la excepción y ser una función del servidor, no el cliente.
+1. **`loadFamily()` carga con `limit 1`** (`src/App.jsx:131`). Desde la 045,
+   `families` ya devuelve por RLS todos los gremios de quien pertenece, así que
+   en cuanto exista una segunda pertenencia el segundo gremio **no es que se vea
+   mal: es invisible**. Hace falta un gremio activo explícito, recordado por
+   dispositivo (`C-2`), y `loadAll()` colgando de él. `mis_pertenencias()` ya
+   devuelve lo que el selector necesita: cada gremio con su tipo, su personaje y
+   su nivel.
+2. **`gremio_profile` en `localStorage` es global** y lo leen siete sitios. Con
+   dos gremios apunta a un personaje que no está en el activo. Tiene que llevar
+   el gremio dentro, y el valor viejo leerse una vez como el del gremio inicial
+   para no expulsar a nadie de su personaje al desplegar.
+3. **Zona horaria y temporada se recalculan al cambiar** (`C-4`, y está en la
+   definición de hecho). `configurarZona()` es un singleton de módulo que hoy se
+   fija una vez; sin volver a llamarlo, el día se cuenta en la zona del gremio
+   anterior y **una racha viva se lee como rota**.
+
+Y **una decisión aplazada a la 6.3**: con varios gremios, un aparato solo puede
+estar suscrito a uno (`push_subs.endpoint` es único). O la suscripción pasa a
+ser por `(aparato, gremio)`, o los avisos se dirigen a la persona y el gremio
+pasa a ser un dato del mensaje. La segunda es más correcta y toca la Edge
+Function.
 
 ## Lo que sigue abierto, y no es de ninguna fase
 

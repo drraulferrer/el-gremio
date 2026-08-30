@@ -291,9 +291,19 @@ describe('una llave, un uso', () => {
     expect(m056).not.toContain('grant execute on function public.consumir_llave')
   })
 
-  it('hoy no la llama nadie: gastarla es la Fase 6', () => {
-    const cuerpos = schema.split('$fn$').filter((_, i) => i % 2 === 1)
-    expect(cuerpos.filter((c) => c.includes('public.consumir_llave('))).toEqual([])
+  it('y solo la llaman las dos puertas de la Fase 6', () => {
+    // Este test decía «hoy no la llama nadie» hasta que llegó la 057, y
+    // cambiarlo es correcto: lo que tiene que seguir vigilando es que las
+    // únicas dos formas de gastar una llave sigan siendo crear un gremio y
+    // aceptar una invitación. Una tercera que apareciera sin pensarlo —un
+    // «canjear llave» suelto, por ejemplo— la consumiría sin abrir ninguna
+    // puerta, que es justo lo que `R-19` limita a dos acciones.
+    const CON_NOMBRE = /create or replace function public\.(\w+)\([\s\S]*?\nas \$fn\$([\s\S]*?)\n(?:end )?\$fn\$;/g
+    const llaman = [...schema.matchAll(CON_NOMBRE)]
+      .filter(([, , cuerpo]) => cuerpo.includes('public.consumir_llave('))
+      .map(([, nombre]) => nombre)
+      .sort()
+    expect(llaman).toEqual(['aceptar_invitacion', 'crear_gremio_con_llave'])
   })
 })
 
