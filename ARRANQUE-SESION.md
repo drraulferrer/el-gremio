@@ -4,11 +4,12 @@ Documento de continuidad. Si abres una sesión nueva sobre este proyecto,
 lee esto primero: dice dónde está todo, qué está hecho, qué falta y qué
 trampas tiene.
 
-> **Y si solo vas a leer una línea antes de ponerte:** la **2.34.0 está EN
-> PRODUCCIÓN** (§7bp): el gremio activo y su selector. Con ella, una persona
-> puede tener más de un gremio de punta a punta. Lo siguiente es la **6.3, las
-> pantallas**: el servidor tiene forjar, invitar y aceptar desde la 056 y la
-> 057, y **nadie los llama todavía**.
+> **Y si solo vas a leer una línea antes de ponerte:** la **2.35.0 está EN
+> PRODUCCIÓN** (§7bq): expandirse a otro gremio, con la conversión a identidad
+> personal dentro. Es lo primero de toda esta tanda que la familia puede usar.
+> **Y lo primero que hay que arreglar es el correo:** la plantilla de
+> confirmación dice «podréis entrar todos», que es el texto de fundar una casa
+> y no el de crearse una identidad. Quien pulse esta noche lo recibirá así.
 
 Última actualización: **30 de agosto de 2026**, al cierre de la
 sesión de **recuperación ante desastres y terreno firme** (§7bb): migraciones
@@ -6263,7 +6264,7 @@ con ellas, la decisión de los avisos.
 | | |
 |---|---|
 | Repositorio | `~/el-gremio`, rama `main` |
-| Versión desplegada | **2.34.0** · la **2.35.0 está construida y sin publicar** |
+| Versión desplegada | **2.35.0** · `npm run health` en verde · `7b6c766`, supabase 17.6 |
 | Migraciones aplicadas | hasta la **057**. La siguiente libre es la **058** |
 | Tests | 1488 en 82 ficheros |
 | Plan y especificación | `~/Library/Mobile Documents/com~apple~CloudDocs/ClaudeCode/specs/` |
