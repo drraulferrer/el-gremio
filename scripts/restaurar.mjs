@@ -108,9 +108,23 @@ export function refDeUrl(url) {
   return pooler ? pooler[1] : null
 }
 
-/** Tapa la contraseña de cualquier cadena de conexión que se vaya a imprimir. */
-export function censura(texto) {
-  return String(texto ?? '').replace(/(postgres(?:ql)?:\/\/[^:\s]+:)[^@\s]+@/gi, '$1•••@')
+/**
+ * Tapa lo que no puede salir por pantalla.
+ *
+ * Dos reglas, y la segunda existe por un susto real del 29-ago-2026: el CLI
+ * devuelve el valor CRUDO en «failed to parse connection string: …», así que
+ * si lo que hay en RESTAURAR_DB_URL no es una URL —por ejemplo, la contraseña
+ * suelta, que es lo que copia quien copia del panel a medias— la primera
+ * regla no lo reconoce y la contraseña acaba en la terminal y en el fichero
+ * de salida. Tapar el valor literal cubre ese caso y cualquier otro que no
+ * hayamos imaginado.
+ */
+export function censura(texto, secreto = process.env.RESTAURAR_DB_URL) {
+  let salida = String(texto ?? '').replace(/(postgres(?:ql)?:\/\/[^:\s]+:)[^@\s]+@/gi, '$1•••@')
+  if (secreto && String(secreto).trim().length >= 8) {
+    salida = salida.split(String(secreto).trim()).join('•••')
+  }
+  return salida
 }
 
 /**
@@ -141,8 +155,17 @@ with recursive dep as (
   select c.oid as tabla, 0 as nivel
     from pg_class c join pg_namespace n on n.oid = c.relnamespace
    where n.nspname = 'public' and c.relkind = 'r'
+     -- Solo cuentan las claves ajenas que apuntan DENTRO de public. Sin el
+     -- filtro por esquema, la tabla families quedaba fuera del caso base
+     -- por su clave a auth.users, y como de ella cuelga todo lo demas, la
+     -- recursiva no alcanzaba nada: la consulta devolvia UNA tabla de 23 y
+     -- la restauracion habria insertado en orden de volcado, rompiendo las
+     -- claves ajenas. Visto el 29-ago-2026, la primera vez que se ejecuto.
      and not exists (select 1 from pg_constraint k
-                      where k.conrelid = c.oid and k.contype = 'f' and k.confrelid <> c.oid)
+                       join pg_class fc on fc.oid = k.confrelid
+                       join pg_namespace fn on fn.oid = fc.relnamespace
+                      where k.conrelid = c.oid and k.contype = 'f'
+                        and k.confrelid <> c.oid and fn.nspname = 'public')
   union all
   select k.conrelid, d.nivel + 1
     from dep d
@@ -174,7 +197,7 @@ function consultaEn(conexion, sql) {
         return Array.isArray(salida) ? salida : salida.rows
       } catch { /* reintenta */ }
     }
-    ultimo = ((r.stderr || r.stdout) || '').trim()
+    ultimo = [r.stderr, r.stdout].filter(Boolean).join('\n').trim()
   }
   morir(`La consulta falló tras 4 intentos: ${censura(ultimo).slice(-300)}`)
 }
@@ -186,7 +209,13 @@ function ejecutar(conexion, sql, etiqueta) {
     writeFileSync(fichero, sql, 'utf8')
     const r = spawnSync(binario('supabase'), ['db', 'query', '-f', fichero, ...conexion.args],
       { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 })
-    if (r.status !== 0) morir(`Falló ${etiqueta}: ${censura(((r.stderr || r.stdout) || '')).trim().slice(-400)}`)
+    if (r.status !== 0) {
+      // Los dos flujos, no uno u otro: el CLI manda "Connecting to remote
+      // database..." por stderr y el error de verdad por stdout, asi que
+      // `stderr || stdout` enseñaba el aviso y escondia la causa.
+      const salida = [r.stderr, r.stdout].filter(Boolean).join('\n').trim()
+      morir(`Falló ${etiqueta}: ${censura(salida).slice(-600)}`)
+    }
   } finally {
     rmSync(tmp, { recursive: true, force: true })
   }
@@ -259,7 +288,13 @@ export function plan(datos, ordenTablas) {
   const fuera = Object.keys(presentes).filter((t) => t.includes('.'))
 
   const partes = []
-  partes.push([...tablas].reverse().map((t) => `delete from public.${t} where true;`).join('\n'))
+  // Un delete por trozo, y no todos juntos: `supabase db query -f` manda el
+  // fichero como UNA sentencia preparada, y Postgres rechaza varias en una
+  // ("cannot insert multiple commands into a prepared statement"). Con
+  // --linked colaba porque ese camino va por la API de gestion, que si las
+  // acepta; con --db-url no. Visto al ejecutar la primera restauracion de
+  // verdad, el 29-ago-2026.
+  partes.push(...[...tablas].reverse().map((t) => `delete from public.${t} where true;`))
   for (const tabla of tablas) {
     if (presentes[tabla].length) partes.push(...trozosDe('public', tabla, presentes[tabla]))
   }

@@ -48,8 +48,22 @@ describe('la contraseña no se imprime nunca', () => {
     expect(salida).toContain('timeout')
   })
 
+  it('tapa el valor literal de la variable, aunque no sea una URL', () => {
+    // El caso real: alguien copia del panel solo la contrasena, el CLI la
+    // devuelve cruda en «failed to parse connection string: …» y la primera
+    // regla no la reconoce porque no hay URL donde buscarla.
+    const salida = censura('failed to parse connection string: wOnhW6A2mn6QYKNR', 'wOnhW6A2mn6QYKNR')
+    expect(salida).not.toContain('wOnhW6A2mn6QYKNR')
+    expect(salida).toContain('•••')
+  })
+
+  it('un secreto demasiado corto no convierte la salida en un tachon', () => {
+    // Sin el minimo, un valor de dos letras taparia media salida.
+    expect(censura('error de red', 'ed')).toBe('error de red')
+  })
+
   it('no se atraganta con lo que no lleva contraseña', () => {
-    expect(censura('todo bien')).toBe('todo bien')
-    expect(censura(null)).toBe('')
+    expect(censura('todo bien', null)).toBe('todo bien')
+    expect(censura(null, null)).toBe('')
   })
 })
