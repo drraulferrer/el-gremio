@@ -4,10 +4,11 @@ Documento de continuidad. Si abres una sesión nueva sobre este proyecto,
 lee esto primero: dice dónde está todo, qué está hecho, qué falta y qué
 trampas tiene.
 
-> **Y si solo vas a leer una línea antes de ponerte:** la **Fase 4 está
-> cerrada**. La migración 055 (§7bm, el país de operación) está ejecutada y
-> ensayada, y `families.pais` existe, nulo para los cuatro gremios. Lo
-> siguiente es la **Fase 5**.
+> **Y si solo vas a leer una línea antes de ponerte:** las **Fases 4 y 5 están
+> cerradas**. Se puede **forjar una llave** (§7bn, migración 056) aunque
+> todavía no haya dónde gastarla, y `families.pais` existe sin declarar
+> (§7bm, 055). Lo siguiente es la **Fase 6**, que es la que gasta la llave y
+> la primera con pantalla de verdad.
 
 Última actualización: **30 de agosto de 2026**, al cierre de la
 sesión de **recuperación ante desastres y terreno firme** (§7bb): migraciones
@@ -5815,6 +5816,133 @@ Y el ensayo —once comprobaciones en un bloque que termina en
 Después del ensayo los cuatro gremios seguían sin país y `app_logs` sin ningún
 `pais_ya_declarado`: no quedó nada detrás.
 
+## 7bn. La llave se forja (30 de agosto) · SIN VERSIÓN · migración 056
+
+**Migración 056 EJECUTADA y ensayada.** Es la **Fase 5** entera: el nivel
+derivado en servidor, el derecho de expansión —la llave— con su ciclo de vida
+completo, y la forja con todas sus comprobaciones. Solo toca el servidor, así
+que la app sigue en la 2.33.6.
+
+### La tercera copia de la fórmula del nivel, y cómo se evita que se separen
+
+El plan de la Fase 1 aplazó derivar el nivel en servidor con este motivo
+escrito: «hoy añadiría una tercera copia de la fórmula sin nadie que la llame
+hasta la Fase 5. Cuando entre, hace falta algo que garantice que SQL y JS
+coinciden». Ya entró, porque forjar exige comprobar el nivel y `R-26` prohíbe
+que el cliente lo declare.
+
+Lo que evita que se separen son tres cosas: la aritmética está escrita **una
+vez**, en `xp_de_nivel()`; `nivel_de_xp()` la recorre con **el mismo bucle** que
+`levelFromXp`; y `tests/llave.test.js` **extrae la expresión del SQL, la ejecuta
+en JS** y la compara con `xpForLevel` del nivel 1 al 40, más el bucle completo
+en los bordes exactos de cada hito.
+
+Y no es una fórmula cerrada a propósito: `floor((1 + sqrt(1 + xp/12.5)) / 2)`
+devuelve en coma flotante el nivel **anterior** justo en el valor exacto de un
+hito, que es el único sitio donde esta función decide algo. El test lo prohíbe
+por escrito.
+
+### El nivel sale de la marca de agua
+
+`E-4.5`: deshacer una misión baja la XP y **el hito alcanzado no se retira**. Se
+lee `xp_maxima`, que un disparador mantiene desde la 035 y que nunca baja. Si se
+leyera `xp` a secas, corregir una misión mal validada le quitaría a alguien una
+oportunidad que ya se había ganado.
+
+En el ensayo se ve: con el nivel puesto a 6 y la XP bajada a cero después,
+`nivel_en_gremio()` seguía diciendo 6.
+
+### Nada cobra antes de haber dicho que sí
+
+El orden de las once comprobaciones **es** la especificación, y un test lo
+defiende por posición en el texto: todo lo que puede decir que no aparece antes
+de la línea que toca la cartera.
+
+El límite global se mira **antes de cobrar** (`R-61`, `D-06`): la versión
+anterior de la especificación dejaba comprar en el límite, y cobrar por una
+llave que no se puede usar es cobrar por nada. Entre «estás en el límite» y «no
+te llega» se responde primero el límite: no llegar es cuestión de una semana,
+estar en el límite es una decisión —salir de un gremio— y merece decirse antes.
+
+Y solo el rechazo **por saldo** deja asiento (`R-08`, `F-5` paso 5). Anotar «te
+falta nivel» llenaría el libro de cosas que no son dinero.
+
+### El escalón, una sola vez, y por índice
+
+`E-4.4` lo garantiza `idx_derecho_escalon_una_vez` y no un `select` previo:
+entre el `select` y el `insert` cabe otra petición, que es el oficio de
+`idx_bonuses_uno_al_dia`. El índice es **parcial**, y ahí está el matiz: una
+llave **revertida no bloquea** el escalón. Revertir devuelve el dinero (`T-12`);
+si además se quedara con la oportunidad, la persona habría perdido las dos
+cosas.
+
+El manejador de `unique_violation` rodea **solo al `insert`**. Puesto al final
+de la función se tragaría también el choque de claves del libro, y un problema
+de idempotencia saldría disfrazado de `ya_forjado`.
+
+### El origen sobrevive al cierre del gremio de origen
+
+`E-7.4` pide que la llave siga registrando A como origen aunque A se cierre. Con
+`cascade` un gremio cerrado borraría llaves pagadas; con `set null` borraría la
+trazabilidad de `R-22`. Por eso `origen` **no tiene clave ajena**, y por eso se
+guarda además `origen_nombre`: un uuid huérfano registra el origen para la base,
+pero no para quien lee su lista de llaves. Mismo criterio que `publicada_por` en
+la 050.
+
+### Y el tipo lo decide la plantilla, no un `if`
+
+Equipo no origina llaves porque su plantilla dice `expansion_desde_tipo = false`
+(`R-111`, `R-115`), no porque haya una comparación escrita en la forja. Es la
+053 haciendo su trabajo, y hay un test que lo vigila.
+
+### Lo que NO hace
+
+**No gasta la llave.** Crear un gremio y aceptar una invitación son la Fase 6.
+`consumir_llave()` existe, lanza en vez de devolver un código —su sitio es
+dentro de la transacción de destino, para que las dos cosas se deshagan juntas
+(`R-20`, `T-10`)— y **no se concede a `authenticated`**: un cliente que pudiera
+llamarla suelta consumiría una llave sin crear nada. Hoy no la llama nadie.
+
+**No exige país.** Forjar depende del nivel, del saldo y del límite; quien
+decide la jurisdicción es **crear** el gremio, que es la Fase 6. Un gremio sin
+país declarado puede forjar, y eso es `R-117` deliberado.
+
+**No caduca ninguna llave.** `T-14` recomienda no caducar en el MVP y
+`llave_dias` ya es nulo desde la 050. El estado `'caducado'` existe en el modelo
+y hoy no lo escribe nadie.
+
+**No hay pantalla.** `oportunidades_expansion()` devuelve el «cuánto falta» que
+la pantalla necesitará, en el mismo orden que la forja para que no puedan decir
+cosas distintas. Pintarlo es otra tanda.
+
+### Cómo se comprobó
+
+Respaldo (`respaldo-2026-08-30-200015`). `npm run verify`: **1413 tests en 79
+ficheros**.
+
+Y el ensayo contra la base, que forjó una llave **de verdad** montando una
+identidad personal completa y lo deshizo todo al terminar:
+
+| | |
+|---|---|
+| con credencial compartida | `exige_identidad_personal` |
+| nivel 0 | `nivel_insuficiente` |
+| escalón 99 | `escalon_desconocido` · `CFG-6` |
+| nivel bastante, sin monedas | `sin_monedas`, y **1 asiento** con saldo igual antes y después |
+| **XP bajada a cero después del hito** | el nivel sigue siendo 6 · `E-4.5` |
+| forja | `ok`, y la cartera baja **exactamente** el coste |
+| la llave | origen, nombre, coste, versión, temporada 1 y estado `disponible` |
+| el asiento | 1, con `referencia` a la llave y la diferencia = coste |
+| otra vez el mismo escalón | `ya_forjado`, sin cobrar |
+| la misma clave otra vez | `ok`, sin cobrar |
+| con **5 pertenencias activas** | `en_el_limite` y **saldo intacto** · `R-61`, `E-9.13` |
+| consumir dos veces | `consumido` y después `llave_no_disponible` · `E-9.12` |
+| revertir sin ser operador | `no_autorizado` |
+| plantillas que forjan | `hogar` `amigos` `hogar_compartido` sí · **`equipo` no** |
+
+Después: 0 llaves, 0 pertenencias, 0 carteras, 4 gremios, ninguna cuenta de
+ensayo y **cero descuadres**. No quedó nada detrás.
+
 ---
 
 # CÓMO ARRANCAR LA SIGUIENTE SESIÓN
@@ -5827,8 +5955,8 @@ Después del ensayo los cuatro gremios seguían sin país y `app_logs` sin ning�
 |---|---|
 | Repositorio | `~/el-gremio`, rama `main` |
 | Versión desplegada | **2.33.6** · `npm run health` en verde, supabase 17.6 |
-| Migraciones aplicadas | hasta la **055**. La siguiente libre es la **056** |
-| Tests | 1375 en 78 ficheros |
+| Migraciones aplicadas | hasta la **056**. La siguiente libre es la **057** |
+| Tests | 1413 en 79 ficheros |
 | Plan y especificación | `~/Library/Mobile Documents/com~apple~CloudDocs/ClaudeCode/specs/` |
 
 **Lo primero, siempre:** `git fetch` antes de elegir número de migración o de
@@ -5843,7 +5971,8 @@ versión. Hoy no ha hecho falta, pero el 30-ago por la mañana ya pasó una vez.
 | 2 · Identidad y pertenencia | ✅ **cerrada** | 044, 045, 047, 048, 049 |
 | 3 · Configuración y cartera | ✅ **cerrada** | 050, 051, 052 |
 | 4 · El tipo como plantilla | ✅ **cerrada** | 053, 054, 055 |
-| 5 en adelante | ☐ sin empezar | — |
+| 5 · Hitos y llaves | ✅ **cerrada** | 056 |
+| 6 en adelante | ☐ sin empezar | — |
 
 Y de propina, la **046**: el barrido de permisos que la 021 dejó escrito llevaba
 desde agosto cerrando media puerta, porque quitaba `anon` pero no PUBLIC, del
@@ -5851,25 +5980,30 @@ que `anon` hereda.
 
 ## Por dónde seguir
 
-**La Fase 5** (hitos y llaves), que es la primera que trae **pantalla** y el
-primer motivo real para convertirse en persona.
+**La Fase 6 · gremios múltiples**, que es donde todo lo construido desde la 044
+empieza a servir para algo. Trae tres cosas y las tres tienen ya su puerta
+escrita esperándolas:
 
-Y es también la primera que tendrá algo que **depende del país**: forjar. Ahí es
-donde `exige_pais()` deja de estar sin uso, y donde hay que acordarse de que
-`'sin_pais'` **no es un `'no'`**: es la señal de pedir el país, no de denegar.
-Un gremio que no ha declarado no puede quedarse sin poder forjar por silencio;
-tiene que ver la pregunta.
+1. **Crear un gremio con una llave** (`F-6`) y **aceptar una invitación con
+   ella** (`F-7`). Las dos llaman a `consumir_llave()` **dentro de su propia
+   transacción**, nunca antes: `R-20` y `T-10` dicen que la llave se consume
+   solo cuando la operación de destino ha terminado bien, y la única forma de
+   garantizarlo es que las dos cosas se deshagan juntas si algo falla.
+2. **El país, aquí sí** (`R-102`). Crear un gremio es lo que elige jurisdicción,
+   y ahí `exige_pais()` deja de estar sin uso. Acuérdate de que `'sin_pais'`
+   **no es un `'no'`**: es la señal de pedir el país. Un gremio que no ha
+   declarado no puede quedarse fuera por silencio, tiene que ver la pregunta.
+   Y al crear hay que cruzar el tipo con `disponibilidad_tipos` (`R-103`), que
+   es lo que `tipos_ofrecidos()` todavía no hace.
+3. **La pantalla.** Es la primera fase con interfaz de verdad, y ya tiene los
+   datos: `oportunidades_expansion()` dice cuánto falta y por qué, `mis_llaves()`
+   dice qué tengo, y `pais_de_gremio()` dice si hay que preguntar el país. Nada
+   de eso autoriza nada: la pantalla solo muestra (`SEC-1`).
 
-Lo que la 055 dejó puesto, para no tener que leerla entera: `families.pais` nulo
-para los cuatro gremios y nunca inferido, `declarar_pais()` por `CAP-04` —el
-perfil adulto con el PIN, que es lo único que hay en los gremios de hoy—,
-`pais_de_gremio()` para que la pantalla sepa si tiene que preguntar,
-`disponibilidad_de_tipo()` que resuelve la matriz **sin recibir un país como
-parámetro**, y `exige_pais()`, que hoy no la llama nadie.
-
-Falta también, y es de la Fase 5 o de la 6: **la pantalla que pregunta el
-país**. Hoy el servidor sabe contestar «hay que preguntar» y no hay nadie que
-pregunte.
+**Una trampa que ya está puesta y conviene no descubrir a la mala:**
+`consumir_llave()` **lanza** en vez de devolver un código, y no se concede a
+`authenticated`. Las dos cosas son a propósito. Quien la llame tiene que estar
+preparado para la excepción y ser una función del servidor, no el cliente.
 
 ## Lo que sigue abierto, y no es de ninguna fase
 
