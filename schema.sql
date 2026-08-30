@@ -3047,9 +3047,17 @@ begin
     (v_family, p_profile, p_tipo, p_importe, p_antes, p_despues, p_resultado, p_referencia, p_clave);
 end $$;
 
--- Y el barrido final de la 021, que tiene que quedarse SIEMPRE el último
--- del fichero: retira `anon` de toda función `security definer`, incluidas
--- las que se añadan por debajo de aquí.
+-- Y el barrido final de la 021, que tiene que quedarse SIEMPRE el último del
+-- fichero: retira el permiso de ejecución de toda función `security definer`,
+-- incluidas las que se añadan por debajo de aquí. Nada de esto se pierde para
+-- quien lo necesita: los `grant execute ... to authenticated` de arriba son
+-- explícitos y sobreviven al barrido.
+--
+-- **Retira PUBLIC además de `anon`, y eso es un arreglo de la 046.** Tal como
+-- la escribió la 021, el barrido solo quitaba `anon`, y `anon` HEREDA de
+-- PUBLIC: mientras PUBLIC conservara el permiso —que es el que Postgres da
+-- por defecto a toda función nueva—, quitárselo a `anon` no cerraba nada.
+-- Seis funciones seguían contestando sin sesión con el barrido puesto.
 do $$
 declare f record;
 begin
@@ -3059,6 +3067,7 @@ begin
     join pg_namespace n on n.oid = p.pronamespace
     where n.nspname = 'public' and p.prosecdef
   loop
+    execute format('revoke all on function %s from public', f.firma);
     execute format('revoke all on function %s from anon', f.firma);
   end loop;
 end $$;

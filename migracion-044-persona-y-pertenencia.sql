@@ -346,6 +346,29 @@ revoke all on function public.tg_credencial_de_gremio() from anon;
 revoke all on function public.tg_credencial_de_gremio() from authenticated;
 
 -- ------------------------------------------------------------------
+-- El barrido de la 021, corregido por la 046: retira el permiso de ejecucion
+-- de toda funcion `security definer`, PUBLIC incluido. Va al final de toda
+-- migracion que cree o reemplace una de esas funciones, porque cada `create
+-- or replace` estrena los privilegios por defecto de Supabase y vuelve a
+-- conceder a `anon`. Es idempotente y no quita ningun `grant execute ... to
+-- authenticated` explicito.
+-- ------------------------------------------------------------------
+
+do $$
+declare f record;
+begin
+  for f in
+    select p.oid::regprocedure as firma
+    from pg_proc p
+    join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public' and p.prosecdef
+  loop
+    execute format('revoke all on function %s from public', f.firma);
+    execute format('revoke all on function %s from anon', f.firma);
+  end loop;
+end $$;
+
+-- ------------------------------------------------------------------
 -- COMPROBACION
 --
 -- Tras ejecutar, esto tiene que dar una fila por gremio y ninguna huerfana:

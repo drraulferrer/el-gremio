@@ -419,14 +419,26 @@ ejecutado, así que PUBLIC seguía en su lista de permisos. Lo defiende
 `tests/permisos.test.js`, que compara cada línea de permisos con la firma
 declarada en el fichero.
 
-**Y una tercera, de la misma familia**: `revoke ... from public` **no** quita
-la concesión explícita que Supabase da a `anon` por privilegios por defecto.
-Para que una función `security definer` no se pueda llamar sin haber entrado
-hacen falta las dos líneas, `from public` y `from anon`. Ese era el motivo de
-que `crear_campana_limpieza`, `cerrar_campana_limpieza` y `grant_manual_bonus`
-se pudieran llamar sin sesión —devolvían `no_es_tuyo`, pero contestaban—. El
-mismo test lleva la lista de las que todavía no la tienen, y solo puede
-menguar.
+**Y una tercera, de la misma familia y con dos caras**: para que una función
+`security definer` no se pueda llamar sin haber entrado hacen falta **las dos**
+revocaciones, `from public` y `from anon`, y cada una por su motivo.
+`revoke ... from public` no quita la concesión explícita que Supabase da a
+`anon` por privilegios por defecto; y `revoke ... from anon` no quita la de
+PUBLIC, de la que `anon` **hereda**. Quitar solo una deja la puerta abierta y
+da exactamente la impresión contraria.
+
+Las dos caras habían mordido: `crear_campana_limpieza`,
+`cerrar_campana_limpieza` y `grant_manual_bonus` se podían llamar sin sesión
+por lo primero —devolvían `no_es_tuyo`, pero contestaban—, y el barrido general
+que la 021 dejó al final de `schema.sql` llevaba desde agosto sin cerrar nada
+por lo segundo. Lo arregla la **046**.
+
+**La regla, que la 021 ya había escrito y se olvidó veintidós migraciones
+seguidas**: toda migración que cree o reemplace una función `security definer`
+termina pegando el barrido del final de `schema.sql`. Cada `create or replace`
+estrena los privilegios por defecto de Supabase, así que sin barrer al final la
+lista de funciones que contestan sin sesión vuelve a crecer sola. Lo defiende
+`tests/permisos.test.js`, para las migraciones de la 044 en adelante.
 
 Comprobación rápida de que la convención se ha respetado:
 

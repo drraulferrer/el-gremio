@@ -4843,12 +4843,16 @@ Ninguna era de esta fase, y las dos llevaban semanas.
    contesta «function does not exist» y **corta la reconstrucción de la base
    ahí mismo**. El síntoma en producción era que ese `revoke ... from public`
    nunca llegó a ejecutarse, y PUBLIC seguía en su lista de permisos.
-2. **`revoke ... from public` no quita la concesión explícita que Supabase da
-   a `anon`** por privilegios por defecto. Por eso `crear_campana_limpieza`,
+2. **Hacen falta las DOS revocaciones, y cada una por su motivo.**
+   `revoke ... from public` no quita la concesión explícita que Supabase da a
+   `anon` por privilegios por defecto —por eso `crear_campana_limpieza`,
    `cerrar_campana_limpieza` y `grant_manual_bonus` se podían llamar **sin
-   haber entrado**. No escribían nada —`auth.uid()` es nulo y devolvían
-   `no_es_tuyo`— pero contestaban, y la clave anon es pública. Añadido el
-   `from anon` a las seis y a los dos disparadores nuevos.
+   haber entrado**: no escribían nada, pero contestaban—. Y
+   `revoke ... from anon` no quita la de PUBLIC, **de la que `anon` hereda**.
+   Esto último es lo que tenía roto el barrido general que la 021 dejó al
+   final de `schema.sql`: llevaba desde agosto pareciendo que funcionaba.
+   Añadido el `from anon` a las seis y a los dos disparadores nuevos, y el
+   barrido corregido en la **046**.
 
 Las dos las defiende ahora `tests/permisos.test.js`, y las dos están escritas
 en `docs/RUNBOOK.md` §6b, al lado de la trampa de las sobrecargas, que es de
@@ -4888,15 +4892,53 @@ tablón, la tienda, el historial y el panel siguen igual.**
 
 ### Lo que queda abierto
 
-- **La revisión de grants**, que ya venía de la Fase 0 con el `truncate` para
-  `authenticated`. Siete funciones `security definer` siguen sin `revoke ...
-  from anon`; cuatro están expuestas hoy (`zona_de_perfil` y tres `tg_*`) y
-  tres solo lo estarían en una base reconstruida (`purge_logs`,
-  `delete_my_account`, `streak_days`). La lista está en `PENDIENTES`, dentro
-  de `tests/permisos.test.js`, y el test falla si crece.
+- **El `truncate` para `authenticated`**, que ya venía de la Fase 0. `truncate`
+  se salta el RLS, pero PostgREST no lo expone, así que es endurecimiento
+  pendiente y no una puerta abierta.
+- **`zona_de_perfil` no la llama nadie** —ni el esquema, ni el cliente, ni un
+  script— desde la 018. Es una función huérfana y habría que retirarla.
 - **`redeem_reward` la puede llamar `anon`** también, pero es `security
   invoker`: el RLS la protege. Entra en la misma revisión.
 - **La Fase 2 va por la mitad.** Lo siguiente es **2.5**, la conversión de
   perfil a persona (F-9): es la primera que crea una identidad personal de
   verdad y, con ella, la primera fila de `pertenencias`. Ahí es donde el
   cambio de hoy deja de ser un no-op.
+
+## 7bd. El barrido que cerraba media puerta (30 de agosto) · SIN VERSIÓN · migración 046
+
+**Migración 046 EJECUTADA.** Es una corrección de lo que quedó a medio
+diagnosticar en §7bc, y no es de la Fase 2.
+
+La 021 dejó escrita la regla buena —«al crear una función `security definer`
+no basta con `revoke from public`, hay que retirar `anon` explícitamente»— y
+un barrido al final de `schema.sql` que lo hacía para todas de una vez. La
+idea era correcta y el sitio también.
+
+**Lo que fallaba:** el barrido hacía solo `revoke ... from anon`, y **`anon`
+hereda de PUBLIC**. Mientras PUBLIC conserve el permiso —que es el que
+Postgres da por defecto a toda función nueva— quitárselo a `anon` no cierra
+nada: `has_function_privilege('anon', …)` sigue diciendo `true`, que es lo
+único que mira PostgREST. Así que el barrido llevaba desde agosto pareciendo
+que funcionaba, y seis funciones contestaban sin sesión.
+
+**Y un segundo motivo, que explica por qué la lista fue creciendo:** el
+barrido solo se ha vuelto a ejecutar **dos veces** en toda la historia del
+proyecto, en la 017 y en la 021. Cada `create or replace` posterior estrena
+los privilegios por defecto de Supabase, que conceden a `anon`. De la 022 a la
+045 no se volvió a pasar — y la propia 021 avisaba de esto en su texto.
+
+**Cómo quedó:** el barrido de `schema.sql` retira ahora PUBLIC además de
+`anon`, la 046 lo ejecuta sobre la base, y la 044 y la 045 lo llevan pegado al
+final. `anon_puede_llamar` está en **cero** por primera vez desde la 021;
+`authenticated` conserva las 19 que necesitaba y ninguna de las trece que
+llama el cliente pierde permiso — comprobado antes de aplicar, con un bloque
+que deshacía al final.
+
+**La regla, otra vez y en `docs/RUNBOOK.md` §6b**: toda migración que cree o
+reemplace una función `security definer` termina pegando el barrido. Lo
+defiende `tests/permisos.test.js` de la 044 en adelante.
+
+**Una corrección de §7bc**, que decía que tres funciones «solo estarían
+expuestas en una base reconstruida»: era falso. El barrido del final de
+`schema.sql` ya las cubría en una reconstrucción; el problema estaba en la
+base viva, y era mayor de lo que ese párrafo contaba.

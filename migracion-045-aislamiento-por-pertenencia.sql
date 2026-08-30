@@ -629,9 +629,12 @@ end $fn$;
 --     el `from anon` a las seis, que es la convencion que ya siguen las
 --     funciones nuevas del proyecto (`es_operador`, `sin_mision_ese_dia`).
 --
--- Lo que queda fuera y sigue abierto: `zona_de_perfil` y los disparadores
--- `tg_*` tambien los puede ejecutar `anon`. Merecen su propia revision de
--- grants, junto con la de `truncate` que dejo abierta la Fase 0.
+-- Lo que queda fuera: `zona_de_perfil` y los disparadores `tg_*` tambien los
+-- puede ejecutar `anon`. **Lo cierra la 046**, que arregla el barrido general
+-- que la 021 dejo al final de schema.sql: ese barrido solo quitaba `anon`, y
+-- `anon` hereda de PUBLIC, asi que no cerraba nada. Escrito aparte porque es
+-- otro asunto y otra migracion. Sigue abierta la revision de `truncate` que
+-- dejo la Fase 0.
 -- ------------------------------------------------------------------
 
 revoke all on function public.grant_daily_bonus(uuid, text) from public;
@@ -659,6 +662,29 @@ grant execute on function public.spend_power(uuid, text, text, integer, integer,
 revoke all on function public.claim_streak(uuid, integer) from public;
 revoke all on function public.claim_streak(uuid, integer) from anon;
 grant execute on function public.claim_streak(uuid, integer) to authenticated;
+
+-- ------------------------------------------------------------------
+-- El barrido de la 021, corregido por la 046: retira el permiso de ejecucion
+-- de toda funcion `security definer`, PUBLIC incluido. Va al final de toda
+-- migracion que cree o reemplace una de esas funciones, porque cada `create
+-- or replace` estrena los privilegios por defecto de Supabase y vuelve a
+-- conceder a `anon`. Es idempotente y no quita ningun `grant execute ... to
+-- authenticated` explicito.
+-- ------------------------------------------------------------------
+
+do $$
+declare f record;
+begin
+  for f in
+    select p.oid::regprocedure as firma
+    from pg_proc p
+    join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public' and p.prosecdef
+  loop
+    execute format('revoke all on function %s from public', f.firma);
+    execute format('revoke all on function %s from anon', f.firma);
+  end loop;
+end $$;
 
 -- ------------------------------------------------------------------
 -- COMPROBACION

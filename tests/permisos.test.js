@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { readFileSync } from 'node:fs'
+import { readFileSync, readdirSync } from 'node:fs'
 
 // ------------------------------------------------------------------
 // Los permisos de las funciones del esquema.
@@ -13,9 +13,16 @@ import { readFileSync } from 'node:fs'
 //     «function does not exist» y **corta la reconstrucción de la base ahí
 //     mismo**. Como nadie reconstruye la base a diario, llevaba semanas así.
 //
-// 2 · `revoke ... from public` NO quita la concesión explícita que Supabase da
-//     a `anon` por privilegios por defecto. Tres funciones `security definer`
-//     de la economía se podían llamar sin haber entrado.
+// 2 · Los permisos de ejecución necesitan **las dos** revocaciones, y cada una
+//     por su motivo. `revoke ... from public` no quita la concesión explícita
+//     que Supabase da a `anon` por privilegios por defecto; y `revoke ... from
+//     anon` no quita la de PUBLIC, de la que `anon` hereda. Quitar solo una
+//     deja la puerta abierta y da la impresión contraria.
+//
+//     Las dos caras habían mordido: tres funciones de la economía se podían
+//     llamar sin haber entrado por lo primero, y el barrido general que la 021
+//     dejó al final de `schema.sql` llevaba desde agosto sin cerrar nada por lo
+//     segundo. Lo arregla la 046.
 // ------------------------------------------------------------------
 
 const raiz = new URL('../', import.meta.url)
@@ -91,48 +98,53 @@ describe('las firmas de los `grant` y los `revoke`', () => {
 
 describe('quién puede ejecutar una función `security definer`', () => {
   // Una `security definer` corre con los permisos de quien la creó y se salta
-  // el RLS: quién puede llamarla es toda la puerta que tiene.
-  const definers = [...schema.matchAll(/create or replace function public\.(\w+)\s*\([\s\S]{0,400}?security definer/g)]
-    .map((m) => m[1])
+  // el RLS: quién puede llamarla es toda la puerta que tiene. La 021 escribió
+  // la regla y dejó un barrido al final de `schema.sql` para cumplirla sin
+  // acordarse. La 046 lo arregló, porque cerraba media puerta.
+  // Fábrica y no constante: un regex con /g guarda `lastIndex` entre llamadas
+  // a `.test()`, así que el mismo objeto dentro de un `filter` va dando
+  // resultados alternos. Es un fallo que pasa los tests el día que se escribe.
+  const barrido = () => /do \$\$[\s\S]*?prosecdef[\s\S]*?end \$\$;/g
 
-  // Deuda declarada, no permiso concedido. Son anteriores a esta regla y se
-  // resuelven en la revisión de grants que dejó pendiente la Fase 0, junto con
-  // el `truncate` para `authenticated`. Cuatro de las siete están hoy
-  // EXPUESTAS en producción (`zona_de_perfil` y las tres `tg_*`); las otras
-  // tres solo lo estarían en una base reconstruida desde el fichero, que es
-  // igual de real pero no se ve mirando el panel.
-  //
-  // La lista solo puede MENGUAR. Si crece, este test falla, que es justo lo
-  // que se quiere: la regla existe para las funciones que vengan.
-  const PENDIENTES = [
-    'zona_de_perfil',
-    'purge_logs',
-    'tg_challenge_familia',
-    'tg_completion_snapshot',
-    'delete_my_account',
-    'streak_days',
-    'tg_movimiento_coins'
-  ]
+  const barridos = schema.match(barrido()) || []
+  const ultimo = barridos[barridos.length - 1]
 
-  const revocadaA = (n, rol) =>
-    new RegExp(`revoke all on function public\\.${n}\\([^)]*\\) from ${rol};`).test(schema)
-
-  it('ninguna función `security definer` nueva se queda sin revocarle a `anon`', () => {
-    // `revoke ... from public` NO basta: quita la concesión implícita de
-    // PUBLIC, no la explícita que Supabase da a `anon` por privilegios por
-    // defecto. Son dos cosas distintas y hacen falta las dos.
-    const sinRevoke = definers
-      .filter((n) => !PENDIENTES.includes(n))
-      .filter((n) => !revocadaA(n, 'anon'))
-    expect(sinRevoke).toEqual([])
+  it('`schema.sql` termina con el barrido, y no crea funciones después', () => {
+    // Si alguien añade una función por debajo del barrido, esa función nace
+    // con los privilegios por defecto y nadie la retira. Por eso el barrido
+    // es lo último del fichero y no un apartado más.
+    expect(ultimo, 'no encuentro el barrido en schema.sql').toBeTruthy()
+    const cola = schema.slice(schema.lastIndexOf(ultimo) + ultimo.length)
+    expect(cola.trim(), 'hay algo después del barrido').toBe('')
   })
 
-  it('la lista de deuda no ha crecido', () => {
-    // Si alguien resuelve una, que la quite de aquí: el test lo celebra.
-    expect(PENDIENTES).toHaveLength(7)
-    for (const n of PENDIENTES) {
-      expect(definers, `${n} ya no existe: quítalo de PENDIENTES`).toContain(n)
-      expect(revocadaA(n, 'anon'), `${n} ya está revocada: quítala de PENDIENTES`).toBe(false)
-    }
+  it('el barrido quita PUBLIC además de `anon`, que era el fallo', () => {
+    // `anon` HEREDA de PUBLIC. Mientras PUBLIC conserve el permiso --y es el
+    // que Postgres da por defecto a toda función nueva-- quitárselo a `anon`
+    // no cierra nada: `has_function_privilege` sigue diciendo `true`, que es
+    // lo único que mira PostgREST. El barrido de la 021 llevaba así desde
+    // agosto, pareciendo que funcionaba.
+    expect(ultimo).toContain("revoke all on function %s from public")
+    expect(ultimo).toContain("revoke all on function %s from anon")
+  })
+
+  it('toda migración desde la 044 que toque una `security definer` acaba barriendo', () => {
+    // Cada `create or replace` estrena los privilegios por defecto de
+    // Supabase, que conceden a `anon`. Entre la 022 y la 043 no se volvió a
+    // barrer ni una vez, y así fue creciendo la lista de funciones que
+    // contestaban sin sesión. La regla empieza en la 044: las anteriores son
+    // historia y las arregla la 046 de una vez.
+    const migraciones = readdirSync(new URL('.', raiz))
+      .filter((f) => /^migracion-(\d{3})-.*\.sql$/.test(f))
+      .filter((f) => Number(f.slice(10, 13)) >= 44)
+
+    expect(migraciones.length).toBeGreaterThan(0)
+
+    const sinBarrer = migraciones.filter((f) => {
+      const sql = readFileSync(new URL(f, raiz), 'utf8')
+      const tocaDefiner = /create or replace function[\s\S]{0,400}?security definer/.test(sql)
+      return tocaDefiner && !barrido().test(sql)
+    })
+    expect(sinBarrer).toEqual([])
   })
 })
