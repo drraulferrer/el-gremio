@@ -4,12 +4,10 @@ Documento de continuidad. Si abres una sesión nueva sobre este proyecto,
 lee esto primero: dice dónde está todo, qué está hecho, qué falta y qué
 trampas tiene.
 
-> **Y si solo vas a leer una línea antes de ponerte:** la **2.36.0 está EN
-> PRODUCCIÓN** (§7br), y con ella el camino de la Fase 6 funciona entero:
-> forjar una llave, gastarla creando un gremio o aceptando una invitación, e
-> invitar desde el panel. Lo que queda de la fase son dos cosas y están
-> nombradas al final de §7br: **salir de un gremio con su pantalla** y **los
-> avisos con varios gremios**.
+> **Y si solo vas a leer una línea antes de ponerte:** la **2.37.0 está EN
+> PRODUCCIÓN**. La Fase 6 funciona entera —forjar, gastar, invitar, entrar, y
+> los avisos ya llegan de todos tus gremios (§7bs)—. De la fase solo queda
+> **salir de un gremio con su pantalla**, y está explicado al final de §7br.
 
 Última actualización: **30 de agosto de 2026**, al cierre de la
 sesión de **recuperación ante desastres y terreno firme** (§7bb): migraciones
@@ -6414,7 +6412,7 @@ de golpe.
 | | |
 |---|---|
 | Repositorio | `~/el-gremio`, rama `main` |
-| Versión desplegada | **2.36.0** · la **2.37.0 está construida y sin publicar** |
+| Versión desplegada | **2.37.0** · `npm run health` en verde · `0ae2f8a`, supabase 17.6 |
 | Migraciones aplicadas | hasta la **058**. La siguiente libre es la **059** |
 | Tests | 1504 en 83 ficheros |
 | Plan y especificación | `~/Library/Mobile Documents/com~apple~CloudDocs/ClaudeCode/specs/` |
