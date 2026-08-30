@@ -5043,3 +5043,106 @@ que termina lanzando una excepción para deshacerlo todo:
 Después de los dos, producción sigue con **cero** carteras, conversiones,
 personas, pertenencias y cuentas de ensayo. Y `anon` sigue sin poder ejecutar
 ninguna función `security definer`.
+
+## 7bf. El correo de la casa se hace tuyo (30 de agosto) · SIN VERSIÓN · migración 048
+
+**Migración 048 EJECUTADA y ensayada contra producción.** Sigue sin haber
+versión nueva ni despliegue. Es la pieza **2.6** de la Fase 2, el flujo
+**F-13**, y con ella la fase va por **seis de siete**: solo queda la 2.7
+(borrar la identidad), que es la que la especificación dice que **bloquea el
+lanzamiento**.
+
+### El caso, y lo único que hay que proteger
+
+Quien fundó la casa usó **su** correo personal como clave compartida. Ahora lo
+necesita para ser ella misma, y la 047 le contestaba `correo_es_la_clave_de_casa`
+—correcto, pero sin salida—. Como un correo es credencial compartida **o**
+identidad personal y nunca las dos, la salida es **mover la llave de la casa a
+otro correo**.
+
+Y lo único que hay que proteger es que **la casa no se quede sin llave**. Ese
+correo lo tienen abierto el móvil de quien lo fundó y las tabletas de las
+peques: reclasificarlo antes de que exista otra llave que funcione deja a la
+familia entera fuera de su gremio, y de eso no hay vuelta atrás amable.
+
+### Tres llamadas, y la del medio no escribe nada
+
+1. **`solicitar_migracion_correo`**, desde la sesión compartida y con el PIN.
+   Se elige el correo nuevo de la casa y el personaje al que se vincula el
+   antiguo. **No toca el gremio.**
+2. La persona da de alta el correo nuevo, lo confirma, entra con él y llama a
+   **`probar_credencial_nueva`**. Esa llamada **no escribe nada en el gremio**:
+   lo único que hace es dejar constancia de que esa cuenta existe, está
+   confirmada y **se puede entrar con ella**. Que es justo lo que hay que
+   demostrar antes de tocar la llave de una casa.
+3. **`completar_migracion_correo`**, otra vez desde la sesión compartida. En
+   **una** transacción: la llave pasa al correo nuevo, el antiguo se
+   reclasifica como identidad personal, se vincula al personaje, entra por
+   pertenencia, estrena cartera y recibe su saldo.
+
+### Por qué así, y no como lo cuenta la especificación
+
+F-13 describe ocho pasos en los que la credencial nueva se engancha al gremio
+**antes** de reclasificar la antigua, y `L-46` admite un estado intermedio con
+**dos credenciales compartidas válidas**, con la nota de que hay que poder
+retirar la sobrante a mano si la cosa se interrumpe ahí.
+
+Con este orden **ese estado no llega a existir**. La llamada del medio
+demuestra exactamente lo mismo que el paso 4 de la especificación —que la
+credencial nueva entra de verdad— sin engancharla a nada, y el cambio de llave
+ocurre entero dentro de una transacción. Si el proceso se abandona en cualquier
+punto anterior, en el gremio **no ha cambiado absolutamente nada** y la fila
+caduca sola a las 72 horas.
+
+Es **más fuerte** que lo que pedía `R-84`, no menos. `L-46` se queda sin caso,
+y queda anotado en la especificación.
+
+### Las sesiones antiguas se caen, y es lo que tiene que pasar
+
+Es el paso 7 de F-13 y no es limpieza. Si la sesión de la tableta de una peque
+sobrevive al cambio, esa tableta pasa a ser **una sesión personal de otra
+persona**: mismo `auth.uid()`, clase nueva. Al terminar se retiran todas las
+sesiones de la cuenta antigua —la que hace la llamada incluida— y cada aparato
+vuelve a entrar por donde le toca. Se hace **en el servidor**, no fiándolo a
+que el cliente llame a `signOut`, que es la misma lección que dejó la 043 con
+el libro de las monedas. Va con `to_regclass` por delante: `auth.sessions` y
+`auth.refresh_tokens` son internas de Supabase y el cambio de llave no puede
+depender de que no se muevan de sitio.
+
+### Cómo se comprobó
+
+Respaldo antes (`respaldo-2026-08-30-163424`). `npm run verify`: **1240 tests
+en 71 ficheros**, con `tests/migracion-correo.test.js` (18) nuevo.
+
+Y **dos ensayos contra la base de verdad**, los dos deshaciéndose al final:
+
+- **La migración entera** sobre un gremio real, con un adulto de 424 Talis:
+  `solicitar`=ok · intentar completar sin haber probado la llave =
+  **`aun_sin_probar`** · `probar`=ok y **el `owner` del gremio intacto en ese
+  momento** · `completar`=ok · `owner` ahora la cuenta nueva · la antigua
+  `personal` y sin gremio, la nueva `compartida` con el gremio · 1 pertenencia,
+  cartera 424, `coins` 0, saldo cerrado, 1 conversión · **las 4 sesiones vivas
+  de la cuenta antigua pasaron a 0** · y el gremio con **exactamente una**
+  llave en todo momento.
+- **Los once rechazos**: correo actual, PIN malo, correo sin arroba, correo ya
+  ocupado, perfil de otro gremio, segunda migración a la vez
+  (`ya_hay_una_en_marcha`), cancelar y volver a pedir, una identidad personal
+  intentando migrar (`no_es_compartida`) y `probar` desde una cuenta ya
+  clasificada.
+
+Después, producción intacta: cero migraciones, conversiones, personas,
+pertenencias, carteras y cuentas de ensayo; las 7 sesiones vivas siguen vivas;
+cada gremio con una llave; y `anon` sin poder ejecutar ninguna función.
+
+### Lo que falta para que esto lo use alguien
+
+Sin cambios respecto a §7be, menos una: la 2.6 ya no es de la lista.
+
+1. **La 2.7** (`delete_my_account` todavía borra el gremio entero). La
+   especificación dice que **bloquea el lanzamiento**.
+2. **La pantalla**, que llega con su disparo en la Fase 5.
+3. **La Fase 3**, antes que la 5, o la cartera se queda a medias.
+4. **Supabase Auth**: las Redirect URLs y la plantilla de confirmación, para
+   que el correo vuelva a un sitio donde se llame a las funciones (§1 de
+   `docs/CORREOS.md`).
+5. **Mirar la pantalla con una sesión real.**
