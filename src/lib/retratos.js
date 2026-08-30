@@ -26,6 +26,13 @@
  * momento». Por encima el nivel sigue subiendo —la curva 50·L·(L-1) no
  * tiene techo— y lo único que se acaba es el dibujo.
  */
+// La curva de nivel viene de supabase.js, que es su unico sitio. Aqui habia
+// una copia privada con el comentario "misma curva que supabase.js", que es la
+// forma educada de decir que un dia dejaran de serlo. Y con el hito de
+// expansion apoyandose en el nivel, dos verdades sobre quien sube de nivel
+// pasan a ser dos verdades sobre quien puede abrir un gremio.
+import { levelFromXp, xpForLevel } from './supabase'
+
 export const NIVEL_TOPE = 50
 
 /**
@@ -187,18 +194,6 @@ export const TUNICAS = [
 
 const POR_DEFECTO = { piel: 'media', pelo: 'negro', peinado: 'corto', gafas: 'ninguna', tunica: 'perfil', barba: 'ninguna', flequillo: 'recto' }
 
-/** XP acumulada que exige un nivel. Misma curva que supabase.js. */
-function xpDeNivel(nivel) {
-  return 50 * nivel * (nivel - 1)
-}
-
-/** El nivel que corresponde a una XP. Misma curva que supabase.js. */
-function nivelDeXp(xp) {
-  let l = 1
-  while (xp >= xpDeNivel(l + 1)) l++
-  return l
-}
-
 /**
  * La fase que toca a un nivel. Por encima del tope se queda en la última:
  * el progreso no se detiene, se detiene el vestuario.
@@ -228,7 +223,7 @@ export function faseDeNivel(nivel) {
  */
 export function faseDePerfil(perfil) {
   const xp = Math.max(Number(perfil?.xp) || 0, Number(perfil?.xp_maxima) || 0)
-  return faseDeNivel(nivelDeXp(xp))
+  return faseDeNivel(levelFromXp(xp))
 }
 
 /**
@@ -257,7 +252,7 @@ export function faseSiguiente(perfil, xpPorDia = 48) {
   if (!siguiente) return null
 
   const xp = Math.max(Number(perfil?.xp) || 0, Number(perfil?.xp_maxima) || 0)
-  const faltan = Math.max(0, xpDeNivel(siguiente.nivel) - xp)
+  const faltan = Math.max(0, xpForLevel(siguiente.nivel) - xp)
   const dias = Math.ceil(faltan / Math.max(1, xpPorDia))
 
   return dias <= DIAS_CERCA ? { fase: siguiente, faltan, dias } : null

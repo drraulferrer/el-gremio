@@ -6,6 +6,7 @@ import {
   admiteFlequillo, usaColorDePelo, colorDeRaya, MIN_RAYA, faseSiguiente, hayFaseNueva, DIAS_CERCA
 } from '../src/lib/retratos'
 import { plantillaCompleta, marcasDe, flex } from '../src/lib/genero'
+import { xpForLevel } from '../src/lib/supabase'
 
 const xpDeNivel = (n) => 50 * n * (n - 1)
 
@@ -362,5 +363,35 @@ describe('la raya del pelo se ve sobre cualquier cabeza', () => {
   it('la raya es más oscura que la piel: es sombra, no un hueco', () => {
     const raya = colorDeRaya('#f0c9a8', '#2b2118')
     expect(contraste(raya, '#ffffff')).toBeGreaterThan(contraste('#f0c9a8', '#ffffff'))
+  })
+})
+
+// ------------------------------------------------------------------
+// La fase del retrato depende de LA curva de nivel, no de una copia.
+//
+// Hasta el 30-ago-2026 este fichero tenia su propia xpDeNivel/nivelDeXp con
+// el comentario "misma curva que supabase.js", que es la forma educada de
+// decir que un dia dejaran de serlo. Ahora usa la de verdad, y este test
+// esta para que se note si alguien vuelve a escribir una segunda.
+//
+// Importa: con el hito de expansion apoyandose en el nivel, dos verdades
+// sobre quien sube de nivel serian dos verdades sobre quien puede abrir un
+// gremio nuevo.
+// ------------------------------------------------------------------
+
+describe('la fase del retrato usa la curva canonica', () => {
+  it('cada fase empieza exactamente en la XP que dice la curva', () => {
+    for (const f of FASES) {
+      const justo = { xp: xpForLevel(f.nivel), xp_maxima: xpForLevel(f.nivel) }
+      expect(faseDePerfil(justo).n, `nivel ${f.nivel} (${f.n})`).toBe(f.n)
+    }
+  })
+
+  it('un punto antes del salto todavia es la fase anterior', () => {
+    for (const f of FASES.filter((x) => x.n > 1)) {
+      const previa = FASES.find((x) => x.n === f.n - 1)
+      const casi = xpForLevel(f.nivel) - 1
+      expect(faseDePerfil({ xp: casi, xp_maxima: casi }).n, `un punto antes del nivel ${f.nivel}`).toBe(previa.n)
+    }
   })
 })
