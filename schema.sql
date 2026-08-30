@@ -841,6 +841,18 @@ begin
   if not found then return 'no_disponible'; end if;
   select * into p from public.profiles where id = p_id for update;
   if not found then return 'no_disponible'; end if;
+  -- El premio y quien lo canjea tienen que ser de la MISMA casa.
+  --
+  -- Hoy esto no lo puede provocar nadie: el RLS solo deja ver un gremio, asi
+  -- que los dos identificadores salen siempre del mismo. Se comprueba igual
+  -- porque esa garantia es del borde, no de la funcion, y el dia que el RLS
+  -- pase a "alguno de mis gremios" —que es a donde va el proyecto— esta
+  -- funcion dejaria pagar un premio de una casa con el saldo de otra.
+  --
+  -- Devuelve `no_disponible` y no un codigo nuevo: no hay que decirle a quien
+  -- pregunta que el premio existe en otro sitio, y los codigos de esta funcion
+  -- los lee el cliente.
+  if rw.family_id is distinct from p.family_id then return 'no_disponible'; end if;
   if p.coins < rw.cost then return 'sin_monedas'; end if;
   update public.profiles set coins = coins - rw.cost where id = p_id;
   insert into public.redemptions (family_id, reward_id, profile_id, cost)
