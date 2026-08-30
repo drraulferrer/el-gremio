@@ -18,6 +18,41 @@ verdad duele en esta app: que el esquema y el cliente dejen de encajar.
 
 ---
 
+## 2.33.3 · 30 de agosto de 2026
+
+**El doble clic deja de cobrar dos veces.** Hasta hoy, pulsar dos veces
+«canjear» o «premio a mano» descontaba o regalaba dos veces: el `for update`
+de Postgres serializa las dos peticiones, que no es lo mismo que evitarlas.
+Ahora cada intento lleva una clave derivada de lo que se pretende hacer, y el
+servidor guarda un asiento por clave: si la clave ya existe, devuelve el
+resultado de la primera sin volver a mover nada.
+
+La clave se deriva de la intención y no es un identificador nuevo por
+llamada, porque para reconocer un doble clic **las dos peticiones tienen que
+llevar la misma**. Lleva una ventana de diez segundos, con su pega escrita en
+el código: dos intentos idénticos dentro de esos diez segundos se consideran
+el mismo, así que un canje repetido a propósito muy seguido devuelve `ok` sin
+cobrar. Se arregla esperando un momento.
+
+Detrás van tres migraciones, ya aplicadas:
+
+- **041** · `redeem_reward` comprobaba el premio y el perfil por separado
+  pero no que fueran de la misma casa. Hoy no lo puede provocar nadie —el
+  RLS solo deja ver un gremio— pero esa garantía es del borde, y el borde va
+  a cambiar con los gremios múltiples.
+- **042** · el libro de las monedas: cada movimiento deja un asiento con
+  saldo antes, saldo después, motivo y resultado. Había libro de altas
+  (`bonuses`) pero no de bajas, así que un saldo no se podía reconstruir.
+- **043** · el libro lo escribe un **disparador**, no cada función a mano.
+  Llamarlo desde las ocho funciones que mueven monedas es una costumbre;
+  esto es una garantía: si alguien añade la novena y olvida declarar su
+  motivo, el asiento sale como `desconocido` en vez de no salir.
+
+Y una limpieza que venía de la misma revisión: `retratos.js` tenía su propia
+copia de la curva de nivel, con el comentario «misma curva que supabase.js»
+en las dos. Ahora hay una sola, con un test que ata la fase del retrato a
+ella.
+
 ## 2.33.2 · 27 de agosto de 2026
 
 **Limpieza de código sin cambio de comportamiento.** Un repaso con
