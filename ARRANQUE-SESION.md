@@ -4,10 +4,11 @@ Documento de continuidad. Si abres una sesión nueva sobre este proyecto,
 lee esto primero: dice dónde está todo, qué está hecho, qué falta y qué
 trampas tiene.
 
-> **Y si solo vas a leer una línea antes de ponerte:** la **2.34.0 está
-> construida y SIN PUBLICAR**. Trae el gremio activo y su selector (§7bp), y
-> con ella una persona puede por fin tener más de un gremio de punta a punta.
-> Publicar es `git push` y después `npm run vercel` (§7n), en ese orden.
+> **Y si solo vas a leer una línea antes de ponerte:** la **2.34.0 está EN
+> PRODUCCIÓN** (§7bp): el gremio activo y su selector. Con ella, una persona
+> puede tener más de un gremio de punta a punta. Lo siguiente es la **6.3, las
+> pantallas**: el servidor tiene forjar, invitar y aceptar desde la 056 y la
+> 057, y **nadie los llama todavía**.
 
 Última actualización: **30 de agosto de 2026**, al cierre de la
 sesión de **recuperación ante desastres y terreno firme** (§7bb): migraciones
@@ -6166,7 +6167,7 @@ Cliente y `nivel_de_xp()` coinciden.
 | | |
 |---|---|
 | Repositorio | `~/el-gremio`, rama `main` |
-| Versión desplegada | **2.33.6** · la **2.34.0 está construida y sin publicar** |
+| Versión desplegada | **2.34.0** · `npm run health` en verde · `5e5b65a`, supabase 17.6 |
 | Migraciones aplicadas | hasta la **057**. La siguiente libre es la **058** |
 | Tests | 1473 en 81 ficheros |
 | Plan y especificación | `~/Library/Mobile Documents/com~apple~CloudDocs/ClaudeCode/specs/` |
@@ -6193,18 +6194,16 @@ que `anon` hereda.
 
 ## Por dónde seguir
 
-**Publicar la 2.34.0**, que está construida y sin subir. Una sola tanda, sin
-migración de por medio:
+**Mirar la 2.34.0 con una sesión real.** Está publicada y comprobada desde
+fuera —`npm run health` dice `2.34.0 (5e5b65a)` y el sitio carga sin errores de
+consola—, pero eso es todo lo que se puede comprobar desde aquí: el agente no
+introduce contraseñas.
 
-```
-git push && npm run vercel && npm run health
-```
-
-Y después mirarla con una sesión real, que es lo único que no se ha podido
-hacer desde aquí. Lo visible es el selector, y solo sale si hay más de un
-gremio: para la familia de hoy la pantalla es idéntica a la de siempre, así que
-lo que hay que comprobar es justo eso —que **nada** ha cambiado— y que su
-personaje sigue elegido al entrar.
+Y lo que hay que mirar es justo **que no ha cambiado nada**. El selector solo
+sale con más de un gremio, y la familia tiene uno, así que la pantalla debe ser
+idéntica a la de siempre y su personaje debe seguir elegido al entrar. Si eso
+se cumple, el cambio de carga —que es el camino por el que pasa todo— está
+dentro sin ruido.
 
 Después, la **6.3 · las pantallas**. El servidor tiene desde la 056 y la 057
 todo lo que hace falta y **nadie lo llama todavía**:
