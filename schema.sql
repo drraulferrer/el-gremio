@@ -1675,7 +1675,11 @@ begin
     return 'quien_no_existe';
   end if;
 
-  if v_rol_quien <> 'adulto' then
+  -- Por capacidad y no por etiqueta (054). Devuelve lo mismo que el
+  -- `v_rol_quien <> 'adulto'` de antes --un adulto con la clave de la casa
+  -- puede, una junior o una peque no-- pero ahora la respuesta sale de la
+  -- plantilla del gremio y no de una cadena escrita aqui.
+  if public.puede(v_family, 'CAP-09', p_otorgado_por) = 'no' then
     return 'no_es_adulto';
   end if;
 
@@ -1763,7 +1767,8 @@ begin
     return 'no_es_tuyo';
   end if;
 
-  if v_rol <> 'adulto' then return 'no_es_adulto'; end if;
+  -- Por capacidad y no por etiqueta (054): misma respuesta, otro origen.
+  if public.puede(v_family, 'CAP-05', p_activada_por) = 'no' then return 'no_es_adulto'; end if;
 
   if p_tipo is null or p_tipo not in ('blitz','zona','profunda') then return 'tipo_invalido'; end if;
   if p_dias is null or p_dias < 1 or p_dias > 30 then return 'duracion_invalida'; end if;
@@ -1883,7 +1888,8 @@ begin
   select role, family_id into v_rol, v_family_quien
     from public.profiles where id = p_quien and active;
   if v_rol is null or v_family_quien is distinct from v_family then return 'quien_no_existe'; end if;
-  if v_rol <> 'adulto' then return 'no_es_adulto'; end if;
+  -- Por capacidad y no por etiqueta (054): misma respuesta, otro origen.
+  if public.puede(v_family, 'CAP-05', p_quien) = 'no' then return 'no_es_adulto'; end if;
 
   if v_estado <> 'activa' then return 'ya_cerrada'; end if;
 
@@ -5052,6 +5058,200 @@ drop trigger if exists families_plantilla on public.families;
 create trigger families_plantilla
   before insert on public.families
   for each row execute function public.tg_plantilla_de_gremio_nuevo();
+
+-- ---------------------------------------------------------------------
+-- La etiqueta visible no autoriza nada (migración 054).
+--
+-- Tres ejes que hoy son uno solo: la CAPACIDAD es lo único que autoriza; el
+-- ROL INTERNO es un paquete de capacidades; el ROL VISIBLE es la etiqueta
+-- que lee la gente y **no autoriza nada**. El tercero es el que trae los
+-- accidentes: es comodísimo escribir `if rol = 'gestor'`, y el día que un
+-- tipo llame «Organizador» a otra cosa, esa línea autoriza a quien no debía.
+--
+-- El permiso se comprueba contra la pertenencia activa **en el gremio de la
+-- operación**, nunca contra el gremio activo de la sesión.
+--
+-- Razonamiento completo en migracion-054-la-etiqueta-no-autoriza.sql.
+-- ---------------------------------------------------------------------
+
+create table if not exists public.capacidades (
+  codigo text primary key check (codigo ~ '^CAP-[0-9]{2}$'),
+  nombre text not null check (length(btrim(nombre)) between 3 and 120),
+  -- Si es de PERSONA: los personajes sin identidad no la tienen nunca, porque
+  -- no hay a quien cargarle el gasto.
+  de_persona boolean not null default false
+);
+
+alter table public.capacidades enable row level security;
+revoke all on table public.capacidades from anon;
+revoke all on table public.capacidades from authenticated;
+
+insert into public.capacidades (codigo, nombre, de_persona) values
+  ('CAP-01', 'Invitar a una persona a este gremio', false),
+  ('CAP-02', 'Revocar una invitacion de este gremio', false),
+  ('CAP-03', 'Expulsar a una persona', false),
+  ('CAP-04', 'Cambiar los ajustes del gremio', false),
+  ('CAP-05', 'Crear, editar y archivar misiones', false),
+  ('CAP-06', 'Asignar misiones', false),
+  ('CAP-07', 'Validar misiones completadas', false),
+  ('CAP-08', 'Crear, editar y retirar recompensas', false),
+  ('CAP-09', 'Conceder o entregar una recompensa', false),
+  ('CAP-10', 'Administrar miembros y sus roles internos', false),
+  ('CAP-11', 'Consultar la actividad y los registros del gremio', false),
+  ('CAP-12', 'Consultar el saldo propio y sus asientos', false),
+  ('CAP-13', 'Forjar una llave desde este gremio', true),
+  ('CAP-14', 'Usar una llave', true),
+  ('CAP-15', 'Cerrar el gremio o traspasar la titularidad', false),
+  ('CAP-16', 'Autorizar la solicitud de un junior', false),
+  ('CAP-17', 'Convertirse en persona', false)
+on conflict (codigo) do nothing;
+
+create table if not exists public.plantilla_capacidades (
+  tipo text not null,
+  version text not null,
+  -- Los dos juegos de roles, en la misma columna a proposito: son el mismo eje
+  -- --"que soy yo en este gremio"-- resuelto por dos caminos distintos.
+  rol text not null check (rol in (
+    'titular','gestor','miembro',            -- pertenencia de una persona
+    'adulto','junior','peque','mascota'      -- personaje con credencial compartida
+  )),
+  capacidad text not null references public.capacidades(codigo),
+  -- 'no' · 'si' · 'pin' (permitida, pero pasando por el PIN del gremio)
+  permiso text not null check (permiso in ('no','si','pin')),
+  primary key (tipo, version, rol, capacidad),
+  foreign key (tipo, version) references public.plantillas_tipo(tipo, version) on delete restrict
+);
+
+alter table public.plantilla_capacidades enable row level security;
+revoke all on table public.plantilla_capacidades from anon;
+revoke all on table public.plantilla_capacidades from authenticated;
+
+drop trigger if exists plantilla_capacidades_sellada on public.plantilla_capacidades;
+create trigger plantilla_capacidades_sellada
+  before update or delete on public.plantilla_capacidades
+  for each row execute function public.tg_plantilla_sellada();
+
+insert into public.plantilla_capacidades (tipo, version, rol, capacidad, permiso)
+select t.tipo, t.version, m.rol, m.capacidad, m.permiso
+  from public.plantillas_tipo t
+  cross join (values
+    -- Personas con identidad · titular
+    ('titular','CAP-01','si'),  ('titular','CAP-02','si'),  ('titular','CAP-03','pin'),
+    ('titular','CAP-04','pin'), ('titular','CAP-05','si'),  ('titular','CAP-06','si'),
+    ('titular','CAP-07','si'),  ('titular','CAP-08','si'),  ('titular','CAP-09','si'),
+    ('titular','CAP-10','pin'), ('titular','CAP-11','si'),  ('titular','CAP-12','si'),
+    ('titular','CAP-13','si'),  ('titular','CAP-14','si'),  ('titular','CAP-15','pin'),
+    ('titular','CAP-16','pin'), ('titular','CAP-17','no'),
+    -- gestor · como titular salvo cerrar o traspasar el gremio, que es de quien
+    -- lo fundo y de nadie mas
+    ('gestor','CAP-01','si'),   ('gestor','CAP-02','si'),   ('gestor','CAP-03','pin'),
+    ('gestor','CAP-04','pin'),  ('gestor','CAP-05','si'),   ('gestor','CAP-06','si'),
+    ('gestor','CAP-07','si'),   ('gestor','CAP-08','si'),   ('gestor','CAP-09','si'),
+    ('gestor','CAP-10','pin'),  ('gestor','CAP-11','si'),   ('gestor','CAP-12','si'),
+    ('gestor','CAP-13','si'),   ('gestor','CAP-14','si'),   ('gestor','CAP-15','no'),
+    ('gestor','CAP-16','pin'),  ('gestor','CAP-17','no'),
+    -- miembro · esta dentro y juega; no administra
+    ('miembro','CAP-01','no'),  ('miembro','CAP-02','no'),  ('miembro','CAP-03','no'),
+    ('miembro','CAP-04','no'),  ('miembro','CAP-05','no'),  ('miembro','CAP-06','no'),
+    ('miembro','CAP-07','no'),  ('miembro','CAP-08','no'),  ('miembro','CAP-09','no'),
+    ('miembro','CAP-10','no'),  ('miembro','CAP-11','si'),  ('miembro','CAP-12','si'),
+    ('miembro','CAP-13','si'),  ('miembro','CAP-14','si'),  ('miembro','CAP-15','no'),
+    ('miembro','CAP-16','no'),  ('miembro','CAP-17','no'),
+    -- Personajes con credencial compartida · adulto: lo de siempre, con el PIN
+    ('adulto','CAP-01','pin'),  ('adulto','CAP-02','pin'),  ('adulto','CAP-03','pin'),
+    ('adulto','CAP-04','pin'),  ('adulto','CAP-05','pin'),  ('adulto','CAP-06','pin'),
+    ('adulto','CAP-07','pin'),  ('adulto','CAP-08','pin'),  ('adulto','CAP-09','pin'),
+    ('adulto','CAP-10','pin'),  ('adulto','CAP-11','pin'),  ('adulto','CAP-12','si'),
+    -- Forjar y usar llaves son de PERSONA: una credencial compartida no puede,
+    -- porque no hay a quien cargarle el gasto.
+    ('adulto','CAP-13','no'),   ('adulto','CAP-14','no'),   ('adulto','CAP-15','pin'),
+    ('adulto','CAP-16','pin'),  ('adulto','CAP-17','si'),
+    -- junior · progresa como cualquiera y no ejecuta nada. Convertirse va
+    -- detras de su revision juridica.
+    ('junior','CAP-01','no'),   ('junior','CAP-02','no'),   ('junior','CAP-03','no'),
+    ('junior','CAP-04','no'),   ('junior','CAP-05','no'),   ('junior','CAP-06','no'),
+    ('junior','CAP-07','no'),   ('junior','CAP-08','no'),   ('junior','CAP-09','no'),
+    ('junior','CAP-10','no'),   ('junior','CAP-11','no'),   ('junior','CAP-12','si'),
+    ('junior','CAP-13','no'),   ('junior','CAP-14','no'),   ('junior','CAP-15','no'),
+    ('junior','CAP-16','no'),   ('junior','CAP-17','no'),
+    -- peque y mascota · su saldo y nada mas
+    ('peque','CAP-01','no'),    ('peque','CAP-02','no'),    ('peque','CAP-03','no'),
+    ('peque','CAP-04','no'),    ('peque','CAP-05','no'),    ('peque','CAP-06','no'),
+    ('peque','CAP-07','no'),    ('peque','CAP-08','no'),    ('peque','CAP-09','no'),
+    ('peque','CAP-10','no'),    ('peque','CAP-11','no'),    ('peque','CAP-12','si'),
+    ('peque','CAP-13','no'),    ('peque','CAP-14','no'),    ('peque','CAP-15','no'),
+    ('peque','CAP-16','no'),    ('peque','CAP-17','no'),
+    ('mascota','CAP-01','no'),  ('mascota','CAP-02','no'),  ('mascota','CAP-03','no'),
+    ('mascota','CAP-04','no'),  ('mascota','CAP-05','no'),  ('mascota','CAP-06','no'),
+    ('mascota','CAP-07','no'),  ('mascota','CAP-08','no'),  ('mascota','CAP-09','no'),
+    ('mascota','CAP-10','no'),  ('mascota','CAP-11','no'),  ('mascota','CAP-12','si'),
+    ('mascota','CAP-13','no'),  ('mascota','CAP-14','no'),  ('mascota','CAP-15','no'),
+    ('mascota','CAP-16','no'),  ('mascota','CAP-17','no')
+  ) as m(rol, capacidad, permiso)
+ where not exists (
+   select 1 from public.plantilla_capacidades c
+    where c.tipo = t.tipo and c.version = t.version
+      and c.rol = m.rol and c.capacidad = m.capacidad
+ );
+
+create or replace function public.puede(
+  p_family uuid,
+  p_capacidad text,
+  p_profile uuid default null
+)
+returns text
+language plpgsql
+stable
+security definer
+set search_path = public
+as $fn$
+declare
+  v_uid uuid := auth.uid();
+  v_rol text;
+  v_tipo text;
+  v_version text;
+  v_permiso text;
+begin
+  if v_uid is null or p_family is null then return 'no'; end if;
+
+  select tipo_plantilla, plantilla_version into v_tipo, v_version
+    from public.families where id = p_family;
+  if v_tipo is null then return 'no'; end if;
+
+  -- 1 · Pertenencia activa EN ESE GREMIO. Nunca el gremio activo de la sesion.
+  select p.rol into v_rol
+    from public.pertenencias p
+   where p.persona = v_uid and p.family_id = p_family and p.estado = 'activa';
+
+  -- 2 · O la credencial compartida de ese gremio, y entonces manda el rol del
+  --     personaje que se opera.
+  if v_rol is null then
+    if not exists (
+      select 1 from public.credenciales c
+       where c.user_id = v_uid and c.clase = 'compartida' and c.family_id = p_family
+    ) then
+      return 'no';
+    end if;
+    if p_profile is null then return 'no'; end if;
+    select pr.role into v_rol
+      from public.profiles pr
+     where pr.id = p_profile and pr.family_id = p_family and pr.active;
+    if v_rol is null then return 'no'; end if;
+  end if;
+
+  select c.permiso into v_permiso
+    from public.plantilla_capacidades c
+   where c.tipo = v_tipo and c.version = v_version
+     and c.rol = v_rol and c.capacidad = p_capacidad;
+
+  -- Lo que no esta declarado, no esta permitido. Una capacidad inventada
+  -- despues de publicar una plantilla no la gana nadie por sorpresa.
+  return coalesce(v_permiso, 'no');
+end $fn$;
+
+revoke all on function public.puede(uuid, text, uuid) from public;
+revoke all on function public.puede(uuid, text, uuid) from anon;
+grant execute on function public.puede(uuid, text, uuid) to authenticated;
 
 -- Y el barrido final de la 021, que tiene que quedarse SIEMPRE el último del
 -- fichero: retira el permiso de ejecución de toda función `security definer`,

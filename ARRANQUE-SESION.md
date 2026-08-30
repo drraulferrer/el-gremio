@@ -5632,3 +5632,157 @@ hace caer la prueba.
   ruta de declaración tardía para los gremios que ya existen — que **nunca**
   reciben un país por inferencia y **nunca** se quedan bloqueados por no haberlo
   declarado.
+
+## 7bl. La etiqueta visible no autoriza nada (30 de agosto) · SIN VERSIÓN · migración 054
+
+**Migración 054 EJECUTADA y ensayada.** Es la pieza **4.2**. Solo toca el
+servidor, así que la app sigue en la 2.33.6.
+
+### Los tres ejes que hoy son uno solo
+
+Con una cuenta por casa, «permiso» significa hoy una sola cosa: saberse el PIN.
+Con varias personas, varios gremios y tres tipos hacen falta tres ejes, y lo
+importante es **no mezclarlos nunca**:
+
+- **Capacidad** — la unidad de autorización. Nombre estable, comprobable en
+  servidor, independiente del tipo. **Es lo único que autoriza.**
+- **Rol interno** — un paquete de capacidades, el mismo en los tres tipos.
+- **Rol visible** — la etiqueta que lee la gente. Cambia por tipo y **no
+  autoriza nada**.
+
+El tercero es el que trae los accidentes. Es comodísimo escribir
+`if rol = 'gestor'` en una función, y el día que un tipo llame «Organizador» a
+otra cosa, esa línea autoriza a quien no debía.
+
+### Cómo se resuelve
+
+`puede(gremio, capacidad, personaje)` devuelve `'no'`, `'si'` o **`'pin'`**:
+
+1. Si tengo **pertenencia activa en ese gremio**, mi rol es el de la
+   pertenencia. **Nunca el gremio activo de la sesión**: en cuanto hay dos son
+   cosas distintas.
+2. Si no, y soy la credencial compartida **de ese gremio**, manda el rol del
+   **personaje que se opera**. Es lo que hay hoy: en una casa manda quien sabe
+   el PIN, y las peques no.
+3. Si no, no soy nadie ahí.
+
+Tres valores y no un booleano porque el PIN sigue siendo una puerta de verdad
+—protege el panel de **su** gremio, y saber el de A no abre el de B— y una
+capacidad que lo exige no es lo mismo que una que no.
+
+**Lo que no está declarado, no está permitido**: una capacidad inventada
+después de publicar una plantilla no la gana nadie por sorpresa.
+
+### Y tres funciones dejan de mirar la etiqueta
+
+`grant_manual_bonus`, `crear_campana_limpieza` y `cerrar_campana_limpieza`
+comprobaban `role = 'adulto'` a mano. Ahora preguntan por capacidad, y la matriz
+devuelve **exactamente lo mismo** para lo que hay hoy: un adulto con la clave de
+la casa puede, una junior o una peque no. Lo que cambia es de dónde sale la
+respuesta, y que el día que un tipo reparta distinto, estas tres se enteran
+solas.
+
+Se pasaron **tres y no las ocho** a propósito: son las que hoy tienen una
+comprobación de rol de verdad. Poner `puede()` donde no había nada sería
+inventarse un permiso, no trasladarlo.
+
+### Lo que NO hace, y hay que tenerlo claro
+
+**El PIN se sigue comprobando en el cliente**, como hasta hoy. Que la matriz
+diga `'pin'` no lo verifica: dice que hace falta. Verificarlo en servidor exige
+que el PIN viaje en cada llamada, y eso es otra tanda.
+
+### Cómo se comprobó
+
+Respaldo (`respaldo-2026-08-30-184119`). `npm run verify`: **1349 tests en 77
+ficheros**. Contra la base: **476 filas** de matriz (4 plantillas × 7 roles × 17
+capacidades), `adulto/CAP-09` = `pin`, `peque/CAP-09` = `no`, `adulto/CAP-13`
+(forjar) = `no` —una credencial compartida no forja, no hay a quién cargarle el
+gasto—, `adulto/CAP-17` (convertirse) = `si`, y `no` para: sin personaje, gremio
+ajeno y capacidad inventada.
+
+---
+
+# CÓMO ARRANCAR LA SIGUIENTE SESIÓN
+
+**Estado al cerrar el 30-ago-2026, por la noche.**
+
+## Dónde está todo
+
+| | |
+|---|---|
+| Repositorio | `~/el-gremio`, rama `main`, limpio y sincronizado |
+| Versión desplegada | **2.33.6** · `npm run health` en verde, supabase 17.6 |
+| Migraciones aplicadas | hasta la **054**. La siguiente libre es la **055** |
+| Tests | 1349 en 77 ficheros |
+| Plan y especificación | `~/Library/Mobile Documents/com~apple~CloudDocs/ClaudeCode/specs/` |
+
+**Lo primero, siempre:** `git fetch` antes de elegir número de migración o de
+versión. Hoy no ha hecho falta, pero el 30-ago por la mañana ya pasó una vez.
+
+## Qué se hizo hoy, en una tabla
+
+| Fase | Estado | Migraciones |
+|---|---|---|
+| 0 · Antes de tocar nada | ✅ cerrada (29-ago) | — |
+| 1 · Terreno firme | ✅ cerrada | 041-043 |
+| 2 · Identidad y pertenencia | ✅ **cerrada** | 044, 045, 047, 048, 049 |
+| 3 · Configuración y cartera | ✅ **cerrada** | 050, 051, 052 |
+| 4 · El tipo como plantilla | ◐ **4.1, 4.2 y 4.3 hechas** | 053, 054 |
+| 5 en adelante | ☐ sin empezar | — |
+
+Y de propina, la **046**: el barrido de permisos que la 021 dejó escrito llevaba
+desde agosto cerrando media puerta, porque quitaba `anon` pero no PUBLIC, del
+que `anon` hereda.
+
+## Por dónde seguir
+
+**La 4.4 · país de operación**, que es lo único que le falta a la Fase 4:
+
+- La matriz tipo × país × estado **ya existe** desde la 050
+  (`disponibilidad_tipos`, `tipo_publicado()`). Lo que falta es `families.pais`
+  y la ruta de declaración tardía.
+- **Ningún gremio recibe un país por inferencia.** Ni por idioma, ni por zona
+  horaria, ni por IP, ni por correo, ni por dispositivo. A los que ya existen se
+  les pregunta **la primera vez que intenten algo que dependa de ello**, y hasta
+  entonces no se les bloquea nada.
+- La puede declarar un perfil adulto con el PIN, no solo una identidad
+  personal: los gremios que existen hoy pueden no tener ninguna dentro.
+
+Después, la **Fase 5** (hitos y llaves), que es la primera que trae **pantalla**
+y el primer motivo real para convertirse en persona.
+
+## Lo que sigue abierto, y no es de ninguna fase
+
+1. **Mirar la app con una sesión real.** Es lo único de las cuatro
+   comprobaciones de `CLAUDE.md` que lleva todo el día sin hacerse: el agente no
+   introduce contraseñas y el modo demo no toca RLS. Lo visible de hoy es el
+   «te faltan N Talis» de la tienda.
+2. **Supabase Auth**: dar de alta las Redirect URLs y repasar la plantilla de
+   confirmación (`docs/CORREOS.md` §1), sin lo cual la conversión no puede
+   terminar aunque el servidor esté listo.
+3. **El `truncate` para `authenticated`**, abierto desde la Fase 0.
+4. **`zona_de_perfil`** es una función huérfana desde la 018: no la llama nadie.
+5. **`CAP-12` vs `saldos_visibles()`**: hoy la casa ve el saldo de sus
+   personajes, que es lo que sostiene `CNV-7`. En la **Fase 6**, cuando un
+   gremio pueda tener personas que no viven juntas, **hay que volver ahí**.
+6. **El PIN se comprueba en el cliente.** La matriz de capacidades ya dice
+   cuándo hace falta; verificarlo en servidor es otra tanda.
+
+## Tres trampas de hoy, para no repetirlas
+
+- **`pg_proc.prosrc` guarda los comentarios.** Dos copias del esquema que solo
+  difieren en un acento producen objetos distintos en la base, y comparar
+  `md5(prosrc)` con el fichero —que es como se cazó que dos funciones llevaban
+  semanas desviadas— deja de servir. **Dentro de `$fn$ … $fn$` mandan los
+  ficheros `.sql` nuevos, sin acentos, y `schema.sql` copia ese cuerpo tal
+  cual.**
+- **Una migración registra lo que hizo ese día, no la versión vigente.** Cuando
+  una posterior reescribe una función, la comparación «dos copias» se hace
+  contra la última que la tocó. Editar una migración ya aplicada es lo que no se
+  hace.
+- **Los ensayos contra la base encontraron tres fallos que ningún test de los
+  que leen el fichero habría visto**: un `CHECK` que impedía borrarse, una
+  transferencia que solo anotaba una de sus dos patas, y un choque de clave de
+  idempotencia. El patrón —un bloque que termina en `raise exception 'ENSAYO…'`
+  y lo deshace todo— es lo más rentable de esta sesión.

@@ -62,6 +62,17 @@ const SEIS = [
   'claim_streak'
 ]
 
+// Las que la 045 dejó y otra migración posterior volvió a escribir. Se
+// comparan con el esquema para lo que este fichero defiende —que preguntan por
+// pertenencia— pero NO byte a byte contra la 045: una migración registra lo que
+// hizo ese día, y quien manda es la última que la tocó. Editar una migración ya
+// aplicada es justo lo que no se hace.
+const REESCRITAS_DESPUES = [
+  'grant_manual_bonus',        // 054 · pregunta por capacidad, no por etiqueta
+  'crear_campana_limpieza',    // 054
+  'cerrar_campana_limpieza'    // 054
+]
+
 describe('el aislamiento ya no pregunta de quién es la cuenta', () => {
   it('ninguna política habla de propiedad, salvo la que decide quién TOCA el gremio', () => {
     // `familia_owner` es la excepción legítima y la única: dice quién puede
@@ -249,7 +260,7 @@ describe('las dos copias del esquema', () => {
     // La regla de la casa: cada cambio de esquema se escribe dos veces. Si se
     // toca una copia y no la otra, la base reconstruida desde cero deja de ser
     // la que está en producción, que es exactamente lo que la Fase 0 encontró.
-    for (const nombre of SEIS) {
+    for (const nombre of SEIS.filter((n) => !REESCRITAS_DESPUES.includes(n))) {
       expect(funcion(m045, nombre), `${nombre} difiere entre 045 y schema.sql`)
         .toBe(funcion(schema, nombre))
     }
