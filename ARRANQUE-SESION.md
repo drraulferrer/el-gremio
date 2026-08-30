@@ -4949,6 +4949,11 @@ base viva, y era mayor de lo que ese párrafo contaba.
 versión nueva ni despliegue: lo único que cambia en `src/` es un mensaje de
 error que hoy no puede ver nadie.
 
+> **Ojo al siguiente despliegue:** `src/lib/acciones.js` tiene desde hoy una
+> línea sin publicar (el mensaje de `saldo_en_cartera`). No cambia nada de lo
+> que se puede hacer, pero **sube la versión antes de desplegar** o el bundle
+> de la 2.33.4 saldría etiquetado como 2.33.3.
+
 Es la pieza **2.5** de la Fase 2, el flujo **F-9**. Con esto la fase va por
 cinco de siete: quedan 2.6 (migrar el correo compartido) y 2.7 (borrar la
 identidad).
