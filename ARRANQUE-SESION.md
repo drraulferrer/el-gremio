@@ -7327,8 +7327,8 @@ devolver el texto de `TuIdentidad` a su forma de la mañana.
 | | |
 |---|---|
 | Repositorio | `~/el-gremio`, rama `main` |
-| Versión desplegada | **2.42.1** · `npm run health` en verde · `cebe591`, supabase 17.6 |
-| Red de seguridad | `gh-pages` **a la par** con producción: 2.42.1 (`deploy-2026-08-31-1016`) |
+| Versión desplegada | **2.42.2** · `npm run health` en verde · `e1288a7`, supabase 17.6 |
+| Red de seguridad | `gh-pages` **a la par** con producción: 2.42.2 (`deploy-2026-08-31-1029`) |
 | Nada sin publicar | el repo y producción sirven lo mismo |
 | Migraciones aplicadas | hasta la **061**. La siguiente libre es la **062** |
 | Tests | 1686 en 91 ficheros |
