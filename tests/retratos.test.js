@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest'
+import { readFileSync, readdirSync } from 'node:fs'
 import {
   FASES, NIVEL_TOPE, PIELES, PELOS, PEINADOS,
   faseDeNivel, faseDePerfil, piezasDe, hexDe, llevaFigura,
@@ -393,5 +394,68 @@ describe('la fase del retrato usa la curva canonica', () => {
       const casi = xpForLevel(f.nivel) - 1
       expect(faseDePerfil({ xp: casi, xp_maxima: casi }).n, `un punto antes del nivel ${f.nivel}`).toBe(previa.n)
     }
+  })
+})
+
+// ------------------------------------------------------------------
+// Y que el retrato llegue a TODAS las pantallas.
+//
+// Cuando llegaron los retratos (035 y 037) se convirtieron las
+// apariciones grandes —el selector, el tablero, los miembros— y se
+// quedaron once pequeñas dibujando el emoji del alta: la cabecera de cada
+// persona en Misiones, el grupo plegable, «hecho hoy», «devuelto hoy»,
+// «programar mañana», la pestaña de mascotas, la leyenda del Cuadro, las
+// pastillas del modo limpieza y la fila de Estado.
+//
+// El resultado es que la misma persona tenía dos caras según la pantalla,
+// y lo contó la familia, no un test. Este guarda la firma exacta de aquel
+// resto —un `.avatar` que pinta el emoji de un PERFIL— porque es la única
+// que se puede distinguir sin ambigüedad: los demás emojis de la app son
+// de misiones, premios, zonas y metas, y ahí son lo correcto.
+// ------------------------------------------------------------------
+
+describe('ninguna pantalla dibuja a una persona con su emoji del alta', () => {
+  const pantallas = readdirSync(new URL('../src/screens/', import.meta.url))
+    .filter((f) => f.endsWith('.jsx'))
+
+  it('el barrido encuentra las pantallas', () => {
+    expect(pantallas.length).toBeGreaterThan(20)
+  })
+
+  it('ningún `.avatar` pinta el emoji de un perfil', () => {
+    // La firma: un avatar cuyo borde toma el color del perfil y cuyo
+    // contenido es su emoji. Es lo que había once veces.
+    // El alta es la excepción, y no por descuido: ahí el personaje TODAVÍA
+    // NO EXISTE —`m` es lo que se está rellenando en el formulario— así
+    // que no hay retrato que dibujar. El emoji es lo único que hay.
+    const SIN_RETRATO_TODAVIA = ['Onboarding.jsx']
+    const culpables = []
+    for (const f of pantallas) {
+      if (SIN_RETRATO_TODAVIA.includes(f)) continue
+      const t = readFileSync(new URL('../src/screens/' + f, import.meta.url), 'utf8')
+      for (const l of t.split('\n')) {
+        if (/className="avatar"/.test(l) && /borderColor:\s*\w+\??\.color/.test(l) && /\w+\??\.emoji/.test(l)) {
+          culpables.push(`${f}: ${l.trim().slice(0, 70)}`)
+        }
+      }
+    }
+    expect(culpables, 'usa <Retrato> o <Personaje>').toEqual([])
+  })
+
+  it('y las que muestran personas importan la pieza que las dibuja', () => {
+    // Las cuatro del panel, que son donde estaba el resto.
+    for (const f of ['ParentPanel.jsx', 'Cuadro.jsx', 'Estado.jsx', 'ModoLimpieza.jsx']) {
+      const t = readFileSync(new URL('../src/screens/' + f, import.meta.url), 'utf8')
+      expect(t, `${f} no dibuja personas con retrato`).toMatch(/from '\.\.\/components\/(Retrato|Personaje)'/)
+    }
+  })
+
+  it('pero un `<option>` sigue pudiendo llevar emoji, que no admite otra cosa', () => {
+    // No es un resto: HTML no deja meter un SVG dentro de una opción, y un
+    // desplegable nativo es el control correcto en un móvil. Se comprueba
+    // que siguen ahí para que nadie los «arregle» rompiendo el select.
+    const panel = readFileSync(new URL('../src/screens/ParentPanel.jsx', import.meta.url), 'utf8')
+    const opciones = panel.split('\n').filter((l) => /<option/.test(l) && /\.emoji/.test(l))
+    expect(opciones.length).toBeGreaterThanOrEqual(3)
   })
 })

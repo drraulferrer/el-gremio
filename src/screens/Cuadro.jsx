@@ -20,6 +20,7 @@ import { estadoDeTemporada } from '../lib/temporadas'
 import { ROLE_LABEL } from '../lib/supabase'
 import { Talis } from '../components/ui'
 import Retrato from '../components/Retrato'
+import Personaje from '../components/Personaje'
 
 const DIA_MS = 86400000
 
@@ -78,7 +79,8 @@ export default function Cuadro({ data }) {
                 .filter((r) => r.meta.xp > 0)
                 .map((r) => (
                   <span key={r.perfil.id}>
-                    <i style={{ background: r.perfil.color }} /> {r.perfil.emoji} {r.meta.pct} %
+                    <i style={{ background: r.perfil.color }} />
+                    <Personaje perfil={r.perfil} tamano={20} conNombre={false} /> {r.meta.pct} %
                   </span>
                 ))}
             </div>

@@ -978,6 +978,20 @@ input:focus, select:focus, textarea:focus, button:focus-visible {
 
 .error-texto { color: var(--peligro); font-weight: 700; font-size: 0.9rem; }
 
+/* Un personaje en línea: retrato y nombre, alineados con el texto que los
+   rodea. `vertical-align: middle` importa porque esto vive dentro de
+   títulos, botones y leyendas, y sin él el retrato empuja la línea. */
+.personaje-linea {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  vertical-align: middle;
+}
+
+/* El nombre recupera su caja: dentro de `.titulo-seccion` hereda una
+   letra muy espaciada que, pegada al retrato, se lee peor. */
+.personaje-linea-nombre { letter-spacing: normal; }
+
 /* El aviso de una pantalla: lo que el servidor acaba de contestar.
    ------------------------------------------------------------------
    Esta regla FALTABA, y no era un detalle: diez mensajes de seis

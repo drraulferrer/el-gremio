@@ -4,6 +4,7 @@ import { perfilesActivos } from '../lib/miembros'
 import { Modal, Talis } from '../components/ui'
 import Icono from '../components/Icono'
 import Retrato from '../components/Retrato'
+import Personaje from '../components/Personaje'
 import SelectorEmoji from '../components/SelectorEmoji'
 import { GRUPOS_EMOJI_MISION } from '../lib/emojis'
 import { lanzarCampanaLimpieza, cerrarCampanaLimpieza } from '../lib/acciones'
@@ -301,7 +302,7 @@ function LanzarCampana({ data, refresh, onIrACasa }) {
             aria-pressed={participantes.has(p.id)}
             onClick={() => alternarParticipante(p.id)}
           >
-            {p.emoji} {p.name}
+            <Personaje perfil={p} tamano={20} />
           </button>
         ))}
       </div>
@@ -543,7 +544,7 @@ function CampanaEnMarcha({ campana, data, refresh, onCerrada }) {
             const p = perfilDe(b.profileId)
             return (
               <div className="fila" key={b.profileId} style={{ padding: '4px 4px' }}>
-                <div className="avatar" style={{ borderColor: p?.color }}>{p?.emoji}</div>
+                <Retrato perfil={p} tamano={40} />
                 <span className="crece">{p?.name}</span>
                 <span className="suave">+<Talis n={b.botin} /> si se completa</span>
               </div>

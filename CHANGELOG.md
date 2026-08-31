@@ -18,6 +18,19 @@ verdad duele en esta app: que el esquema y el cliente dejen de encajar.
 
 ---
 
+## 2.42.3 · 31 de agosto de 2026
+
+**Cada persona tiene su cara en todas partes.** En el panel seguían saliendo los
+emojis del alta —el búho, el león— en vez de los retratos: en la lista de
+misiones por persona, en «hecho hoy», al programar mañana, en la leyenda del
+Cuadro, en el modo limpieza, en la pestaña de mascotas y en Estado. La misma
+persona tenía dos caras según la pantalla.
+
+Los desplegables siguen con emoji, y no es un olvido: una lista desplegable del
+sistema no admite un dibujo dentro.
+
+---
+
 ## 2.42.2 · 31 de agosto de 2026
 
 **La clave común se llama igual en todas partes.** Tenía cuatro nombres repartidos

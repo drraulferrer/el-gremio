@@ -7289,6 +7289,51 @@ prosa.
 ningún sinónimo suelto, **dejando permitida la glosa**. Comprobado que cae al
 devolver el texto de `TuIdentidad` a su forma de la mañana.
 
+---
+
+## 7ci. Cada persona, una cara (31 de agosto) · 2.42.3
+
+**Lo encontró la familia mirando el móvil, no un test**, que es exactamente para
+lo que servía esa comprobación pendiente.
+
+Cuando llegaron los retratos (035 y 037) se convirtieron las apariciones
+grandes —el selector, el tablero, los miembros— y se quedaron **once pequeñas**
+dibujando el emoji del alta, casi todas en el panel: la cabecera de cada persona
+en Misiones, el grupo plegable, «misiones por validar», «hecho hoy», «devuelto
+hoy», «programar mañana», la pestaña de mascotas, la leyenda del Cuadro, las
+pastillas del modo limpieza, el reparto y la fila de Estado.
+
+O sea que la misma persona tenía **dos caras según la pantalla**, y las cuatro
+del gremio real tienen retrato desde hace días.
+
+### Una pieza, no once apaños
+
+`src/components/Personaje.jsx`: retrato y nombre en línea, alineados con el
+texto que los rodea. Once sitios que dibujan lo mismo acaban dibujándolo
+distinto, y `Retrato` ya resolvía lo difícil —una mascota lleva medallón de
+emoji porque no tiene fase—, así que aquí solo se le pone tamaño y alineación.
+
+### Lo que NO se toca, y hay que saberlo para no «arreglarlo»
+
+**Los `<option>` de los desplegables siguen con emoji.** HTML no admite un SVG
+dentro de una opción, y un `<select>` nativo es el control correcto en un móvil:
+cambiarlo por uno pintado a mano costaría accesibilidad y comportamiento del
+sistema para ganar un dibujo de 20 píxeles. Hay un test que comprueba que
+**siguen ahí**.
+
+Y **el alta** dibuja emoji a propósito: ahí el personaje todavía no existe —es
+lo que se está rellenando en el formulario— así que no hay retrato que dibujar.
+Queda declarado en el test con su motivo.
+
+### La guarda, estrecha a propósito
+
+No se puede escribir un test que distinga «este emoji es de una persona» de
+«este emoji es de una misión»: la app está llena de emojis de misiones, premios,
+zonas y metas, y ahí son lo correcto. Lo que sí tiene firma inequívoca es el
+resto que había: **un `.avatar` cuyo borde toma el color del perfil y cuyo
+contenido es su emoji**. Eso es lo que vigila `tests/retratos.test.js`, más que
+las cuatro pantallas del panel importen la pieza que dibuja personas.
+
 # CÓMO ARRANCAR LA SIGUIENTE SESIÓN
 
 **Estado al cerrar el 31-ago-2026, por la noche.**
@@ -7302,7 +7347,7 @@ devolver el texto de `TuIdentidad` a su forma de la mañana.
 | Red de seguridad | `gh-pages` **a la par** con producción: 2.42.2 (`deploy-2026-08-31-1029`) |
 | Nada sin publicar | el repo y producción sirven lo mismo |
 | Migraciones aplicadas | hasta la **061**. La siguiente libre es la **062** |
-| Tests | 1686 en 91 ficheros |
+| Tests | 1690 en 91 ficheros |
 | Plan y especificación | `~/Library/Mobile Documents/com~apple~CloudDocs/ClaudeCode/specs/` |
 
 **Lo primero, siempre:** `git fetch` antes de elegir número de migración o de

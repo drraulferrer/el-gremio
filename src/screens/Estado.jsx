@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import Personaje from '../components/Personaje'
 import { supabase, modoDemo, mensajeDeError } from '../lib/supabase'
 import { VERSION, COMMIT, BUILT_AT, RELEASE } from '../lib/version'
 import { todasLasFlags, setFlag } from '../lib/flags'
@@ -138,7 +139,7 @@ export default function Estado({ family, data }) {
       <div className="carta">
         {eco.porPersona.map((x) => (
           <div className="fila-separada" key={x.perfil.id} style={{ padding: '5px 0' }}>
-            <span>{x.perfil.emoji} {x.perfil.name}</span>
+            <Personaje perfil={x.perfil} tamano={22} />
             <span className="suave">
               {x.misiones} misiones · <Talis n={Number(x.monedasDia.toFixed(0))} />/día · {x.xpDia.toFixed(0)} XP/día
             </span>

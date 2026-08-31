@@ -28,6 +28,8 @@ import { habilidad, HABILIDADES } from '../lib/habilidades'
 import { sugerenciasDeElogio, rachaDeMision, sugerenciasDeCorreccion, correccionValida } from '../lib/elogio'
 import { flex, generoDe } from '../lib/genero'
 import { Modal, Celebracion, Pestana, Talis } from '../components/ui'
+import Personaje from '../components/Personaje'
+import Retrato from '../components/Retrato'
 import Icono from '../components/Icono'
 import Ajustes from './Ajustes'
 import AvisoPush from './AvisoPush'
@@ -194,7 +196,7 @@ export default function ParentPanel({ family, data, refresh, refreshFamily, onVe
             return (
               <div className="carta" key={r.id}>
                 <div className="fila" style={{ marginBottom: 10 }}>
-                  <div className="avatar" style={{ borderColor: p?.color }}>{p?.emoji}</div>
+                  <Retrato perfil={p} tamano={40} />
                   <div className="crece">
                     <strong>{rw?.emoji} {rw?.title || 'Premio'}</strong>
                     <div className="suave">{p?.name} · <Talis n={r.cost} /></div>
@@ -217,7 +219,7 @@ export default function ParentPanel({ family, data, refresh, refreshFamily, onVe
             return (
               <div className={'carta' + (esDeOperacion(ch) ? ' carta-operacion' : '')} key={c.id}>
                 <div className="fila">
-                  <div className="avatar" style={{ borderColor: p?.color }}>{p?.emoji}</div>
+                  <Retrato perfil={p} tamano={40} />
                   <div className="crece">
                     <strong>{ch?.emoji} {flex(ch?.title, generoDe(p)) || 'Misión'}</strong>
                     <div className="suave">{p?.name} · +{c.xp} XP · +<Talis n={c.coins} /></div>
@@ -244,7 +246,7 @@ export default function ParentPanel({ family, data, refresh, refreshFamily, onVe
                 return (
                   <div className="carta carta-correccion" key={c.id}>
                     <div className="fila">
-                      <div className="avatar" style={{ borderColor: p?.color }}>{p?.emoji}</div>
+                      <Retrato perfil={p} tamano={40} />
                       <div className="crece">
                         <strong>{ch?.emoji} {flex(ch?.title, generoDe(p)) || 'Misión'}</strong>
                         <div className="suave">{p?.name} · la puede volver a enviar</div>
@@ -284,7 +286,7 @@ export default function ParentPanel({ family, data, refresh, refreshFamily, onVe
                   className={(mascotaAbierta || mascotas[0].id) === m.id ? 'activo' : ''}
                   onClick={() => setMascotaAbierta(m.id)}
                 >
-                  {m.emoji} {m.name}
+                  <Personaje perfil={m} tamano={20} />
                 </button>
               ))}
             </div>
@@ -410,7 +412,7 @@ function TarjetaValidacion({ completion, perfil, reto, completions, onResolver }
   return (
     <div className={'carta' + (deOperacion ? ' carta-operacion' : '')}>
       <div className="fila" style={{ marginBottom: 10 }}>
-        <div className="avatar" style={{ borderColor: perfil?.color }}>{perfil?.emoji}</div>
+        <Retrato perfil={perfil} tamano={40} />
         <div className="crece">
           <strong>{reto?.emoji} {flex(reto?.title, genero) || 'Misión'}</strong>
           <div className="suave">
@@ -619,7 +621,7 @@ function ModoPeque({ family, data, refresh, onCeleb }) {
         return (
           <div key={p.id}>
             <div className="titulo-seccion">
-              {p.emoji} {p.name}
+              <Personaje perfil={p} tamano={26} />
               {enPausa > 0 && (
                 <span className="chip" style={{ marginLeft: 8 }}>
                   {enPausa} en pausa
@@ -790,7 +792,8 @@ function GestionMisiones({ family, data, refresh, onIrACasa }) {
     const gente = perfilesActivos(data.profiles)
     const salida = gente.map((p) => ({
       clave: p.id,
-      titulo: `${p.emoji} ${p.name}`,
+      titulo: p.name,
+      perfil: p,
       misiones: misionesDe(p, data.challenges)
     }))
     // Las que no le tocan a nadie activo no pueden quedarse sin sitio: se
@@ -847,7 +850,9 @@ function GestionMisiones({ family, data, refresh, onIrACasa }) {
             aria-expanded={abierto === g.clave}
             onClick={() => setAbierto(abierto === g.clave ? null : g.clave)}
           >
-            <span className="grupo-titulo">{g.titulo}</span>
+            <span className="grupo-titulo">
+              {g.perfil ? <Personaje perfil={g.perfil} tamano={26} /> : g.titulo}
+            </span>
             <span className="grupo-cuenta">{g.misiones.length}</span>
             <span className="grupo-chevron" aria-hidden="true">{abierto === g.clave ? '▾' : '▸'}</span>
           </button>
@@ -1307,7 +1312,7 @@ function ProgramarManana({ family, data, refresh, onClose }) {
             return (
               <section key={n.id} style={{ marginBottom: 16 }}>
                 <div className="fila" style={{ marginBottom: 8 }}>
-                  <div className="avatar" style={{ borderColor: n.color }}>{n.emoji}</div>
+                  <Retrato perfil={n} tamano={40} />
                   <strong className="crece">{n.name}</strong>
                   <span className="suave">{suyo.size} para mañana</span>
                 </div>

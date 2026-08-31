@@ -23,6 +23,7 @@
 // ------------------------------------------------------------------
 
 import { useState } from 'react'
+import Retrato from '../components/Retrato'
 import { misionesDe } from '../lib/misiones'
 import { apuntarMisionDeMascota } from '../lib/acciones'
 import { premiosParaPerfil, catalogoDe } from '../lib/mascotas'
@@ -64,7 +65,7 @@ export default function TableroMascota({ family, data, mascota, quien, refresh }
     <div>
       <div className="carta">
         <div className="fila">
-          <div className="avatar" style={{ borderColor: mascota.color }}>{mascota.emoji}</div>
+          <Retrato perfil={mascota} tamano={40} />
           <div className="crece">
             <strong>{mascota.name}</strong>
             <div className="suave">{ESPECIE[mascota.species]} · <Talis n={mascota.coins} /></div>
