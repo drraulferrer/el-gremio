@@ -7325,6 +7325,14 @@ Y **el alta** dibuja emoji a propósito: ahí el personaje todavía no existe �
 lo que se está rellenando en el formulario— así que no hay retrato que dibujar.
 Queda declarado en el test con su motivo.
 
+### Comprobado donde importa
+
+**Confirmado en el móvil por la familia** el mismo 31-ago, con la 2.42.3 ya
+publicada: los retratos salen en el panel. Es la primera vez en todo el proyecto
+que un fallo lo encuentra el uso real, se arregla y se confirma arreglado en el
+mismo día — y conviene notarlo, porque los 1690 tests no lo vieron y no podían
+verlo: ninguno mira lo que se dibuja.
+
 ### La guarda, estrecha a propósito
 
 No se puede escribir un test que distinga «este emoji es de una persona» de
