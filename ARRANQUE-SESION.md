@@ -7223,8 +7223,8 @@ ofrece nada.
 | | |
 |---|---|
 | Repositorio | `~/el-gremio`, rama `main` |
-| Versión desplegada | **2.41.0** · `npm run health` en verde · `0f5dbac`, supabase 17.6 |
-| Red de seguridad | `gh-pages` **a la par** con producción: 2.41.0 (`deploy-2026-08-31-0920`) |
+| Versión desplegada | **2.42.0** · `npm run health` en verde · `91d555f`, supabase 17.6 |
+| Red de seguridad | `gh-pages` **a la par** con producción: 2.42.0 (`deploy-2026-08-31-1004`) |
 | Nada sin publicar | el repo y producción sirven lo mismo |
 | Migraciones aplicadas | hasta la **061**. La siguiente libre es la **062** |
 | Tests | 1671 en 89 ficheros |
