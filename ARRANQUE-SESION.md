@@ -7260,6 +7260,64 @@ por debajo de 3** —escrito como expectativa: si alguien la sube, el test le
 obliga a mirar las 45 rayas— y que ninguno de los doce controles se quedó atrás.
 Comprobado que cae si se devuelve `--filo-control` a su valor viejo.
 
+---
+
+## 7ch. Una cosa, un nombre (31 de agosto) · 2.42.2
+
+Tercer y último punto de §7ce, y el que salió **más pequeño de lo que parecía**.
+
+### El inventario, que corrigió la propia queja
+
+Contando solo prosa de pantalla —fuera comentarios, identificadores e imports,
+que en el primer barrido contaban `setIdentidadHecha` como si fuera vocabulario:
+
+| palabra | frases | dónde |
+|---|---|---|
+| identidad | 28 | `expansion.js` (18) y cuatro pantallas |
+| llave | 18 | seis sitios |
+| forjar | 10 | cuatro sitios |
+| clave común | 10 | `ClaveComun` (5), `expansion.js` (3), `Expandirse`, `TuIdentidad` |
+| escalón | 3 | `Expandirse` (2), `expansion.js` |
+| credencial | **1** | `Estado.jsx`, y es «rotación de credenciales» del servidor |
+
+O sea que **eran cinco y no seis**: «credencial» no llega a la familia, vive solo
+en el código y en `credenciales.clase`. Y «escalón» son tres frases, una de ellas
+un error técnico. Las dos las había pintado más grandes de lo que son.
+
+**«Identidad» está bien usada**, y por eso no se toca: 28 frases con un patrón
+único —«para *X* necesitas una identidad propia»— y cinco finales. Eso es una
+palabra que se aprende una vez.
+
+### Lo que sí era un problema
+
+**Una cosa con cuatro nombres**, en tres pantallas seguidas: «la clave común»
+(9 sitios, incluida `Seguridad.jsx`), «la clave que comparte todo el mundo»
+(`Expandirse`), «la clave que comparte toda la casa» (`TuIdentidad`, escrita esa
+misma mañana) y la descripción «el mismo correo y la misma contraseña».
+
+Unificado a **«la clave común»** —el nombre mayoritario y el título de su propia
+pantalla— y **glosado donde se presenta**: «la clave común, la misma para toda la
+casa». Un sinónimo compite con el nombre; una glosa lo enseña.
+
+**Y el registro técnico se queda como está**: en la base y en los comentarios esa
+cosa es `compartida` (`credenciales.clase`). Son dos registros a propósito —la
+base nombra estructuras, la pantalla habla con una familia— y el test solo mira
+prosa.
+
+### Lo que se miró y NO se tocó, que también es resultado
+
+- **«Fórjala desde Progreso» vs «Se forjan desde Progreso, en el gremio donde
+  hayas llegado al nivel».** No es deriva: es la misma instrucción a dos niveles
+  de detalle, una en un aviso de una línea y otra en un párrafo que explica. Está
+  bien así.
+- **Los cuatro `en_el_limite` de `expansion.js`.** Mismo código del servidor,
+  cuatro frases distintas, y cada una dice qué hacer **en su contexto**: forjar,
+  crear otro, entrar en otro, aprobar a otra persona. Eso es buena escritura.
+
+`tests/vocabulario.test.js` extrae la prosa de pantalla y exige que no aparezca
+ningún sinónimo suelto, **dejando permitida la glosa**. Comprobado que cae al
+devolver el texto de `TuIdentidad` a su forma de la mañana.
+
 # CÓMO ARRANCAR LA SIGUIENTE SESIÓN
 
 **Estado al cerrar el 31-ago-2026, por la noche.**
@@ -7273,7 +7331,7 @@ Comprobado que cae si se devuelve `--filo-control` a su valor viejo.
 | Red de seguridad | `gh-pages` **a la par** con producción: 2.42.1 (`deploy-2026-08-31-1016`) |
 | Nada sin publicar | el repo y producción sirven lo mismo |
 | Migraciones aplicadas | hasta la **061**. La siguiente libre es la **062** |
-| Tests | 1682 en 90 ficheros |
+| Tests | 1686 en 91 ficheros |
 | Plan y especificación | `~/Library/Mobile Documents/com~apple~CloudDocs/ClaudeCode/specs/` |
 
 **Lo primero, siempre:** `git fetch` antes de elegir número de migración o de

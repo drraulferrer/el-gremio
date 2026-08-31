@@ -71,9 +71,9 @@ export default function TuIdentidad({ family, data }) {
 
       <div className="carta">
         <p className="suave" style={{ marginTop: 0 }}>
-          Este aparato entra con <strong>la clave que comparte toda la casa</strong>. Sirve
-          para todo lo de aquí dentro, pero no dice <em>quién</em> eres: por eso no puede
-          forjar llaves ni entrar en otros gremios.
+          Este aparato entra con <strong>la clave común</strong>, la misma para toda la
+          casa. Sirve para todo lo de aquí dentro, pero no dice <em>quién</em> eres: por eso
+          no puede forjar llaves ni entrar en otros gremios.
         </p>
         <p className="suave">
           Una identidad propia es un correo tuyo, distinto del de la casa.{' '}

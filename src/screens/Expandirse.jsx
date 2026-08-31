@@ -437,8 +437,8 @@ export function Conversion({ family, profile, conIntroduccion = true }) {
           <h4>Para expandirte necesitas una identidad propia</h4>
           <p className="suave">
             Un gremio nuevo es tuyo, no de esta casa: hace falta saber quién lo abre. Por eso
-            una llave la forja una persona, y hoy <strong>{family.name}</strong> entra con una
-            clave que comparte todo el mundo.
+            una llave la forja una persona, y hoy <strong>{family.name}</strong> entra con
+            <strong>la clave común</strong>, la misma para todo el mundo.
           </p>
           <p className="suave">
             <strong>Qué no cambia:</strong> la casa sigue entrando como siempre, tu personaje es

@@ -18,6 +18,15 @@ verdad duele en esta app: que el esquema y el cliente dejen de encajar.
 
 ---
 
+## 2.42.2 · 31 de agosto de 2026
+
+**La clave común se llama igual en todas partes.** Tenía cuatro nombres repartidos
+por tres pantallas que se visitan seguidas —«la clave común», «la clave que
+comparte todo el mundo», «la clave que comparte toda la casa»—, y quien las leía
+no tenía forma de saber que hablaban de lo mismo.
+
+---
+
 ## 2.42.1 · 31 de agosto de 2026
 
 **Los campos y los botones se ven.** El contorno de un campo de texto tenía tan
