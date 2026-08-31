@@ -6960,6 +6960,56 @@ paso 1. `solicitar_migracion_correo`, `probar_credencial_nueva` y
 mismo caso que este —aquí faltaba el último paso de algo que se usaba; allí
 falta la función entera—, pero conviene saber que está ahí.
 
+---
+
+## 7ca. El captcha que faltaba en la conversión (31 de agosto) · 2.40.1
+
+La 2.40.0 enganchó la vuelta del enlace, y al probarla con una cuenta real
+**el correo no llegó**. No era el correo.
+
+`Authentication → Auth Logs`, 30-ago 23:06:33Z, un segundo después de una
+`solicitar_conversion` que sí funcionó:
+
+```
+POST /signup → 400
+"captcha protection: request disallowed (no captcha_token found)"
+```
+
+`auth.users` lo confirma desde el otro lado: **la cuenta más reciente es del
+25-ago**. O sea que `signUp` nunca creó nada, y sin cuenta no hay correo que
+mandar. La solicitud sí quedó viva en `conversiones`, que es lo que despistaba.
+
+### Es el mismo fallo de agosto, en otro sitio
+
+`acceso.js` lleva escrito desde entonces —con su test— que el token va DENTRO de
+`options`, porque al lado de `email` y `password` supabase-js lo ignora en
+silencio. Aquel test defendía la FORMA del argumento **en un sitio**. Lo que no
+había era nada que impidiera que apareciera **un segundo sitio sin captcha
+ninguno**, y eso es justo lo que pasó cuando la conversión estrenó su propio
+`signUp` el 30-ago.
+
+Ahora hay un test que barre `src/screens`, encuentra las pantallas que llaman a
+las cuatro operaciones que Supabase protege —`signUp`, `signInWithPassword`,
+`resetPasswordForEmail`, `signInWithOtp`— y exige que cada una dibuje el
+recuadro y mande el token dentro de `options`. Comprobado que falla con el
+código de ayer y pasa con el de hoy.
+
+### Y el mensaje decía lo que no era
+
+«La solicitud está guardada, pero no se ha podido enviar el correo» manda a
+mirar la bandeja de entrada. Si `signUp` falla, **no hay ningún correo en
+camino**, así que ahora lo dice: la cuenta no se ha podido crear. Y si el motivo
+fue el captcha, se dice con su nombre y se remonta el widget, porque su token es
+de un solo uso y el segundo intento fallaría por otra razón distinta.
+
+### Lo que esto deja como lección
+
+El registro de Auth del proyecto contestó en un minuto lo que desde el código no
+se veía: los tests leían el SQL, el SQL estaba bien, y el cliente pedía un alta
+que el servidor rechazaba por una razón que no está en ningún fichero de este
+repositorio. **Cuando algo del correo no llega, el primer sitio es
+`Authentication → Auth Logs`**, y no el SMTP ni los topes.
+
 # CÓMO ARRANCAR LA SIGUIENTE SESIÓN
 
 **Estado al cerrar el 31-ago-2026, por la noche.**
@@ -6969,10 +7019,10 @@ falta la función entera—, pero conviene saber que está ahí.
 | | |
 |---|---|
 | Repositorio | `~/el-gremio`, rama `main` |
-| Versión desplegada | **2.40.0** · `npm run health` en verde · `de5d58e`, supabase 17.6 |
+| Versión desplegada | **2.40.1** · `npm run health` en verde · supabase 17.6 |
 | Nada sin publicar | el repo y producción sirven lo mismo |
 | Migraciones aplicadas | hasta la **061**. La siguiente libre es la **062** |
-| Tests | 1650 en 88 ficheros |
+| Tests | 1653 en 88 ficheros |
 | Plan y especificación | `~/Library/Mobile Documents/com~apple~CloudDocs/ClaudeCode/specs/` |
 
 **Lo primero, siempre:** `git fetch` antes de elegir número de migración o de

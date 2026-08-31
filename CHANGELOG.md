@@ -18,6 +18,19 @@ verdad duele en esta app: que el esquema y el cliente dejen de encajar.
 
 ---
 
+## 2.40.1 · 31 de agosto de 2026
+
+**Crear una identidad propia ya manda el correo.** La pantalla pedía el correo,
+la contraseña y el PIN, pero no el captcha, y Supabase rechaza el alta sin él:
+la solicitud se guardaba, **la cuenta nunca llegaba a crearse** y por tanto no
+salía ningún correo. Encima el aviso decía que no se había podido enviar, que
+mandaba a mirar una bandeja de entrada donde nunca iba a haber nada.
+
+Ahora el recuadro de «verifique que es un ser humano» sale también aquí, igual
+que al entrar, y el aviso dice lo que pasa de verdad cuando falla.
+
+---
+
 ## 2.40.0 · 31 de agosto de 2026
 
 **Crear una identidad propia ya termina.** Faltaba el último paso, y sin él no

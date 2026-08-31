@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Modal, Talis } from '../components/ui'
+import Captcha from '../components/Captcha'
+import { esErrorDeCaptcha } from '../lib/captcha'
 import { supabase, hashPin } from '../lib/supabase'
 import { recordarIdentidadEnMarcha } from '../lib/acceso'
 import {
@@ -299,6 +301,16 @@ function Conversion({ family, profile }) {
   const [ocupado, setOcupado] = useState(false)
   const [aviso, setAviso] = useState('')
   const [enviado, setEnviado] = useState(false)
+  // El captcha, igual que en el acceso. Sin él esta pantalla NO puede
+  // funcionar en producción: Turnstile está encendido en el proyecto y
+  // Supabase rechaza `/signup` con «no captcha_token found». Estuvo así
+  // desde el 30-ago —la solicitud se guardaba, la cuenta no se creaba y
+  // nadie recibía ningún correo—, y el mensaje de esta pantalla decía que
+  // no se había podido enviar el correo, que era la parte que menos
+  // ayudaba a encontrarlo.
+  const [token, setToken] = useState('')
+  // Su token es de UN SOLO USO: cada intento fallido remonta el widget.
+  const [intento, setIntento] = useState(0)
 
   const puedeEnviar = correo.includes('@') && clave.length >= 8 && pin.length >= 4
 
@@ -318,14 +330,32 @@ function Conversion({ family, profile }) {
     }
 
     // 2 · Y la cuenta, que es la que dispara el correo de confirmación.
+    //     El token va DENTRO de `options`, que es la regla de una línea
+    //     que `acceso.js` explica con su propio susto: al lado de `email`
+    //     y `password`, supabase-js lo ignora en silencio.
     const { error } = await supabase.auth.signUp({
       email: correo,
       password: clave,
-      options: { emailRedirectTo: window.location.origin + (import.meta.env.BASE_URL || '/') }
+      options: {
+        emailRedirectTo: window.location.origin + (import.meta.env.BASE_URL || '/'),
+        ...(token ? { captchaToken: token } : {})
+      }
     })
     setOcupado(false)
     if (error) {
-      setAviso('La solicitud está guardada, pero no se ha podido enviar el correo. Inténtalo dentro de un rato.')
+      // Remontar el captcha, o el segundo intento reusaría un token
+      // gastado y fallaría por un motivo distinto del primero.
+      setIntento((n) => n + 1)
+      setToken('')
+      setAviso(
+        esErrorDeCaptcha(error.message)
+          ? 'No se ha podido comprobar que hay una persona detrás. Espera a que cargue el recuadro de abajo y vuelve a intentarlo.'
+          // Y no «no se ha podido enviar el correo»: si `signUp` falla, la
+          // cuenta NO se ha creado, así que no hay ningún correo en
+          // camino. Decir lo contrario manda a buscar en la bandeja de
+          // entrada un mensaje que nadie ha mandado.
+          : 'La solicitud está guardada, pero la cuenta no se ha podido crear. Inténtalo dentro de un rato.'
+      )
       return
     }
     // La nota para la vuelta. Sirve para una sola cosa, y no es poca: que
@@ -399,6 +429,11 @@ function Conversion({ family, profile }) {
           onChange={(e) => setPin(e.target.value)}
         />
       </label>
+
+      {/* Va antes del aviso y del botón, como en el acceso. El botón NO
+          espera al token: si Cloudflare no carga, quien decide es
+          Supabase y el error se explica arriba. */}
+      <Captcha key={'conversion:' + intento} accion="conversion" onToken={setToken} />
 
       {aviso && <p className="aviso" role="alert">{aviso}</p>}
 

@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest'
+import { readFileSync, readdirSync } from 'node:fs'
 import {
   argumentosDeEntrada,
   resultadoDeAlta,
@@ -211,6 +212,47 @@ describe('la forma de la llamada de entrar', () => {
     expect(Object.keys(argumentosDeEntrada('a@b.com', 'x', 't')).sort())
       .toEqual(['email', 'options', 'password'])
   })
+})
+
+describe('ninguna pantalla llama a Supabase Auth sin captcha', () => {
+  // Esta es la versión general del test de arriba, y nace de que aquel no
+  // bastó. El 30-ago la pantalla de conversión llamaba a `signUp` SIN
+  // token: Supabase contestaba «400 captcha protection: request
+  // disallowed», la cuenta no se creaba, no salía ningún correo, y la
+  // pantalla decía «no se ha podido enviar el correo» — o sea que mandaba
+  // a mirar una bandeja de entrada donde nunca iba a haber nada. Estuvo
+  // así hasta el 31, y se encontró leyendo los Auth Logs del proyecto.
+  //
+  // El test de `argumentosDeEntrada` defendía la FORMA del argumento en un
+  // sitio; este defiende que no haya un segundo sitio que se olvide.
+  const raizSrc = new URL('../src/', import.meta.url)
+  const leerSrc = (f) => readFileSync(new URL(f, raizSrc), 'utf8')
+
+  // Las cuatro que Supabase protege con captcha cuando está encendido.
+  const PROTEGIDAS = /supabase\.auth\.(signUp|signInWithPassword|resetPasswordForEmail|signInWithOtp)\s*\(/
+
+  const pantallas = readdirSync(new URL('screens/', raizSrc))
+    .filter((f) => f.endsWith('.jsx'))
+    .filter((f) => PROTEGIDAS.test(leerSrc('screens/' + f)))
+
+  it('el barrido encuentra las pantallas que las usan', () => {
+    // Si algún día no encuentra ninguna es que el barrido se ha roto, no
+    // que el problema se haya arreglado solo.
+    expect(pantallas.sort()).toEqual(['Expandirse.jsx', 'Login.jsx'])
+  })
+
+  for (const fichero of pantallas) {
+    it(`${fichero} pide token y lo manda dentro de options`, () => {
+      const texto = leerSrc('screens/' + fichero)
+      expect(texto, `${fichero} no dibuja el recuadro de Turnstile`)
+        .toMatch(/<Captcha\b/)
+      expect(texto, `${fichero} no manda ningún captchaToken`)
+        .toContain('captchaToken')
+      // Y en la raíz no, que es donde supabase-js lo ignora en silencio.
+      expect(texto, `${fichero} manda el token al lado de email/password`)
+        .not.toMatch(/^\s*captchaToken:/m)
+    })
+  }
 })
 
 // ------------------------------------------------------------------
