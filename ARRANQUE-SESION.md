@@ -4,82 +4,52 @@ Documento de continuidad. Si abres una sesión nueva sobre este proyecto,
 lee esto primero: dice dónde está todo, qué está hecho, qué falta y qué
 trampas tiene.
 
-> **Y si solo vas a leer una línea antes de ponerte:** la **2.38.0 está EN
-> PRODUCCIÓN** y **la Fase 6 está cerrada**. Una persona puede tener varios
-> gremios de punta a punta: forjar, gastar la llave, invitar, entrar, recibir
-> avisos de todos y salir. Lo siguiente en el plan es la **Fase 7**
-> (reclamación y credenciales).
+> **Y si solo vas a leer una línea antes de ponerte:** la **2.42.2 está EN
+> PRODUCCIÓN** (`e1288a7`), y desde el 31-ago **las Fases 5, 6 y 7 se pueden
+> usar de verdad**: hay una identidad personal creada de punta a punta con una
+> cuenta y un correo reales (§7cd). Hasta esa mañana estaban cerradas para todo
+> el mundo, con el SQL entero desde el 29 y sin nadie que pudiera llegar a él.
 >
-> **Y al 31-ago, lo que de verdad manda:** la **2.40.0 está EN PRODUCCIÓN**
-> (`de5d58e`, comprobado desde fuera), y con ella **crear una identidad propia
-> por fin termina** (§7bz). Hasta hoy no lo hacía, y sin eso las Fases 5, 6 y 7
-> estaban cerradas para todo el mundo aunque el SQL llevara días completo.
->
-> **Y lo primero de todo, que sigue sin hacerse:** mirar todo esto con una
-> sesión real, empezando por **el correo de confirmación y su enlace**, que es
-> lo único que no se puede comprobar ni desde aquí ni con la demo.
+> **Y lo único que sigue sin hacerse:** recorrer la app con una sesión real en
+> el móvil. Es lo de siempre y ahora hay mucho más que mirar.
 
-Última actualización: **30 de agosto de 2026**, al cierre de la
-sesión de **recuperación ante desastres y terreno firme** (§7bb): migraciones
-**041, 042 y 043 ejecutadas** y **2.33.3 publicada y comprobada**. Esa sesión
-descubrió que **la restauración de un respaldo nunca había funcionado** y
-arregló seis defectos del camino de vuelta; empieza por ahí si vas a tocar
-respaldos o el esquema. La sesión anterior fue la de **limpieza de código**
-(§7ba): sin cambio de
-comportamiento, en una rama a la espera de revisión. La sesión del
-19-ago construyó el **modo limpieza** (§7x): campañas de limpieza como
-misión secundaria, con reloj por tarea y botín de cierre. Ese mismo día,
-en sesiones anteriores, llegaron los sellos de oficio (§7u), su motor
-(§7v) y las migraciones 028-030 (§7w).
+Última actualización: **31 de agosto de 2026**, al cierre de una sesión larga
+que empezó por la demo y acabó en la interfaz. En orden:
+
+| § | qué |
+|---|---|
+| 7by | **La demo aprende la otra mitad.** El backend simulado contestaba «función desconocida» a las 27 RPC de identidad, expansión, invitación y reclamación: media aplicación no se podía abrir en el navegador |
+| 7bz | **La vuelta del enlace del correo.** `completar_conversion` llevaba en la base desde la 047 **sin que la llamara nadie**, y era la única puerta a una credencial `personal` |
+| 7ca | **El captcha que faltaba** en la conversión. Supabase rechazaba el alta con `captcha_failed`, así que la cuenta no se creaba y no salía ningún correo |
+| 7cb | **Retirar la solicitud que estorba**, que sin `cancelar_conversion` enganchada era una trampa de 72 horas |
+| 7cc | **`gh-pages` al día.** Llevaba en la 2.14.x del 21-ago: el rollback por DNS habría devuelto una app diez versiones vieja |
+| 7cd | **La primera identidad de verdad**, medida en la base: 449 Talis a la cartera, XP intacta, dos asientos |
+| 7ce | **Revisión de usabilidad** con `ui-ux-pro-max`. Hallazgo: `.aviso` **no existía**, y diez mensajes de seis pantallas se pintaban como prosa |
+| 7cf | **La segunda puerta a la identidad**, en ⚙️ → Datos |
+| 7cg | **El filo de un control no es una raya.** Un campo de texto era casi invisible hasta enfocarlo |
+| 7ch | **Una cosa, un nombre.** La clave común tenía cuatro |
+
+Las sesiones anteriores: **recuperación ante desastres** (§7bb, 30-ago), que
+descubrió que restaurar un respaldo nunca había funcionado —empieza por ahí si
+vas a tocar respaldos o el esquema—; la **limpieza de código** (§7ba); y el
+**modo limpieza** (§7x, 19-ago).
 
 Si solo vas a leer un párrafo: la app está **en producción y estable**, en
-elgremioapp.com, servida por **Vercel**, con las cabeceras de seguridad
-que antes no se podían poner y con un cron diario que impide que Supabase
-se pause. **Las migraciones 028-031 se ejecutaron el 19-ago por la
-tarde** (métodos y comprobaciones en §7w-§7x) y el bundle 2.9.0 está
-publicado: las piezas van a la vez otra vez. El modo limpieza (§7x) está
-VIVO de punta a punta. Antes de añadir nada, lee §8.
+elgremioapp.com, servida por **Vercel**, con cabeceras de seguridad y un cron
+diario que impide que Supabase se pause. El esquema va por la **migración 061**
+y la siguiente libre es la **062**. **1686 tests en 91 ficheros**, en verde.
+`gh-pages` sirve la misma versión que producción, que es lo que mantiene viva la
+salida de emergencia (§7n). Antes de añadir nada, lee §8.
 
-**Y lo primero que hay que saber:** publicar no es `npm run deploy`. Es
-empujar y después `npm run vercel` (§7n), y SIEMPRE con la migración
-ejecutada antes que el bundle.
+**Y lo primero que hay que saber:** publicar no es `npm run deploy`. Es empujar
+y después `npm run vercel` (§7n), y SIEMPRE con la migración ejecutada antes que
+el bundle. Si el hook no llegara a Vercel —pasó el 27-ago—, el rodeo es el truco
+de la bandera, al final de §7ba.
 
-**Lo segundo, al 21-ago:** la migración **033 está EJECUTADA y la 2.14.0
-publicada** (§7z, el buzón de fallos), en ese orden. Desde ahora hay un
-sitio nuevo que mirar cada pocos días: la tabla `informes_fallo`, que es
-donde la familia cuenta lo que va mal (RUNBOOK §3b).
-
-**Lo tercero, al 24-ago:** la **2.22.0** (§7aj) trae la gramática de
-respuesta de Duolingo —los números suben en vez de saltar, la celebración
-en tres escalones, la llama que solo se mueve el día que hay algo que
-hacer y el háptico—. **Sin migración: solo bundle.** Y una nota que
-ahorra media hora: sembrar `completions` en la demo con `approved_at` /
-`status:'approved'` revienta la app entera; los campos buenos son
-`requested_at` / `resolved_at` y el estado es `'aprobado'`.
-
-**Y lo que hay que hacer al abrir sesión, si nadie lo ha hecho ya:** la
-2.22.0 está **mezclada en `main` y sin publicar**, y con ella viajan las
-copias cifradas del 23-ago, que tampoco se publicaron nunca. Producción
-sigue en `754fcd2`. Una sola orden, sin migración de por medio:
-`npm run vercel && npm run health` (el detalle, al final de §7aj).
-
-**Y lo último, al 29-ago: la 2.33.2 está EN PRODUCCIÓN.** La limpieza
-(§7ba) se revisó y se mezcló el 27. El intento de publicarla ese día con
-`npm run vercel` desde el portátil **no llegó a Vercel** —no consta
-ningún despliegue posterior al del 26, ni siquiera uno fallido; la causa
-no se llegó a ver—, así que el 29 se publicó desde la sesión remota con
-el truco de la bandera: dos commits seguidos que abren y cierran
-`git.deploymentEnabled.main` en `vercel.json` (el porqué y las
-precauciones, al final de §7ba). Comprobado desde fuera:
-`version.json` del dominio responde **2.33.2 · `748701d`**, y la bandera
-quedó otra vez en `false`, o sea que publicar sigue siendo un acto
-deliberado (§7n). El «sin subir» de §7az también quedó resuelto: las
-2.33.0 y 2.33.1 sí se habían publicado el 26.
-
-**Si abres sesión nueva, empieza por §8.** Los **803 tests y el CI están
-en verde** (el CI estuvo roto unas horas por un test que parcheaba el
-cliente nulo; arreglado en `ed0a311` con inyección). Producción sirve la
-**2.9.0**. Lo que queda es de uso, no código a medias.
+**Dos sitios que mirar cada pocos días:** la tabla `informes_fallo`, que es donde
+la familia cuenta lo que va mal (RUNBOOK §3b), y —nuevo desde el 31-ago—
+**`Authentication → Auth Logs`** de Supabase, que es donde se ve por qué un
+correo no sale. Contestó en un minuto lo que desde el código no se veía (§7ca).
 
 ---
 
@@ -109,14 +79,15 @@ modo peque, la capa de producción y la gestión de miembros.
 | Código local | `~/el-gremio` |
 | Supabase | proyecto `chfbrawsoulfiywiqhpe`, Postgres 17.6, región EU |
 | Edge Function | `notificar`, versión 5, `verify_jwt` en false |
-| Versión publicada | ver `npm run health` (lee `version.json`, que ahora se emite en el build) |
-| Tests | 1.138, en 64 ficheros, todos en verde (27-ago). `npm run verify` empieza por `npm run lint` desde la 2.27.0 |
+| Versión publicada | **2.42.2** (`e1288a7`, 31-ago). Se comprueba con `npm run health`, que lee el `version.json` emitido en el build |
+| Red de seguridad | `gh-pages` a la par, misma versión. No se puede MIRAR, se usa devolviendo el DNS: §7n |
+| Tests | **1.686, en 91 ficheros**, todos en verde (31-ago). `npm run verify` empieza por `npm run lint` desde la 2.27.0 |
 
-### Por dónde seguir · escrito al cerrar el 25-ago
+### Por dónde seguir
 
-Todo lo del 24 y el 25 está **desplegado y documentado** (§7an a §7ax). La
-versión en producción es la 2.32.0. No hay nada a medias en el repo: el
-árbol está limpio y `origin/main` al día.
+Está al final del documento, en **CÓMO ARRANCAR LA SIGUIENTE SESIÓN**, que es
+el único sitio que se actualiza al cerrar. Lo de aquí abajo es el estado del
+25-ago y se conserva por su detalle, no como orientación.
 
 Las cuatro comprobaciones que dependían de la familia **están hechas y
 salieron bien** (25-ago, confirmado por Raúl):
@@ -7339,6 +7310,15 @@ versión. Hoy no ha hecho falta, pero el 30-ago por la mañana ya pasó una vez.
 
 ## Qué se hizo hoy, en una tabla
 
+**Ninguna migración: la 061 sigue siendo la última.** Todo lo del 31-ago es
+cliente, demo y textos. La columna de migraciones es de días anteriores y se
+deja porque es el mapa de las fases.
+
+Y el cambio de estado que importa: hasta esta mañana las fases 5, 6 y 7 estaban
+«cerradas» en el sentido de **escritas y desplegadas**, pero nadie podía
+llegar a usarlas —faltaba la llamada de §7bz y sobraba el captcha de §7ca—.
+Desde hoy están cerradas en el sentido que cuenta: **alguien las ha usado**.
+
 | Fase | Estado | Migraciones |
 |---|---|---|
 | 0 · Antes de tocar nada | ✅ cerrada (29-ago) | — |
@@ -7346,9 +7326,9 @@ versión. Hoy no ha hecho falta, pero el 30-ago por la mañana ya pasó una vez.
 | 2 · Identidad y pertenencia | ✅ **cerrada** | 044, 045, 047, 048, 049 |
 | 3 · Configuración y cartera | ✅ **cerrada** | 050, 051, 052 |
 | 4 · El tipo como plantilla | ✅ **cerrada** | 053, 054, 055 |
-| 5 · Hitos y llaves | ✅ **cerrada** | 056 |
-| 6 · Gremios múltiples | ✅ **cerrada** | 057, 058 |
-| 7 · Reclamación y credenciales | ✅ **cerrada, con pantallas** | 059, 060 |
+| 5 · Hitos y llaves | ✅ **cerrada y EN USO** (31-ago) | 056 |
+| 6 · Gremios múltiples | ✅ **cerrada y alcanzable** | 057, 058 |
+| 7 · Reclamación y credenciales | ✅ **cerrada, con pantallas y alcanzable** | 059, 060 |
 | 8a · Puerta juniors | ☐ **condiciones escritas** · falta el dictamen firmado |
 | 8b · Puerta Equipo | ☐ **condiciones escritas** · la prueba de las APIs ya está (061) · faltan EIPD y contrato |
 | 9 · Observabilidad | ☐ sin empezar | — |
@@ -7359,26 +7339,23 @@ que `anon` hereda.
 
 ## Por dónde seguir
 
-**Mirar todo esto con una sesión real.** Ahora sí se puede
-de verdad: hasta hoy la creación de identidad no terminaba, así que las fases 5
-a 7 no se podían probar ni con una cuenta real. Lo primero que hay que ver es
-**el correo de confirmación llegando y su enlace funcionando**, que es lo único
-que la demo no puede imitar. Es lo único de la lista de `CLAUDE.md`
-que lleva días sin hacerse, y ahora hay bastante que mirar: el botón de
-Expandirse en Progreso, la bandeja de invitaciones en el selector, «Gente de
-fuera» en Miembros y «Dejar este gremio» en Datos. Todo lo demás está
-comprobado contra la base o contra la demo, pero el agente no introduce
-contraseñas y el modo demo no toca RLS.
+**Recorrer la app con una sesión real, en el móvil.** Es lo único de la lista de
+`CLAUDE.md` que sigue sin hacerse: el agente no introduce contraseñas, y aunque
+el modo demo ya cubre las fases 5 a 7 (§7by) sigue sin tocar RLS.
 
 Lo que hay que verificar, en orden de lo que más costaría descubrir tarde:
 
 1. Que la familia **no nota nada raro**: un solo gremio, sin selector, con su
-   personaje ya elegido al entrar.
-2. Que **crear una identidad funciona de punta a punta** — es lo único de toda
-   la tanda que no se ha podido probar contra la base, porque necesita un
-   correo de verdad y una vuelta desde el enlace.
-3. Y a partir de ahí ya se puede forjar, crear un segundo gremio y ver el
-   selector con dos.
+   personaje ya elegido al entrar. Es lo que más gente afecta y lo que menos
+   se ha mirado.
+2. ~~Que crear una identidad funciona de punta a punta.~~ **HECHO el 31-ago**
+   contra la base, con cuenta y correo reales: §7cd.
+3. Y a partir de ahí, lo que abre: **forjar** desde Progreso, gastar la llave
+   creando un segundo gremio, y ver el selector con dos. Nada de eso se ha
+   ejercitado todavía con datos reales — solo en la demo.
+4. Lo que sigue sin tocarse con una cuenta de verdad: la **bandeja de
+   invitaciones** del selector, **«Gente de fuera»** en Miembros, **«Dejar este
+   gremio»** en Datos y **quitar la clave común** en ⚙️ → PIN.
 
 Después, la **Fase 7 · reclamación y credenciales**: dar credencial compartida
 a un gremio nacido con llave (hoy nacen sin ella, §7bo) y reclamar un perfil
