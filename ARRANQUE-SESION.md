@@ -4,8 +4,8 @@ Documento de continuidad. Si abres una sesión nueva sobre este proyecto,
 lee esto primero: dice dónde está todo, qué está hecho, qué falta y qué
 trampas tiene.
 
-> **Y si solo vas a leer una línea antes de ponerte:** la **2.42.2 está EN
-> PRODUCCIÓN** (`e1288a7`), y desde el 31-ago **las Fases 5, 6 y 7 se pueden
+> **Y si solo vas a leer una línea antes de ponerte:** la **2.42.3 está EN
+> PRODUCCIÓN** (`90b2d80`), y desde el 31-ago **las Fases 5, 6 y 7 se pueden
 > usar de verdad**: hay una identidad personal creada de punta a punta con una
 > cuenta y un correo reales (§7cd). Hasta esa mañana estaban cerradas para todo
 > el mundo, con el SQL entero desde el 29 y sin nadie que pudiera llegar a él.
@@ -7343,8 +7343,8 @@ las cuatro pantallas del panel importen la pieza que dibuja personas.
 | | |
 |---|---|
 | Repositorio | `~/el-gremio`, rama `main` |
-| Versión desplegada | **2.42.2** · `npm run health` en verde · `e1288a7`, supabase 17.6 |
-| Red de seguridad | `gh-pages` **a la par** con producción: 2.42.2 (`deploy-2026-08-31-1029`) |
+| Versión desplegada | **2.42.3** · `npm run health` en verde · `90b2d80`, supabase 17.6 |
+| Red de seguridad | `gh-pages` **a la par** con producción: 2.42.3 (`deploy-2026-08-31-1051`) |
 | Nada sin publicar | el repo y producción sirven lo mismo |
 | Migraciones aplicadas | hasta la **061**. La siguiente libre es la **062** |
 | Tests | 1690 en 91 ficheros |
