@@ -36,14 +36,16 @@
 <main>
 
 <h1>Política de privacidad</h1>
-<p class="suave">El Gremio · elgremioapp.com · última actualización: 16 de agosto de 2026 (versión 2026-08-16)</p>
+<p class="suave">El Gremio · elgremioapp.com · última actualización: 26 de agosto de 2026 (versión 2026-08-26)</p>
 
 <div class="caja">
   <p style="margin:0"><strong>En una frase:</strong> aquí se guardan los nombres y la
   actividad diaria de tu familia, incluidas las criaturas, para que la app
-  funcione. No se venden, no se comparten con anunciantes, no se analiza el
-  comportamiento de nadie, y puedes llevarte todo o borrarlo entero desde la
-  propia app, sin pedir permiso ni escribir a nadie.</p>
+  funcione. No se vende nada y no hay anuncios. Lo único que sale de aquí sobre
+  el uso de la app son dos contadores agregados —cuántas misiones se validan,
+  cuántos premios se canjean—, sin nombres, sin lo que ponen y sin grabar
+  pantalla ni pulsaciones (detalle en el punto 5). Puedes llevarte todo o
+  borrarlo entero desde la propia app, sin pedir permiso ni escribir a nadie.</p>
 </div>
 
 <h2>1. Quién trata tus datos</h2>
@@ -64,8 +66,26 @@ detrás, no se cobra por usarlo y no se obtiene ingreso alguno de los datos.</p>
 </table>
 <p><strong>Lo que NO se guarda:</strong> ni fotos, ni ubicación, ni contactos, ni
 libreta de direcciones, ni datos de salud, ni datos de pago. No hay publicidad,
-ni cookies de terceros, ni herramientas de analítica o seguimiento de ningún
-tipo. Nadie perfila a nadie.</p>
+ni cookies de terceros con fines comerciales, ni se venden datos. Nadie
+perfila a nadie.</p>
+
+<p>Desde el 26 de agosto de 2026 se usa <strong>PostHog</strong> (proveedor en
+el punto 5) para saber, en conjunto, si la app se usa: cuántas misiones se
+validan y cuántos premios se canjean, un contador por gremio y por día. Esa
+herramienta:</p>
+<ul>
+  <li><strong>No graba la pantalla ni las pulsaciones.</strong> La grabación de
+  sesión, la captura automática de clics y los registros de consola están
+  desactivados, tanto en el código de la app como en la configuración del
+  proveedor — apagarlo solo en un sitio no basta si el otro lo enciende solo.</li>
+  <li><strong>No recibe nombres, ni el contenido de ninguna misión, premio o
+  elogio.</strong> Solo el identificador aleatorio del gremio (el mismo que ya
+  usa Supabase, no uno nuevo) y el nombre del suceso: «misión validada» o
+  «premio canjeado». Nada más viaja con ellos.</li>
+  <li><strong>No guarda tu dirección IP</strong>: el proyecto la descarta antes
+  de procesar nada.</li>
+  <li>Se aloja en la Unión Europea (región EU de PostHog), igual que Supabase.</li>
+</ul>
 
 <h2>3. Para qué, y con qué base legal</h2>
 <ul>
@@ -74,6 +94,10 @@ tipo. Nadie perfila a nadie.</p>
   solicitado — art. 6.1.b del RGPD.</li>
   <li><strong>Mantener la app en pie</strong> (diagnosticar fallos, evitar el uso
   abusivo). Base legal: interés legítimo — art. 6.1.f.</li>
+  <li><strong>Saber si la app se usa</strong>, en conjunto y sin perfilar a
+  nadie (los dos contadores agregados del punto 2, vía PostHog). Base legal:
+  interés legítimo — art. 6.1.f. No se usa para decidir nada sobre una
+  persona ni una familia concreta.</li>
   <li><strong>Enviar los correos imprescindibles</strong>: confirmar la cuenta y
   recuperar la contraseña. Nunca se envía publicidad ni boletines.</li>
   <li><strong>Avisos en el móvil</strong>, solo si se activan expresamente. Base
@@ -94,6 +118,10 @@ tipo. Nadie perfila a nadie.</p>
   fecha de nacimiento, ni ninguna otra cosa.</strong></li>
   <li>Ningún dato de un menor sale de su gremio. Otra familia no puede verlo, y
   la app no tiene función alguna de comunicación entre familias.</li>
+  <li>Los dos contadores que recibe PostHog (punto 2) son por gremio, nunca por
+  persona: no distinguen si la misión validada era de una persona adulta o de
+  una criatura, así que no hay forma de aislar la actividad de un menor en
+  concreto a partir de ellos.</li>
 </ul>
 
 <h2>5. Quién más los ve</h2>
@@ -105,6 +133,7 @@ que actúan como encargados del tratamiento:</p>
   <tr><td>GitHub Pages</td><td>Servir la propia app (páginas y ficheros estáticos)</td></tr>
   <tr><td>Hostinger</td><td>Envío de los correos de la cuenta</td></tr>
   <tr><td>Cloudflare</td><td>Comprobación antirrobots en el registro, para que no se den de alta cuentas automáticas</td></tr>
+  <tr><td>PostHog</td><td>Cuenta cuántas misiones se validan y premios se canjean, agregado por gremio. Sin grabación de pantalla, sin nombres ni contenido. Región EU.</td></tr>
 </table>
 <p class="suave">Algunos de estos proveedores son sociedades estadounidenses. Las
 transferencias internacionales que puedan producirse se amparan en las cláusulas
