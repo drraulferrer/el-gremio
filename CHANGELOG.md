@@ -18,6 +18,22 @@ verdad duele en esta app: que el esquema y el cliente dejen de encajar.
 
 ---
 
+## 2.41.0 · 31 de agosto de 2026
+
+**Los avisos se ven.** Diez mensajes de seis pantallas —las de expandirse,
+invitaciones, gente de fuera, dejar el gremio y la clave común— se pintaban
+como texto normal, sin color ni relieve: «El PIN no es correcto» tenía el mismo
+aspecto que el párrafo explicativo de encima. Ahora un aviso se distingue de la
+prosa, y cuando la noticia es buena se ve que es buena.
+
+**Y crear una identidad propia por fin dice que ha funcionado.** Al volver del
+enlace del correo la app terminaba la conversión y te dejaba en tu gremio sin
+una sola frase. Ahora te recibe con lo que necesitas saber: que tu gremio, tu
+nivel y tu historial son los de siempre, y cuántos Talis han pasado a ser tuyos
+y te acompañan a cualquier gremio.
+
+---
+
 ## 2.40.2 · 31 de agosto de 2026
 
 **Una solicitud de identidad atascada ya se puede retirar.** Solo puede haber

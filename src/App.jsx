@@ -20,7 +20,7 @@ import {
 } from './lib/gremios'
 import { RELEASE } from './lib/version'
 import { registrarServiceWorker, apuntarPerfil } from './lib/push'
-import { PinModal, Celebracion } from './components/ui'
+import { PinModal, Celebracion, Talis } from './components/ui'
 import Retrato from './components/Retrato'
 import LoteDeSellos from './components/LoteDeSellos'
 import TalisAMano from './components/TalisAMano'
@@ -30,7 +30,7 @@ import NuevaClave from './screens/NuevaClave'
 import {
   esRecuperacion, esConfirmacion, hayIdentidadEnMarcha, olvidarIdentidadEnMarcha
 } from './lib/acceso'
-import { terminarIdentidad } from './lib/acciones'
+import { terminarIdentidad, leerLoQueTrajoLaIdentidad } from './lib/acciones'
 import { mensajeDeTerminar } from './lib/expansion'
 import Onboarding from './screens/Onboarding'
 import Invitaciones from './screens/Invitaciones'
@@ -119,6 +119,9 @@ export default function App() {
       ? { estado: 'terminando', aviso: '' }
       : { estado: 'nada', aviso: '' })
   )
+  // La confirmación de que la identidad quedó creada. `null` = no hay nada
+  // que celebrar; un objeto = enseñarla hasta que la cierren.
+  const [identidadHecha, setIdentidadHecha] = useState(null)
   // El cinturón se prueba UNA vez por carga. Con `useRef` y no con estado
   // porque el efecto que lo usa mira `family`, y un `set` ahí dentro sería
   // un bucle.
@@ -221,13 +224,21 @@ export default function App() {
   useEffect(() => {
     if (!session || identidad.estado !== 'terminando') return
     let vivo = true
-    terminarIdentidad(session.user?.id).then((codigo) => {
+    terminarIdentidad(session.user?.id).then(async (codigo) => {
       if (!vivo) return
       const aviso = mensajeDeTerminar(codigo, hayIdentidadEnMarcha())
       // La nota se retira en cuanto deja de poder explicar nada: o salió
       // bien, o el motivo ya no es la caducidad.
       if (codigo !== 'sin_solicitud' || !aviso) olvidarIdentidadEnMarcha()
-      setIdentidad({ estado: 'hecho', aviso: aviso || '' })
+      // Y si salió bien, se DICE. Hasta hoy la app terminaba la conversión
+      // y te dejaba en tu gremio sin una sola frase: quien acababa de
+      // mover todos sus Talis a una cartera nueva no tenía forma de saber
+      // desde la app que había funcionado.
+      if (codigo === 'ok') {
+        const talis = await leerLoQueTrajoLaIdentidad()
+        if (vivo) setIdentidadHecha({ talis })
+      }
+      if (vivo) setIdentidad({ estado: 'hecho', aviso: aviso || '' })
     })
     return () => { vivo = false }
   }, [session, identidad.estado])
@@ -253,9 +264,10 @@ export default function App() {
   useEffect(() => {
     if (family !== null || cinturonIdentidad.current) return
     cinturonIdentidad.current = true
-    terminarIdentidad(session?.user?.id).then((codigo) => {
+    terminarIdentidad(session?.user?.id).then(async (codigo) => {
       if (codigo !== 'ok') return
       olvidarIdentidadEnMarcha()
+      setIdentidadHecha({ talis: await leerLoQueTrajoLaIdentidad() })
       loadFamily()
     })
   }, [family, session, loadFamily])
@@ -764,6 +776,38 @@ export default function App() {
             sale antes de este punto, y un cartel de texto que ella no
             puede leer solo sería ruido. Cuando un adulto salga de su
             pantalla al selector, lo verá. */}
+        {/* La identidad recién creada. Va aquí arriba y no en un modal: es
+            una buena noticia, no una interrupción, y quien acaba de volver
+            del correo tiene todo el derecho a leerla con calma y cerrarla
+            cuando quiera. `role="status"` y no `alert`: no es un problema.
+
+            La cifra importa. «Ya eres tú» a secas deja exactamente la duda
+            que esta pieza viene a quitar —¿y mis Talis?—, así que si se
+            puede leer se dice, y si no, la frase sigue siendo verdad. */}
+        {identidadHecha && (
+          <div className="aviso-identidad" role="status">
+            <div>
+              <p><strong>Ya eres tú.</strong> Este gremio y tu personaje son los de siempre:
+              mismo nivel, mismo historial, mismas insignias.</p>
+              <p style={{ marginTop: 6 }}>
+                {identidadHecha.talis > 0 ? (
+                  <>Tus <strong><Talis n={identidadHecha.talis} /></strong> han pasado a ser
+                  tuyos y te acompañan a cualquier gremio al que entres.</>
+                ) : (
+                  <>Desde ahora tus Talis son tuyos y te acompañan a cualquier gremio al que entres.</>
+                )}
+              </p>
+            </div>
+            <button
+              className="btn btn-mini"
+              style={{ marginLeft: 'auto', flexShrink: 0 }}
+              onClick={() => setIdentidadHecha(null)}
+            >
+              Vale
+            </button>
+          </div>
+        )}
+
         {versionNueva && (
           <p className="aviso-carga" role="status">
             Hay una versión nueva del gremio. Esta lleva abierta un rato y puede que le falten arreglos.

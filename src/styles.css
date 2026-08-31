@@ -967,6 +967,65 @@ input:focus, select:focus, textarea:focus, button:focus-visible {
 
 .error-texto { color: var(--peligro); font-weight: 700; font-size: 0.9rem; }
 
+/* El aviso de una pantalla: lo que el servidor acaba de contestar.
+   ------------------------------------------------------------------
+   Esta regla FALTABA, y no era un detalle: diez mensajes de seis
+   pantallas —las de las fases 6 y 7— salían con `class="aviso"` y sin
+   ninguna regla detrás, o sea pintados como prosa normal. Los diez
+   llevan `role="alert"`, así que la app le contaba el error perfectamente
+   a un lector de pantalla y no se lo contaba a quien mira. «El PIN no es
+   correcto» tenía el mismo color, tamaño y peso que el párrafo de encima.
+
+   La forma es la de `.aviso-carga`: fondo teñido al 12 %, filo al 45 % y
+   el texto en `--tinta`, que sobre ese fondo sigue muy por encima de AA.
+   El color NO es lo único que lo distingue —esa es la regla que se
+   incumple sola cuando se tiñe y ya está—: lleva además filo izquierdo
+   grueso, peso 600 y su propio bloque. Quien no distinga el rojo lo ve
+   igual.
+   ------------------------------------------------------------------ */
+.aviso {
+  margin: 12px 0 0;
+  padding: 10px 13px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 122, 110, 0.45);
+  border-left: 3px solid var(--peligro);
+  background: rgba(255, 122, 110, 0.12);
+  color: var(--tinta);
+  font-size: 0.92rem;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+/* Y el mismo bloque cuando la respuesta es buena. Sin esto, «Retirada.
+   Ya puedes pedirla otra vez» se leería como un fallo, que es peor que
+   no decir nada. */
+.aviso-bien {
+  border-color: rgba(159, 227, 216, 0.45);
+  border-left-color: var(--exito);
+  background: rgba(159, 227, 216, 0.12);
+}
+
+/* La confirmación de que la identidad quedó creada (2.41.0). Va en verde
+   y con más aire que un aviso: es la única vez que ocurre, y hasta hoy
+   la app no decía absolutamente nada al volver del enlace del correo. */
+.aviso-identidad {
+  margin: 0 4px 12px;
+  padding: 12px 14px;
+  border-radius: var(--radio-s);
+  border: 1px solid rgba(159, 227, 216, 0.4);
+  border-left: 3px solid var(--exito);
+  background: rgba(159, 227, 216, 0.12);
+  color: var(--tinta);
+  font-size: 0.92rem;
+  line-height: 1.5;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.aviso-identidad p { margin: 0; }
+.aviso-identidad strong { color: var(--exito); }
+
 /* La huella de un error no es prosa: son rutas, identificadores y
    llamadas encadenadas sin un solo espacio donde partir. Sin esto, una
    sola línea como `supabase.from(...).select(...).eq(...).in` saca la

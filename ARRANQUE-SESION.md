@@ -7111,6 +7111,66 @@ y no debería perderse en un chat. Lo que se vio en directo:
 Nada de esto es un fallo; es diseño con aristas. Pero el segundo punto es barato
 de arreglar y es el que más desconcierta.
 
+---
+
+## 7ce. La revisión de usabilidad, y el estilo que faltaba (31 de agosto) · 2.41.0
+
+Sale de la primera opinión de uso real (§7cd, «es poco intuitivo todo») pasada
+por el rubro de `ui-ux-pro-max`. La conclusión corta: **los fundamentos están
+bien y el problema estaba en otro sitio.**
+
+Lo que se midió y salió bien, que es lo que calibra el resto: los siete tokens
+de texto pasan **AA sobre las tres superficies** (el peor, 5,3:1); objetivos
+táctiles de 44/48 px en todo menos un sitio; `viewport-fit=cover` sin bloquear
+el zoom; `100dvh` y no `100vh`; ocho bloques de `prefers-reduced-motion` —el
+sonido incluido—; y el modal con `86dvh`, `overflow-y: auto`,
+`overscroll-behavior: contain`, safe-area y asidero.
+
+### El hallazgo: `.aviso` no existía
+
+**Diez `className="aviso"` en seis pantallas, y ninguna regla en `styles.css`.**
+Solo estaban sus primas (`.aviso-texto`, `.aviso-config`, `.aviso-carga`,
+`.aviso-panel`), o sea que la familia se pensó y el miembro principal se quedó
+sin escribir. Las pantallas viejas sí tienen su estilo —`.error-texto`, 34
+usos—; las de las fases 6 y 7 lo perdieron por el camino.
+
+Y lo que lo hacía invisible desde dentro: **los diez llevan `role="alert"`**. La
+app le contaba el error perfectamente a un lector de pantalla y no se lo contaba
+a quien mira. Build, linter y tests en verde, porque una clase que no existe es
+CSS que no se aplica, no un error.
+
+El barrido completo: **363 clases pedidas por el JSX, 7 sin regla**. Las otras
+seis son envoltorios inertes, sin un solo selector que las use; quedan
+declaradas una a una en el test.
+
+### Lo que se hizo
+
+1. **La regla `.aviso`**, con la forma de `.aviso-carga`. Y no se distingue solo
+   por el color —esa es la regla que se incumple sola cuando uno tiñe el fondo y
+   ya está—: filo izquierdo de 3 px y peso 600, así que quien no vea el rojo lo
+   ve igual. Con `.aviso-bien` para la única respuesta buena que hay.
+2. **La confirmación al volver del enlace.** «Ya eres tú», qué NO ha cambiado
+   —gremio, nivel, historial, insignias— y **cuántos Talis** se han mudado a la
+   cartera. La cifra se lee de `conversiones.importe` y es degradable: sin ella
+   la frase sigue siendo verdad. `role="status"`, no `alert`: no es un problema.
+3. **`tests/estilos-huerfanos.test.js`**, que cruza las dos listas. Comprobado
+   que reproduce el fallo: al quitar la regla, tres tests caen y nombran el
+   fichero.
+
+### Lo que se deja escrito y NO se hizo
+
+- **`--linea` (#33335c) da 1,2–1,5:1** sobre las superficies y se usa 57 veces,
+  bordes de campo y barra de XP incluidos. WCAG pide 3:1 para el contorno de un
+  control. Hoy los campos se distinguen por su fondo, no por su filo.
+- **`.pastilla-habilidad` mide 40 px** de alto, único sitio por debajo de 44.
+- **La descubribilidad de Expandirse** —un botón a media pantalla en Progreso—
+  es decisión de la especificación (`R-48`: se pide justo cuando hace falta), así
+  que cambiarla es producto y no arreglo. Pero es la razón de que no lo encuentre
+  quien no vaya buscándolo, y una segunda puerta desde ⚙️ no tocaría la primera.
+- **Ningún sitio dice si tienes identidad o entras con la clave de casa.**
+  `clase_credencial` se consulta en una sola pantalla y no se refleja en Ajustes
+  ni en Datos.
+
 # CÓMO ARRANCAR LA SIGUIENTE SESIÓN
 
 **Estado al cerrar el 31-ago-2026, por la noche.**
@@ -7124,7 +7184,7 @@ de arreglar y es el que más desconcierta.
 | Red de seguridad | `gh-pages` sincronizada el 31-ago con la 2.40.2 (`deploy-2026-08-31-0842`). Llevaba desde el 21-ago |
 | Nada sin publicar | el repo y producción sirven lo mismo |
 | Migraciones aplicadas | hasta la **061**. La siguiente libre es la **062** |
-| Tests | 1661 en 88 ficheros |
+| Tests | 1667 en 89 ficheros |
 | Plan y especificación | `~/Library/Mobile Documents/com~apple~CloudDocs/ClaudeCode/specs/` |
 
 **Lo primero, siempre:** `git fetch` antes de elegir número de migración o de

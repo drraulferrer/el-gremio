@@ -302,6 +302,10 @@ function Conversion({ family, profile }) {
   const [pin, setPin] = useState('')
   const [ocupado, setOcupado] = useState(false)
   const [aviso, setAviso] = useState('')
+  // Casi todos los avisos de esta pantalla son un «no se puede». El de
+  // haber retirado la solicitud es lo contrario, y pintarlo en rojo como
+  // los demás sería peor que no decir nada.
+  const [avisoBien, setAvisoBien] = useState(false)
   const [enviado, setEnviado] = useState(false)
   // El captcha, igual que en el acceso. Sin él esta pantalla NO puede
   // funcionar en producción: Turnstile está encendido en el proyecto y
@@ -321,6 +325,7 @@ function Conversion({ family, profile }) {
 
   async function empezar() {
     setOcupado(true)
+    setAvisoBien(false)
     setAviso('')
 
     // 1 · La solicitud, que es la que comprueba el PIN y aparta el correo.
@@ -389,12 +394,14 @@ function Conversion({ family, profile }) {
    */
   async function retirar() {
     setRetirando(true)
+    setAvisoBien(false)
     setAviso('')
     const codigo = await cancelarConversion(estorba.id, await hashPin(pin))
     setRetirando(false)
     const mensaje = mensajeDeCancelar(codigo)
     if (mensaje) return setAviso(mensaje)
     setEstorba(null)
+    setAvisoBien(true)
     setAviso('Retirada. Ya puedes pedirla otra vez.')
   }
 
@@ -468,7 +475,9 @@ function Conversion({ family, profile }) {
           Supabase y el error se explica arriba. */}
       <Captcha key={'conversion:' + intento} accion="conversion" onToken={setToken} />
 
-      {aviso && <p className="aviso" role="alert">{aviso}</p>}
+      {aviso && (
+        <p className={avisoBien ? 'aviso aviso-bien' : 'aviso'} role="alert">{aviso}</p>
+      )}
 
       {estorba && (
         <div className="aviso-config" style={{ marginTop: 12 }}>

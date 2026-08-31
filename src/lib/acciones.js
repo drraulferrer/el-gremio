@@ -778,6 +778,31 @@ export async function cancelarConversion(id, pinHash) {
 }
 
 /**
+ * Cuantos Talis se acaban de mudar a la cartera.
+ *
+ * Existe para poder decirlo en pantalla: `completar_conversion` devuelve
+ * solo una palabra, y una confirmacion que no dice la cifra deja a la
+ * persona con la misma duda que tenia antes de abrir el enlace.
+ *
+ * Degradable a proposito: si no se puede leer, la confirmacion sale sin
+ * numero en vez de no salir.
+ */
+export async function leerLoQueTrajoLaIdentidad() {
+  const { data, error } = await supabase
+    .from('conversiones')
+    .select('importe')
+    .eq('estado', 'completada')
+    .order('resuelta_at', { ascending: false })
+    .limit(1)
+  if (error) {
+    log.warn('conversion.importe.error', { detalle: String(error.message || error) })
+    return null
+  }
+  const importe = (data || [])[0]?.importe
+  return Number.isFinite(importe) ? importe : null
+}
+
+/**
  * Terminar la identidad propia: el paso 3 de `F-9`, el que ocurre al
  * volver desde el enlace del correo y **desde la sesion nueva**.
  *
