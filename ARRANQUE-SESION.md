@@ -7056,7 +7056,7 @@ petición entra.
 | | |
 |---|---|
 | Repositorio | `~/el-gremio`, rama `main` |
-| Versión desplegada | **2.40.2** · `npm run health` en verde · supabase 17.6 |
+| Versión desplegada | **2.40.2** · `npm run health` en verde · `a042c60`, supabase 17.6 |
 | Nada sin publicar | el repo y producción sirven lo mismo |
 | Migraciones aplicadas | hasta la **061**. La siguiente libre es la **062** |
 | Tests | 1661 en 88 ficheros |
