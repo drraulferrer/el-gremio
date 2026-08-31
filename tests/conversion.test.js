@@ -1,6 +1,9 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
-import { RESPUESTAS_TERMINAR, mensajeDeTerminar } from '../src/lib/expansion'
+import {
+  RESPUESTAS_TERMINAR, mensajeDeTerminar,
+  RESPUESTAS_CANCELAR, mensajeDeCancelar
+} from '../src/lib/expansion'
 
 // ------------------------------------------------------------------
 // Convertir un perfil en persona (migración 047, flujo F-9).
@@ -292,6 +295,54 @@ describe('lo que se dice al volver del enlace', () => {
 
   it('un código desconocido no se traga: avisa', () => {
     expect(mensajeDeTerminar('algo_nuevo_del_servidor')).toContain('No se ha podido terminar')
+  })
+})
+
+describe('retirar una solicitud que estorba', () => {
+  // El índice «una pendiente por personaje» es una trampa sin esto, y su
+  // propia migración lo dice. La trampa se cerró sola el 30-ago: el alta
+  // falló por el captcha, la solicitud se quedó viva, y el reintento
+  // contestaba «ya hay una en marcha, mira tu correo» — un correo que no
+  // existía, durante 72 horas y sin forma de retirarla desde la app.
+  const cancelar = soloSql(funcion(schema, 'cancelar_conversion'))
+
+  it('la app la llama, que hasta hoy no lo hacía nadie', () => {
+    expect(leer('src/lib/acciones.js')).toContain("supabase.rpc('cancelar_conversion'")
+    expect(leer('src/screens/Expandirse.jsx')).toContain('cancelarConversion')
+  })
+
+  it('y solo cuando el servidor dice que hay una en marcha', () => {
+    // No se ofrece «por si acaso»: se ofrece con el código que lo explica.
+    expect(leer('src/screens/Expandirse.jsx'))
+      .toContain("if (codigo === 'ya_tienes_solicitud')")
+  })
+
+  it('ningún código sale de la manga', () => {
+    for (const codigo of Object.keys(RESPUESTAS_CANCELAR)) {
+      expect(cancelar, `cancelar_conversion no devuelve '${codigo}'`).toContain(`'${codigo}'`)
+    }
+  })
+
+  it('el PIN se exige también para retirarla', () => {
+    // Pedirla exige PIN; retirarla también, o cualquiera que pase por
+    // delante del móvil podría tumbar la conversión de otra persona.
+    expect(cancelar).toContain('pin_incorrecto')
+    expect(leer('src/screens/Expandirse.jsx')).toContain('cancelarConversion(estorba.id, await hashPin(pin))')
+  })
+
+  it('retirar y volver a pedir son dos actos, no uno', () => {
+    // Si la solicitud anterior SÍ estaba viva de verdad —el correo salió y
+    // alguien está a punto de abrirlo—, reintentar solo la rompería.
+    const pantalla = leer('src/screens/Expandirse.jsx')
+    expect(pantalla).toContain('Ya puedes pedirla otra vez')
+    expect(pantalla).not.toMatch(/setEstorba\(null\)[\s\S]{0,80}empezar\(\)/)
+  })
+
+  it('que ya estuviera resuelta no es un error que contar', () => {
+    expect(mensajeDeCancelar('ok')).toBe(null)
+    expect(mensajeDeCancelar('ya_resuelta')).toBe(null)
+    expect(mensajeDeCancelar('pin_incorrecto')).toContain('PIN')
+    expect(mensajeDeCancelar('vete_a_saber')).toContain('No se ha podido retirar')
   })
 })
 

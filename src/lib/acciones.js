@@ -732,6 +732,52 @@ export async function solicitarConversion(profileId, correo, pinHash) {
 }
 
 /**
+ * La solicitud viva que estorba, si la hay.
+ *
+ * `conversiones` tiene politica de lectura para quien esta en el gremio
+ * (047), asi que se lee la tabla y no hace falta una RPC. Devuelve la que
+ * BLOQUEA: la del mismo personaje o la del mismo correo, que son los dos
+ * indices unicos que impiden pedir otra.
+ */
+export async function leerConversionQueEstorba(familyId, profileId, correo) {
+  const { data, error } = await supabase
+    .from('conversiones')
+    .select('id, profile_id, correo, solicitada_at, caduca_at')
+    .eq('family_id', familyId)
+    .eq('estado', 'pendiente')
+  if (error) {
+    log.warn('conversion.pendiente.error', { detalle: String(error.message || error) })
+    return null
+  }
+  const buscado = String(correo || '').trim().toLowerCase()
+  return (data || []).find((c) => c.profile_id === profileId || c.correo === buscado) || null
+}
+
+/**
+ * Retirar la propia solicitud. Existe porque el indice de «una pendiente
+ * por personaje» es una trampa sin esto: quien se equivoque de correo —o a
+ * quien le falle el alta, como paso con el captcha el 30-ago— se queda
+ * esperando 72 horas con un mensaje que le manda a mirar un correo que no
+ * existe.
+ *
+ * La funcion esta en la base desde la 047 y hasta hoy no la llamaba nadie.
+ */
+export async function cancelarConversion(id, pinHash) {
+  const requestId = nuevoRequestId()
+  const { data, error } = await supabase.rpc('cancelar_conversion', {
+    p_conversion: id, p_pin_hash: pinHash
+  })
+  if (error) {
+    log.error('conversion.cancelar.error', {
+      request_id: requestId, detalle: String(error.message || error)
+    })
+    return 'error'
+  }
+  log.info('conversion.cancelar', { request_id: requestId, resultado: data })
+  return data
+}
+
+/**
  * Terminar la identidad propia: el paso 3 de `F-9`, el que ocurre al
  * volver desde el enlace del correo y **desde la sesion nueva**.
  *

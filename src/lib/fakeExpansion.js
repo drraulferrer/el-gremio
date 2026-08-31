@@ -314,6 +314,34 @@ export function solicitarConversion(db, uid, { p_profile: profileId, p_correo, p
 }
 
 /**
+ * Espejo de `cancelar_conversion()` (047). Retira la propia solicitud, con
+ * el PIN por delante: es lo mismo que se pidió para crearla.
+ */
+export function cancelarConversion(db, uid, { p_conversion: id, p_pin_hash: pinHash }) {
+  if (!uid) return { codigo: 'sin_sesion' }
+  const c = (db.conversiones || []).find((x) => x.id === id)
+  if (!c) return { codigo: 'no_existe' }
+  if (!esMiGremio(db, uid, c.family_id)) return { codigo: 'no_es_tuyo' }
+
+  const fam = (db.families || []).find((f) => f.id === c.family_id)
+  if (!fam?.parent_pin_hash || !pinHash || pinHash !== fam.parent_pin_hash) {
+    return { codigo: 'pin_incorrecto' }
+  }
+  if (c.estado !== 'pendiente') return { codigo: 'ya_resuelta' }
+
+  return {
+    codigo: 'ok',
+    db: {
+      ...db,
+      // Sin `resuelta_at`, igual que en Postgres: la función no lo toca.
+      conversiones: db.conversiones.map((x) =>
+        x.id === id ? { ...x, estado: 'cancelada', resultado: 'cancelada' } : x
+      )
+    }
+  }
+}
+
+/**
  * Espejo de `completar_conversion()` (047), que es lo que en producción
  * ocurre al volver desde el enlace del correo.
  *

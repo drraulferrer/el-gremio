@@ -6,10 +6,12 @@ import { supabase, hashPin } from '../lib/supabase'
 import { recordarIdentidadEnMarcha } from '../lib/acceso'
 import {
   leerOportunidades, leerLlaves, forjarLlave, solicitarConversion,
-  leerTiposOfrecidos, crearGremioConLlave
+  leerTiposOfrecidos, crearGremioConLlave,
+  leerConversionQueEstorba, cancelarConversion
 } from '../lib/acciones'
 import {
-  loQueFalta, llavesDisponibles, mensajeDeForja, mensajeDeConversion, mensajeDeCrear
+  loQueFalta, llavesDisponibles, mensajeDeForja, mensajeDeConversion,
+  mensajeDeCrear, mensajeDeCancelar
 } from '../lib/expansion'
 
 // ------------------------------------------------------------------
@@ -311,6 +313,9 @@ function Conversion({ family, profile }) {
   const [token, setToken] = useState('')
   // Su token es de UN SOLO USO: cada intento fallido remonta el widget.
   const [intento, setIntento] = useState(0)
+  // La solicitud viva que impide pedir otra, si la hay. Ver abajo.
+  const [estorba, setEstorba] = useState(null)
+  const [retirando, setRetirando] = useState(false)
 
   const puedeEnviar = correo.includes('@') && clave.length >= 8 && pin.length >= 4
 
@@ -325,6 +330,14 @@ function Conversion({ family, profile }) {
     const mensaje = mensajeDeConversion(codigo)
     if (mensaje) {
       setAviso(mensaje)
+      // «Ya hay una solicitud en marcha» es un callejón sin salida: hay dos
+      // índices únicos —uno por personaje y otro por correo— y hasta que esa
+      // solicitud caduque, 72 horas después, no se puede pedir otra. Si
+      // además el alta anterior falló, el correo que dice mirar no existe.
+      // Así que aquí se busca cuál es y se ofrece retirarla.
+      if (codigo === 'ya_tienes_solicitud') {
+        setEstorba(await leerConversionQueEstorba(family.id, profile.id, correo))
+      }
       setOcupado(false)
       return
     }
@@ -363,6 +376,26 @@ function Conversion({ family, profile }) {
     // caducado» en vez de callarse. Ver `acceso.js`.
     recordarIdentidadEnMarcha(correo)
     setEnviado(true)
+  }
+
+  /**
+   * Retirarla. Con el PIN que ya está escrito arriba: el servidor lo exige
+   * igual que para pedirla, y volver a preguntarlo aquí sería preguntar dos
+   * veces lo mismo en la misma pantalla.
+   *
+   * No se reintenta sola a propósito. Si la solicitud anterior sí estaba en
+   * marcha de verdad —el correo salió y alguien está a punto de abrirlo—,
+   * retirarla y volver a pedirla por su cuenta rompería justo eso.
+   */
+  async function retirar() {
+    setRetirando(true)
+    setAviso('')
+    const codigo = await cancelarConversion(estorba.id, await hashPin(pin))
+    setRetirando(false)
+    const mensaje = mensajeDeCancelar(codigo)
+    if (mensaje) return setAviso(mensaje)
+    setEstorba(null)
+    setAviso('Retirada. Ya puedes pedirla otra vez.')
   }
 
   if (enviado) {
@@ -436,6 +469,23 @@ function Conversion({ family, profile }) {
       <Captcha key={'conversion:' + intento} accion="conversion" onToken={setToken} />
 
       {aviso && <p className="aviso" role="alert">{aviso}</p>}
+
+      {estorba && (
+        <div className="aviso-config" style={{ marginTop: 12 }}>
+          <p className="suave">
+            Hay una solicitud sin terminar para <strong>{estorba.correo}</strong>, pedida
+            el {new Date(estorba.solicitada_at).toLocaleDateString()}. Mientras siga ahí no
+            se puede pedir otra.
+          </p>
+          <p className="suave">
+            Si no te llegó ningún correo, retírala y vuelve a empezar. Si sí te llegó y
+            aún no lo has abierto, mejor abre ese enlace.
+          </p>
+          <button className="btn btn-bloque" disabled={retirando} onClick={retirar}>
+            {retirando ? 'Retirando…' : 'Retirar esa solicitud'}
+          </button>
+        </div>
+      )}
 
       <button className="btn btn-bloque" disabled={!puedeEnviar || ocupado} onClick={empezar}>
         {ocupado ? 'Un momento…' : 'Crear mi identidad'}

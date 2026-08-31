@@ -143,6 +143,28 @@ export function mensajeDeConversion(codigo) {
 }
 
 /**
+ * Retirar una solicitud que estorba.
+ *
+ * `ya_resuelta` va en `null` a propósito: si alguien la retiró desde otro
+ * sitio mientras tanto, el estado que se pedía ya existe y no hay nada que
+ * contar. Cualquier otra cosa sí, porque el camino se queda cortado.
+ */
+export const RESPUESTAS_CANCELAR = {
+  ok: null,
+  ya_resuelta: null,
+  sin_sesion: 'Se ha cerrado la sesión. Vuelve a entrar.',
+  no_existe: 'Esa solicitud ya no está.',
+  no_es_tuyo: 'Esa solicitud no es de este gremio.',
+  pin_incorrecto: 'El PIN no es correcto.'
+}
+
+export function mensajeDeCancelar(codigo) {
+  return codigo in RESPUESTAS_CANCELAR
+    ? RESPUESTAS_CANCELAR[codigo]
+    : 'No se ha podido retirar la solicitud. Inténtalo dentro de un rato.'
+}
+
+/**
  * Y el final del camino: lo que contesta `completar_conversion()` cuando
  * se vuelve desde el enlace del correo.
  *

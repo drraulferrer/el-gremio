@@ -18,6 +18,21 @@ verdad duele en esta app: que el esquema y el cliente dejen de encajar.
 
 ---
 
+## 2.40.2 · 31 de agosto de 2026
+
+**Una solicitud de identidad atascada ya se puede retirar.** Solo puede haber
+una en marcha a la vez, y hasta ahora eso era un callejón sin salida: si el alta
+fallaba, la solicitud se quedaba viva 72 horas y el reintento contestaba «ya hay
+una en marcha, mira tu correo» — un correo que en ese caso nunca se había
+enviado.
+
+Ahora, cuando eso pasa, la pantalla dice **de quién es la solicitud y de cuándo**
+y ofrece retirarla, con el PIN del gremio por delante. Retirarla y volver a
+pedirla son dos pasos a propósito: si el correo sí salió y alguien está a punto
+de abrirlo, reintentar por su cuenta lo rompería.
+
+---
+
 ## 2.40.1 · 31 de agosto de 2026
 
 **Crear una identidad propia ya manda el correo.** La pantalla pedía el correo,

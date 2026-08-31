@@ -30,8 +30,9 @@ import {
   pertenenciasActivas, plantillaDeFamilia, puede, usuarioPorCorreo
 } from './fakeIdentidad'
 import {
-  completarConversion, forjarLlave, misLlaves, misPertenencias,
-  oportunidadesExpansion, plantillaDeGremio, saldosVisibles, solicitarConversion
+  cancelarConversion, completarConversion, forjarLlave, misLlaves,
+  misPertenencias, oportunidadesExpansion, plantillaDeGremio, saldosVisibles,
+  solicitarConversion
 } from './fakeExpansion'
 
 // ------------------------------------------------------------------
@@ -686,6 +687,7 @@ const FUNCIONES = {
 
   solicitar_conversion: (db, uid, a) => escalar(solicitarConversion(db, uid, a)),
   completar_conversion: (db, uid, a) => escalar(completarConversion(db, uid, a.p_clave ?? null)),
+  cancelar_conversion: (db, uid, a) => escalar(cancelarConversion(db, uid, a)),
 
   crear_gremio_con_llave: (db, uid, a) => unaFila(crearGremioConLlave(db, uid, a)),
   invitar: (db, uid, a) => escalar(invitar(db, uid, a)),

@@ -109,6 +109,7 @@ describe('los códigos de respuesta son los de la función de verdad', () => {
     ['forjarLlave', 'forjar_llave', 'fakeExpansion'],
     ['solicitarConversion', 'solicitar_conversion', 'fakeExpansion'],
     ['completarConversion', 'completar_conversion', 'fakeExpansion'],
+    ['cancelarConversion', 'cancelar_conversion', 'fakeExpansion'],
     ['crearGremioConLlave', 'crear_gremio_con_llave', 'fakeRpc'],
     ['invitar', 'invitar', 'fakeRpc'],
     ['rechazarInvitacion', 'rechazar_invitacion', 'fakeRpc'],
@@ -307,6 +308,49 @@ describe('la demo se comporta como la base', () => {
       expect(asientos.map((m) => m.importe).sort((a, b) => a - b)).toEqual([-300, 300])
       // Y la pertenencia: gestor, no titular.
       expect(db.pertenencias.find((p) => p.persona === persona).rol).toBe('gestor')
+    })
+
+    it('una solicitud se puede retirar, y hace falta el PIN', async () => {
+      const { adulto } = await fundar()
+      const { data: pedida } = await demo.rpc('solicitar_conversion', {
+        p_profile: adulto.id, p_correo: 'mia@ejemplo.test', p_pin_hash: 'pinpinpin'
+      })
+      expect(pedida).toBe('ok')
+
+      // Mientras siga viva no entra otra: son dos índices únicos, y sin
+      // poder retirarla eso son 72 horas de espera con un mensaje que
+      // manda a mirar un correo que a lo mejor no se llegó a enviar.
+      const { data: otra } = await demo.rpc('solicitar_conversion', {
+        p_profile: adulto.id, p_correo: 'otra@ejemplo.test', p_pin_hash: 'pinpinpin'
+      })
+      expect(otra).toBe('ya_tienes_solicitud')
+
+      const id = almacen().conversiones[0].id
+      const { data: sinPin } = await demo.rpc('cancelar_conversion', {
+        p_conversion: id, p_pin_hash: 'lo-que-sea'
+      })
+      expect(sinPin).toBe('pin_incorrecto')
+      expect(almacen().conversiones[0].estado).toBe('pendiente')
+
+      const { data } = await demo.rpc('cancelar_conversion', {
+        p_conversion: id, p_pin_hash: 'pinpinpin'
+      })
+      expect(data).toBe('ok')
+      expect(almacen().conversiones[0]).toMatchObject({
+        estado: 'cancelada', resultado: 'cancelada'
+      })
+
+      // Y retirada la anterior, ya se puede pedir otra.
+      const { data: alFin } = await demo.rpc('solicitar_conversion', {
+        p_profile: adulto.id, p_correo: 'otra@ejemplo.test', p_pin_hash: 'pinpinpin'
+      })
+      expect(alFin).toBe('ok')
+
+      // Retirar dos veces no es un error: el estado que se pedía ya existe.
+      const { data: repetida } = await demo.rpc('cancelar_conversion', {
+        p_conversion: id, p_pin_hash: 'pinpinpin'
+      })
+      expect(repetida).toBe('ya_resuelta')
     })
 
     it('el personaje conserva su progreso: convertirse no reinicia nada', async () => {

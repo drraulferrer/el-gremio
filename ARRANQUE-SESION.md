@@ -7010,6 +7010,43 @@ que el servidor rechazaba por una razón que no está en ningún fichero de este
 repositorio. **Cuando algo del correo no llega, el primer sitio es
 `Authentication → Auth Logs`**, y no el SMTP ni los topes.
 
+---
+
+## 7cb. Retirar la solicitud que estorba (31 de agosto) · 2.40.2
+
+El efecto secundario de §7ca, cerrado. `conversiones` tiene dos índices únicos
+parciales —uno por personaje y otro por correo— y `cancelar_conversion` existe
+desde la 047 para poder deshacer eso. **No la llamaba nadie**, así que una
+solicitud que no llegó a mandar correo bloqueaba el reintento 72 horas con el
+mensaje más confuso posible.
+
+La fila del 30-ago se retiró a mano por SQL —comprobado antes que su cuenta
+nunca se creó (`cuenta_creada = 0`), o sea que no había ningún enlace vivo que
+romper— dejándola **exactamente como la deja la función**: `estado` y
+`resultado` a `'cancelada'` y `resuelta_at` sin tocar, que es lo que hace el
+`update` de la 047.
+
+### Se ofrece, no se hace solo
+
+Retirar y volver a pedir son **dos actos**. Si la solicitud anterior sí estaba
+viva de verdad —el correo salió y alguien está a punto de abrir su enlace—,
+reintentar por su cuenta rompería justo eso. La pantalla dice de quién es la
+solicitud y de cuándo, y deja elegir: «si no te llegó ningún correo, retírala;
+si sí te llegó, mejor abre ese enlace».
+
+Y el PIN se exige también para retirarla, no solo para pedirla: sin eso,
+cualquiera que pase por delante del móvil desactivaría la conversión de otra
+persona.
+
+### Cómo se comprobó
+
+`npm run verify`: **1661 tests en 88 ficheros**. En `dev:demo`, sembrando el
+atasco exacto del 30-ago —solicitud viva, sin cuenta, sin correo—: el reintento
+saca el aviso y el bloque nuevo con el correo y la fecha; **con el PIN mal
+contesta «El PIN no es correcto» y la fila no se toca**; con el bueno la retira
+—`estado` y `resultado` a `'cancelada'`, `resuelta_at` intacto— y la segunda
+petición entra.
+
 # CÓMO ARRANCAR LA SIGUIENTE SESIÓN
 
 **Estado al cerrar el 31-ago-2026, por la noche.**
@@ -7019,10 +7056,10 @@ repositorio. **Cuando algo del correo no llega, el primer sitio es
 | | |
 |---|---|
 | Repositorio | `~/el-gremio`, rama `main` |
-| Versión desplegada | **2.40.1** · `npm run health` en verde · `c0c5cb6`, supabase 17.6 |
+| Versión desplegada | **2.40.2** · `npm run health` en verde · supabase 17.6 |
 | Nada sin publicar | el repo y producción sirven lo mismo |
 | Migraciones aplicadas | hasta la **061**. La siguiente libre es la **062** |
-| Tests | 1653 en 88 ficheros |
+| Tests | 1661 en 88 ficheros |
 | Plan y especificación | `~/Library/Mobile Documents/com~apple~CloudDocs/ClaudeCode/specs/` |
 
 **Lo primero, siempre:** `git fetch` antes de elegir número de migración o de
@@ -7098,13 +7135,11 @@ Y dos cosas que no son de ninguna fase y siguen abiertas:
    crearse una identidad personal. Ver §7bq.
 3. **El `truncate` para `authenticated`**, abierto desde la Fase 0.
 4. **`zona_de_perfil`** es una función huérfana desde la 018: no la llama nadie.
-   Y desde el 31-ago se le conoce una hermana con consecuencias:
-   **`cancelar_conversion` tampoco la llama nadie**, y eso convierte el índice
-   «una pendiente por personaje» en una trampa de 72 horas. Si un alta falla
-   —como pasó con el captcha de §7ca— la solicitud se queda viva, el reintento
-   contesta «Ya hay una solicitud en marcha. Mira tu correo» y no hay ningún
-   correo que mirar ni forma de retirarla desde la app. Su propia migración
-   dice que existe justo para eso; le falta el botón.
+   ~~Y `cancelar_conversion` tampoco.~~ **Enganchada el 31-ago** (2.40.2): la
+   pantalla de conversión detecta la solicitud que estorba, dice de quién es y
+   de cuándo, y ofrece retirarla con el PIN. Retirar y volver a pedir son dos
+   actos, no uno: si el correo de la anterior sí salió, reintentar solo lo
+   rompería.
 5. **`CAP-12` vs `saldos_visibles()`**: hoy la casa ve el saldo de sus
    personajes, que es lo que sostiene `CNV-7`. En la **Fase 6**, cuando un
    gremio pueda tener personas que no viven juntas, **hay que volver ahí**.
