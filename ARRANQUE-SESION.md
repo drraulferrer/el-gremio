@@ -7047,6 +7047,27 @@ contesta «El PIN no es correcto» y la fila no se toca**; con el bueno la retir
 —`estado` y `resultado` a `'cancelada'`, `resuelta_at` intacto— y la segunda
 petición entra.
 
+---
+
+## 7cc. La red de seguridad, al día (31 de agosto)
+
+`gh-pages` llevaba en la **2.14.x del 21-ago**, o sea que el rollback por DNS de
+§7n habría devuelto una app diez versiones por detrás y sin nada de las Fases 5
+a 7. Sincronizada con `npm run deploy`: sirve la 2.40.2, con su `CNAME` dentro,
+que es lo que la mantiene lista para el rollback (y lo que impide mirarla desde
+`drraulferrer.github.io`, como explica §7n).
+
+Etiqueta `deploy-2026-08-31-0842`. Comprobado que el dominio lo sigue sirviendo
+**Vercel** —`server: Vercel`, `origen: vercel`— y que las dos copias van a la
+misma versión.
+
+**Y una pequeñez que se ve al mirar la rama:** en `public/` vive un `.DS_Store`
+que Vite copia a `dist/` y que por tanto se publica en los dos sitios. Está en
+`.gitignore` —o sea que el proyecto ya lo considera basura— pero eso solo lo
+mantiene fuera del repositorio, no fuera del build. Es inofensivo y vuelve solo
+cada vez que el Finder toca la carpeta; el arreglo de verdad es excluirlo en el
+build, y es de una línea.
+
 # CÓMO ARRANCAR LA SIGUIENTE SESIÓN
 
 **Estado al cerrar el 31-ago-2026, por la noche.**
@@ -7057,6 +7078,7 @@ petición entra.
 |---|---|
 | Repositorio | `~/el-gremio`, rama `main` |
 | Versión desplegada | **2.40.2** · `npm run health` en verde · `a042c60`, supabase 17.6 |
+| Red de seguridad | `gh-pages` sincronizada el 31-ago con la 2.40.2 (`deploy-2026-08-31-0842`). Llevaba desde el 21-ago |
 | Nada sin publicar | el repo y producción sirven lo mismo |
 | Migraciones aplicadas | hasta la **061**. La siguiente libre es la **062** |
 | Tests | 1661 en 88 ficheros |
