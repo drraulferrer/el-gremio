@@ -7019,7 +7019,7 @@ repositorio. **Cuando algo del correo no llega, el primer sitio es
 | | |
 |---|---|
 | Repositorio | `~/el-gremio`, rama `main` |
-| Versión desplegada | **2.40.1** · `npm run health` en verde · supabase 17.6 |
+| Versión desplegada | **2.40.1** · `npm run health` en verde · `c0c5cb6`, supabase 17.6 |
 | Nada sin publicar | el repo y producción sirven lo mismo |
 | Migraciones aplicadas | hasta la **061**. La siguiente libre es la **062** |
 | Tests | 1653 en 88 ficheros |
@@ -7098,6 +7098,13 @@ Y dos cosas que no son de ninguna fase y siguen abiertas:
    crearse una identidad personal. Ver §7bq.
 3. **El `truncate` para `authenticated`**, abierto desde la Fase 0.
 4. **`zona_de_perfil`** es una función huérfana desde la 018: no la llama nadie.
+   Y desde el 31-ago se le conoce una hermana con consecuencias:
+   **`cancelar_conversion` tampoco la llama nadie**, y eso convierte el índice
+   «una pendiente por personaje» en una trampa de 72 horas. Si un alta falla
+   —como pasó con el captcha de §7ca— la solicitud se queda viva, el reintento
+   contesta «Ya hay una solicitud en marcha. Mira tu correo» y no hay ningún
+   correo que mirar ni forma de retirarla desde la app. Su propia migración
+   dice que existe justo para eso; le falta el botón.
 5. **`CAP-12` vs `saldos_visibles()`**: hoy la casa ve el saldo de sus
    personajes, que es lo que sostiene `CNV-7`. En la **Fase 6**, cuando un
    gremio pueda tener personas que no viven juntas, **hay que volver ahí**.
