@@ -7068,6 +7068,49 @@ mantiene fuera del repositorio, no fuera del build. Es inofensivo y vuelve solo
 cada vez que el Finder toca la carpeta; el arreglo de verdad es excluirlo en el
 build, y es de una línea.
 
+---
+
+## 7cd. La primera identidad de verdad (31 de agosto) · COMPROBADO EN PRODUCCIÓN
+
+**El hito que llevaba pendiente desde el 29-ago.** Una identidad personal creada
+de punta a punta con una cuenta real y un correo real, que es lo que ni la demo
+ni ningún test podían comprobar. Medido en la base, no supuesto:
+
+| | |
+|---|---|
+| solicitud | 08:45:27 |
+| conversión completada | 08:45:56 · `resultado: ok` |
+| saldo | 449 locales → **449 en la cartera**, `saldo_local_cerrado` |
+| XP y marca de agua | 568 / 568, **intactas** |
+| pertenencia | `gestor · reclamacion` |
+| libro | **dos asientos**, −449 del saldo local y +449 en la cartera, mismo instante |
+
+O sea que las tres piezas de hoy funcionan juntas contra la base: el captcha que
+faltaba (§7ca), la vuelta del enlace (§7bz) y el botón de retirar (§7cb) — que
+se usó de verdad, porque hicieron falta dos intentos.
+
+**Con esto las Fases 5, 6 y 7 dejan de estar cerradas**: ya hay una credencial
+`personal` en producción, así que forjar, invitar, aceptar, reclamar y retirar
+la clave común son por fin alcanzables por alguien.
+
+### Y lo primero que dijo quien lo usó: «es poco intuitivo todo»
+
+Queda escrito aquí porque es la primera opinión de uso real que tiene esta parte
+y no debería perderse en un chat. Lo que se vio en directo:
+
+- **Crear la identidad vive dentro de Expandirse, dentro de Progreso.** Es
+  deliberado (`F-4` paso 3, `R-48`: se pide justo cuando hace falta y no «por si
+  acaso»), pero significa que no la encuentra quien no vaya a expandirse.
+- **Al volver del enlace no se dice nada.** La app termina la conversión y te
+  deja en tu gremio, sin una sola frase que confirme que ahora esa cuenta eres
+  tú y que tus Talis te acompañan. Que salió bien hubo que mirarlo por SQL.
+- **Seis palabras nuevas** para llegar a «quiero un segundo gremio»: identidad
+  propia, clave de casa, credencial compartida, llave, forjar, escalón.
+- **La solicitud única de 72 horas** es una regla invisible hasta que choca.
+
+Nada de esto es un fallo; es diseño con aristas. Pero el segundo punto es barato
+de arreglar y es el que más desconcierta.
+
 # CÓMO ARRANCAR LA SIGUIENTE SESIÓN
 
 **Estado al cerrar el 31-ago-2026, por la noche.**
