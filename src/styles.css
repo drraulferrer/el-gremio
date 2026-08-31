@@ -23,6 +23,17 @@
   --carta: #1d1d36;
   --carta-alta: #26264a;
   --linea: #33335c;
+  /* El filo de un CONTROL, que no es lo mismo que una raya decorativa.
+     `--linea` da 1,2-1,6:1 sobre las superficies: bien para separar dos
+     bloques, y muy por debajo del 3:1 que WCAG 1.4.11 pide para el
+     contorno de algo con lo que se interactúa. Y aquí no lo salvaba el
+     relleno: el fondo de un campo (#0e0e1e) da 1,05-1,33:1 contra la
+     superficie donde se posa, así que un campo de texto era casi
+     invisible hasta enfocarlo. (El anillo de foco sí estaba bien: 6,8:1.)
+     Este llega a 3,3:1 sobre `--carta-alta`, que es la peor de las tres,
+     y mantiene el índigo de la casa. Se usa SOLO en controles: subir
+     `--linea` habría encendido las 57 rayas de la app. */
+  --filo-control: #7373b6;
   --tinta: #eaeaf4;
   --tinta-suave: #9a9ac0;
 
@@ -478,7 +489,7 @@ button { font-family: inherit; }
 .btn-fantasma {
   background: transparent;
   color: var(--tinta);
-  border: 1.5px solid var(--linea);
+  border: 1.5px solid var(--filo-control);
   box-shadow: none;
 }
 .btn-fantasma:active { transform: translateY(1px); }
@@ -927,7 +938,7 @@ button.kid-avatar.con-retrato { background: none; border: none; width: auto; hei
 
 input, select, textarea {
   background: var(--tablero-hondo);
-  border: 1.5px solid var(--linea);
+  border: 1.5px solid var(--filo-control);
   border-radius: var(--radio-s);
   color: var(--tinta);
   padding: 11px 12px;
@@ -957,7 +968,7 @@ input:focus, select:focus, textarea:focus, button:focus-visible {
   width: 42px;
   height: 42px;
   border-radius: 12px;
-  border: 2px solid var(--linea);
+  border: 2px solid var(--filo-control);
   background: var(--tablero-hondo);
   font-size: 1.2rem;
   cursor: pointer;
@@ -1205,7 +1216,7 @@ input:focus, select:focus, textarea:focus, button:focus-visible {
 
 .picker-perfil {
   background: var(--carta);
-  border: 2px solid var(--linea);
+  border: 2px solid var(--filo-control);
   border-radius: 20px;
   padding: 18px 10px 14px;
   display: flex;
@@ -1329,7 +1340,7 @@ input:focus, select:focus, textarea:focus, button:focus-visible {
   cursor: pointer;
   padding: 12px 14px;
   background: var(--carta);
-  border: 1px solid var(--linea);
+  border: 1px solid var(--filo-control);
   border-radius: var(--radio-s);
   font-family: var(--display);
   font-weight: 600;
@@ -1523,7 +1534,7 @@ input:focus, select:focus, textarea:focus, button:focus-visible {
   width: 44px;
   height: 44px;
   border-radius: 999px;
-  border: 1px solid var(--linea);
+  border: 1px solid var(--filo-control);
   background: var(--carta);
   color: var(--tinta);
   font-size: 1.5rem;
@@ -1610,7 +1621,7 @@ input:focus, select:focus, textarea:focus, button:focus-visible {
 
 .boton-peque {
   width: 100%;
-  border: 2px solid var(--linea);
+  border: 2px solid var(--filo-control);
   background: var(--carta);
   color: var(--tinta);
   border-radius: 20px;
@@ -1987,7 +1998,7 @@ code { background: var(--tablero-hondo); padding: 2px 6px; border-radius: 6px; f
   min-width: 0;
   min-height: 44px;
   border-radius: 12px;
-  border: 1.5px solid var(--linea);
+  border: 1.5px solid var(--filo-control);
   background: var(--tablero-hondo);
   color: var(--tinta-suave);
   font-family: var(--display);
@@ -2042,7 +2053,7 @@ code { background: var(--tablero-hondo); padding: 2px 6px; border-radius: 6px; f
   padding: 8px 12px;
   margin-bottom: 6px;
   border-radius: var(--radio-s);
-  border: 1.5px solid var(--linea);
+  border: 1.5px solid var(--filo-control);
   background: var(--tablero-hondo);
   color: var(--tinta-suave);
   font-family: var(--cuerpo);
@@ -3300,7 +3311,7 @@ button.kid-avatar.latiendo { animation: latido-aviso 2.6s var(--ease-salida) inf
   padding: 12px 14px;
   text-align: left;
   border-radius: var(--radio);
-  border: 1.5px solid var(--linea);
+  border: 1.5px solid var(--filo-control);
   background: var(--carta);
   color: var(--tinta);
   font-family: var(--cuerpo);
@@ -3499,7 +3510,7 @@ button.kid-avatar.latiendo { animation: latido-aviso 2.6s var(--ease-salida) inf
   cursor: pointer;
   color: var(--tinta-suave);
   font-size: 0.88rem;
-  border-top: 1.5px solid var(--linea);
+  border-top: 1.5px solid var(--filo-control);
 }
 .pausadas-bloque[open] > summary { margin-bottom: 6px; }
 
@@ -3775,7 +3786,7 @@ button.kid-avatar.latiendo { animation: latido-aviso 2.6s var(--ease-salida) inf
   cursor: pointer;
   padding: 12px 14px;
   background: var(--carta);
-  border: 1px solid var(--linea);
+  border: 1px solid var(--filo-control);
   border-radius: var(--radio-s);
   font-family: var(--display);
   font-weight: 600;

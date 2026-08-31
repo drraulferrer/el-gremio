@@ -18,6 +18,19 @@ verdad duele en esta app: que el esquema y el cliente dejen de encajar.
 
 ---
 
+## 2.42.1 · 31 de agosto de 2026
+
+**Los campos y los botones se ven.** El contorno de un campo de texto tenía tan
+poco contraste con el fondo que había que adivinar dónde empezaba: se
+distinguía al tocarlo, porque el marco de foco sí estaba bien, pero no antes.
+Ahora el filo de todo lo que se toca —campos, botones de contorno, el selector
+de personaje, las casillas del plan— se ve sin buscarlo.
+
+Las rayas que solo separan bloques se quedan como estaban: eran las únicas que
+no había que tocar, y son cuarenta y cinco.
+
+---
+
 ## 2.42.0 · 31 de agosto de 2026
 
 **Tu identidad, en ⚙️ → Datos.** Hasta ahora crear una identidad propia solo se

@@ -7214,6 +7214,52 @@ con clave de casa —dos adultos sin identidad, «Soy Adulta» / «Soy Adulto»,
 peque y la junior fuera— y con identidad ya creada, que enseña el correo y no
 ofrece nada.
 
+---
+
+## 7cg. El filo de un control no es una raya (31 de agosto) · 2.42.1
+
+Segundo punto de §7ce. `--linea` (#33335c) daba **1,2-1,6:1** sobre las
+superficies y cargaba con los 57 bordes de la app, controles incluidos. WCAG
+1.4.11 pide **3:1** para el contorno de algo con lo que se interactúa.
+
+### Lo que hizo que el arreglo fuera necesario y no opinable
+
+La salida cómoda habría sido decir que el RELLENO ya identifica el campo. Se
+midió: el fondo de un `input` (`--tablero-hondo`, #0e0e1e) da **1,05-1,33:1**
+contra la superficie donde se posa. O sea que no lo identificaba ni el filo ni
+el relleno: **un campo de texto era casi invisible hasta enfocarlo.** El anillo
+de foco, en cambio, siempre estuvo bien (6,8-9:1), así que el problema era
+exactamente el estado de reposo.
+
+### Dos tokens, no uno más claro
+
+Subir `--linea` habría encendido las 57 rayas y cambiado el carácter de la app:
+la mayoría son separadores, y **la decoración está exenta de 1.4.11**. Así que
+se parte:
+
+| | |
+|---|---|
+| `--linea` (#33335c) | separadores, tarjetas, barras, ornamentos · **45 usos** |
+| `--filo-control` (#7373b6) | lo que se toca · **12 usos** |
+
+Los doce salieron de mirar el JSX uno a uno, no de adivinar por el nombre:
+`.picker-perfil`, `.setup-opcion`, `.plan-toggle`, `.boton-peque` y
+`.dia-casilla` parecen contenedores y son `<button>`; `.chip-habilidad` y
+`.pastilla-habilidad` parecen controles y son `<span>`, así que se quedan con la
+raya. Los tres `<summary>` entran: un desplegable es un control.
+
+#7373b6 da **3,33:1 sobre `--carta-alta`**, que es la peor de las tres
+superficies, y mantiene el índigo de la casa.
+
+### El test calcula, no compara cadenas
+
+`tests/contraste.test.js` implementa la fórmula de WCAG y comprueba: que los
+seis colores de texto pasan AA sobre las tres superficies, que `--filo-control`
+pasa 3:1 sobre las cuatro, que el anillo de foco también, **que `--linea` sigue
+por debajo de 3** —escrito como expectativa: si alguien la sube, el test le
+obliga a mirar las 45 rayas— y que ninguno de los doce controles se quedó atrás.
+Comprobado que cae si se devuelve `--filo-control` a su valor viejo.
+
 # CÓMO ARRANCAR LA SIGUIENTE SESIÓN
 
 **Estado al cerrar el 31-ago-2026, por la noche.**
@@ -7227,7 +7273,7 @@ ofrece nada.
 | Red de seguridad | `gh-pages` **a la par** con producción: 2.42.0 (`deploy-2026-08-31-1004`) |
 | Nada sin publicar | el repo y producción sirven lo mismo |
 | Migraciones aplicadas | hasta la **061**. La siguiente libre es la **062** |
-| Tests | 1671 en 89 ficheros |
+| Tests | 1682 en 90 ficheros |
 | Plan y especificación | `~/Library/Mobile Documents/com~apple~CloudDocs/ClaudeCode/specs/` |
 
 **Lo primero, siempre:** `git fetch` antes de elegir número de migración o de
