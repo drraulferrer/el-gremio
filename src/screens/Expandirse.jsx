@@ -295,8 +295,13 @@ function UsarLaLlave({ llave, onCreado }) {
  * deja la solicitud y se crea la cuenta, y la conversión **termina** al
  * volver desde el enlace del correo. Eso ya lo resuelve el arranque de la
  * app, que es donde llega esa vuelta.
+ *
+ * Se exporta porque tiene DOS puertas desde la 2.42.0: esta —al ir a
+ * expandirse, que es donde `R-48` dice que se pida— y ⚙️ → Datos, para
+ * quien va a buscarla en vez de tropezársela. Misma pieza en los dos
+ * sitios: dos formularios que piden lo mismo acabarían pidiéndolo distinto.
  */
-function Conversion({ family, profile }) {
+export function Conversion({ family, profile, conIntroduccion = true }) {
   const [correo, setCorreo] = useState('')
   const [clave, setClave] = useState('')
   const [pin, setPin] = useState('')
@@ -423,17 +428,32 @@ function Conversion({ family, profile }) {
 
   return (
     <div>
-      <h4>Para expandirte necesitas una identidad propia</h4>
-      <p className="suave">
-        Un gremio nuevo es tuyo, no de esta casa: hace falta saber quién lo abre. Por eso
-        una llave la forja una persona, y hoy <strong>{family.name}</strong> entra con una
-        clave que comparte todo el mundo.
-      </p>
-      <p className="suave">
-        <strong>Qué no cambia:</strong> la casa sigue entrando como siempre, tu personaje es
-        el mismo y no pierdes nada —ni nivel, ni historial, ni tus Talis, que pasan a ser
-        tuyos y te acompañan a cualquier gremio.
-      </p>
+      {/* La explicación es de ESTA puerta: aquí se llega yendo a
+          expandirse, así que el porqué empieza por ahí. Desde ⚙️ se llega
+          buscando la identidad y esa pantalla ya ha explicado lo suyo;
+          repetirlo diría «para expandirte» a quien no va a expandirse. */}
+      {conIntroduccion && (
+        <>
+          <h4>Para expandirte necesitas una identidad propia</h4>
+          <p className="suave">
+            Un gremio nuevo es tuyo, no de esta casa: hace falta saber quién lo abre. Por eso
+            una llave la forja una persona, y hoy <strong>{family.name}</strong> entra con una
+            clave que comparte todo el mundo.
+          </p>
+          <p className="suave">
+            <strong>Qué no cambia:</strong> la casa sigue entrando como siempre, tu personaje es
+            el mismo y no pierdes nada —ni nivel, ni historial, ni tus Talis, que pasan a ser
+            tuyos y te acompañan a cualquier gremio.
+          </p>
+        </>
+      )}
+
+      {!conIntroduccion && (
+        <p className="suave" style={{ marginTop: 0 }}>
+          La identidad de <strong>{profile.name}</strong>. El correo tiene que ser
+          suyo y distinto del de la casa.
+        </p>
+      )}
 
       <label className="campo">
         <span>Tu correo</span>

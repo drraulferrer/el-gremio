@@ -68,7 +68,7 @@ export default function Ajustes({ family, data, refresh, refreshFamily, onVerTut
       {seccion === 'casa' && <Casa family={family} data={data} refresh={refresh} />}
       {seccion === 'pin' && <Seguridad family={family} onCambiado={refreshFamily} />}
       {seccion === 'dispositivos' && <Dispositivos />}
-      {seccion === 'datos' && <Datos family={family} onCambiada={refreshFamily} />}
+      {seccion === 'datos' && <Datos family={family} data={data} onCambiada={refreshFamily} />}
       {seccion === 'avisos' && <Avisos family={family} data={data} />}
       {seccion === 'evidencia' && (
         <>

@@ -18,6 +18,20 @@ verdad duele en esta app: que el esquema y el cliente dejen de encajar.
 
 ---
 
+## 2.42.0 · 31 de agosto de 2026
+
+**Tu identidad, en ⚙️ → Datos.** Hasta ahora crear una identidad propia solo se
+podía desde Expandirse, a media pantalla dentro de Progreso: quien no fuera a
+expandirse no la encontraba. Ahora hay una segunda puerta donde se busca, y sin
+tocar la primera.
+
+Y de paso contesta algo que no respondía ninguna pantalla: **si entras con tu
+identidad o con la clave que comparte toda la casa.** Si es lo segundo, explica
+qué cambia y qué no —que es casi nada— y ofrece crearla al personaje adulto que
+elijas.
+
+---
+
 ## 2.41.0 · 31 de agosto de 2026
 
 **Los avisos se ven.** Diez mensajes de seis pantallas —las de expandirse,

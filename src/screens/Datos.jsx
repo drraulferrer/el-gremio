@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { supabase, mensajeDeError, zonaDelDispositivo, esColumnaQueNoExiste, configurarZona } from '../lib/supabase'
 import DejarElGremio from './DejarElGremio'
+import TuIdentidad from './TuIdentidad'
 import {
   TABLAS_EXPORTADAS, construirExportacion, nombreFichero,
   resumenDeBorrado, confirmacionValida, mensajeDeBorrado
@@ -45,7 +46,7 @@ function zonasDisponibles() {
 
 const FALLO_SALIR = 'salir'
 
-export default function Datos({ family, onCambiada, onCuentaBorrada }) {
+export default function Datos({ family, data, onCambiada, onCuentaBorrada }) {
   const [zona, setZona] = useState(family?.timezone || zonaDelDispositivo())
   const [guardando, setGuardando] = useState(false)
   const [guardada, setGuardada] = useState(false)
@@ -185,6 +186,12 @@ export default function Datos({ family, onCambiada, onCuentaBorrada }) {
 
   return (
     <div>
+      {/* Va la PRIMERA de la sección, y no por importancia: es la
+          pregunta que contesta a todo lo demás de aquí. «Cerrar sesión»,
+          «llevarte tus datos» y «borrar la cuenta» hablan de una cuenta
+          sin decir nunca de quién es. */}
+      <TuIdentidad family={family} data={data} />
+
       <div className="titulo-seccion">Cerrar sesión</div>
 
       <div className="carta">

@@ -346,6 +346,48 @@ describe('retirar una solicitud que estorba', () => {
   })
 })
 
+describe('las dos puertas a la identidad', () => {
+  // La primera —dentro de Expandirse— la pone `F-4` paso 3: se pide justo
+  // cuando hace falta y «no antes, no por si acaso» (`R-48`). Esa decisión
+  // no se toca. La segunda, en ⚙️ → Datos, es para quien va a BUSCARLA en
+  // vez de tropezársela, que era la queja de §7cd: la identidad vivía
+  // detrás de un botón a media pantalla en Progreso y no la encontraba
+  // nadie que no fuera ya a expandirse.
+  const expandirse = leer('src/screens/Expandirse.jsx')
+  const identidad = leer('src/screens/TuIdentidad.jsx')
+
+  it('son la misma pieza, no dos formularios', () => {
+    // Dos formularios que piden lo mismo acaban pidiéndolo distinto: uno
+    // se queda sin el captcha, o sin el aviso de solicitud caducada.
+    expect(expandirse).toContain('export function Conversion(')
+    expect(identidad).toContain("from './Expandirse'")
+    expect(identidad).toContain('<Conversion')
+  })
+
+  it('pero cada puerta explica lo suyo', () => {
+    // Reusar la pieza tal cual decía «Para expandirte necesitas…» a quien
+    // había entrado en Ajustes a buscar su identidad.
+    expect(expandirse).toContain('<Conversion family={family} profile={profile} />')
+    expect(identidad).toContain('conIntroduccion={false}')
+    expect(expandirse).toContain('conIntroduccion && (')
+  })
+
+  it('la nueva puerta solo ofrece lo que el servidor acepta', () => {
+    // `solicitar_conversion` responde `solo_adulto` a todo lo demás.
+    // Ofrecer a una junior un botón que va a rebotar es peor que no
+    // ofrecerlo: parece que se puede y no se puede.
+    expect(identidad).toContain("p.role === 'adulto' && !p.persona")
+    expect(solicitar).toContain("'solo_adulto'")
+  })
+
+  it('y dice en qué estado estás, que no lo decía ninguna pantalla', () => {
+    expect(identidad).toContain("supabase.rpc('clase_credencial')")
+    expect(identidad).toContain('clase === \'personal\'')
+    // Degradable: sin respuesta no pinta nada, como el resto de la app.
+    expect(identidad).toContain('if (!clase')
+  })
+})
+
 describe('las dos copias del esquema', () => {
   it('las funciones de la conversión son idénticas en la migración y en el esquema', () => {
     for (const n of ['solicitar_conversion', 'cancelar_conversion']) {

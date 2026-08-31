@@ -7171,6 +7171,49 @@ declaradas una a una en el test.
   `clase_credencial` se consulta en una sola pantalla y no se refleja en Ajustes
   ni en Datos.
 
+---
+
+## 7cf. La segunda puerta a la identidad (31 de agosto) · 2.42.0
+
+El primer punto de la revisión de §7ce, hecho: **⚙️ → Datos** abre ahora la
+misma conversión que Expandirse.
+
+### Lo que NO cambia, que es la parte delicada
+
+`F-4` paso 3 y `R-48` dicen que la identidad se pida **al ir a expandirse**, «no
+antes, no por si acaso», y esa puerta se queda exactamente donde estaba. La
+segunda no empuja a nadie: solo deja de esconderla de quien la va a buscar.
+
+### Una pieza, dos puertas
+
+`Conversion` se exporta y se reusa. Dos formularios que piden lo mismo acaban
+pidiéndolo distinto —uno se queda sin captcha, o sin el aviso de solicitud
+caducada— y este proyecto ya sabe lo que cuesta eso.
+
+Lo que sí cambia por puerta es **el texto**: reusarla tal cual decía «Para
+expandirte necesitas una identidad propia» a quien había entrado en Ajustes a
+buscar precisamente eso. Un `conIntroduccion` lo resuelve, y hay test.
+
+### Y responde la pregunta que no respondía nadie
+
+`clase_credencial()` se consultaba en UNA pantalla y no se reflejaba en ninguna:
+no había forma de saber si entrabas con tu identidad o con la clave de casa.
+Ahora es lo primero de Datos, que es la sección que habla todo el rato de «la
+cuenta» sin decir nunca de quién es.
+
+Detalles que importan: solo se ofrecen **perfiles adultos sin identidad**
+—`solicitar_conversion` contesta `solo_adulto` a todo lo demás, y un botón que
+va a rebotar es peor que ningún botón—; con varios adultos se elige por nombre,
+porque **el vínculo no se deshace** y convertir el personaje equivocado no tiene
+arreglo; y si `clase_credencial()` no contesta, la sección no se pinta.
+
+### Cómo se comprobó
+
+`npm run verify`: **1671 tests en 89 ficheros**. En `dev:demo`, las dos caras:
+con clave de casa —dos adultos sin identidad, «Soy Adulta» / «Soy Adulto», la
+peque y la junior fuera— y con identidad ya creada, que enseña el correo y no
+ofrece nada.
+
 # CÓMO ARRANCAR LA SIGUIENTE SESIÓN
 
 **Estado al cerrar el 31-ago-2026, por la noche.**
@@ -7184,7 +7227,7 @@ declaradas una a una en el test.
 | Red de seguridad | `gh-pages` **a la par** con producción: 2.41.0 (`deploy-2026-08-31-0920`) |
 | Nada sin publicar | el repo y producción sirven lo mismo |
 | Migraciones aplicadas | hasta la **061**. La siguiente libre es la **062** |
-| Tests | 1667 en 89 ficheros |
+| Tests | 1671 en 89 ficheros |
 | Plan y especificación | `~/Library/Mobile Documents/com~apple~CloudDocs/ClaudeCode/specs/` |
 
 **Lo primero, siempre:** `git fetch` antes de elegir número de migración o de
