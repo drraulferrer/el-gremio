@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Modal, Talis } from '../components/ui'
 import { supabase, hashPin } from '../lib/supabase'
+import { recordarIdentidadEnMarcha } from '../lib/acceso'
 import {
   leerOportunidades, leerLlaves, forjarLlave, solicitarConversion,
   leerTiposOfrecidos, crearGremioConLlave
@@ -327,6 +328,10 @@ function Conversion({ family, profile }) {
       setAviso('La solicitud está guardada, pero no se ha podido enviar el correo. Inténtalo dentro de un rato.')
       return
     }
+    // La nota para la vuelta. Sirve para una sola cosa, y no es poca: que
+    // si el enlace se abre pasadas las 72 horas, la app pueda decir «ha
+    // caducado» en vez de callarse. Ver `acceso.js`.
+    recordarIdentidadEnMarcha(correo)
     setEnviado(true)
   }
 

@@ -1,5 +1,6 @@
 /**
- * Entrar, darse de alta y recuperar la contraseña.
+ * Entrar, darse de alta, recuperar la contraseña — y terminar lo que el
+ * correo dejó a medias.
  *
  * Vive aparte de la pantalla porque son reglas, no pintura, y porque el
  * caso que más duele —el alta que no falla pero tampoco entra— es
@@ -109,6 +110,68 @@ export function validarClaveNueva(clave, repetida) {
 export function esRecuperacion(hash = '', search = '') {
   const texto = String(hash) + '&' + String(search)
   return /(^|[#&?])type=recovery(&|$)/.test(texto.replace(/^#/, '#')) || /type=recovery/.test(texto)
+}
+
+/**
+ * ¿Esta carga viene del enlace de CONFIRMACIÓN del correo?
+ *
+ * Hermano de `esRecuperacion`, y hace falta por lo mismo: el enlace abre
+ * sesión y la app tiene que enterarse. Lo que cambia es qué hay que hacer
+ * después. En la recuperación, enseñar una pantalla. Aquí, TERMINAR la
+ * conversión: `completar_conversion()` es lo que crea la pertenencia y
+ * mueve el saldo, y hasta que no corre, la cuenta nueva **no tiene ningún
+ * gremio**. Sin esto, quien acaba de crearse una identidad abre la app y
+ * ve «Fundad vuestro gremio», con su casa aparentemente perdida.
+ *
+ * Vale también para el alta normal —fundar un gremio llega por este mismo
+ * `type=signup`—, y ahí el servidor contesta `sin_solicitud` y no pasa
+ * nada. Preguntar de más es mucho más barato que perderse la vuelta buena.
+ */
+export function esConfirmacion(hash = '', search = '') {
+  const texto = String(hash) + '&' + String(search)
+  return /type=(signup|email_change|email)(&|$)/.test(texto)
+}
+
+// ------------------------------------------------------------------
+// La nota de «hay una identidad en marcha».
+//
+// El servidor contesta `sin_solicitud` en dos situaciones que para él son
+// la misma y para quien mira la pantalla no se parecen en nada: fundar un
+// gremio —que no pidió ninguna identidad— y volver con una solicitud que
+// ya caducó, a las 72 horas. Sin esta nota habría que elegir entre callar
+// siempre (y dejar a la segunda persona en una cuenta vacía sin saber por
+// qué) o hablar siempre (e inventarle un error a la primera el día que se
+// da de alta).
+//
+// Es del APARATO, no de la cuenta, y por eso vive aquí y no en la base: la
+// pantalla ya dice «ábrelo desde este mismo aparato». Si el enlace se abre
+// en otro, no hay nota y se calla, que es lo que pasaba hasta hoy.
+// ------------------------------------------------------------------
+
+export const CLAVE_IDENTIDAD = 'gremio_identidad_en_marcha'
+
+/** Igual que en `gremios.js`: en modo privado `localStorage` lanza. */
+function guardado(almacen, clave, valor) {
+  try {
+    if (valor === undefined) return almacen.getItem(clave)
+    if (valor === null) almacen.removeItem(clave)
+    else almacen.setItem(clave, valor)
+  } catch {
+    // Sin almacén la nota dura lo que la pestaña. Es peor, no es grave.
+  }
+  return null
+}
+
+export function recordarIdentidadEnMarcha(correo, almacen = localStorage) {
+  guardado(almacen, CLAVE_IDENTIDAD, String(correo || '').trim().toLowerCase())
+}
+
+export function hayIdentidadEnMarcha(almacen = localStorage) {
+  return Boolean(guardado(almacen, CLAVE_IDENTIDAD, undefined))
+}
+
+export function olvidarIdentidadEnMarcha(almacen = localStorage) {
+  guardado(almacen, CLAVE_IDENTIDAD, null)
 }
 
 /**

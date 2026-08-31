@@ -731,6 +731,34 @@ export async function solicitarConversion(profileId, correo, pinHash) {
   return data
 }
 
+/**
+ * Terminar la identidad propia: el paso 3 de `F-9`, el que ocurre al
+ * volver desde el enlace del correo y **desde la sesion nueva**.
+ *
+ * Es la pieza que faltaba. La base la tiene desde la 047 y no la llamaba
+ * NADIE, asi que ninguna credencial llegaba nunca a ser `personal`; y como
+ * forjar, aceptar una invitacion, reclamar y retirar la clave comun exigen
+ * las cuatro `clase_credencial() = 'personal'`, las fases 5, 6 y 7 estaban
+ * cerradas en produccion sin que faltara ni una linea de SQL.
+ *
+ * La clave de idempotencia va derivada de la cuenta: dos pestañas que
+ * vuelven del mismo enlace a la vez son un solo intento.
+ */
+export async function terminarIdentidad(userId) {
+  const requestId = nuevoRequestId()
+  const { data, error } = await supabase.rpc('completar_conversion', {
+    p_clave: claveDe(['identidad', userId || 'sin-cuenta'])
+  })
+  if (error) {
+    log.error('conversion.terminar.error', {
+      request_id: requestId, detalle: String(error.message || error)
+    })
+    return 'error'
+  }
+  log.info('conversion.terminar', { request_id: requestId, resultado: data })
+  return data
+}
+
 // ------------------------------------------------------------------
 // Gastar la llave, e invitar (Fase 6.3, segunda mitad).
 // ------------------------------------------------------------------

@@ -27,7 +27,11 @@ import TalisAMano from './components/TalisAMano'
 import { manualesDe, pendientesDeAviso, leerAvisados, marcarAvisados } from './lib/premioManual'
 import Login from './screens/Login'
 import NuevaClave from './screens/NuevaClave'
-import { esRecuperacion } from './lib/acceso'
+import {
+  esRecuperacion, esConfirmacion, hayIdentidadEnMarcha, olvidarIdentidadEnMarcha
+} from './lib/acceso'
+import { terminarIdentidad } from './lib/acciones'
+import { mensajeDeTerminar } from './lib/expansion'
 import Onboarding from './screens/Onboarding'
 import Invitaciones from './screens/Invitaciones'
 import ProfilePicker from './screens/ProfilePicker'
@@ -107,6 +111,18 @@ export default function App() {
   const [cambiandoClave, setCambiandoClave] = useState(
     () => esRecuperacion(window.location.hash, window.location.search)
   )
+  // Y la otra vuelta del correo, la de confirmar la cuenta. `terminando`
+  // mientras `completar_conversion()` decide, y después el aviso si no
+  // salió: ver el efecto de abajo.
+  const [identidad, setIdentidad] = useState(
+    () => (esConfirmacion(window.location.hash, window.location.search)
+      ? { estado: 'terminando', aviso: '' }
+      : { estado: 'nada', aviso: '' })
+  )
+  // El cinturón se prueba UNA vez por carga. Con `useRef` y no con estado
+  // porque el efecto que lo usa mira `family`, y un `set` ahí dentro sería
+  // un bucle.
+  const cinturonIdentidad = useRef(false)
 
   // Observabilidad: monitorización de errores globales y destino de logs.
   useEffect(() => {
@@ -195,13 +211,54 @@ export default function App() {
     setFamily(gremio)
   }, [])
 
+  // La vuelta del enlace del correo TERMINA la conversión (`F-9` paso 3).
+  //
+  // Va ANTES de cargar el gremio y no en paralelo, y esa es la parte que
+  // importa: la pertenencia que crea `completar_conversion()` es lo que
+  // hace que el gremio exista para esta cuenta. Cargando primero, quien
+  // acaba de crearse una identidad vería «Fundad vuestro gremio» durante
+  // un cuarto de segundo, que es tiempo de sobra para el susto.
   useEffect(() => {
-    if (session) loadFamily()
-    else {
+    if (!session || identidad.estado !== 'terminando') return
+    let vivo = true
+    terminarIdentidad(session.user?.id).then((codigo) => {
+      if (!vivo) return
+      const aviso = mensajeDeTerminar(codigo, hayIdentidadEnMarcha())
+      // La nota se retira en cuanto deja de poder explicar nada: o salió
+      // bien, o el motivo ya no es la caducidad.
+      if (codigo !== 'sin_solicitud' || !aviso) olvidarIdentidadEnMarcha()
+      setIdentidad({ estado: 'hecho', aviso: aviso || '' })
+    })
+    return () => { vivo = false }
+  }, [session, identidad.estado])
+
+  useEffect(() => {
+    if (!session) {
       setFamily(undefined)
       setData(null)
+      return
     }
-  }, [session, loadFamily])
+    if (identidad.estado !== 'terminando') loadFamily()
+  }, [session, loadFamily, identidad.estado])
+
+  // El cinturón, que es el mismo patrón que `esRecuperacion` sigue con su
+  // evento: supabase-js consume el hash al arrancar y puede habérselo
+  // llevado antes de que esto mirara, y además el enlace se puede abrir
+  // hoy y volver a la app mañana. La señal entonces es la única que queda:
+  // hay sesión y NINGÚN gremio, que es o alguien nuevo —y contesta
+  // `sin_solicitud`, gratis— o alguien cuya conversión se quedó a medias.
+  //
+  // Solo se intenta sin gremio, así que a quien ya tiene uno no le cuesta
+  // ni una llamada.
+  useEffect(() => {
+    if (family !== null || cinturonIdentidad.current) return
+    cinturonIdentidad.current = true
+    terminarIdentidad(session?.user?.id).then((codigo) => {
+      if (codigo !== 'ok') return
+      olvidarIdentidadEnMarcha()
+      loadFamily()
+    })
+  }, [family, session, loadFamily])
 
   // Datos
   const loadAll = useCallback(async () => {
@@ -643,6 +700,10 @@ export default function App() {
     // dibujara después vería su tablero y se le olvidaría.
     if (session && cambiandoClave) return <NuevaClave onHecho={() => setCambiandoClave(false)} />
     if (!session) return <Login />
+    // Igual que arriba: primero se termina lo que el correo dejó a medias.
+    // Dura una llamada, pero es la llamada que decide si esta cuenta tiene
+    // gremio o no, así que la pantalla lo dice en vez de fingir que carga.
+    if (identidad.estado === 'terminando') return <Cargando mensaje="Terminando de crear tu identidad…" />
     if (family === undefined) return <Cargando error={errorCarga} onReintentar={loadFamily} />
     // Al terminar el setup se apaga el tutorial ADEMÁS de marcarlo visto:
     // `verTutorial` se calculó en el primer render, cuando todavía estaba
@@ -650,7 +711,18 @@ export default function App() {
     // diapositivas justo después de haber contestado las preguntas que
     // vienen a contar lo mismo.
     if (family === null) {
-      return <Onboarding onDone={() => { setVerTutorial(null); loadFamily() }} />
+      // Si la vuelta del correo no salió bien, esta persona está en una
+      // cuenta nueva y vacía y su casa parece haber desaparecido. Decirlo
+      // aquí es lo único que la separa de creer que ha roto algo: el aviso
+      // termina siempre en que su gremio sigue intacto.
+      return (
+        <>
+          {identidad.aviso && (
+            <p className="aviso" role="alert" style={{ margin: 16 }}>{identidad.aviso}</p>
+          )}
+          <Onboarding onDone={() => { setVerTutorial(null); loadFamily() }} />
+        </>
+      )
     }
     if (!data) return <Cargando error={errorCarga} onReintentar={recargar} />
 
@@ -840,7 +912,7 @@ function Ambiente() {
   )
 }
 
-function Cargando({ error, onReintentar }) {
+function Cargando({ error, onReintentar, mensaje }) {
   if (error) {
     return (
       <div className="pantalla-centrada">
@@ -857,7 +929,7 @@ function Cargando({ error, onReintentar }) {
   return (
     <div className="pantalla-centrada">
       <img src={iconoUrl} alt="" width="72" height="72" style={{ borderRadius: 18 }} />
-      <p className="suave">Abriendo el gremio…</p>
+      <p className="suave">{mensaje || 'Abriendo el gremio…'}</p>
     </div>
   )
 }

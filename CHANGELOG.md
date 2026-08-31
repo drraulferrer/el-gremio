@@ -18,6 +18,27 @@ verdad duele en esta app: que el esquema y el cliente dejen de encajar.
 
 ---
 
+## 2.40.0 · 31 de agosto de 2026
+
+**Crear una identidad propia ya termina.** Faltaba el último paso, y sin él no
+servía ninguno de los anteriores: al volver desde el enlace del correo la app no
+llamaba a la función que vincula el personaje, crea la pertenencia y traslada
+los Talis a la cartera. Como esa función es la única que convierte una cuenta en
+identidad personal, **nadie podía llegar a tenerla** — y con ella estaban
+cerradas la expansión, las invitaciones, la reclamación de personajes y la
+retirada de la clave común.
+
+Ahora, al abrir el enlace, la app dice «Terminando de crear tu identidad…» y te
+deja en tu gremio de siempre, con tu personaje, tu nivel y tus Talis. Y si la
+solicitud caducó —duran 72 horas— lo dice con todas las letras y te recuerda que
+tu gremio sigue intacto, en vez de dejarte en una pantalla de gremio nuevo
+pensando que has perdido la casa.
+
+Quien se da de alta para fundar un gremio no nota nada: llega por ese mismo
+enlace y todo sigue igual que siempre.
+
+---
+
 ## 2.39.1 · 31 de agosto de 2026
 
 **La demo aprende la mitad de la aplicación que no sabía.** Sin cambio de

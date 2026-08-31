@@ -6871,6 +6871,89 @@ porque sin ella lo construido en las fases 5 a 7 no lo puede usar nadie.
 frase en dos líneas dentro del escalón. Se ve ahora porque hasta ahora esa
 pantalla no se veía.
 
+---
+
+## 7bz. La vuelta del enlace (31 de agosto) · 2.40.0 · SIN MIGRACIÓN
+
+Lo que §7by destapó, arreglado el mismo día. **`completar_conversion` estaba en
+la base desde la 047 y no la llamaba nadie.** Como es la única puerta por la que
+una credencial pasa a `personal`, y forjar, aceptar una invitación, reclamar y
+retirar la clave común exigen las cuatro `clase_credencial() = 'personal'`, todo
+lo construido entre el 29 y el 31 de agosto estaba **cerrado en producción sin
+que faltara una línea de SQL**.
+
+Ni un test lo vio, y no es raro: todos leían el esquema, y el esquema estaba
+bien. Lo que faltaba era una llamada.
+
+### Antes de cargar el gremio, no a la vez
+
+Es la decisión de la pieza. La pertenencia que crea `completar_conversion()` es
+**lo que hace que el gremio exista para la cuenta nueva**: cargando en paralelo,
+quien acaba de crearse una identidad vería «Fundad vuestro gremio» durante un
+cuarto de segundo, que es tiempo de sobra para el susto de creer que ha perdido
+la casa. Así que mientras se resuelve, la pantalla lo dice: «Terminando de crear
+tu identidad…».
+
+### Dos cinturones, como en la recuperación
+
+Mismo patrón que `esRecuperacion` sigue desde su día, y por el mismo motivo:
+
+1. **La URL.** `esConfirmacion()` mira `type=signup`. Es el camino bueno.
+2. **Ningún gremio.** supabase-js consume el hash al arrancar y puede
+   llevárselo antes de que la app mire; y el enlace se puede abrir hoy y volver
+   a la app mañana. La señal que queda entonces es: hay sesión y **cero
+   gremios**, que es o alguien nuevo —contesta `sin_solicitud` y no pasa nada— o
+   alguien cuya conversión se quedó a medias.
+
+Y el segundo **solo se intenta sin gremio**, así que a quien ya tiene uno no le
+cuesta ni una llamada. Comprobado contando los registros de un arranque normal:
+cero.
+
+### `sin_solicitud` quiere decir dos cosas, y hay que distinguirlas
+
+Fundar un gremio llega por **este mismo enlace** `type=signup`, y para el
+servidor eso es «no hay solicitud». Hablar ahí sería inventarle un error a
+alguien el día que se da de alta. Pero callar siempre deja a quien abre el
+correo pasadas las 72 horas en una cuenta vacía sin saber por qué.
+
+Lo resuelve una nota en el aparato (`gremio_identidad_en_marcha`, en
+`acceso.js`), que la pantalla de conversión deja al pedirla. Si está, el mensaje
+dice que ha caducado; si no, se calla. Es del **aparato** y no de la base a
+propósito: la pantalla ya dice «ábrelo desde este mismo aparato», y si se abre
+en otro no hay nota y se calla, que es lo que pasaba hasta hoy.
+
+Y todos los finales malos terminan igual, porque es lo único que de verdad hace
+falta saber en ese momento: **tu gremio y tu personaje siguen intactos**.
+
+### Cómo se comprobó
+
+`npm run verify`: **1650 tests en 88 ficheros**. Los nuevos atan las tres
+decisiones —que alguien la llama, que va antes de cargar, y que el cinturón
+corta cuando hay gremio— y cruzan los códigos del mensaje con el cuerpo de la
+función, igual que se hace con la forja.
+
+Y el test de cobertura de §7by **perdió su excepción**: `completar_conversion`
+estaba declarada como «la app todavía no la llama», y ese hueco era el bug. Sin
+excepciones desde hoy.
+
+**En el navegador, con `dev:demo`, los cuatro casos**, sembrando el estado exacto
+que deja supabase-js al consumir el hash:
+
+| | |
+|---|---|
+| vuelta con solicitud viva | identidad creada, 250 Talis a la cartera, dos asientos, y **aparece la casa** |
+| vuelta con solicitud caducada | «La solicitud de identidad ha caducado: duran 72 horas…» sobre el alta |
+| sin `type=signup` en la URL | el cinturón la termina igual |
+| alta normal para fundar | ni un aviso, y el alta de siempre |
+
+### Lo que queda abierto de esta familia
+
+La **migración de correo de la casa** (048) no tiene cliente **ninguno**: ni el
+paso 1. `solicitar_migracion_correo`, `probar_credencial_nueva` y
+`completar_migracion_correo` están en la base y no las llama nadie. No es el
+mismo caso que este —aquí faltaba el último paso de algo que se usaba; allí
+falta la función entera—, pero conviene saber que está ahí.
+
 # CÓMO ARRANCAR LA SIGUIENTE SESIÓN
 
 **Estado al cerrar el 31-ago-2026, por la noche.**
@@ -6881,9 +6964,9 @@ pantalla no se veía.
 |---|---|
 | Repositorio | `~/el-gremio`, rama `main` |
 | Versión desplegada | **2.39.0** · `npm run health` en verde · `cd9e3eb`, supabase 17.6 |
-| Versión en el repo | **2.39.1**, sin publicar. Es solo la demo (§7by): nada cambia en producción |
+| Versión en el repo | **2.40.0**, sin publicar. La demo (§7by) y la vuelta del enlace (§7bz) |
 | Migraciones aplicadas | hasta la **061**. La siguiente libre es la **062** |
-| Tests | 1634 en 88 ficheros |
+| Tests | 1650 en 88 ficheros |
 | Plan y especificación | `~/Library/Mobile Documents/com~apple~CloudDocs/ClaudeCode/specs/` |
 
 **Lo primero, siempre:** `git fetch` antes de elegir número de migración o de
@@ -6911,15 +6994,15 @@ que `anon` hereda.
 
 ## Por dónde seguir
 
-**Lo primero, y es nuevo: enganchar la vuelta del enlace del correo.**
-`completar_conversion` no la llama nadie (§7by), y es la única manera de que una
-credencial pase a `personal`. Sin ella **las Fases 5, 6 y 7 están cerradas en
-producción**: forjar, aceptar una invitación, reclamar y retirar la clave común
-exigen las cuatro `clase_credencial() = 'personal'`. Es una pieza pequeña y
-desbloquea todo lo construido desde el 29-ago. Lo destapó la demo el día que
-empezó a funcionar.
+**Publicar.** En el repo hay dos versiones sin subir —la 2.39.1 y la 2.40.0— y
+la segunda es la que desbloquea todo lo construido desde el 29-ago. **Sin
+migración**: `npm run vercel && npm run health`, y nada más.
 
-**Y después, mirar todo esto con una sesión real.** Es lo único de la lista de `CLAUDE.md`
+**Y con ella publicada, mirar todo esto con una sesión real.** Ahora sí se puede
+de verdad: hasta hoy la creación de identidad no terminaba, así que las fases 5
+a 7 no se podían probar ni con una cuenta real. Lo primero que hay que ver es
+**el correo de confirmación llegando y su enlace funcionando**, que es lo único
+que la demo no puede imitar. Es lo único de la lista de `CLAUDE.md`
 que lleva días sin hacerse, y ahora hay bastante que mirar: el botón de
 Expandirse en Progreso, la bandeja de invitaciones en el selector, «Gente de
 fuera» en Miembros y «Dejar este gremio» en Datos. Todo lo demás está

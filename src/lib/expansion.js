@@ -142,6 +142,42 @@ export function mensajeDeConversion(codigo) {
     : 'No se ha podido empezar. Inténtalo dentro de un rato.'
 }
 
+/**
+ * Y el final del camino: lo que contesta `completar_conversion()` cuando
+ * se vuelve desde el enlace del correo.
+ *
+ * Dos códigos van a `null` a propósito y no es pereza: `ya_clasificada` y
+ * `sin_solicitud` son la respuesta NORMAL de quien acaba de fundar un
+ * gremio, que llega por este mismo enlace. Enseñarle un error a esa
+ * persona sería inventarle un problema el día que se da de alta.
+ *
+ * `sin_solicitud` es además el único código que depende del aparato: si
+ * aquí SÍ se pidió una identidad, entonces es que caducó, y eso hay que
+ * decirlo. Ver la nota de `acceso.js`.
+ */
+export const RESPUESTAS_TERMINAR = {
+  ok: null,
+  ya_clasificada: null,
+  sin_solicitud: null,
+  sin_sesion: 'Se ha cerrado la sesión. Vuelve a entrar.',
+  correo_sin_confirmar: 'Todavía falta confirmar ese correo. Abre el enlace que te hemos enviado.',
+  personaje_ocupado: 'Ese personaje ya tiene otra identidad detrás.',
+  ya_estas_en_el_gremio: 'Ya tienes un personaje en ese gremio con otra identidad.'
+}
+
+/** El consejo que sirve para todos los finales malos: tu casa sigue ahí. */
+const SIGUE_INTACTO =
+  'Vuelve a entrar con el correo de tu casa: tu gremio y tu personaje siguen intactos.'
+
+export function mensajeDeTerminar(codigo, habiaSolicitud = false) {
+  if (codigo === 'sin_solicitud' && habiaSolicitud) {
+    return 'La solicitud de identidad ha caducado: duran 72 horas. ' + SIGUE_INTACTO
+  }
+  return codigo in RESPUESTAS_TERMINAR
+    ? RESPUESTAS_TERMINAR[codigo]
+    : 'No se ha podido terminar tu identidad. ' + SIGUE_INTACTO
+}
+
 // ------------------------------------------------------------------
 // Gastar la llave, e invitar (6.3, segunda mitad).
 //

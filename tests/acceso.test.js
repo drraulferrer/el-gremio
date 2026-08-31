@@ -8,7 +8,11 @@ import {
   traducirAcceso,
   urlDeVuelta,
   MIN_CLAVE_NUEVA,
-  resultadoDeEnlace
+  resultadoDeEnlace,
+  esConfirmacion,
+  recordarIdentidadEnMarcha,
+  hayIdentidadEnMarcha,
+  olvidarIdentidadEnMarcha
 } from '../src/lib/acceso'
 
 describe('alta de cuenta', () => {
@@ -67,6 +71,70 @@ describe('contraseña nueva', () => {
 
   it('vacía no vale', () => {
     expect(validarClaveNueva('', '').ok).toBe(false)
+  })
+})
+
+describe('detección del enlace de confirmación', () => {
+  // Es el hermano del de abajo, y hace falta por lo mismo: el enlace abre
+  // sesión y la app tiene que enterarse. Aquí lo que hay que hacer después
+  // no es una pantalla, es TERMINAR la conversión: hasta que corre, la
+  // cuenta nueva no tiene ningún gremio.
+  it('reconoce el hash de confirmar la cuenta', () => {
+    expect(esConfirmacion('#access_token=abc&type=signup&expires_in=3600')).toBe(true)
+  })
+
+  it('y el de cambiar el correo', () => {
+    expect(esConfirmacion('#type=email_change')).toBe(true)
+    expect(esConfirmacion('', '?type=email')).toBe(true)
+  })
+
+  it('el de recuperar la contraseña NO es este', () => {
+    // Si lo fuera, quien viene a cambiar la contraseña se comería una
+    // llamada de más y, peor, las dos pantallas competirían por el turno.
+    expect(esConfirmacion('#access_token=abc&type=recovery')).toBe(false)
+  })
+
+  it('una carga normal no lo es', () => {
+    expect(esConfirmacion('', '')).toBe(false)
+    expect(esConfirmacion('#/panel', '?perfil=3')).toBe(false)
+  })
+})
+
+describe('la nota de que hay una identidad en marcha', () => {
+  /** Un almacén de mentira, que además puede fingir estar roto. */
+  function almacen({ rompe = false } = {}) {
+    const datos = new Map()
+    return {
+      getItem: (k) => { if (rompe) throw new Error('modo privado'); return datos.get(k) ?? null },
+      setItem: (k, v) => { if (rompe) throw new Error('modo privado'); datos.set(k, String(v)) },
+      removeItem: (k) => { if (rompe) throw new Error('modo privado'); datos.delete(k) }
+    }
+  }
+
+  it('se apunta al pedirla y se olvida al terminar', () => {
+    const a = almacen()
+    expect(hayIdentidadEnMarcha(a)).toBe(false)
+    recordarIdentidadEnMarcha('Mia@Ejemplo.test', a)
+    expect(hayIdentidadEnMarcha(a)).toBe(true)
+    olvidarIdentidadEnMarcha(a)
+    expect(hayIdentidadEnMarcha(a)).toBe(false)
+  })
+
+  it('el correo se guarda en minúsculas, como en la base', () => {
+    const a = almacen()
+    recordarIdentidadEnMarcha('  Mia@Ejemplo.test ', a)
+    expect(a.getItem('gremio_identidad_en_marcha')).toBe('mia@ejemplo.test')
+  })
+
+  it('sin almacén no revienta nada: solo se pierde el matiz', () => {
+    // En el modo privado de Safari `localStorage` existe y lanza al
+    // escribir. Perder la nota significa callarse en vez de decir «ha
+    // caducado»; eso es peor, no es grave, y desde luego no es motivo para
+    // que la app no arranque.
+    const roto = almacen({ rompe: true })
+    expect(() => recordarIdentidadEnMarcha('x@y.test', roto)).not.toThrow()
+    expect(hayIdentidadEnMarcha(roto)).toBe(false)
+    expect(() => olvidarIdentidadEnMarcha(roto)).not.toThrow()
   })
 })
 

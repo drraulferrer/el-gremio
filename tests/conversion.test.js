@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
+import { RESPUESTAS_TERMINAR, mensajeDeTerminar } from '../src/lib/expansion'
 
 // ------------------------------------------------------------------
 // Convertir un perfil en persona (migración 047, flujo F-9).
@@ -204,6 +205,93 @@ describe('una solicitud viva por personaje y por correo', () => {
 
   it('las caducadas se apartan antes de mirar si hay una viva', () => {
     expect(solicitar).toContain("set estado = 'caducada'")
+  })
+})
+
+// ------------------------------------------------------------------
+// El paso 3: la vuelta desde el enlace del correo.
+//
+// `completar_conversion()` estuvo en la base desde el 29-ago **sin que la
+// llamara nadie**, y como es la única manera de que una credencial pase a
+// `personal`, con ella se quedaron cerradas las fases 5, 6 y 7 enteras:
+// forjar, aceptar una invitación, reclamar y retirar la clave común exigen
+// las cuatro `clase_credencial() = 'personal'`. Ni un test lo vio, porque
+// todos leían el SQL y el SQL estaba bien.
+//
+// Lo que sigue defiende la otra mitad: que alguien la llame, cuándo, y qué
+// se dice cuando no sale.
+// ------------------------------------------------------------------
+
+const app = leer('src/App.jsx')
+
+describe('alguien llama a completar_conversion', () => {
+  it('la app la llama, y por su envoltorio', () => {
+    expect(leer('src/lib/acciones.js')).toContain("supabase.rpc('completar_conversion'")
+    expect(app).toContain('terminarIdentidad')
+  })
+
+  it('y ANTES de cargar el gremio, no a la vez', () => {
+    // Es la parte que importa: la pertenencia que crea esa función es lo
+    // que hace que el gremio exista para la cuenta nueva. Cargando en
+    // paralelo, quien acaba de crearse una identidad vería «Fundad
+    // vuestro gremio» mientras tanto, que es el susto que esto evita.
+    expect(app).toMatch(/if \(identidad\.estado !== 'terminando'\) loadFamily\(\)/)
+  })
+
+  it('hay un cinturón para cuando la URL no lo dice', () => {
+    // supabase-js consume el hash al arrancar y puede llevárselo antes de
+    // que la app mire; y el enlace se puede abrir hoy y volver mañana. La
+    // señal que queda es: hay sesión y NINGÚN gremio.
+    expect(app).toContain('if (family !== null || cinturonIdentidad.current) return')
+  })
+
+  it('y el cinturón no le cuesta nada a quien ya tiene gremio', () => {
+    // `family !== null` corta antes de llamar. Si algún día se quitara esa
+    // condición, cada arranque de cada aparato pagaría una RPC de más.
+    const i = app.indexOf('cinturonIdentidad.current) return')
+    const j = app.indexOf('terminarIdentidad(session?.user?.id)')
+    expect(i).toBeGreaterThan(0)
+    expect(j).toBeGreaterThan(i)
+  })
+})
+
+describe('lo que se dice al volver del enlace', () => {
+  it('ningún código sale de la manga: todos están en la función', () => {
+    // El mismo cruce que ya se hace con la forja y con la conversión: un
+    // código mal escrito aquí sale como mensaje genérico y esconde justo
+    // lo que había que enseñar.
+    for (const codigo of Object.keys(RESPUESTAS_TERMINAR)) {
+      expect(completar, `completar_conversion no devuelve '${codigo}'`)
+        .toContain(`'${codigo}'`)
+    }
+  })
+
+  it('quien funda un gremio no ve ningún error', () => {
+    // Fundar llega por el MISMO enlace `type=signup`, y para el servidor es
+    // «no hay solicitud». Hablar aquí sería inventarle un problema a alguien
+    // el día que se da de alta.
+    expect(mensajeDeTerminar('ok')).toBe(null)
+    expect(mensajeDeTerminar('sin_solicitud')).toBe(null)
+    expect(mensajeDeTerminar('ya_clasificada')).toBe(null)
+  })
+
+  it('pero si en este aparato SÍ se pidió, es que ha caducado y se dice', () => {
+    const aviso = mensajeDeTerminar('sin_solicitud', true)
+    expect(aviso).toContain('caducado')
+    expect(aviso).toContain('72 horas')
+  })
+
+  it('y todo final malo termina diciendo que la casa sigue ahí', () => {
+    // Quien llega aquí está en una cuenta nueva y vacía y su gremio parece
+    // haber desaparecido. Un mensaje que no diga cómo volver es peor que
+    // ninguno.
+    for (const codigo of ['sin_solicitud', 'lo_que_sea']) {
+      expect(mensajeDeTerminar(codigo, true)).toContain('siguen intactos')
+    }
+  })
+
+  it('un código desconocido no se traga: avisa', () => {
+    expect(mensajeDeTerminar('algo_nuevo_del_servidor')).toContain('No se ha podido terminar')
   })
 })
 

@@ -85,13 +85,13 @@ describe('la demo contesta a todas las funciones que la app llama', () => {
   })
 
   it('y ninguna de las que atiende se ha quedado sin usarse', () => {
-    // La otra dirección: código muerto en el sitio donde menos se mira.
-    // `completar_conversion` es la excepción declarada: la app todavía no la
-    // llama —ese es el hueco de la vuelta del enlace— y la demo la necesita
-    // para poder crear una identidad sin correo.
-    const sobrantes = RPC_DE_GREMIOS
-      .filter((n) => !llamadas.has(n) && n !== 'completar_conversion')
-      .sort()
+    // La otra dirección, y no es simetría por gusto: `completar_conversion`
+    // llevaba en la base desde el 29-ago sin que la llamara nadie, y con
+    // ella cerradas las fases 5, 6 y 7 enteras. Una RPC atendida que nadie
+    // llama es código muerto en el sitio donde menos se mira, y este test
+    // es lo que habría cazado aquello. Sin excepciones: si alguna vez hace
+    // falta una, que se escriba con su motivo.
+    const sobrantes = RPC_DE_GREMIOS.filter((n) => !llamadas.has(n)).sort()
     expect(sobrantes).toEqual([])
   })
 })
