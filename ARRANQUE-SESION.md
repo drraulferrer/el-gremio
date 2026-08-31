@@ -10,8 +10,14 @@ trampas tiene.
 > avisos de todos y salir. Lo siguiente en el plan es la **Fase 7**
 > (reclamación y credenciales).
 >
+> **Y al 31-ago, lo que de verdad manda:** la **2.40.0 está EN PRODUCCIÓN**
+> (`de5d58e`, comprobado desde fuera), y con ella **crear una identidad propia
+> por fin termina** (§7bz). Hasta hoy no lo hacía, y sin eso las Fases 5, 6 y 7
+> estaban cerradas para todo el mundo aunque el SQL llevara días completo.
+>
 > **Y lo primero de todo, que sigue sin hacerse:** mirar todo esto con una
-> sesión real. Es lo único que no se puede comprobar desde aquí.
+> sesión real, empezando por **el correo de confirmación y su enlace**, que es
+> lo único que no se puede comprobar ni desde aquí ni con la demo.
 
 Última actualización: **30 de agosto de 2026**, al cierre de la
 sesión de **recuperación ante desastres y terreno firme** (§7bb): migraciones
@@ -6963,8 +6969,8 @@ falta la función entera—, pero conviene saber que está ahí.
 | | |
 |---|---|
 | Repositorio | `~/el-gremio`, rama `main` |
-| Versión desplegada | **2.39.0** · `npm run health` en verde · `cd9e3eb`, supabase 17.6 |
-| Versión en el repo | **2.40.0**, sin publicar. La demo (§7by) y la vuelta del enlace (§7bz) |
+| Versión desplegada | **2.40.0** · `npm run health` en verde · `de5d58e`, supabase 17.6 |
+| Nada sin publicar | el repo y producción sirven lo mismo |
 | Migraciones aplicadas | hasta la **061**. La siguiente libre es la **062** |
 | Tests | 1650 en 88 ficheros |
 | Plan y especificación | `~/Library/Mobile Documents/com~apple~CloudDocs/ClaudeCode/specs/` |
@@ -6994,11 +7000,7 @@ que `anon` hereda.
 
 ## Por dónde seguir
 
-**Publicar.** En el repo hay dos versiones sin subir —la 2.39.1 y la 2.40.0— y
-la segunda es la que desbloquea todo lo construido desde el 29-ago. **Sin
-migración**: `npm run vercel && npm run health`, y nada más.
-
-**Y con ella publicada, mirar todo esto con una sesión real.** Ahora sí se puede
+**Mirar todo esto con una sesión real.** Ahora sí se puede
 de verdad: hasta hoy la creación de identidad no terminaba, así que las fases 5
 a 7 no se podían probar ni con una cuenta real. Lo primero que hay que ver es
 **el correo de confirmación llegando y su enlace funcionando**, que es lo único
