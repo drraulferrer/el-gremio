@@ -18,6 +18,26 @@ verdad duele en esta app: que el esquema y el cliente dejen de encajar.
 
 ---
 
+## 2.39.1 · 31 de agosto de 2026
+
+**La demo aprende la mitad de la aplicación que no sabía.** Sin cambio de
+comportamiento en producción: lo que cambia es el modo demo, que hasta ahora
+contestaba «función desconocida» a las veintisiete funciones de identidad,
+expansión, invitación y reclamación. Ninguna pantalla de las fases 5 a 7 se
+podía ver funcionando ahí, y este proyecto ha cazado sus tres bugs más caros
+abriendo la app, no compilándola.
+
+Ahora se puede, de punta a punta y en el navegador: crear una identidad propia,
+ver la escalera de escalones con lo que falta para cada uno, forjar una llave,
+gastarla creando un gremio y cambiar entre los dos. También invitar, entrar,
+salir, reclamar un personaje y retirar la clave común.
+
+El correo es lo único que la demo no puede imitar, y se dice dónde: el alta de
+una identidad termina al entrar con esa cuenta, que es lo que en producción hace
+la vuelta desde el enlace. Ninguna regla se relaja; solo el transporte.
+
+---
+
 ## 2.39.0 · 31 de agosto de 2026
 
 **Reclamar un personaje que ya era tuyo.** Si en otro gremio hay un personaje

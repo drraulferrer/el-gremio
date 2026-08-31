@@ -117,10 +117,16 @@ describe('cero condicionales por tipo fuera de la plantilla', () => {
     // quedan son el valor por defecto que se le pasa a `textoDeTipo` y a
     // `rasgoDeTipo`: lo que hacía el código antes, para que sin plantilla no
     // cambie nada. Un tercer fichero que compare el tipo hace caer este test.
+    //
+    // `fakeBackend.js` queda fuera porque no es cliente: es el espejo de
+    // `tg_plantilla_de_gremio_nuevo`, que es justamente EL sitio del servidor
+    // donde esa comparación tiene que estar. Que la haga es lo correcto; que
+    // la hiciera distinta es lo que hay que impedir, y de eso va la
+    // comprobación de abajo.
     const ficheros = []
     for (const dir of ['src/lib', 'src/screens', 'src/components']) {
       for (const f of readdirSync(new URL(dir + '/', raiz))) {
-        if (!/\.jsx?$/.test(f)) continue
+        if (!/\.jsx?$/.test(f) || f === 'fakeBackend.js') continue
         // Sin comentarios: `plantilla.js` explica en su cabecera el patrón que
         // viene a sustituir, y eso es prosa, no un condicional.
         const t = leer(`${dir}/${f}`)
@@ -136,6 +142,16 @@ describe('cero condicionales por tipo fuera de la plantilla', () => {
       expect(leer(f), `${f} compara el tipo sin pasar por la plantilla`)
         .toMatch(/from '\.\.\/lib\/plantilla'/)
     }
+  })
+
+  it('y el espejo de la demo traduce el tipo igual que el disparador', () => {
+    // Misma expresión, palabra por palabra: si el disparador cambiara de
+    // criterio y la demo no, un gremio nacería con una plantilla aquí y con
+    // otra en casa de alguien, que es la clase de desacuerdo que no se ve
+    // hasta que ya está publicado.
+    expect(m053).toContain("case new.tipo_gremio when 'piso' then 'hogar_compartido' else 'hogar' end")
+    expect(leer('src/lib/fakeBackend.js'))
+      .toContain("nueva.tipo_gremio === 'piso' ? 'hogar_compartido' : 'hogar'")
   })
 
   it('y la app trae la plantilla en el bloque que degrada solo', () => {

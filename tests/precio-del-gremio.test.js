@@ -76,12 +76,36 @@ describe('ningún número de expansión vive ya en `src/lib`', () => {
     // los dos costes altos y el nombre del coste base. Nada de `HITOS` a
     // secas — ese nombre lo usan también los hitos de racha, que son otra
     // cosa y viven en `src/lib/rachas.js` con todo el derecho.
-    const libs = readdirSync(new URL('src/lib/', raiz)).filter((f) => f.endsWith('.js'))
+    //
+    // `fakeCatalogo.js` queda fuera, y es la única excepción: no es cliente,
+    // es la copia que el backend simulado hace del SERVIDOR, igual que
+    // `fakeBackend.js` copia los disparadores. Que la demo no tenga la escala
+    // sería tener una demo que no puede probar la expansión, que es
+    // exactamente lo que esta tanda vino a arreglar. Lo que sí hay que
+    // defender es que esa copia no se desvíe, y de eso va el test de abajo.
+    const libs = readdirSync(new URL('src/lib/', raiz))
+      .filter((f) => f.endsWith('.js') && f !== 'fakeCatalogo.js')
     const culpables = libs.filter((f) => {
       const t = leer(`src/lib/${f}`)
       return /\b1875\b|\b4690\b|coste_base|COSTE_BASE/.test(t)
     })
     expect(culpables).toEqual([])
+  })
+
+  it('y la copia de la demo dice los mismos números que la migración', () => {
+    // Una demo con otra escala es peor que una demo sin escala: enseñaría un
+    // botón de forjar por un precio que la base no va a cobrar. Se comparan
+    // los cuatro escalones, uno a uno, contra el `insert` de la 050.
+    const catalogo = leer('src/lib/fakeCatalogo.js')
+    const m050 = leer('migracion-050-las-reglas-dejan-de-ser-constantes.sql')
+    for (const [orden, nivel, coste] of [[1, 6, 300], [2, 8, 750], [3, 10, 1875], [4, 12, 4690]]) {
+      expect(soloSql(m050)).toContain(`(v_version, ${orden},`)
+      expect(catalogo, `el escalón ${orden} no dice lo mismo que la 050`)
+        .toContain(`orden: ${orden}, nivel_exigido: ${nivel}, coste: ${coste}`)
+    }
+    // Y el límite global, que es el otro número que decide si se puede.
+    expect(soloSql(m050)).toContain('5,      -- R-60')
+    expect(catalogo).toContain('limite_global: 5')
   })
 })
 

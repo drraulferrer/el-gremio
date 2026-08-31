@@ -6673,12 +6673,10 @@ comprueba que ese motivo no cae en el mensaje genérico: sería perder en el
 `npm run verify`: **1563 tests en 86 ficheros**. En `dev:demo`, la pantalla de
 reclamar entera.
 
-**Y una limitación que ya es un patrón:** la demo **no tiene capa de RPC**, así
-que ninguna pantalla de las Fases 5 a 7 se puede ver ahí funcionando. Todas las
-verificaciones de esas fases han sido «el caso negativo en pantalla, el positivo
-por tests». Cerrar ese hueco en `src/lib/fakeBackend.js` es probablemente el
-trabajo más rentable que queda: la demo es donde se prueba, y ahora mismo no
-prueba la mitad de la aplicación.
+**Y una limitación que ya era un patrón:** la demo **no tenía capa de RPC**, así
+que ninguna pantalla de las Fases 5 a 7 se podía ver ahí funcionando. Todas las
+verificaciones de esas fases fueron «el caso negativo en pantalla, el positivo
+por tests». **Cerrado el 31-ago en §7by.**
 
 
 ---
@@ -6757,9 +6755,125 @@ en su sitio y cero descuadres.
 
 ---
 
+---
+
+## 7by. La demo aprende la otra mitad (31 de agosto) · 2.39.1 · SIN MIGRACIÓN
+
+Cierra el hueco que §7bw dejaba apuntado como «el trabajo más rentable que
+queda». El backend simulado conocía las doce funciones de la economía y
+contestaba **«función desconocida»** a las veintisiete de identidad, expansión,
+invitación y reclamación. La consecuencia no era que faltara una pieza: era que
+**la mitad de la aplicación no se podía abrir en el navegador**, que es donde
+este proyecto ha cazado sus tres bugs más caros.
+
+### Cinco ficheros y no uno
+
+`fakeBackend.js` ya iba por 992 líneas. La capa nueva son unas 1.600 más, así
+que se repartió por concernencia y ninguno pasa de 750:
+
+| | |
+|---|---|
+| `fakeAlmacen.js` | dónde viven los datos y quién es la sesión. Sale de `fakeBackend`, sin cambiarlo |
+| `fakeCatalogo.js` | el catálogo del **producto**: plantillas de tipo, escala de expansión, disponibilidad por país y matriz de capacidades |
+| `fakeIdentidad.js` | las primitivas: `mis_gremios`, `puede`, la cartera, `entrar_en_gremio`, `consumir_llave` |
+| `fakeExpansion.js` | fases 3 y 5: la escalera, la forja y la conversión |
+| `fakeRpc.js` | fases 6 y 7, y el despachador de todas |
+
+### El catálogo va en constantes, y es deliberado
+
+`plantillas_tipo`, `escalones_expansion` y `plantilla_capacidades` llevan en
+Postgres **RLS encendido sin políticas y un disparador que impide editarlas**.
+No son datos de nadie, son del producto. Meterlas en `localStorage` sería una
+demo donde se puede cambiar la escala, o sea una demo que prueba una escala que
+no existe. Un test compara los cuatro escalones y el límite global, uno a uno,
+contra el `insert` de la 050: la copia no puede desviarse en silencio.
+
+### Lo único que la demo no puede imitar es el correo
+
+Y ahí está la decisión que más importa. En producción la conversión **termina al
+volver desde el enlace**; aquí no hay buzón. La vuelta la hace **el acceso con
+esa cuenta**: `signInWithPassword` llama a `completar_conversion`, que comprueba
+exactamente lo que comprobaría allí —cuenta confirmada, credencial sin
+clasificar, solicitud viva, personaje libre— y mueve el saldo por la única
+puerta que mueve carteras.
+
+De ahí sale el otro detalle del alta: **`signUp` abre sesión solo si no había
+ninguna.** Registrarse desde el acceso es entrar; crear una identidad desde
+Expandirse ocurre con la clave de casa dentro, y ahí producción NO cambia de
+sesión. Si la demo lo hiciera, se probaría un flujo que no existe.
+
+Y como consecuencia de tener cuentas de verdad: **entrar con otro correo es ser
+otra persona.** Sin eso no se puede probar en el navegador una invitación ni una
+reclamación, que son cosas entre dos. El identificador de la PRIMERA cuenta sigue
+siendo `demo-user`, que es lo que la demo usaba cuando solo cabía una: así una
+demo de antes de esto sigue siendo de quien la abra en vez de quedarse huérfana.
+
+### El único sitio donde la demo imita a la RLS
+
+`families`, y solo esa tabla. Con varias cuentas en el mismo aparato, sin filtrar
+el selector enseñaría los gremios de todas mientras `mis_pertenencias()` dice
+otra cosa: la clase de desacuerdo que hace inútil probar aquí. No es RLS de
+verdad —no la hay para el resto—, pero `families` es la puerta.
+
+Además se copian los dos disparadores del gremio que nace —`tg_plantilla_de_gremio_nuevo`
+y `tg_credencial_de_gremio`— y hay un `alinearDemo()` que hace en una demo vieja
+lo que las migraciones 044 y 053 hicieron en producción: sin plantilla `puede()`
+deniega todo, y sin credencial el gremio desaparece del selector.
+
+### Cómo se comprobó
+
+`npm run verify`: **1634 tests en 88 ficheros** (58 nuevos). Tres guardas nuevas
+merecen nombre:
+
+- **Que no falte ninguna.** Se barre `src/` buscando `.rpc('…')` y se cruza con
+  lo que la demo atiende. Es el fallo que ya ocurrió con `grant_manual_bonus`:
+  la demo contestaba «desconocida» y producción funcionaba, o sea que se probaba
+  en el único sitio donde el bug no existía. Y la dirección contraria también:
+  una RPC atendida que nadie llama es código muerto donde menos se mira.
+- **Que no invente códigos.** Para quince funciones se extraen los códigos que
+  devuelve la demo y se comprueba que todos aparecen en el cuerpo de la función
+  SQL. El fallo que esto impide es de una letra: `sin_pertenencias` por
+  `sin_pertenencia` y el mensaje presentable sale genérico.
+- **Que el nivel se calcule igual en las tres copias.** `schema.sql` ya comparaba
+  la suya con el cliente; esta es la tercera y la que nadie miraría.
+
+Dos tests existentes cayeron y **los dos defendían algo real**, así que se
+ajustaron por su intención y con una comprobación positiva de propina:
+`precio-del-gremio` (ningún número de expansión en `src/lib` — ahora excluye el
+catálogo de la demo **y compara sus cuatro escalones con la 050**) y
+`plantilla-de-tipo` (nadie compara `tipo_gremio` — ahora excluye el espejo del
+disparador **y comprueba que traduce con la misma expresión**).
+
+**Y en el navegador, con `dev:demo`, de punta a punta:** crear una identidad
+—con el PIN mal primero, que contesta «El PIN no es correcto»—, entrar con la
+cuenta nueva, ver los 400 Talis salir ya de la cartera, la escalera con sus
+cuatro escalones y las cifras que faltan bien calculadas, forjar por 300, ver la
+llave «sin usar», gastarla creando *La Segunda Casa* y acabar en el selector con
+los dos gremios y su tipo. También la pantalla de reclamar, que ahora dice
+«necesitas una identidad propia» en vez de romperse.
+
+### Lo que la demo destapó nada más funcionar
+
+**`completar_conversion` no la llama nadie.** Está en la base desde la 047,
+concedida a `authenticated`, y no hay ni una llamada en `src/`, ni en `api/`, ni
+en la Edge Function. Como es **la única manera de que una credencial pase a
+`personal`**, hoy en producción nadie puede llegar a serlo — y sin eso las Fases
+5, 6 y 7 enteras están cerradas: forjar, aceptar una invitación, reclamar y
+retirar la clave común exigen todas `clase_credencial() = 'personal'`.
+
+El arranque ya decía que la creación de identidad era «lo único que no se ha
+podido probar contra la base». No es que no se haya probado: es que **falta el
+paso que la termina**. Es una pieza pequeña —enganchar la vuelta del enlace al
+arranque de la app, donde llega esa sesión— y es lo siguiente que hay que hacer,
+porque sin ella lo construido en las fases 5 a 7 no lo puede usar nadie.
+
+**Y una de interfaz, menor:** en móvil el botón «Forjar por 300 🪙» parte la
+frase en dos líneas dentro del escalón. Se ve ahora porque hasta ahora esa
+pantalla no se veía.
+
 # CÓMO ARRANCAR LA SIGUIENTE SESIÓN
 
-**Estado al cerrar el 30-ago-2026, por la noche.**
+**Estado al cerrar el 31-ago-2026, por la noche.**
 
 ## Dónde está todo
 
@@ -6767,8 +6881,9 @@ en su sitio y cero descuadres.
 |---|---|
 | Repositorio | `~/el-gremio`, rama `main` |
 | Versión desplegada | **2.39.0** · `npm run health` en verde · `cd9e3eb`, supabase 17.6 |
+| Versión en el repo | **2.39.1**, sin publicar. Es solo la demo (§7by): nada cambia en producción |
 | Migraciones aplicadas | hasta la **061**. La siguiente libre es la **062** |
-| Tests | 1574 en 87 ficheros |
+| Tests | 1634 en 88 ficheros |
 | Plan y especificación | `~/Library/Mobile Documents/com~apple~CloudDocs/ClaudeCode/specs/` |
 
 **Lo primero, siempre:** `git fetch` antes de elegir número de migración o de
@@ -6796,7 +6911,15 @@ que `anon` hereda.
 
 ## Por dónde seguir
 
-**Mirar todo esto con una sesión real.** Es lo único de la lista de `CLAUDE.md`
+**Lo primero, y es nuevo: enganchar la vuelta del enlace del correo.**
+`completar_conversion` no la llama nadie (§7by), y es la única manera de que una
+credencial pase a `personal`. Sin ella **las Fases 5, 6 y 7 están cerradas en
+producción**: forjar, aceptar una invitación, reclamar y retirar la clave común
+exigen las cuatro `clase_credencial() = 'personal'`. Es una pieza pequeña y
+desbloquea todo lo construido desde el 29-ago. Lo destapó la demo el día que
+empezó a funcionar.
+
+**Y después, mirar todo esto con una sesión real.** Es lo único de la lista de `CLAUDE.md`
 que lleva días sin hacerse, y ahora hay bastante que mirar: el botón de
 Expandirse en Progreso, la bandeja de invitaciones en el selector, «Gente de
 fuera» en Miembros y «Dejar este gremio» en Datos. Todo lo demás está
@@ -6831,7 +6954,8 @@ Y dos cosas que no son de ninguna fase y siguen abiertas:
 
 1. **Mirar la app con una sesión real.** Es lo único de las cuatro
    comprobaciones de `CLAUDE.md` que lleva todo el día sin hacerse: el agente no
-   introduce contraseñas y el modo demo no toca RLS. Lo visible de hoy es el
+   introduce contraseñas. Desde §7by el modo demo **sí** cubre las fases 5 a 7,
+   así que lo que queda para una sesión real es la RLS y el correo de verdad. Lo visible de hoy es el
    «te faltan N Talis» de la tienda.
 2. ~~**Supabase Auth**~~ **cerrado el 30-ago.** Las Redirect URLs estaban dadas
    de alta (y se añadió `localhost:5177`, que faltaba), y la plantilla de

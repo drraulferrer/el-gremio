@@ -12,38 +12,14 @@
 // ------------------------------------------------------------------
 
 import { olvidarTodo } from './gremios'
+import {
+  CLAVE, CLAVE_SESION, escribir, filaNueva, leer, notificar, oyentes,
+  sesionActual, uidActual, uuid, vacia
+} from './fakeAlmacen'
+import { rpcDeGremios, completarConversion } from './fakeRpc'
+import { versionDeTipo } from './fakeCatalogo'
+import { altaDeCuenta, misGremios } from './fakeIdentidad'
 
-const CLAVE = 'gremio_demo_db'
-
-const TABLAS = [
-  'families',
-  'profiles',
-  'challenges',
-  'completions',
-  'rewards',
-  'redemptions',
-  'family_goals',
-  'profile_badges',
-  'app_logs',
-  'bonuses',
-  'power_uses',
-  'push_log',
-  'plan_diario',
-  // Sin esta tabla el recordatorio de avisos del panel revienta en modo
-  // demo mientras en producción funciona: la peor combinación, porque la
-  // demo es justo donde se prueba.
-  'push_subs',
-  'campanas_limpieza',
-  'zonas_casa',
-  'informes_fallo',
-  'reconocimientos'
-]
-
-const vacia = () => TABLAS.reduce((acc, t) => ({ ...acc, [t]: [] }), {})
-
-// Valores por defecto de cada tabla, copiados de schema.sql. Sin esto una
-// fila recién insertada sale sin `status` y la función que la aprueba no
-// la encuentra nunca: el fallo silencioso perfecto.
 // Coherencia de especie, copiada de `profiles_especie_coherente` (027).
 //
 // Está aquí porque su ausencia dejó pasar un fallo hasta producción: el
@@ -65,92 +41,6 @@ function retratoCoherente(fila) {
     ['retrato_piel', 'retrato_pelo', 'retrato_peinado', 'retrato_gafas', 'retrato_tunica',
      'retrato_barba', 'retrato_flequillo']
       .every((c) => (fila[c] ?? null) === null)
-}
-
-const DEFECTOS_TABLA = {
-  profiles: { emoji: '🙂', color: '#a78bfa', xp: 0, coins: 0, active: true, gender: 'neutro', xp_maxima: 0, retrato_piel: null, retrato_pelo: null, retrato_peinado: null, retrato_gafas: null, retrato_tunica: null, retrato_barba: null, retrato_flequillo: null },
-  challenges: { emoji: '⭐', xp: 10, coins: 5, frequency: 'diario', active: true, profile_id: null, target_roles: null, skill: null, days: null, campana_id: null },
-  completions: { status: 'pendiente', resolved_at: null, praise: null },
-  rewards: { emoji: '🎁', cost: 50, active: true, tier: 2 },
-  redemptions: { status: 'pendiente', resolved_at: null },
-  family_goals: { emoji: '🏆', target_xp: 1000, achieved: false, achieved_at: null },
-  // `instance_key` con su '' por defecto, igual que en la 030: sin él,
-  // la demo dedupe por un juego de claves distinto al de la base.
-  profile_badges: { instance_key: '' },
-  app_logs: { datos: {} },
-  bonuses: { tipo: 'globos', coins: 5 },
-  power_uses: { target_id: null, nota: null },
-  families: { timezone: 'Europe/Madrid', tipo_gremio: 'familia' },
-  push_log: { franja: 'tarde', enviados: 0 },
-  plan_diario: { origen: 'patron' },
-  push_subs: { activa: true, fallos: 0, ultimo_ok: null },
-  campanas_limpieza: { emoji: '🧹', estado: 'activa', cerrada_at: null, activada_por: null },
-  zonas_casa: { emoji: '🚪', plantilla: 'generica', tipo: 'comun', dueno: null, orden: 0 },
-  informes_fallo: { profile_id: null, pantalla: null, version_app: null, agente: null, huellas: [], estado: 'nuevo' },
-  reconocimientos: { tipo: 'gracias', texto: null, completion_id: null }
-}
-
-/** Columnas de fecha que la base rellena sola, por tabla. */
-const SELLOS_TABLA = {
-  profiles: ['created_at'],
-  challenges: ['created_at'],
-  completions: ['requested_at'],
-  rewards: ['created_at'],
-  redemptions: ['requested_at'],
-  family_goals: ['starts_at'],
-  profile_badges: ['earned_at'],
-  power_uses: ['used_at'],
-  app_logs: ['ts'],
-  families: ['created_at'],
-  campanas_limpieza: ['created_at'],
-  zonas_casa: ['created_at'],
-  informes_fallo: ['created_at'],
-  reconocimientos: ['created_at']
-}
-
-function leer() {
-  try {
-    const crudo = localStorage.getItem(CLAVE)
-    return crudo ? { ...vacia(), ...JSON.parse(crudo) } : vacia()
-  } catch {
-    return vacia()
-  }
-}
-
-// Espejo de `trg_marca_de_agua_xp` (migración 035): xp_maxima nunca baja.
-//
-// Va aquí, en la escritura, y no en el insert/update de Consulta. Las RPC
-// —resolve_completion, el premio a mano, deshacer— tocan `profiles` y
-// escriben directas, saltándose ese camino. En Postgres las cubre a todas
-// un trigger BEFORE, y el único punto equivalente en la demo es este. Si
-// se pusiera en el update, deshacer una validación bajaría la marca en
-// demo y no en producción: el personaje se desvestiría solo aquí, que es
-// justo el sitio donde se prueba.
-function marcaDeAguaXp(db) {
-  if (!Array.isArray(db.profiles)) return db
-  return {
-    ...db,
-    profiles: db.profiles.map((p) => ({
-      ...p,
-      xp_maxima: Math.max(Number(p.xp_maxima) || 0, Number(p.xp) || 0)
-    }))
-  }
-}
-
-function escribir(db) {
-  localStorage.setItem(CLAVE, JSON.stringify(marcaDeAguaXp(db)))
-}
-
-function uuid() {
-  return crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2)
-}
-
-const oyentes = new Set()
-
-function notificar() {
-  // Asíncrono a propósito: imita el realtime de Supabase, que nunca
-  // responde dentro del mismo tick que la escritura.
-  setTimeout(() => oyentes.forEach((fn) => fn({ eventType: 'demo' })), 30)
 }
 
 // ------------------------------------------------------------------
@@ -274,7 +164,17 @@ class Consulta {
     const tabla = db[this.tabla] || []
 
     if (this.op === 'select') {
-      let filas = tabla.filter((f) => this.coincide(f))
+      // El único sitio donde la demo imita a la RLS, y solo aquí: desde que
+      // hay identidad personal, un aparato puede tener varias cuentas y sin
+      // esto el selector enseñaría los gremios de todas. `mis_pertenencias()`
+      // diría una cosa y la lista de gremios otra, que es la clase de
+      // desacuerdo que hace inútil probar en la demo.
+      //
+      // No es RLS de verdad —no la hay para el resto de las tablas—, pero
+      // `families` es la puerta: todo lo demás se lee filtrando por el
+      // gremio que salga de aquí.
+      const alcance = this.tabla === 'families' ? misGremios(db, uidActual()) : null
+      let filas = tabla.filter((f) => this.coincide(f) && (!alcance || alcance.has(f.id)))
       if (this.orden) {
         const { columna, ascendente } = this.orden
         filas = [...filas].sort((a, b) => {
@@ -296,14 +196,7 @@ class Consulta {
           const existe = tabla.some((f) => claves.every((c) => f[c] === fila[c]))
           if (existe && this.ignorarDuplicados) continue
         }
-        const ahora = new Date().toISOString()
-        const sellos = (SELLOS_TABLA[this.tabla] || []).reduce((acc, c) => ({ ...acc, [c]: ahora }), {})
-        const nueva = {
-          ...(DEFECTOS_TABLA[this.tabla] || {}),
-          ...sellos,
-          ...fila,
-          id: fila.id || uuid()
-        }
+        const nueva = filaNueva(this.tabla, fila)
         // Igual que Postgres: la fila entera se cae, no se guarda a
         // medias. El mensaje imita al de la base para que quien lo lea en
         // demo reconozca el de producción.
@@ -347,6 +240,17 @@ class Consulta {
           if (nueva.assistance_level && !reto?.track_assistance) nueva.assistance_level = null
         }
 
+        // Espejo de `tg_plantilla_de_gremio_nuevo` (053): un gremio nace con
+        // la plantilla que corresponde a su tipo, en su versión más
+        // reciente. Sin esto, un gremio de la demo no tiene plantilla y
+        // `puede()` deniega todo: la pantalla de miembros se quedaría sin
+        // un solo botón mientras en producción funcionan todos.
+        if (this.tabla === 'families' && !(nueva.tipo_plantilla && nueva.plantilla_version)) {
+          nueva.tipo_plantilla = nueva.tipo_plantilla ||
+            (nueva.tipo_gremio === 'piso' ? 'hogar_compartido' : 'hogar')
+          nueva.plantilla_version = versionDeTipo(nueva.tipo_plantilla)
+        }
+
         // Y de `tg_challenge_familia`: toda misión nace con familia.
         if (this.tabla === 'challenges' && !nueva.mission_family_id) {
           nueva.mission_family_id = `mf:${nueva.id}`
@@ -373,7 +277,28 @@ class Consulta {
         }
         nuevas.push(nueva)
       }
-      escribir({ ...db, [this.tabla]: [...tabla, ...nuevas] })
+      let siguiente = { ...db, [this.tabla]: [...tabla, ...nuevas] }
+      // Espejo de `tg_credencial_de_gremio` (044): cada gremio que existe
+      // tiene detrás una cuenta que es su credencial compartida. Con su
+      // `do nothing`: si esa cuenta ya fuera personal, reescribirla sería
+      // justo el accidente que la clave primaria impide.
+      if (this.tabla === 'families') {
+        for (const f of nuevas) {
+          if (!f.owner) continue
+          if ((siguiente.credenciales || []).some((c) => c.user_id === f.owner)) continue
+          siguiente = {
+            ...siguiente,
+            credenciales: [
+              ...(siguiente.credenciales || []),
+              {
+                user_id: f.owner, clase: 'compartida', family_id: f.id,
+                activa: true, created_at: new Date().toISOString()
+              }
+            ]
+          }
+        }
+      }
+      escribir(siguiente)
       notificar()
       const salida = this.retornar ? nuevas : null
       return { data: this.unico ? salida?.[0] || null : salida, error: null }
@@ -772,7 +697,7 @@ function rpc(nombre, args = {}) {
   // lista para volver a empezar.
   if (nombre === 'delete_my_account') {
     const habia = db.families.length
-    escribir(TABLAS.reduce((acc, t) => ({ ...acc, [t]: [] }), {}))
+    escribir(vacia())
     notificar()
     return { data: habia ? 'ok' : 'ok_sin_gremio', error: null }
   }
@@ -858,14 +783,19 @@ function rpc(nombre, args = {}) {
     }
   }
 
+  // Y las de identidad, expansion, invitacion y reclamacion, que viven en
+  // `fakeRpc.js`. Devuelve null si tampoco es suya, y entonces sigue siendo
+  // un error: una funcion que la app llama y la demo no conoce tiene que
+  // decirlo, no contestar vacio.
+  const deGremios = rpcDeGremios(nombre, args)
+  if (deGremios) return deGremios
+
   return { data: null, error: { message: 'función desconocida en demo: ' + nombre } }
 }
 
 // ------------------------------------------------------------------
 // Cliente
 // ------------------------------------------------------------------
-
-const CLAVE_SESION = 'gremio_demo_sesion'
 
 export function crearClienteDemo() {
   // La demo se trastea desde la consola del navegador, y hasta ahora eso
@@ -876,16 +806,29 @@ export function crearClienteDemo() {
     window.gremio = { reiniciar: () => { reiniciarDemo(); location.reload() }, volcar: leer }
   }
 
-  const sesionGuardada = () => {
-    try {
-      return JSON.parse(localStorage.getItem(CLAVE_SESION) || 'null')
-    } catch {
-      return null
-    }
-  }
-
   let escuchadores = []
   const avisarSesion = (s) => escuchadores.forEach((fn) => fn('DEMO', s))
+
+  /**
+   * Abrir sesión con un correo. Da de alta la cuenta si no existía, que es
+   * como la demo deja «ser» otra persona: entrar con otro correo es entrar
+   * como alguien distinto, y sin eso no hay manera de probar en el
+   * navegador una invitación o una reclamación, que son cosas entre dos.
+   */
+  const entrar = (correo) => {
+    const { db, usuario } = altaDeCuenta(leer(), correo)
+    escribir(db)
+    const sesion = { user: { id: usuario.id, email: usuario.email }, demo: true }
+    localStorage.setItem(CLAVE_SESION, JSON.stringify(sesion))
+    // Y la vuelta del enlace del correo, que es lo que en producción
+    // completa la conversión (047). Aquí no hay enlace que abrir, así que
+    // la hace el propio acceso: sin sesión pendiente no hace nada, y con
+    // ella comprueba lo mismo que comprobaría allí.
+    const conversion = completarConversion(leer(), usuario.id)
+    if (conversion.db) { escribir(conversion.db); notificar() }
+    avisarSesion(sesion)
+    return sesion
+  }
 
   return {
     esDemo: true,
@@ -909,23 +852,33 @@ export function crearClienteDemo() {
       ;(canal?._handlers || []).forEach((fn) => oyentes.delete(fn))
     },
     auth: {
-      getSession: async () => ({ data: { session: sesionGuardada() } }),
-      getUser: async () => ({ data: { user: sesionGuardada()?.user || null } }),
+      getSession: async () => ({ data: { session: sesionActual() } }),
+      getUser: async () => ({ data: { user: sesionActual()?.user || null } }),
       onAuthStateChange: (fn) => {
         escuchadores = [...escuchadores, fn]
         return { data: { subscription: { unsubscribe: () => { escuchadores = escuchadores.filter((f) => f !== fn) } } } }
       },
       signInWithPassword: async ({ email }) => {
-        const sesion = { user: { id: 'demo-user', email }, demo: true }
-        localStorage.setItem(CLAVE_SESION, JSON.stringify(sesion))
-        avisarSesion(sesion)
-        return { data: { session: sesion }, error: null }
+        return { data: { session: entrar(email) }, error: null }
       },
+      /**
+       * El alta. Da de alta la cuenta SIEMPRE, y abre sesión solo si no
+       * había ninguna.
+       *
+       * Esa condición no es una comodidad: es la diferencia entre los dos
+       * sitios que llaman aquí. Registrarse desde el acceso es entrar (en
+       * producción, tras confirmar el correo). Pero crear una identidad
+       * propia desde Expandirse ocurre con la clave de casa dentro, y ahí
+       * producción NO cambia de sesión: manda un correo y todo sigue igual
+       * hasta que alguien abre el enlace. Si la demo cambiara de sesión en
+       * ese momento, se probaría un flujo que no existe.
+       */
       signUp: async ({ email }) => {
-        const sesion = { user: { id: 'demo-user', email }, demo: true }
-        localStorage.setItem(CLAVE_SESION, JSON.stringify(sesion))
-        avisarSesion(sesion)
-        return { data: { session: sesion }, error: null }
+        const abierta = sesionActual()
+        const { db } = altaDeCuenta(leer(), email)
+        escribir(db)
+        if (abierta) return { data: { user: null, session: null }, error: null }
+        return { data: { session: entrar(email) }, error: null }
       },
       // Espejo de `signInWithOtp` con `shouldCreateUser: false`. En demo no
       // hay correo que mandar, así que se comporta como el caso que
@@ -948,8 +901,59 @@ export function crearClienteDemo() {
       // con un TypeError, que es justo el bug que ya se coló una vez con
       // el `grant_manual_bonus` que faltaba aquí.
       resetPasswordForEmail: async () => ({ data: {}, error: null }),
-      updateUser: async () => ({ data: { user: sesionGuardada()?.user || null }, error: null })
+      updateUser: async () => ({ data: { user: sesionActual()?.user || null } , error: null })
     }
+  }
+}
+
+/**
+ * Lo que en producción hicieron las migraciones 044 y 053 de una vez: un
+ * gremio que ya existía se queda sin plantilla y sin credencial, y sin
+ * ninguna de las dos `puede()` deniega todo y el gremio desaparece del
+ * selector. Una demo de antes de esto tiene que seguir siendo la de quien
+ * la abrió, no quedarse vacía.
+ *
+ * Idempotente: solo toca lo que le falta algo.
+ */
+export function alinearDemo() {
+  try {
+    if (!localStorage.getItem(CLAVE)) return 0
+    const db = leer()
+    let cambios = 0
+
+    const families = (db.families || []).map((f) => {
+      if (f.tipo_plantilla && f.plantilla_version) return f
+      cambios++
+      const tipo = f.tipo_plantilla || (f.tipo_gremio === 'piso' ? 'hogar_compartido' : 'hogar')
+      return { ...f, tipo_plantilla: tipo, plantilla_version: versionDeTipo(tipo) }
+    })
+
+    const credenciales = [...(db.credenciales || [])]
+    for (const f of families) {
+      if (!f.owner || credenciales.some((c) => c.user_id === f.owner)) continue
+      cambios++
+      credenciales.push({
+        user_id: f.owner, clase: 'compartida', family_id: f.id,
+        activa: true, created_at: new Date().toISOString()
+      })
+    }
+
+    // Y la cuenta que las tiene, que en la demo vieja no existía como fila.
+    const usuarios = [...(db.usuarios || [])]
+    const sesion = sesionActual()
+    if (sesion?.user?.id && !usuarios.some((u) => u.id === sesion.user.id)) {
+      cambios++
+      usuarios.push(filaNueva('usuarios', {
+        id: sesion.user.id,
+        email: String(sesion.user.email || 'demo@ejemplo.test').toLowerCase(),
+        email_confirmed_at: new Date().toISOString()
+      }))
+    }
+
+    if (cambios) escribir({ ...db, families, credenciales, usuarios })
+    return cambios
+  } catch {
+    return 0
   }
 }
 

@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { flag } from './flags'
-import { crearClienteDemo, migrarTitulosDemo } from './fakeBackend'
+import { alinearDemo, crearClienteDemo, migrarTitulosDemo } from './fakeBackend'
 import { log } from './log'
 
 const url = import.meta.env.VITE_SUPABASE_URL
@@ -13,8 +13,13 @@ export const configured = hayCredenciales || modoDemo
 export const supabase = modoDemo ? crearClienteDemo() : hayCredenciales ? createClient(url, key) : null
 
 // La demo guarda sus datos en el navegador y no pasa por las migraciones,
-// así que se pone al día sola al arrancar.
-if (modoDemo) migrarTitulosDemo()
+// así que se pone al día sola al arrancar. `alinearDemo` hace lo de la 044
+// y la 053: una demo de antes de la identidad no tiene ni plantilla ni
+// credencial, y sin ninguna de las dos su gremio desaparece del selector.
+if (modoDemo) {
+  migrarTitulosDemo()
+  alinearDemo()
+}
 
 // ------------------------------------------------------------------
 // Errores: traducirlos aquí evita que la interfaz enseñe jerga de
