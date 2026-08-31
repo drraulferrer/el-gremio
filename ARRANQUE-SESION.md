@@ -7180,8 +7180,8 @@ declaradas una a una en el test.
 | | |
 |---|---|
 | Repositorio | `~/el-gremio`, rama `main` |
-| Versión desplegada | **2.40.2** · `npm run health` en verde · `a042c60`, supabase 17.6 |
-| Red de seguridad | `gh-pages` sincronizada el 31-ago con la 2.40.2 (`deploy-2026-08-31-0842`). Llevaba desde el 21-ago |
+| Versión desplegada | **2.41.0** · `npm run health` en verde · `0f5dbac`, supabase 17.6 |
+| Red de seguridad | `gh-pages` en la **2.40.2** (`deploy-2026-08-31-0842`): una versión por detrás de producción |
 | Nada sin publicar | el repo y producción sirven lo mismo |
 | Migraciones aplicadas | hasta la **061**. La siguiente libre es la **062** |
 | Tests | 1667 en 89 ficheros |
